@@ -56,6 +56,11 @@ function FounderWorkspace() {
         </div>
         <div className="flex flex-wrap gap-2">
           <a href="#tenants" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Tenant registry</a>
+          <a href="#plans" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Plans & pricing</a>
+          <a href="#notifications" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Notifications</a>
+          <a href="#subscriptions" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Subscriptions</a>
+          <a href="#billing" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Billing</a>
+          <a href="#entitlements" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Entitlements</a>
           <a href="#activity" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Audit activity</a>
           <span className="inline-flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground"><ShieldCheck className="size-4" /> Founder-authorized</span>
         </div>
@@ -114,6 +119,89 @@ function FounderWorkspace() {
           </table>
         </div>
         <p className="text-xs text-muted-foreground">Contact details are not shown because no authoritative commercial contact field has been provisioned. Missing subscriptions and accounts are explicitly identified rather than inferred.</p>
+      </section>
+
+      <section id="subscriptions" className="scroll-mt-6 space-y-3">
+        <div><h2 className="font-semibold">Subscription register</h2><p className="text-sm text-muted-foreground">Persisted subscription lifecycle records. Mutations remain routed through the CC-03 lifecycle service.</p></div>
+        <div className="overflow-x-auto rounded-xl border">
+          <table className="w-full min-w-[900px] text-left text-sm">
+            <thead className="bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="px-4 py-3">Tenant</th><th className="px-4 py-3">Plan / version</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Term / currency</th><th className="px-4 py-3">Property allowance</th><th className="px-4 py-3">Trial ends</th><th className="px-4 py-3">Current period ends</th></tr></thead>
+            <tbody className="divide-y">{data.subscriptions.map((subscription) => <tr key={String(subscription.id)}>
+              <td className="px-4 py-3 font-medium">{String(subscription.tenant_name)}</td><td className="px-4 py-3">{label(String(subscription.plan_code))} · v{String(subscription.plan_version)}</td>
+              <td className="px-4 py-3">{label(String(subscription.status))}</td><td className="px-4 py-3">{String(subscription.billing_term)} · {String(subscription.currency)}</td>
+              <td className="px-4 py-3 tabular-nums">{String(subscription.property_count)}</td><td className="px-4 py-3">{date(subscription.trial_ends_at)}</td><td className="px-4 py-3">{date(subscription.current_period_ends_at)}</td>
+            </tr>)}{data.subscriptions.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No subscription records have been provisioned.</td></tr>}</tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="billing" className="scroll-mt-6 space-y-5">
+        <div><h2 className="font-semibold">Billing and collections</h2><p className="text-sm text-muted-foreground">Invoices and payment transactions from the CC-04 financial ledger.</p></div>
+        <div className="overflow-x-auto rounded-xl border">
+          <table className="w-full min-w-[900px] text-left text-sm">
+            <thead className="bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="px-4 py-3">Invoice</th><th className="px-4 py-3">Tenant</th><th className="px-4 py-3">Issued</th><th className="px-4 py-3">Due</th><th className="px-4 py-3">Total</th><th className="px-4 py-3">Collected</th><th className="px-4 py-3">Outstanding</th><th className="px-4 py-3">Status</th></tr></thead>
+            <tbody className="divide-y">{data.invoices.map((invoice) => <tr key={String(invoice.id)}>
+              <td className="px-4 py-3 font-medium">{String(invoice.invoice_number)}</td><td className="px-4 py-3">{String(invoice.tenant_name)}</td><td className="px-4 py-3">{date(invoice.issued_at)}</td><td className="px-4 py-3">{date(invoice.due_at)}</td>
+              <td className="px-4 py-3 tabular-nums">{money(Number(invoice.total_minor ?? 0), invoice.currency === "USD" ? "USD" : "TZS")}</td>
+              <td className="px-4 py-3 tabular-nums">{money(Number(invoice.amount_paid_minor ?? 0), invoice.currency === "USD" ? "USD" : "TZS")}</td>
+              <td className="px-4 py-3 tabular-nums">{money(Number(invoice.outstanding_minor ?? 0), invoice.currency === "USD" ? "USD" : "TZS")}</td><td className="px-4 py-3">{label(String(invoice.status))}</td>
+            </tr>)}{data.invoices.length === 0 && <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">No issued invoice records.</td></tr>}</tbody>
+          </table>
+        </div>
+        <div className="overflow-x-auto rounded-xl border">
+          <div className="border-b px-4 py-3 font-medium">Payment transactions</div>
+          <table className="w-full min-w-[850px] text-left text-sm">
+            <thead className="bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="px-4 py-3">Tenant</th><th className="px-4 py-3">Provider</th><th className="px-4 py-3">Reference</th><th className="px-4 py-3">Amount</th><th className="px-4 py-3">Method</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Confirmed</th></tr></thead>
+            <tbody className="divide-y">{data.payments.map((payment) => <tr key={String(payment.id)}>
+              <td className="px-4 py-3">{String(payment.tenant_name)}</td><td className="px-4 py-3">{label(String(payment.provider))}</td><td className="px-4 py-3 text-xs">{String(payment.provider_transaction_ref ?? "Pending provider reference")}</td>
+              <td className="px-4 py-3 tabular-nums">{money(Number(payment.amount_minor ?? 0), payment.currency === "USD" ? "USD" : "TZS")}</td><td className="px-4 py-3">{label(String(payment.payment_method ?? "—"))}</td><td className="px-4 py-3">{label(String(payment.status))}</td><td className="px-4 py-3">{date(payment.confirmed_at)}</td>
+            </tr>)}{data.payments.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No payment transactions.</td></tr>}</tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="entitlements" className="scroll-mt-6 space-y-4">
+        <div><h2 className="font-semibold">Entitlement administration evidence</h2><p className="text-sm text-muted-foreground">Current assignments and recorded enforcement decisions. Changes must use the CC-05 entitlement service.</p></div>
+        <div className="grid gap-3 lg:grid-cols-2">
+          <div className="overflow-x-auto rounded-xl border"><div className="border-b px-4 py-3 font-medium">Active assignments</div>
+            <table className="w-full text-left text-sm"><thead className="bg-muted/60 text-xs text-muted-foreground"><tr><th className="px-4 py-3">Feature</th><th className="px-4 py-3">Organisation</th><th className="px-4 py-3">Source</th><th className="px-4 py-3">Effective to</th></tr></thead>
+              <tbody className="divide-y">{data.entitlementAssignments.filter((assignment) => assignment.status === "active").map((assignment) => <tr key={String(assignment.id)}><td className="px-4 py-3">{String(assignment.feature_code)}</td><td className="px-4 py-3 text-xs">{String(assignment.organisation_id)}</td><td className="px-4 py-3">{label(String(assignment.source_type))}</td><td className="px-4 py-3">{date(assignment.effective_to)}</td></tr>)}
+              {data.entitlementAssignments.filter((assignment) => assignment.status === "active").length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">No active entitlement assignments.</td></tr>}</tbody></table>
+          </div>
+          <div className="overflow-x-auto rounded-xl border"><div className="border-b px-4 py-3 font-medium">Latest enforcement decisions</div>
+            <table className="w-full text-left text-sm"><thead className="bg-muted/60 text-xs text-muted-foreground"><tr><th className="px-4 py-3">Feature</th><th className="px-4 py-3">Decision</th><th className="px-4 py-3">Outcome</th><th className="px-4 py-3">Date</th></tr></thead>
+              <tbody className="divide-y">{data.entitlementDecisions.slice(0,20).map((decision) => <tr key={String(decision.id)}><td className="px-4 py-3">{String(decision.feature_code)}</td><td className="px-4 py-3">{decision.allowed ? "Allowed" : "Denied"}</td><td className="px-4 py-3 text-xs">{label(String(decision.outcome))}</td><td className="px-4 py-3">{date(decision.decided_at)}</td></tr>)}
+              {data.entitlementDecisions.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">No enforcement decisions have been recorded.</td></tr>}</tbody></table>
+          </div>
+        </div>
+      </section>
+
+      <section id="plans" className="scroll-mt-6 space-y-3">
+        <div><h2 className="font-semibold">Plans and pricing policy versions</h2><p className="text-sm text-muted-foreground">Version history from founder-managed CC-02 policy configuration. No second pricing engine is introduced.</p></div>
+        <div className="overflow-x-auto rounded-xl border"><table className="w-full min-w-[700px] text-left text-sm">
+          <thead className="bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="px-4 py-3">Policy</th><th className="px-4 py-3">Version</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Effective from</th><th className="px-4 py-3">Created</th></tr></thead>
+          <tbody className="divide-y">{data.policyVersions.map((policy) => <tr key={String(policy.id)}><td className="px-4 py-3">{label(String(policy.policy_type))}</td><td className="px-4 py-3">v{String(policy.version)}</td><td className="px-4 py-3">{label(String(policy.status))}</td><td className="px-4 py-3">{date(policy.effective_from)}</td><td className="px-4 py-3">{date(policy.created_at)}</td></tr>)}
+          {data.policyVersions.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No published commercial policy versions. Pricing and entitlement resolution must remain fail-closed.</td></tr>}</tbody>
+        </table></div>
+      </section>
+
+      <section id="notifications" className="scroll-mt-6 space-y-3">
+        <div><h2 className="font-semibold">Commercial notification outbox</h2><p className="text-sm text-muted-foreground">Persisted delivery attempts and provider references from the CC-04 notification pipeline.</p></div>
+        <div className="overflow-x-auto rounded-xl border"><table className="w-full min-w-[700px] text-left text-sm">
+          <thead className="bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="px-4 py-3">Type</th><th className="px-4 py-3">Recipient</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Provider reference</th><th className="px-4 py-3">Created</th></tr></thead>
+          <tbody className="divide-y">{data.notifications.map((notification) => <tr key={String(notification.id)}><td className="px-4 py-3">{label(String(notification.notification_type))}</td><td className="px-4 py-3">{String(notification.recipient_email)}</td><td className="px-4 py-3">{label(String(notification.status))}</td><td className="px-4 py-3 text-xs">{String(notification.provider_message_ref ?? "—")}</td><td className="px-4 py-3">{date(notification.created_at)}</td></tr>)}
+          {data.notifications.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No commercial notifications have been generated.</td></tr>}</tbody>
+        </table></div>
+      </section>
+
+      <section id="intelligence" className="scroll-mt-6 space-y-3">
+        <div><h2 className="font-semibold">Commercial intelligence</h2><p className="text-sm text-muted-foreground">Operationally meaningful portfolio indicators derived from the current persisted ledger.</p></div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Metric title="Entitlement decisions" value={String(data.entitlementDecisions.length)} detail="Latest 100 persisted decisions" icon={ShieldCheck} />
+          <Metric title="Notification records" value={String(data.notifications.length)} detail="Latest 100 outbox records" icon={Activity} />
+          <Metric title="Invoices in register" value={String(data.invoices.length)} detail="Issued receivables" icon={FileText} />
+          <Metric title="Payment transactions" value={String(data.payments.length)} detail="Persisted payment attempts and settlements" icon={CreditCard} />
+        </div>
       </section>
 
       <section id="activity" className="scroll-mt-6 space-y-3">

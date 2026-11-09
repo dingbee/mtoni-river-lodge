@@ -24,7 +24,7 @@ export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
       admin.from("staynas_properties").select("id,organisation_id,name,status,created_at"),
       admin.from("commercial_invoice_receivables").select("id,organisation_id,account_id,subscription_id,invoice_number,currency,status,issued_at,due_at,total_minor,amount_paid_minor,outstanding_minor,is_overdue"),
       admin.from("commercial_payment_transactions").select("id,organisation_id,invoice_id,provider,provider_transaction_ref,amount_minor,currency,payment_method,status,confirmed_at,created_at").order("created_at", { ascending: false }),
-      admin.from("commercial_entitlement_assignments").select("id,organisation_id,feature_code,status,effective_from,effective_to"),
+      admin.from("commercial_entitlement_assignments").select("id,organisation_id,feature_code,source_type,status,effective_from,effective_to"),
       admin.from("commercial_audit_events").select("id,actor_user_id,actor_role,action,resource_type,resource_ref,outcome,reason_code,occurred_at,metadata").order("occurred_at", { ascending: false }).limit(30),
       admin.from("commercial_financial_audit_events").select("id,actor_user_id,actor_role,action,resource_type,resource_ref,outcome,reason_code,occurred_at,metadata").order("occurred_at", { ascending: false }).limit(30),
     ]);
