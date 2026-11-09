@@ -81,7 +81,7 @@ function RateOverrides() {
   const selectedCurrency = scope === "room_date"
     ? String(rooms.find((item: {id:string}) => item.id === roomId)?.currency ?? "").toUpperCase()
     : scope === "room_type"
-      ? (roomTypeCurrencies.length === 1 ? roomTypeCurrencies[0] : "")
+      ? (roomTypeCurrencies.length === 1 ? String(roomTypeCurrencies[0] ?? "") : "")
       : String(plans.find((item: {id:string}) => item.id === ratePlanId)?.currency ?? "").toUpperCase();
   const validTarget =
     (scope === "room_date" && !!roomId && !!from) ||
