@@ -350,12 +350,9 @@ BEGIN
     now()-interval '20 days',now()+interval '10 days',100000,0,0,100000,100000,
     '{"test":true}'::jsonb,'{"test":true}'::jsonb
   );
-  INSERT INTO public.commercial_invoice_adjustments(
-    invoice_id,adjustment_ref,adjustment_type,amount_minor,currency,reason_code,status,
-    approval_ref,created_by,posted_at
-  ) VALUES (
-    v_invoice,'CC07-DEBIT-001','debit_note',50000,'TZS','approved_plan_expansion','posted',
-    'CC07-APPROVAL-001',v_user,now()
+  PERFORM public.commercial_post_invoice_adjustment(
+    v_invoice,'CC07-DEBIT-001','debit_note',50000,'TZS',
+    'approved_plan_expansion','CC07-APPROVAL-001',v_user
   );
 
   PERFORM set_config('request.jwt.claim.role','service_role',true);
@@ -424,12 +421,9 @@ BEGIN
     v_period_start,v_period_end,'TZS','monthly','issued',now(),v_period_end,
     150000,0,0,150000,150000,'{"test":true}'::jsonb,'{"test":true}'::jsonb
   );
-  INSERT INTO public.commercial_invoice_adjustments(
-    invoice_id,adjustment_ref,adjustment_type,amount_minor,currency,reason_code,status,
-    approval_ref,created_by,posted_at
-  ) VALUES (
-    v_new_invoice,'CC07-CREDIT-001','credit_note',60000,'TZS','approved_plan_contraction','posted',
-    'CC07-APPROVAL-002',v_user,now()
+  PERFORM public.commercial_post_invoice_adjustment(
+    v_new_invoice,'CC07-CREDIT-001','credit_note',60000,'TZS',
+    'approved_plan_contraction','CC07-APPROVAL-002',v_user
   );
   v_second_result := public.commercial_replace_active_subscription_for_founder(
     v_first_new_sub,'essential',1,'TZS','monthly',1,ARRAY[]::text[],
