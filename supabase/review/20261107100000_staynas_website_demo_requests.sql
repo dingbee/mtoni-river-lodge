@@ -30,7 +30,7 @@ CREATE INDEX IF NOT EXISTS staynas_website_demo_requests_ip_created_idx
 
 ALTER TABLE public.staynas_website_demo_requests ENABLE ROW LEVEL SECURITY;
 
-REVOKE ALL ON TABLE public.staynas_website_demo_requests FROM PUBLIC, anon;
+REVOKE ALL ON TABLE public.staynas_website_demo_requests FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.staynas_website_demo_requests TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.staynas_website_demo_requests TO service_role;
 
