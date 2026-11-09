@@ -1,7 +1,8 @@
 -- CC-03.02 persistence migration contract tests.
 -- Runs after the migration against an isolated PostgreSQL/Supabase-compatible DB.
 BEGIN;
-
+SELECT plan(1);
+SELECT lives_ok($body$
 DO $test$
 DECLARE
   v_table text;
@@ -411,8 +412,9 @@ BEGIN
   EXCEPTION WHEN SQLSTATE '55000' THEN
     NULL;
   END;
+  SET CONSTRAINTS commercial_subscription_trial_claim_required IMMEDIATE;
 END;
 $test$;
-
-SET CONSTRAINTS commercial_subscription_trial_claim_required IMMEDIATE;
+$body$, 'CC-03 subscription lifecycle persistence contract executes without exceptions');
+SELECT * FROM finish();
 ROLLBACK;

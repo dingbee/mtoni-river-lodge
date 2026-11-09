@@ -1,7 +1,8 @@
 -- CC-03.03 atomic trial activation tests.
 -- Runs after CC03.01/02 schema and CC03.03 activation function migrations.
 BEGIN;
-
+SELECT plan(1);
+SELECT lives_ok($body$
 DO $test$
 DECLARE
   v_org uuid := '61000000-0000-4000-8000-000000000001';
@@ -145,5 +146,6 @@ BEGIN
   SET CONSTRAINTS commercial_subscription_trial_claim_required IMMEDIATE;
 END;
 $test$;
-
+$body$, 'CC-03 atomic trial activation contract executes without exceptions');
+SELECT * FROM finish();
 ROLLBACK;

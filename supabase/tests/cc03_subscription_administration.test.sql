@@ -1,7 +1,8 @@
 -- CC-03.04 transactional administration command tests.
 -- Execute after the CC-03.02/03.03/03.04 migrations in isolated PostgreSQL 17.
 BEGIN;
-
+SELECT plan(1);
+SELECT lives_ok($body$
 DO $test$
 DECLARE
   v_org uuid := '61000000-0000-4000-8000-000000000001';
@@ -192,5 +193,6 @@ BEGIN
   END IF;
 END;
 $test$;
-
+$body$, 'CC-03 subscription administration command contract executes without exceptions');
+SELECT * FROM finish();
 ROLLBACK;
