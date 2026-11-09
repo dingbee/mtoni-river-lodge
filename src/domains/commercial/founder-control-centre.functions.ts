@@ -465,7 +465,7 @@ export const getFounderSubscriptionSetup = createServerFn({ method: "GET" })
     const planVersions=policies.catalogue.planVersions.filter(v=>v.status==="published"&&(!v.effectiveFrom||v.effectiveFrom<=today)&&(!v.effectiveTo||v.effectiveTo>=today));
     const plans=policies.catalogue.plans.filter(p=>p.status==="published");
     const prices=policies.pricing.planPrices.filter(p=>p.status==="active"&&(!p.effectiveFrom||p.effectiveFrom<=today)&&(!p.effectiveTo||p.effectiveTo>=today));
-    const addons=policies.catalogue.addons.filter(addon=>addon.status==="active");
+    const addons=policies.catalogue.addons.filter(addon=>addon.status==="published");
     const addonPrices=policies.pricing.addonPrices.filter(price=>price.status==="active"&&(!price.effectiveFrom||price.effectiveFrom<=today)&&(!price.effectiveTo||price.effectiveTo>=today));
     return JSON.parse(JSON.stringify({plans,planVersions,prices,addons,addonPrices,composition:policies.composition.compositions}));
   });
@@ -500,7 +500,7 @@ export const createFounderCommercialSubscription = createServerFn({method:"POST"
     if(!plan||!planVersion||!composition) throw new Error("The selected plan version is not active in the published catalogue and package composition.");
     const selectedAddons=[...new Set(data.addonCodes)];
     if(selectedAddons.length!==data.addonCodes.length) throw new Error("An add-on may only be selected once.");
-    const activeAddonCodes=new Set(policies.catalogue.addons.filter(addon=>addon.status==="active").map(addon=>addon.code));
+    const activeAddonCodes=new Set(policies.catalogue.addons.filter(addon=>addon.status==="published").map(addon=>addon.code));
     if(selectedAddons.some(code=>!activeAddonCodes.has(code))) throw new Error("One or more selected add-ons are not active in the published catalogue.");
     const effectiveComposition={
       ...composition,

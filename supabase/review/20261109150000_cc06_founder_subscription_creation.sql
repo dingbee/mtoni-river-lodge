@@ -43,6 +43,11 @@ BEGIN
     OR _reason_code IS NULL OR length(btrim(_reason_code)) NOT BETWEEN 2 AND 200
     OR _accepted_price_snapshot IS NULL OR jsonb_typeof(_accepted_price_snapshot) <> 'object'
     OR _accepted_price_snapshot->>'currency' IS DISTINCT FROM _currency
+    OR _accepted_price_snapshot->>'planCode' IS DISTINCT FROM _plan_code
+    OR (_accepted_price_snapshot->>'planVersion')::integer IS DISTINCT FROM _plan_version
+    OR _accepted_price_snapshot->>'billingTerm' IS DISTINCT FROM _billing_term
+    OR (_accepted_price_snapshot->>'propertyCount')::integer IS DISTINCT FROM _property_count
+    OR length(coalesce(_accepted_price_snapshot->>'priceCode','')) NOT BETWEEN 1 AND 200
     OR coalesce((_accepted_price_snapshot->>'quoteRequired')::boolean,false) IS DISTINCT FROM _quote_required
     OR (_quote_required AND (_plan_code <> 'enterprise' OR _accepted_price_snapshot ? 'total'
       OR (_accepted_price_snapshot ? 'lineItems' AND jsonb_array_length(_accepted_price_snapshot->'lineItems') <> 0)))
