@@ -162,10 +162,6 @@ create policy booking_pages_public_published_read
   on public.booking_pages for select to anon, authenticated
   using (
     status = 'published'
-    and exists (
-      select 1 from public.staynas_properties p
-      where p.id = booking_pages.property_id and p.status = 'active'
-    )
   );
 
 create policy booking_campaigns_public_published_read
@@ -174,10 +170,6 @@ create policy booking_campaigns_public_published_read
     status = 'published'
     and (starts_at is null or starts_at <= now())
     and (ends_at is null or ends_at > now())
-    and exists (
-      select 1 from public.staynas_properties p
-      where p.id = booking_campaigns.property_id and p.status = 'active'
-    )
   );
 
 create policy campaign_page_content_public_published_read
@@ -186,13 +178,11 @@ create policy campaign_page_content_public_published_read
     status = 'published'
     and exists (
       select 1 from public.booking_campaigns c
-      join public.staynas_properties p on p.id = c.property_id
       where c.id = campaign_page_content.campaign_id
         and c.property_id = campaign_page_content.property_id
         and c.status = 'published'
         and (c.starts_at is null or c.starts_at <= now())
         and (c.ends_at is null or c.ends_at > now())
-        and p.status = 'active'
     )
   );
 
@@ -201,13 +191,11 @@ create policy campaign_room_selections_public_published_read
   using (
     exists (
       select 1 from public.booking_campaigns c
-      join public.staynas_properties p on p.id = c.property_id
       where c.id = campaign_room_selections.campaign_id
         and c.property_id = campaign_room_selections.property_id
         and c.status = 'published'
         and (c.starts_at is null or c.starts_at <= now())
         and (c.ends_at is null or c.ends_at > now())
-        and p.status = 'active'
     )
   );
 
@@ -217,13 +205,11 @@ create policy campaign_offers_public_published_read
     active
     and exists (
       select 1 from public.booking_campaigns c
-      join public.staynas_properties p on p.id = c.property_id
       where c.id = campaign_offers.campaign_id
         and c.property_id = campaign_offers.property_id
         and c.status = 'published'
         and (c.starts_at is null or c.starts_at <= now())
         and (c.ends_at is null or c.ends_at > now())
-        and p.status = 'active'
     )
   );
 
