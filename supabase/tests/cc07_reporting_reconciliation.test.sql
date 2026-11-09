@@ -312,6 +312,7 @@ DECLARE
   v_first_new_sub uuid;
   v_final_sub uuid;
   v_new_invoice uuid := '97000000-0000-4000-8000-000000000008';
+  v_writeoff_invoice uuid := '97000000-0000-4000-8000-000000000010';
   v_usd_org uuid := '97000000-0000-4000-8000-000000000009';
   v_usd_account uuid := '97000000-0000-4000-8000-00000000000a';
   v_tzs_new_sub uuid := '97000000-0000-4000-8000-00000000000b';
@@ -489,17 +490,13 @@ BEGIN
     v_new_invoice,'CC07-CREDIT-001','credit_note',60000,'TZS',
     'approved_plan_contraction','CC07-APPROVAL-002',v_user
   );
-  PERFORM public.commercial_post_invoice_adjustment(
-    v_new_invoice,'CC07-WRITEOFF-001','write_off',10000,'TZS',
-    'approved_small_balance_writeoff','CC07-APPROVAL-003',v_user
-  );
   IF NOT EXISTS (
     SELECT 1 FROM public.commercial_founder_revenue_invoice_facts
     WHERE invoice_id=v_new_invoice AND gross_invoiced_minor='150000'
-      AND net_invoiced_minor='80000' AND credit_notes_minor='60000'
-      AND write_offs_minor='10000' AND debit_notes_minor='0'
+      AND net_invoiced_minor='90000' AND credit_notes_minor='60000'
+      AND write_offs_minor='0' AND debit_notes_minor='0'
   ) THEN
-    RAISE EXCEPTION 'Credit-note and write-off classifications are incorrect';
+    RAISE EXCEPTION 'Credit-note classification is incorrect';
   END IF;
   v_second_result := public.commercial_replace_active_subscription_for_founder(
     v_first_new_sub,'essential',1,'TZS','monthly',1,ARRAY[]::text[],
@@ -511,6 +508,28 @@ BEGIN
     RAISE EXCEPTION 'Accepted price replacement did not record exact contraction MRR';
   END IF;
   v_final_sub := (v_second_result->>'subscriptionId')::uuid;
+  SELECT current_period_starts_at,current_period_ends_at INTO v_period_start,v_period_end
+    FROM public.commercial_subscriptions WHERE id=v_final_sub;
+  INSERT INTO public.commercial_invoices(
+    id,organisation_id,account_id,subscription_id,invoice_number,idempotency_key,
+    billing_period_start,billing_period_end,currency,billing_term,status,issued_at,due_at,
+    subtotal_minor,tax_minor,discount_minor,total_minor,amount_paid_minor,pricing_snapshot,tax_snapshot
+  ) VALUES (
+    v_writeoff_invoice,v_customer_org,v_account,v_final_sub,'CC07-WRITEOFF-INV','cc07-writeoff-invoice',
+    v_period_start,v_period_end,'TZS','monthly','issued',now(),v_period_end,
+    20000,0,0,20000,0,'{"test":true}'::jsonb,'{"test":true}'::jsonb
+  );
+  PERFORM public.commercial_post_invoice_adjustment(
+    v_writeoff_invoice,'CC07-WRITEOFF-001','write_off',5000,'TZS',
+    'approved_small_balance_writeoff','CC07-APPROVAL-003',v_user
+  );
+  IF NOT EXISTS (
+    SELECT 1 FROM public.commercial_founder_revenue_invoice_facts
+    WHERE invoice_id=v_writeoff_invoice AND gross_invoiced_minor='20000'
+      AND net_invoiced_minor='15000' AND write_offs_minor='5000'
+  ) THEN
+    RAISE EXCEPTION 'Write-off classification is incorrect';
+  END IF;
   v_churn_result := public.commercial_apply_subscription_command(
     v_account,v_final_sub,'cancel_immediately','cc07-final-churn-key',
     v_user,v_founder_org,'founder_admin','customer_churn',NULL,NULL
