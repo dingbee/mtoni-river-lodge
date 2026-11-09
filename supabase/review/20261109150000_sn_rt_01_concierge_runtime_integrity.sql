@@ -455,7 +455,152 @@ GRANT EXECUTE ON FUNCTION public.staynas_transition_concierge_escalation(uuid,uu
 
 -- Durable, server-only rate limiting for anonymous Concierge endpoints.
 CREATE TABLE IF NOT EXISTS public.staynas_public_api_rate_limits (
-  key_hash text PRIMARY KEY CHECK (key_hash ~ '^[a-f0-9]{64}),
+  key_hash text PRIMARY KEY CHECK (key_hash ~ '^[a-f0-9]{64}
+  window_started_at timestamptz NOT NULL,
+  request_count integer NOT NULL CHECK (request_count >= 0),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.staynas_public_api_rate_limits ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.staynas_public_api_rate_limits FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.staynas_public_api_rate_limits TO service_role;
+
+CREATE OR REPLACE FUNCTION public.staynas_consume_public_rate_limit(
+  p_key_hash text,
+  p_limit integer,
+  p_window_seconds integer
+)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $function$
+DECLARE
+  v_count integer;
+BEGIN
+  IF p_key_hash IS NULL OR p_key_hash !~ '^[a-f0-9]{64}     OR p_limit < 1 OR p_limit > 1000
+     OR p_window_seconds < 1 OR p_window_seconds > 86400 THEN
+    RAISE EXCEPTION 'Invalid public rate limit contract' USING ERRCODE = '22023';
+  END IF;
+
+  INSERT INTO public.staynas_public_api_rate_limits(key_hash, window_started_at, request_count)
+  VALUES (p_key_hash, now(), 1)
+  ON CONFLICT (key_hash) DO UPDATE
+  SET window_started_at = CASE
+        WHEN public.staynas_public_api_rate_limits.window_started_at
+          + make_interval(secs => p_window_seconds) <= now()
+        THEN now()
+        ELSE public.staynas_public_api_rate_limits.window_started_at
+      END,
+      request_count = CASE
+        WHEN public.staynas_public_api_rate_limits.window_started_at
+          + make_interval(secs => p_window_seconds) <= now()
+        THEN 1
+        ELSE public.staynas_public_api_rate_limits.request_count + 1
+      END,
+      updated_at = now()
+  RETURNING request_count INTO v_count;
+
+  RETURN v_count <= p_limit;
+END
+$function$;
+
+REVOKE ALL ON FUNCTION public.staynas_consume_public_rate_limit(text,integer,integer)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.staynas_consume_public_rate_limit(text,integer,integer)
+  TO service_role;
+
+COMMIT;
+),
+  window_started_at timestamptz NOT NULL,
+  request_count integer NOT NULL CHECK (request_count >= 0),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.staynas_public_api_rate_limits ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.staynas_public_api_rate_limits FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.staynas_public_api_rate_limits TO service_role;
+
+CREATE OR REPLACE FUNCTION public.staynas_consume_public_rate_limit(
+  p_key_hash text,
+  p_limit integer,
+  p_window_seconds integer
+)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $function$
+DECLARE
+  v_count integer;
+BEGIN
+  IF p_key_hash IS NULL OR p_key_hash !~ '^[a-f0-9]{64}
+     OR p_limit < 1 OR p_limit > 1000
+     OR p_window_seconds < 1 OR p_window_seconds > 86400 THEN
+    RAISE EXCEPTION 'Invalid public rate limit contract' USING ERRCODE = '22023';
+  END IF;
+
+  INSERT INTO public.staynas_public_api_rate_limits(key_hash, window_started_at, request_count)
+  VALUES (p_key_hash, now(), 1)
+  ON CONFLICT (key_hash) DO UPDATE
+  SET window_started_at = CASE
+        WHEN public.staynas_public_api_rate_limits.window_started_at
+          + make_interval(secs => p_window_seconds) <= now()
+        THEN now()
+        ELSE public.staynas_public_api_rate_limits.window_started_at
+      END,
+      request_count = CASE
+        WHEN public.staynas_public_api_rate_limits.window_started_at
+          + make_interval(secs => p_window_seconds) <= now()
+        THEN 1
+        ELSE public.staynas_public_api_rate_limits.request_count + 1
+      END,
+      updated_at = now()
+  RETURNING request_count INTO v_count;
+
+  RETURN v_count <= p_limit;
+END
+$function$;
+
+REVOKE ALL ON FUNCTION public.staynas_consume_public_rate_limit(text,integer,integer)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.staynas_consume_public_rate_limit(text,integer,integer)
+  TO service_role;
+
+COMMIT;
+
+     OR p_limit < 1 OR p_limit > 1000
+     OR p_window_seconds < 1 OR p_window_seconds > 86400 THEN
+    RAISE EXCEPTION 'Invalid public rate limit contract' USING ERRCODE = '22023';
+  END IF;
+
+  INSERT INTO public.staynas_public_api_rate_limits(key_hash, window_started_at, request_count)
+  VALUES (p_key_hash, now(), 1)
+  ON CONFLICT (key_hash) DO UPDATE
+  SET window_started_at = CASE
+        WHEN public.staynas_public_api_rate_limits.window_started_at
+          + make_interval(secs => p_window_seconds) <= now()
+        THEN now()
+        ELSE public.staynas_public_api_rate_limits.window_started_at
+      END,
+      request_count = CASE
+        WHEN public.staynas_public_api_rate_limits.window_started_at
+          + make_interval(secs => p_window_seconds) <= now()
+        THEN 1
+        ELSE public.staynas_public_api_rate_limits.request_count + 1
+      END,
+      updated_at = now()
+  RETURNING request_count INTO v_count;
+
+  RETURN v_count <= p_limit;
+END
+$function$;
+
+REVOKE ALL ON FUNCTION public.staynas_consume_public_rate_limit(text,integer,integer)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.staynas_consume_public_rate_limit(text,integer,integer)
+  TO service_role;
+
+COMMIT;
+),
   window_started_at timestamptz NOT NULL,
   request_count integer NOT NULL CHECK (request_count >= 0),
   updated_at timestamptz NOT NULL DEFAULT now()
