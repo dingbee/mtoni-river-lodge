@@ -6,9 +6,12 @@ export const Route = createFileRoute("/api/public/concierge/lead")({
       POST: async ({ request }) => {
         try {
           const body = await request.json().catch(() => ({}));
+          const { resolvePublicPropertyFromHostname } = await import("@/lib/public-property.server");
+          const propertyId = await resolvePublicPropertyFromHostname(request.headers.get("host"));
           const { captureLead } = await import("@/domains/ai/concierge/concierge.leads");
           const result = await captureLead({
             session_token: typeof body?.session_token === "string" ? body.session_token : null,
+            consent: body?.consent === true,
             name: typeof body?.name === "string" ? body.name : null,
             email: typeof body?.email === "string" ? body.email : null,
             phone: typeof body?.phone === "string" ? body.phone : null,
@@ -19,7 +22,7 @@ export const Route = createFileRoute("/api/public/concierge/lead")({
             children: typeof body?.children === "number" ? body.children : null,
             interests: Array.isArray(body?.interests) ? body.interests : [],
             notes: typeof body?.notes === "string" ? body.notes : null,
-          });
+          }, propertyId);
           return Response.json(result);
         } catch (err: any) {
           console.error("[concierge] lead error:", err?.message ?? err);
