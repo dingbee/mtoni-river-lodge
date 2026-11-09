@@ -201,6 +201,50 @@ REVOKE ALL ON FUNCTION public.commercial_resolve_reconciliation_item(uuid,text,u
 GRANT EXECUTE ON FUNCTION public.commercial_resolve_reconciliation_item(uuid,text,uuid)
   TO service_role;
 
+-- Serialize run closure against item creation and resolution to prevent
+-- a run being marked complete while a concurrent exception is still committing.
+CREATE OR REPLACE FUNCTION public.commercial_complete_reconciliation_run(
+  _run_id uuid, _actor_user_id uuid
+)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $function$
+DECLARE v_role text := current_setting('request.jwt.claim.role', true);
+  v_run public.commercial_reconciliation_runs%ROWTYPE;
+  v_unresolved integer; v_status text;
+BEGIN
+  IF v_role IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'Service role required' USING ERRCODE = '42501';
+  END IF;
+  SELECT * INTO v_run FROM public.commercial_reconciliation_runs
+    WHERE id=_run_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Reconciliation run not found' USING ERRCODE = 'P0002'; END IF;
+  IF v_run.status <> 'open' THEN
+    RETURN jsonb_build_object('runId',v_run.id,'status',v_run.status,'replayed',true);
+  END IF;
+  SELECT count(*) INTO v_unresolved
+  FROM public.commercial_reconciliation_items
+  WHERE run_id=_run_id AND resolution_status <> 'resolved';
+  v_status := CASE WHEN v_unresolved > 0 THEN 'discrepancy' ELSE 'completed' END;
+  UPDATE public.commercial_reconciliation_runs
+    SET status=v_status,completed_at=now()
+    WHERE id=_run_id;
+  INSERT INTO public.commercial_financial_audit_events(
+    request_id,actor_user_id,actor_organisation_id,actor_role,action,
+    resource_type,resource_ref,outcome,metadata
+  ) VALUES (
+    gen_random_uuid()::text,_actor_user_id,v_run.organisation_id,'founder_admin',
+    'reconciliation.completed','reconciliation_run',_run_id::text,'succeeded',
+    jsonb_build_object('status',v_status,'unresolvedItems',v_unresolved)
+  );
+  RETURN jsonb_build_object('runId',_run_id,'status',v_status,'unresolvedItems',v_unresolved,'replayed',false);
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.commercial_complete_reconciliation_run(uuid,uuid)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.commercial_complete_reconciliation_run(uuid,uuid)
+  TO service_role;
+
 -- Aging is calculated from the authoritative receivable view at query time.
 -- Numeric amounts remain NUMERIC(20,0); no JavaScript-number conversion or FX.
 CREATE OR REPLACE VIEW public.commercial_receivables_aging AS
