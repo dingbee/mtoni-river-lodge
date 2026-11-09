@@ -486,3 +486,344 @@ COMMENT ON VIEW public.commercial_revenue_invoice_facts IS
   'CC-07: issued invoice facts net of posted adjustments; amounts remain currency-specific.';
 COMMENT ON VIEW public.commercial_revenue_collection_facts IS
   'CC-07: allocated collections net of allocation reversals; excludes unallocated cash.';
+
+
+-- CC-07.03: lifecycle-derived revenue movements. Currency is never converted.
+CREATE TABLE IF NOT EXISTS public.commercial_subscription_revenue_movements (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id uuid NOT NULL REFERENCES public.commercial_accounts(id) ON DELETE RESTRICT,
+  organisation_id uuid NOT NULL REFERENCES public.staynas_organisations(id) ON DELETE RESTRICT,
+  previous_subscription_id uuid NOT NULL REFERENCES public.commercial_subscriptions(id) ON DELETE RESTRICT,
+  new_subscription_id uuid NOT NULL REFERENCES public.commercial_subscriptions(id) ON DELETE RESTRICT,
+  movement_type text NOT NULL CHECK (movement_type IN ('expansion','contraction','unchanged')),
+  currency text NOT NULL CHECK (currency IN ('TZS','USD')),
+  previous_mrr_minor numeric(20,0) NOT NULL CHECK (previous_mrr_minor >= 0),
+  new_mrr_minor numeric(20,0) NOT NULL CHECK (new_mrr_minor >= 0),
+  delta_mrr_minor numeric(20,0) NOT NULL,
+  effective_at timestamptz NOT NULL,
+  price_resolution_ref text NOT NULL CHECK (length(btrim(price_resolution_ref)) BETWEEN 1 AND 200),
+  commercial_acceptance_ref text NOT NULL CHECK (length(btrim(commercial_acceptance_ref)) BETWEEN 1 AND 300),
+  financial_adjustment_ref text NOT NULL CHECK (length(btrim(financial_adjustment_ref)) BETWEEN 1 AND 300),
+  idempotency_key text NOT NULL CHECK (length(btrim(idempotency_key)) BETWEEN 8 AND 170),
+  created_by uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,
+  evidence jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(evidence)='object'),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (account_id,idempotency_key),
+  UNIQUE (previous_subscription_id),
+  UNIQUE (new_subscription_id),
+  CHECK (new_subscription_id <> previous_subscription_id),
+  CHECK (delta_mrr_minor = new_mrr_minor - previous_mrr_minor),
+  CHECK (
+    (movement_type='expansion' AND delta_mrr_minor > 0)
+    OR (movement_type='contraction' AND delta_mrr_minor < 0)
+    OR (movement_type='unchanged' AND delta_mrr_minor = 0)
+  )
+);
+CREATE INDEX IF NOT EXISTS commercial_subscription_revenue_movements_org_time_idx
+  ON public.commercial_subscription_revenue_movements(organisation_id,effective_at DESC);
+ALTER TABLE public.commercial_subscription_revenue_movements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.commercial_subscription_revenue_movements FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.commercial_subscription_revenue_movements FROM PUBLIC,anon,authenticated,service_role;
+GRANT SELECT,INSERT ON public.commercial_subscription_revenue_movements TO service_role;
+CREATE POLICY commercial_subscription_revenue_movements_service_role
+  ON public.commercial_subscription_revenue_movements
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+DROP TRIGGER IF EXISTS commercial_subscription_revenue_movements_immutable
+  ON public.commercial_subscription_revenue_movements;
+CREATE TRIGGER commercial_subscription_revenue_movements_immutable
+  BEFORE UPDATE OR DELETE ON public.commercial_subscription_revenue_movements
+  FOR EACH ROW EXECUTE FUNCTION public.reject_commercial_reconciliation_event_mutation();
+
+-- Atomic founder-only replacement: terminate the old immutable subscription,
+-- create a new accepted snapshot, activate it, and record its MRR delta.
+CREATE OR REPLACE FUNCTION public.commercial_replace_active_subscription_for_founder(
+  _old_subscription_id uuid,
+  _plan_code text,
+  _plan_version integer,
+  _currency text,
+  _billing_term text,
+  _property_count integer,
+  _addon_codes text[],
+  _price_resolution_ref text,
+  _accepted_price_snapshot jsonb,
+  _commercial_acceptance_ref text,
+  _financial_adjustment_ref text,
+  _period_ends_at timestamptz,
+  _idempotency_key text,
+  _reason_code text,
+  _actor_user_id uuid,
+  _actor_organisation_id uuid
+)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $function$
+DECLARE
+  v_role text := current_setting('request.jwt.claim.role',true);
+  v_old public.commercial_subscriptions%ROWTYPE;
+  v_account public.commercial_accounts%ROWTYPE;
+  v_founder_org uuid;
+  v_new public.commercial_subscriptions%ROWTYPE;
+  v_existing public.commercial_subscription_revenue_movements%ROWTYPE;
+  v_old_total numeric(20,0);
+  v_new_total numeric(20,0);
+  v_old_mrr numeric(20,0);
+  v_new_mrr numeric(20,0);
+  v_delta numeric(20,0);
+  v_movement_type text;
+  v_now timestamptz := clock_timestamp();
+  v_cancel jsonb;
+  v_activate jsonb;
+  v_create_key text;
+BEGIN
+  IF v_role IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'Service role required' USING ERRCODE='42501';
+  END IF;
+  IF _actor_user_id IS NULL OR _actor_organisation_id IS NULL
+    OR NOT EXISTS (
+      SELECT 1 FROM public.commercial_founder_admin_memberships m
+      WHERE m.principal_id=_actor_user_id AND m.organisation_id=_actor_organisation_id AND m.status='active'
+    ) THEN
+    RAISE EXCEPTION 'Verified founder administrator authority is required' USING ERRCODE='42501';
+  END IF;
+  SELECT founder_organisation_id INTO v_founder_org
+    FROM public.commercial_founder_tenant_config WHERE singleton=true;
+  IF v_founder_org IS NULL OR v_founder_org IS DISTINCT FROM _actor_organisation_id THEN
+    RAISE EXCEPTION 'Founder tenant boundary does not match the verified actor' USING ERRCODE='42501';
+  END IF;
+  IF _old_subscription_id IS NULL
+    OR _plan_code NOT IN ('essential','professional','enterprise')
+    OR _plan_version IS NULL OR _plan_version < 1
+    OR _currency NOT IN ('TZS','USD')
+    OR _billing_term NOT IN ('monthly','annual')
+    OR _property_count IS NULL OR _property_count < 1
+    OR _price_resolution_ref IS NULL OR length(btrim(_price_resolution_ref)) NOT BETWEEN 1 AND 200
+    OR _accepted_price_snapshot IS NULL OR jsonb_typeof(_accepted_price_snapshot)<>'object'
+    OR _accepted_price_snapshot->>'currency' IS DISTINCT FROM _currency
+    OR _accepted_price_snapshot->>'planCode' IS DISTINCT FROM _plan_code
+    OR (_accepted_price_snapshot->>'planVersion')::integer IS DISTINCT FROM _plan_version
+    OR _accepted_price_snapshot->>'billingTerm' IS DISTINCT FROM _billing_term
+    OR (_accepted_price_snapshot->>'propertyCount')::integer IS DISTINCT FROM _property_count
+    OR _accepted_price_snapshot->>'priceCode' IS NULL
+    OR coalesce((_accepted_price_snapshot->>'quoteRequired')::boolean,true) IS DISTINCT FROM false
+    OR jsonb_typeof(_accepted_price_snapshot->'total')<>'number'
+    OR (_accepted_price_snapshot->>'total')::numeric <= 0
+    OR jsonb_typeof(_accepted_price_snapshot->'lineItems')<>'array'
+    OR jsonb_array_length(_accepted_price_snapshot->'lineItems')=0
+    OR to_jsonb(coalesce(_addon_codes,ARRAY[]::text[])) IS DISTINCT FROM _accepted_price_snapshot->'addonCodes'
+    OR (coalesce(array_length(_addon_codes,1),0) <> (SELECT count(DISTINCT x) FROM unnest(coalesce(_addon_codes,ARRAY[]::text[])) x))
+    OR _commercial_acceptance_ref IS NULL OR length(btrim(_commercial_acceptance_ref)) NOT BETWEEN 1 AND 300
+    OR _financial_adjustment_ref IS NULL OR length(btrim(_financial_adjustment_ref)) NOT BETWEEN 1 AND 300
+    OR _period_ends_at IS NULL OR _period_ends_at <= v_now
+    OR _idempotency_key IS NULL OR length(btrim(_idempotency_key)) NOT BETWEEN 8 AND 170
+    OR _reason_code IS NULL OR length(btrim(_reason_code)) NOT BETWEEN 2 AND 200 THEN
+    RAISE EXCEPTION 'Invalid accepted subscription replacement contract' USING ERRCODE='22023';
+  END IF;
+
+  PERFORM pg_advisory_xact_lock(hashtextextended(_idempotency_key,0));
+  SELECT * INTO v_old FROM public.commercial_subscriptions WHERE id=_old_subscription_id FOR UPDATE;
+  IF NOT FOUND OR v_old.status<>'active' OR v_old.quote_required OR v_old.current_period_ends_at<=v_now THEN
+    RAISE EXCEPTION 'Only a current fixed-price paid subscription can be replaced' USING ERRCODE='55000';
+  END IF;
+  IF v_old.currency IS DISTINCT FROM _currency THEN
+    RAISE EXCEPTION 'A subscription replacement cannot change currency; TZS and USD contracts must remain separate' USING ERRCODE='22023';
+  END IF;
+  SELECT * INTO v_account FROM public.commercial_accounts WHERE id=v_old.account_id FOR UPDATE;
+  IF NOT FOUND OR v_account.status<>'active' OR v_account.organisation_id=v_founder_org THEN
+    RAISE EXCEPTION 'Active customer commercial account was not found' USING ERRCODE='P0002';
+  END IF;
+  SELECT * INTO v_existing FROM public.commercial_subscription_revenue_movements
+    WHERE account_id=v_old.account_id AND idempotency_key=_idempotency_key;
+  IF FOUND THEN
+    RETURN jsonb_build_object('ok',true,'replayed',true,'movementId',v_existing.id,
+      'subscriptionId',v_existing.new_subscription_id,'movementType',v_existing.movement_type,
+      'deltaMrrMinor',v_existing.delta_mrr_minor::text);
+  END IF;
+
+  v_old_total := (v_old.accepted_price_snapshot->>'total')::numeric;
+  v_new_total := (_accepted_price_snapshot->>'total')::numeric;
+  v_old_mrr := CASE WHEN v_old.billing_term='monthly' THEN v_old_total ELSE round(v_old_total/12) END;
+  v_new_mrr := CASE WHEN _billing_term='monthly' THEN v_new_total ELSE round(v_new_total/12) END;
+  v_delta := v_new_mrr-v_old_mrr;
+  v_movement_type := CASE WHEN v_delta>0 THEN 'expansion' WHEN v_delta<0 THEN 'contraction' ELSE 'unchanged' END;
+  v_create_key := _idempotency_key || ':create';
+
+  v_cancel := public.commercial_apply_subscription_command(
+    v_old.account_id,v_old.id,'cancel_immediately',_idempotency_key||':close',
+    _actor_user_id,_actor_organisation_id,'founder_admin','commercial_terms_replaced',NULL,NULL
+  );
+
+  INSERT INTO public.commercial_subscriptions(
+    account_id,plan_code,plan_version,currency,billing_term,property_count,addon_codes,
+    price_resolution_ref,accepted_price_snapshot,quote_required,status,created_by
+  ) VALUES (
+    v_old.account_id,_plan_code,_plan_version,_currency,_billing_term,_property_count,
+    coalesce(_addon_codes,ARRAY[]::text[]),_price_resolution_ref,_accepted_price_snapshot,
+    false,'pending_activation',_actor_user_id
+  ) RETURNING * INTO v_new;
+
+  INSERT INTO public.commercial_subscription_events(
+    account_id,subscription_id,event_type,occurred_at,idempotency_key,actor_user_id,
+    actor_organisation_id,actor_role,reason_code,event_metadata
+  ) VALUES (
+    v_account.id,v_new.id,'created',v_now,v_create_key,_actor_user_id,
+    _actor_organisation_id,'founder_admin',_reason_code,
+    jsonb_build_object('priceResolutionRef',_price_resolution_ref,'replacementFor',v_old.id,
+      'planCode',_plan_code,'planVersion',_plan_version,'currency',_currency,'billingTerm',_billing_term)
+  );
+
+  v_activate := public.commercial_apply_subscription_command(
+    v_account.id,v_new.id,'activate_paid',_idempotency_key||':activate',
+    _actor_user_id,_actor_organisation_id,'founder_admin',_reason_code,
+    _commercial_acceptance_ref,_period_ends_at
+  );
+
+  INSERT INTO public.commercial_subscription_revenue_movements(
+    account_id,organisation_id,previous_subscription_id,new_subscription_id,movement_type,
+    currency,previous_mrr_minor,new_mrr_minor,delta_mrr_minor,effective_at,
+    price_resolution_ref,commercial_acceptance_ref,financial_adjustment_ref,
+    idempotency_key,created_by,evidence
+  ) VALUES (
+    v_account.id,v_account.organisation_id,v_old.id,v_new.id,v_movement_type,
+    _currency,v_old_mrr,v_new_mrr,v_delta,v_now,_price_resolution_ref,
+    _commercial_acceptance_ref,_financial_adjustment_ref,_idempotency_key,_actor_user_id,
+    jsonb_build_object('reasonCode',_reason_code,'previousBillingTerm',v_old.billing_term,
+      'newBillingTerm',_billing_term,'previousPlanCode',v_old.plan_code,'newPlanCode',_plan_code,
+      'oldCancellationEventId',v_cancel->>'eventId','newActivationEventId',v_activate->>'eventId')
+  ) RETURNING * INTO v_existing;
+
+  INSERT INTO public.commercial_audit_events(
+    request_id,actor_user_id,actor_organisation_id,actor_role,action,resource_type,
+    resource_ref,outcome,reason_code,metadata
+  ) VALUES (
+    _idempotency_key,_actor_user_id,_actor_organisation_id,'founder_admin',
+    'subscription.commercial_terms_replaced','subscription',v_new.id::text,'succeeded',_reason_code,
+    jsonb_build_object('previousSubscriptionId',v_old.id,'newSubscriptionId',v_new.id,
+      'movementType',v_movement_type,'previousMrrMinor',v_old_mrr::text,
+      'newMrrMinor',v_new_mrr::text,'financialAdjustmentRef',_financial_adjustment_ref)
+  );
+  RETURN jsonb_build_object('ok',true,'replayed',false,'movementId',v_existing.id,
+    'subscriptionId',v_new.id,'movementType',v_movement_type,'deltaMrrMinor',v_delta::text);
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.commercial_replace_active_subscription_for_founder(
+  uuid,text,integer,text,text,integer,text[],text,jsonb,text,text,timestamptz,text,text,uuid,uuid
+) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.commercial_replace_active_subscription_for_founder(
+  uuid,text,integer,text,text,integer,text[],text,jsonb,text,text,timestamptz,text,text,uuid,uuid
+) TO service_role;
+
+-- Preserve numeric(20,0) as text at the database boundary. Browser JSON numbers
+-- would otherwise lose integer precision above Number.MAX_SAFE_INTEGER.
+CREATE OR REPLACE VIEW public.commercial_subscription_recurring_value_facts AS
+SELECT s.id AS subscription_id,s.account_id,a.organisation_id,s.currency,s.billing_term,
+  (s.accepted_price_snapshot->>'total')::numeric(20,0)::text AS contract_total_minor,
+  CASE WHEN s.billing_term='monthly'
+    THEN (s.accepted_price_snapshot->>'total')::numeric(20,0)
+    ELSE round((s.accepted_price_snapshot->>'total')::numeric/12)
+  END::numeric(20,0)::text AS mrr_minor,
+  CASE WHEN s.billing_term='monthly'
+    THEN ((s.accepted_price_snapshot->>'total')::numeric*12)
+    ELSE (s.accepted_price_snapshot->>'total')::numeric
+  END::numeric(20,0)::text AS arr_minor,
+  s.current_period_starts_at,s.current_period_ends_at
+FROM public.commercial_subscriptions s
+JOIN public.commercial_accounts a ON a.id=s.account_id
+WHERE s.status='active' AND s.quote_required=false
+  AND s.current_period_starts_at IS NOT NULL AND s.current_period_ends_at>now();
+
+ALTER VIEW public.commercial_subscription_recurring_value_facts SET (security_invoker=true);
+REVOKE ALL ON public.commercial_subscription_recurring_value_facts FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.commercial_subscription_recurring_value_facts TO service_role;
+
+-- Movement facts distinguish paid acquisition, plan expansion/contraction and
+-- genuine paid churn. Trial activation is never included in MRR.
+CREATE OR REPLACE VIEW public.commercial_subscription_revenue_movement_facts AS
+WITH paid_activations AS (
+  SELECT e.account_id,a.organisation_id,e.subscription_id,e.occurred_at AS effective_at,
+    s.currency,'new'::text AS movement_type,0::numeric(20,0) AS previous_mrr_minor,
+    CASE WHEN s.billing_term='monthly' THEN (s.accepted_price_snapshot->>'total')::numeric(20,0)
+      ELSE round((s.accepted_price_snapshot->>'total')::numeric/12) END::numeric(20,0) AS movement_mrr_minor,
+    (CASE WHEN s.billing_term='monthly' THEN (s.accepted_price_snapshot->>'total')::numeric(20,0)
+      ELSE round((s.accepted_price_snapshot->>'total')::numeric/12) END)::numeric(20,0) AS net_new_mrr_minor
+  FROM public.commercial_subscription_events e
+  JOIN public.commercial_subscriptions s ON s.id=e.subscription_id
+  JOIN public.commercial_accounts a ON a.id=e.account_id
+  WHERE e.event_type='activate_paid' AND s.quote_required=false
+    AND NOT EXISTS (SELECT 1 FROM public.commercial_subscription_revenue_movements m WHERE m.new_subscription_id=s.id)
+),
+price_movements AS (
+  SELECT m.account_id,m.organisation_id,m.new_subscription_id AS subscription_id,m.effective_at,
+    m.currency,m.movement_type,m.previous_mrr_minor,
+    abs(m.delta_mrr_minor) AS movement_mrr_minor,
+    m.delta_mrr_minor AS net_new_mrr_minor
+  FROM public.commercial_subscription_revenue_movements m
+  WHERE m.movement_type IN ('expansion','contraction')
+),
+paid_churn AS (
+  SELECT e.account_id,a.organisation_id,e.subscription_id,e.occurred_at AS effective_at,
+    s.currency,'churned'::text AS movement_type,
+    CASE WHEN s.billing_term='monthly' THEN (s.accepted_price_snapshot->>'total')::numeric(20,0)
+      ELSE round((s.accepted_price_snapshot->>'total')::numeric/12) END::numeric(20,0) AS previous_mrr_minor,
+    CASE WHEN s.billing_term='monthly' THEN (s.accepted_price_snapshot->>'total')::numeric(20,0)
+      ELSE round((s.accepted_price_snapshot->>'total')::numeric/12) END::numeric(20,0) AS movement_mrr_minor,
+    -((CASE WHEN s.billing_term='monthly' THEN (s.accepted_price_snapshot->>'total')::numeric(20,0)
+      ELSE round((s.accepted_price_snapshot->>'total')::numeric/12) END)::numeric(20,0)) AS net_new_mrr_minor
+  FROM public.commercial_subscription_events e
+  JOIN public.commercial_subscriptions s ON s.id=e.subscription_id
+  JOIN public.commercial_accounts a ON a.id=e.account_id
+  WHERE e.event_type IN ('cancel_immediately','expire')
+    AND s.current_period_starts_at IS NOT NULL AND s.quote_required=false
+    AND NOT EXISTS (SELECT 1 FROM public.commercial_subscription_revenue_movements m WHERE m.previous_subscription_id=s.id)
+)
+SELECT * FROM paid_activations
+UNION ALL SELECT * FROM price_movements
+UNION ALL SELECT * FROM paid_churn;
+
+ALTER VIEW public.commercial_subscription_revenue_movement_facts SET (security_invoker=true);
+REVOKE ALL ON public.commercial_subscription_revenue_movement_facts FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.commercial_subscription_revenue_movement_facts TO service_role;
+
+-- One-time, credit, debit/write-off and reversal amounts remain separate
+-- financial classifications rather than being hidden inside collected revenue.
+CREATE OR REPLACE VIEW public.commercial_revenue_invoice_facts AS
+WITH adjustments AS (
+  SELECT invoice_id,
+    sum(amount_minor) FILTER (WHERE adjustment_type='credit_note' AND status='posted')::numeric(20,0) AS credit_notes_minor,
+    sum(amount_minor) FILTER (WHERE adjustment_type='debit_note' AND status='posted')::numeric(20,0) AS debit_notes_minor,
+    sum(amount_minor) FILTER (WHERE adjustment_type='write_off' AND status='posted')::numeric(20,0) AS write_offs_minor
+  FROM public.commercial_invoice_adjustments GROUP BY invoice_id
+), one_time AS (
+  SELECT invoice_id,
+    sum(amount_minor) FILTER (
+      WHERE kind='adjustment' OR line_snapshot->>'chargeModel'='one_time'
+        OR line_snapshot->>'billingFrequency'='one_time'
+    )::numeric(20,0) AS one_time_minor
+  FROM public.commercial_invoice_lines GROUP BY invoice_id
+)
+SELECT r.organisation_id,r.account_id,r.subscription_id,r.invoice_id,
+  date_trunc('month',r.issued_at) AS period_month,r.currency,
+  greatest(r.total_minor+coalesce(ad.debit_notes_minor,0)
+    -coalesce(ad.credit_notes_minor,0)-coalesce(ad.write_offs_minor,0),0)::numeric(20,0) AS net_invoiced_minor,
+  r.outstanding_minor,r.credit_balance_minor,r.issued_at,
+  r.total_minor::numeric(20,0) AS gross_invoiced_minor,
+  coalesce(ot.one_time_minor,0)::numeric(20,0) AS one_time_minor,
+  coalesce(ad.credit_notes_minor,0)::numeric(20,0) AS credit_notes_minor,
+  coalesce(ad.debit_notes_minor,0)::numeric(20,0) AS debit_notes_minor,
+  coalesce(ad.write_offs_minor,0)::numeric(20,0) AS write_offs_minor
+FROM public.commercial_invoice_receivables r
+LEFT JOIN adjustments ad ON ad.invoice_id=r.invoice_id
+LEFT JOIN one_time ot ON ot.invoice_id=r.invoice_id
+WHERE r.status NOT IN ('draft','void') AND r.issued_at IS NOT NULL;
+
+ALTER VIEW public.commercial_revenue_invoice_facts SET (security_invoker=true);
+
+CREATE OR REPLACE VIEW public.commercial_revenue_reversal_facts AS
+SELECT p.organisation_id,p.account_id,date_trunc('month',r.verified_at) AS period_month,
+  p.currency,sum(r.amount_minor)::numeric(20,0) AS reversed_minor,count(*)::bigint AS reversal_count
+FROM public.commercial_payment_reversals r
+JOIN public.commercial_payment_transactions p ON p.id=r.payment_id
+GROUP BY p.organisation_id,p.account_id,date_trunc('month',r.verified_at),p.currency;
+
+ALTER VIEW public.commercial_revenue_reversal_facts SET (security_invoker=true);
+REVOKE ALL ON public.commercial_revenue_reversal_facts FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.commercial_revenue_reversal_facts TO service_role;
