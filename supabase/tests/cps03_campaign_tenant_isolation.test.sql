@@ -103,8 +103,21 @@ BEGIN
     NULL;
   END;
 
-  UPDATE public.booking_campaigns SET status='published', published_at=now()
-  WHERE id='60000000-0000-4000-8000-000000000001';
+  BEGIN
+    UPDATE public.booking_campaigns SET status='published', published_at=now()
+    WHERE id='60000000-0000-4000-8000-000000000001';
+    RAISE EXCEPTION 'Tenant client unexpectedly published a campaign';
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL;
+  END;
+
+  BEGIN
+    INSERT INTO public.booking_campaigns(organisation_id,property_id,slug,name)
+    VALUES ('10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','book','Slug Collision');
+    RAISE EXCEPTION 'Campaign reused the permanent booking page slug';
+  EXCEPTION WHEN unique_violation THEN
+    NULL;
+  END;
 
   IF (SELECT count(*) FROM public.booking_campaigns WHERE property_id='20000000-0000-4000-8000-000000000002') <> 0 THEN
     RAISE EXCEPTION 'Tenant can read another property campaign';
@@ -112,6 +125,12 @@ BEGIN
 END
 $test$;
 
+RESET ROLE;
+SET LOCAL ROLE service_role;
+UPDATE public.booking_campaigns SET status='published', published_at=now()
+WHERE id='60000000-0000-4000-8000-000000000001';
+UPDATE public.campaign_page_content SET status='published', published_at=now()
+WHERE campaign_id='60000000-0000-4000-8000-000000000001';
 RESET ROLE;
 SET LOCAL ROLE anon;
 
