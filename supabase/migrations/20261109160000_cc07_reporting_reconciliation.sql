@@ -652,7 +652,11 @@ BEGIN
     JOIN public.commercial_invoices inv ON inv.id=adj.invoice_id
     WHERE inv.account_id=v_old.account_id AND inv.subscription_id=v_old.id
       AND inv.currency=v_old.currency AND adj.adjustment_ref=_financial_adjustment_ref
-      AND adj.status='posted' AND adj.adjustment_type IN ('credit_note','debit_note')
+      AND adj.status='posted'
+      AND (
+        (v_delta>0 AND adj.adjustment_type='debit_note' AND adj.amount_minor=v_delta)
+        OR (v_delta<0 AND adj.adjustment_type='credit_note' AND adj.amount_minor=abs(v_delta))
+      )
   ) THEN
     RAISE EXCEPTION 'A posted credit/debit adjustment on the replaced subscription is required for an MRR change'
       USING ERRCODE='55000';
