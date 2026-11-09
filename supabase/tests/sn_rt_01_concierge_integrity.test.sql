@@ -350,7 +350,7 @@ BEGIN
     PERFORM * FROM public.staynas_create_concierge_escalation(
       '22222222-2222-4222-8222-222222222222',
       '22222222-2222-4222-8222-222222222223',
-      NULL, 'other', 'Unauthorized property attempt.', 0.5, 3,
+      NULL, 'other', 'human_requested', 'Unauthorized property attempt.', 0.5, 3,
       repeat('e',64)
     );
     RAISE EXCEPTION 'cross-tenant staff escalation was accepted';
