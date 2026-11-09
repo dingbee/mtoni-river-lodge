@@ -25,6 +25,7 @@ declare
   v_campaign_start date;
   v_campaign_end date;
   v_publication record;
+  v_offer_id uuid;
 begin
   select * into v_campaign
   from public.booking_campaigns
@@ -91,11 +92,19 @@ begin
   select _campaign_id,_property_id,r.id,r.ordinality::integer
   from unnest(_room_ids) with ordinality as r(id,ordinality);
 
-  insert into public.campaign_offers(
-    campaign_id,property_id,offer_code,title,description,rate_plan_publication_id,sort_order,active
-  ) values (
-    _campaign_id,_property_id,_offer_code,_offer_title,_offer_description,_publication_id,0,true
-  );
+  select id into v_offer_id from public.campaign_offers
+  where campaign_id = _campaign_id and property_id = _property_id and offer_code = _offer_code;
+  if v_offer_id is not null then
+    update public.campaign_offers set title = _offer_title, description = _offer_description,
+      rate_plan_publication_id = _publication_id, sort_order = 0, active = true, updated_at = now()
+    where id = v_offer_id and campaign_id = _campaign_id and property_id = _property_id;
+  else
+    insert into public.campaign_offers(
+      campaign_id,property_id,offer_code,title,description,rate_plan_publication_id,sort_order,active
+    ) values (
+      _campaign_id,_property_id,_offer_code,_offer_title,_offer_description,_publication_id,0,true
+    );
+  end if;
 
   update public.booking_campaigns set updated_by = _actor_id, updated_at = now()
   where id = _campaign_id and property_id = _property_id;
