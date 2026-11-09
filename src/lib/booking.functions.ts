@@ -327,7 +327,7 @@ export const getBookingQuote = createServerFn({ method: "POST" })
         utm_term: campaignContext.attribution.utm_term, referrer: campaignContext.attribution.referrer,
         metadata: { offerId: campaignContext.offerId }, occurred_at: new Date().toISOString(),
       }, { onConflict: "property_id,event_key", ignoreDuplicates: true });
-      if (attributionError) throw new Error("Campaign booking-start attribution could not be recorded.");
+      if (attributionError) console.error("[StayNas campaign attribution] Quote created but booking-start event failed", { code: attributionError.code, propertyId });
     }
     return quote as BookingPricingQuote;
   });
