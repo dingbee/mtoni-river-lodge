@@ -136,19 +136,26 @@ export const listPropertyDistributionConnections = createServerFn({ method: "GET
   .handler(async ({ context }) => {
     const admin = await getAdminClient();
     const { property } = await getManagedProperty(context, admin);
-    const { data, error } = await admin.from("staynas_distribution_connections")
-      .select("id,provider_key,adapter_version,environment,lifecycle,created_at,staynas_distribution_external_accounts(external_account_reference)")
+    const { data: rows, error } = await admin.from("staynas_distribution_connections")
+      .select("id,external_account_id,provider_key,adapter_version,environment,lifecycle,created_at")
       .eq("property_id", property.id)
       .order("created_at", { ascending: false });
     if (error) throw new Error("Unable to load property distribution connections.");
-    return (data ?? []).map((row: any) => ({
+    const accountIds = [...new Set((rows ?? []).map((row: any) => row.external_account_id))];
+    const { data: accounts, error: accountsError } = accountIds.length
+      ? await admin.from("staynas_distribution_external_accounts")
+          .select("id,external_account_reference").in("id", accountIds)
+      : { data: [], error: null };
+    if (accountsError) throw new Error("Unable to load provider account references.");
+    const accountReferences = new Map((accounts ?? []).map((account: any) => [account.id, account.external_account_reference]));
+    return (rows ?? []).map((row: any) => ({
       id: row.id,
       providerKey: row.provider_key,
       adapterVersion: row.adapter_version,
       environment: row.environment,
       lifecycle: row.lifecycle,
       createdAt: row.created_at,
-      externalAccountReference: row.staynas_distribution_external_accounts?.external_account_reference ?? "",
+      externalAccountReference: accountReferences.get(row.external_account_id) ?? "",
     }));
   });
 
