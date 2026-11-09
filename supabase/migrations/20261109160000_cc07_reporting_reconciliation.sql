@@ -70,20 +70,40 @@ CREATE OR REPLACE FUNCTION public.commercial_record_reconciliation_item_event(
 RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = pg_catalog, public
 AS $function$
-DECLARE v_role text := current_setting('request.jwt.claim.role', true); v_id uuid;
+DECLARE
+  v_role text := current_setting('request.jwt.claim.role', true);
+  v_item public.commercial_reconciliation_items%ROWTYPE;
+  v_run public.commercial_reconciliation_runs%ROWTYPE;
+  v_id uuid;
 BEGIN
   IF v_role IS DISTINCT FROM 'service_role' THEN
     RAISE EXCEPTION 'Service role required' USING ERRCODE = '42501';
   END IF;
-  IF _event_type NOT IN ('opened','review_started','evidence_added','resolved','reopened','escalated')
+  IF _event_type NOT IN ('review_started','evidence_added','reopened','escalated')
     OR _actor_role NOT IN ('founder_admin','service_principal')
     OR length(btrim(coalesce(_reason_code,''))) NOT BETWEEN 2 AND 120
-    OR jsonb_typeof(_evidence) IS DISTINCT FROM 'object'
-    OR (_event_type='resolved' AND nullif(btrim(_resolution_ref),'') IS NULL) THEN
+    OR jsonb_typeof(_evidence) IS DISTINCT FROM 'object' THEN
     RAISE EXCEPTION 'Invalid reconciliation lifecycle event' USING ERRCODE = '22023';
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.commercial_reconciliation_items WHERE id=_item_id) THEN
-    RAISE EXCEPTION 'Reconciliation exception not found' USING ERRCODE = 'P0002';
+  SELECT * INTO v_item FROM public.commercial_reconciliation_items WHERE id=_item_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Reconciliation exception not found' USING ERRCODE = 'P0002'; END IF;
+  SELECT * INTO v_run FROM public.commercial_reconciliation_runs WHERE id=v_item.run_id FOR UPDATE;
+  IF NOT FOUND OR v_run.status='completed' THEN
+    RAISE EXCEPTION 'Completed reconciliation evidence cannot be changed' USING ERRCODE = '55000';
+  END IF;
+  SELECT * INTO v_item FROM public.commercial_reconciliation_items WHERE id=_item_id FOR UPDATE;
+  IF _event_type='review_started' THEN
+    IF v_item.resolution_status='resolved' THEN
+      RAISE EXCEPTION 'Resolved exception must be reopened before review' USING ERRCODE = '55000';
+    END IF;
+    UPDATE public.commercial_reconciliation_items
+      SET resolution_status='reviewed' WHERE id=_item_id AND resolution_status='unresolved';
+  ELSIF _event_type='reopened' THEN
+    IF v_item.resolution_status<>'resolved' THEN
+      RAISE EXCEPTION 'Only a resolved exception can be reopened' USING ERRCODE = '55000';
+    END IF;
+    UPDATE public.commercial_reconciliation_items
+      SET resolution_status='unresolved',resolution_ref=NULL WHERE id=_item_id;
   END IF;
   INSERT INTO public.commercial_reconciliation_item_events(
     item_id,event_type,actor_user_id,actor_role,reason_code,note,evidence,resolution_ref
