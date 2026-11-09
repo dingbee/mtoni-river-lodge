@@ -353,7 +353,7 @@ export const recordPublicBookingCampaignEvent = createServerFn({ method: "POST" 
   .inputValidator((input: unknown) => z.object({
     campaignId: campaignIdSchema,
     propertySlug: campaignSlug,
-    sessionKey: z.string().trim().min(16).max(200),
+    sessionKey: z.string().trim().min(16).max(140),
     eventType: z.enum(["page_view","booking_click","booking_started","lead_submitted","booking_completed"]),
     offerId: z.string().uuid().optional(),
     bookingId: z.string().uuid().optional(),
@@ -386,7 +386,9 @@ export const recordPublicBookingCampaignEvent = createServerFn({ method: "POST" 
         .eq("id", data.bookingId).eq("property_id", property.id).maybeSingle();
       if (bookingError || !booking) throw new Error("Booking attribution property mismatch.");
     }
-    const eventKey = `${data.sessionKey}:${data.eventType}`;
+    const eventKey = data.eventType === "booking_completed" && data.bookingId
+      ? `${data.campaignId}:${data.bookingId}:booking_completed`
+      : `${data.campaignId}:${data.sessionKey}:${data.eventType}`;
     const { error } = await sb.from("campaign_attribution").upsert({
       campaign_id: data.campaignId,
       property_id: property.id,
