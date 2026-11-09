@@ -71,7 +71,10 @@ export interface EntitlementResolutionInput {
     metric: string;
     used: number;
     limit: number;
-    period: string;
+    scope: "property" | "organisation";
+    period: "concurrent" | "monthly" | "billing_period" | "lifetime";
+    /** False means no single valid founder-published quota policy was resolved. */
+    policyConfigured?: boolean;
   };
   /** Platform-level deny/suspend control, resolved by trusted server context. */
   platformRestriction?: "none" | "suspended" | "review";
@@ -178,9 +181,26 @@ export function resolveEntitlement(
       return deny("property_limit_reached", "The approved property allowance has been reached.");
     }
   }
-  if (input.usage && input.usage.used >= input.usage.limit) {
-    return deny("usage_limit_reached", "The configured usage limit has been reached.", { usage: input.usage });
+  if (input.usage) {
+    if (input.usage.policyConfigured === false
+      || !Number.isInteger(input.usage.used) || input.usage.used < 0
+      || !Number.isInteger(input.usage.limit) || input.usage.limit < 0) {
+      return deny(
+        "commercial_review_required",
+        "A valid founder-published usage quota could not be resolved.",
+        { usage: input.usage },
+      );
+    }
+    if (input.usage.used >= input.usage.limit) {
+      return deny("usage_limit_reached", "The configured usage limit has been reached.", { usage: input.usage });
+    }
   }
 
-  return { ...base, outcome: "granted", allowed: true, reason: "Capability is authorized by effective commercial policy." };
+  return {
+    ...base,
+    outcome: "granted",
+    allowed: true,
+    reason: "Capability is authorized by effective commercial policy.",
+    ...(input.usage ? { usage: input.usage } : {}),
+  };
 }
