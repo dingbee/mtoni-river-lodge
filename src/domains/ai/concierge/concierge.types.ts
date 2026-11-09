@@ -134,6 +134,7 @@ export interface ConciergeChatInput {
 
 export interface ConciergeLeadInput {
   session_token?: string | null;
+  consent?: boolean;
   name?: string | null;
   email?: string | null;
   phone?: string | null;
