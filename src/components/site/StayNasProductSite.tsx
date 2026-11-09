@@ -132,7 +132,6 @@ export function ProductSiteHeader() {
           </div>
         </aside>
       </div>}
-    </header>
     <style>{`
       .staynas-public-site main article[class*="rounded-2xl"],
       .staynas-public-site main article[class*="rounded-3xl"] {
@@ -161,6 +160,7 @@ export function ProductSiteHeader() {
         .staynas-public-site main h2 { text-wrap: balance; }
       }
     `}</style>
+    </header>
   );
 }
 
