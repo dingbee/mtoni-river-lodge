@@ -5,7 +5,7 @@
 create or replace function public.cps03_guard_publication_transition()
 returns trigger
 language plpgsql
-security definer
+security invoker
 set search_path = pg_catalog, public
 as $function$
 begin
