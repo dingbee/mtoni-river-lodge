@@ -367,10 +367,23 @@ BEGIN
     now()-interval '20 days',now()+interval '10 days',100000,0,0,100000,100000,
     '{"test":true}'::jsonb,'{"test":true}'::jsonb
   );
+  INSERT INTO public.commercial_invoice_lines(
+    invoice_id,line_ref,kind,description,quantity,unit_amount_minor,amount_minor,line_snapshot
+  ) VALUES
+    (v_invoice,'cc07-base-line','plan_base','Recurring plan base',1,95000,95000,'{"chargeModel":"recurring"}'::jsonb),
+    (v_invoice,'cc07-one-time-line','adjustment','One-time onboarding charge',1,5000,5000,'{"chargeModel":"one_time"}'::jsonb);
   PERFORM public.commercial_post_invoice_adjustment(
     v_invoice,'CC07-DEBIT-001','debit_note',50000,'TZS',
     'approved_plan_expansion','CC07-APPROVAL-001',v_user
   );
+  IF NOT EXISTS (
+    SELECT 1 FROM public.commercial_founder_revenue_invoice_facts
+    WHERE invoice_id=v_invoice AND gross_invoiced_minor='100000'
+      AND net_invoiced_minor='150000' AND one_time_minor='5000'
+      AND debit_notes_minor='50000' AND credit_notes_minor='0' AND write_offs_minor='0'
+  ) THEN
+    RAISE EXCEPTION 'Gross/net invoice, one-time and debit-note classifications are incorrect';
+  END IF;
 
   PERFORM set_config('request.jwt.claim.role','service_role',true);
   BEGIN
@@ -476,6 +489,18 @@ BEGIN
     v_new_invoice,'CC07-CREDIT-001','credit_note',60000,'TZS',
     'approved_plan_contraction','CC07-APPROVAL-002',v_user
   );
+  PERFORM public.commercial_post_invoice_adjustment(
+    v_new_invoice,'CC07-WRITEOFF-001','write_off',10000,'TZS',
+    'approved_small_balance_writeoff','CC07-APPROVAL-003',v_user
+  );
+  IF NOT EXISTS (
+    SELECT 1 FROM public.commercial_founder_revenue_invoice_facts
+    WHERE invoice_id=v_new_invoice AND gross_invoiced_minor='150000'
+      AND net_invoiced_minor='80000' AND credit_notes_minor='60000'
+      AND write_offs_minor='10000' AND debit_notes_minor='0'
+  ) THEN
+    RAISE EXCEPTION 'Credit-note and write-off classifications are incorrect';
+  END IF;
   v_second_result := public.commercial_replace_active_subscription_for_founder(
     v_first_new_sub,'essential',1,'TZS','monthly',1,ARRAY[]::text[],
     'cc07-lower-price', '{"currency":"TZS","planCode":"essential","planVersion":1,"billingTerm":"monthly","propertyCount":1,"priceCode":"test-essential-lower","quoteRequired":false,"total":90000,"lineItems":[{"kind":"plan_base","code":"essential","quantity":1,"unitAmountMinor":90000,"amountMinor":90000}],"addonCodes":[]}'::jsonb,
