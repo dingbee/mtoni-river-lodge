@@ -199,13 +199,29 @@ BEGIN
   END;
   IF NOT v_blocked THEN RAISE EXCEPTION 'Reconciliation lifecycle evidence was mutable'; END IF;
 
+  PERFORM public.commercial_record_reconciliation_item_event(
+    v_item,'review_started',NULL,'founder_admin','founder_review_started',NULL,'{}'::jsonb,NULL
+  );
+  IF NOT EXISTS (SELECT 1 FROM public.commercial_reconciliation_items WHERE id=v_item AND resolution_status='reviewed') THEN
+    RAISE EXCEPTION 'Review-start lifecycle transition did not update exception state';
+  END IF;
   PERFORM public.commercial_resolve_reconciliation_item(v_item,'cc07-test-resolution',NULL);
+  PERFORM public.commercial_record_reconciliation_item_event(
+    v_item,'reopened',NULL,'founder_admin','founder_exception_reopened',NULL,'{"reason":"new evidence"}'::jsonb,NULL
+  );
+  IF NOT EXISTS (
+    SELECT 1 FROM public.commercial_reconciliation_items
+    WHERE id=v_item AND resolution_status='unresolved' AND resolution_ref IS NULL
+  ) THEN
+    RAISE EXCEPTION 'Reopened exception did not return to unresolved state';
+  END IF;
+  PERFORM public.commercial_resolve_reconciliation_item(v_item,'cc07-test-resolution-final',NULL);
   IF NOT EXISTS (
     SELECT 1 FROM public.commercial_reconciliation_items
     WHERE id=v_item AND resolution_status='resolved' AND resolution_ref='cc07-test-resolution'
   ) OR NOT EXISTS (
     SELECT 1 FROM public.commercial_reconciliation_item_events
-    WHERE item_id=v_item AND event_type='resolved' AND resolution_ref='cc07-test-resolution'
+    WHERE item_id=v_item AND event_type='resolved' AND resolution_ref='cc07-test-resolution-final'
   ) THEN
     RAISE EXCEPTION 'Resolution and lifecycle evidence were not committed together';
   END IF;
