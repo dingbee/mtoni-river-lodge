@@ -107,13 +107,21 @@ export const checkAvailability = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     const mapped = await Promise.all(((rows ?? []) as any[]).map(async (r) => {
+      if (String(r.currency ?? "").toUpperCase() !== channel.currency) {
+        throw new Error("Room currency does not match the published direct-booking channel");
+      }
       let ratePlanOptions: PublicRatePlanOption[] = [];
       if (r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" || r.pricing_quote?.pricing_evidence?.rate_plan_id) {
         const { data: discovery, error: discoveryError } = await (supabaseAdmin as any).rpc("discover_staynas_public_rate_plans", {
           _property_id: propertyId, _room_id: r.room_id, _check_in: data.checkIn, _check_out: data.checkOut,
           _adults: data.adults, _children_below_6: data.childrenBelow6, _children_7_plus: data.children7Plus,
         });
-        if (!discoveryError && discovery?.ok) ratePlanOptions = (discovery.plans ?? []) as PublicRatePlanOption[];
+        if (!discoveryError && discovery?.ok) {
+          ratePlanOptions = (discovery.plans ?? []) as PublicRatePlanOption[];
+          if (ratePlanOptions.some((plan) => plan.currency !== channel.currency)) {
+            throw new Error("Published rate-plan currency does not match the direct-booking channel");
+          }
+        }
       }
       return {
       ...r,
@@ -138,6 +146,7 @@ export const listExtras = createServerFn({ method: "GET" }).handler(async () => 
     .select("id, slug, name, description, price, unit, currency, sort_order")
     .eq("active", true)
     .eq("property_id", propertyId)
+    .eq("currency", channel.currency)
     .order("sort_order");
   if (error) throw new Error(error.message);
   const TRANSFER_SLUGS = new Set(["airport-transfer"]);
