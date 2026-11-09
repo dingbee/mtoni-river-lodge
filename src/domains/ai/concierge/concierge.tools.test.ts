@@ -80,6 +80,26 @@ describe("Concierge availability contract", () => {
     expect(rpc).not.toHaveBeenCalled();
   });
 
+  it("requires child ages before sending a multi-child SPE pricing request", async () => {
+    const result = await searchAvailability({
+      propertyId, check_in: "2026-12-01", check_out: "2026-12-03", adults: 2, children: 2,
+    });
+    expect(result.status).toBe("child_age_breakdown_required");
+    expect(result.rooms).toEqual([]);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("passes exact child age buckets to the SPE pricing engine", async () => {
+    rpc.mockResolvedValue({ data: [{ ...availableRow, capacity_children: 2, max_occupancy: 4 }], error: null });
+    await searchAvailability({
+      propertyId, check_in: "2026-12-01", check_out: "2026-12-03", adults: 2, children: 2,
+      childrenBelow6: 1, children7Plus: 1,
+    });
+    expect(rpc).toHaveBeenCalledWith("get_staynas_room_availability_priced", expect.objectContaining({
+      _children_below_6: 1, _children_7_plus: 1,
+    }));
+  });
+
   it("distinguishes pricing engine failure from inventory failure", async () => {
     rpc.mockResolvedValueOnce({
       data: [{ ...availableRow, is_available: false, pricing_quote: { ok: false, reason: "rate unavailable" } }],
