@@ -418,7 +418,7 @@ jobs:
             _room_id uuid DEFAULT NULL,_rate_plan_id uuid DEFAULT NULL,_promo_code text DEFAULT NULL,
             _guest_key text DEFAULT NULL,_booking_date date DEFAULT NULL
           ) RETURNS jsonb LANGUAGE plpgsql AS $function$
-          DECLARE v_currency text; v_timezone text; v_fee record; v_promo_row record;
+          DECLARE v_currency text; v_timezone text; v_fee record; v_promo_row record; v_component record;
           BEGIN
             SELECT upper(p.currency), p.timezone INTO v_currency,v_timezone
             FROM public.staynas_properties p WHERE p.id=_property_id AND p.status='active';
@@ -668,7 +668,7 @@ jobs:
               RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH','message','Component currency differs from property currency');
             END IF;
             PERFORM 1 FROM public.staynas_property_promotions p
-            WHERE p.currency IS NULL OR upper(p.currency)=v_currency;
+            WHERE true AND (p.currency IS NULL OR upper(p.currency)=v_currency);
             PERFORM 1 FROM public.staynas_property_fee_rules f
             WHERE f.property_id=_property_id AND f.active=true;
             IF v_fee.currency IS NOT NULL AND upper(v_fee.currency)<>v_currency THEN
@@ -685,7 +685,7 @@ jobs:
                 'message','An active tax rule uses a currency different from the property currency');
             END IF;
             PERFORM 1 FROM public.staynas_property_tax_rules t
-            WHERE t.currency IS NULL OR upper(t.currency)=v_currency;
+            WHERE true AND (t.currency IS NULL OR upper(t.currency)=v_currency);
             IF v_promo_row.currency IS NOT NULL AND upper(v_promo_row.currency)<>v_currency THEN
               RETURN jsonb_build_object('ok',false,'error_code','PROMOTION_INELIGIBLE');
             END IF;
