@@ -9,7 +9,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS staynas_guest_payment_provider_accounts_id_pro
   ON public.staynas_guest_payment_provider_accounts(id,property_id);
 
 ALTER TABLE public.bookings
-  ADD COLUMN IF NOT EXISTS payment_provider_account_id uuid;
+  ADD COLUMN IF NOT EXISTS payment_provider_account_id uuid,
+  ADD COLUMN IF NOT EXISTS payment_provider_credential_secret_ref uuid,
+  ADD COLUMN IF NOT EXISTS payment_provider_environment text;
 ALTER TABLE public.payment_events
   ADD COLUMN IF NOT EXISTS provider_account_id uuid;
 
@@ -39,6 +41,16 @@ CREATE UNIQUE INDEX IF NOT EXISTS bookings_pesapal_account_merchant_uidx
   ON public.bookings(payment_provider_account_id,pesapal_merchant_reference)
   WHERE payment_provider_account_id IS NOT NULL AND pesapal_merchant_reference IS NOT NULL;
 
+DO $environment_check$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='bookings_payment_provider_environment_check') THEN
+    ALTER TABLE public.bookings
+      ADD CONSTRAINT bookings_payment_provider_environment_check
+      CHECK (payment_provider_environment IS NULL OR payment_provider_environment IN ('sandbox','live'));
+  END IF;
+END;
+$environment_check$;
+
 CREATE INDEX IF NOT EXISTS bookings_payment_provider_account_idx
   ON public.bookings(payment_provider_account_id)
   WHERE payment_provider_account_id IS NOT NULL;
@@ -46,6 +58,10 @@ CREATE INDEX IF NOT EXISTS payment_events_provider_account_idx
   ON public.payment_events(provider_account_id)
   WHERE provider_account_id IS NOT NULL;
 
+COMMENT ON COLUMN public.bookings.payment_provider_credential_secret_ref IS
+  'Vault secret reference snapshot used for the original booking payment; never store provider credentials on the booking.';
+COMMENT ON COLUMN public.bookings.payment_provider_environment IS
+  'Pesapal environment snapshot used for the original booking payment.';
 COMMENT ON COLUMN public.bookings.payment_provider_account_id IS
   'Exact property-scoped guest payment account used to initiate and verify this booking payment; no platform credential fallback.';
 COMMENT ON COLUMN public.payment_events.provider_account_id IS
