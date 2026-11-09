@@ -246,9 +246,9 @@ export const syncFounderCommercialNotifications = createServerFn({ method: "POST
       admin.from("staynas_organisations").select("id,name"),
       admin.from("commercial_accounts").select("id,organisation_id"),
       admin.from("commercial_subscriptions").select("id,account_id,plan_code,status,trial_ends_at,current_period_ends_at,currency"),
-      admin.from("commercial_invoice_receivables").select("id,organisation_id,invoice_number,currency,outstanding_minor,due_at,is_overdue,status"),
-      admin.from("commercial_payment_transactions").select("id,organisation_id,provider,amount_minor,currency,status,created_at").eq("status","failed"),
-      admin.from("commercial_reconciliation_runs").select("id,organisation_id,currency,status,source_ref").eq("status","discrepancy"),
+      admin.from("commercial_invoice_receivables").select("id,organisation_id,invoice_number,currency,outstanding_minor,due_at,is_overdue,status").limit(200),
+      admin.from("commercial_payment_transactions").select("id,organisation_id,provider,amount_minor,currency,status,created_at").eq("status","failed").order("created_at",{ascending:false}).limit(100),
+      admin.from("commercial_reconciliation_runs").select("id,organisation_id,currency,status,source_ref").eq("status","discrepancy").order("created_at",{ascending:false}).limit(100),
       admin.from("commercial_entitlement_decisions").select("id,organisation_id,feature_code,outcome,reason,decided_at").eq("allowed",false).eq("outcome","commercial_review_required").order("decided_at",{ascending:false}).limit(100),
     ]);
     const errors=[organisationsResult,accountsResult,subscriptionsResult,invoicesResult,paymentsResult,reconciliationResult,decisionsResult].filter((result)=>result.error);
@@ -289,12 +289,14 @@ export const syncFounderCommercialNotifications = createServerFn({ method: "POST
     for(const decision of rows(decisionsResult.data)){
       alerts.push({dedupe_key:`entitlement-exception:${decision.id}`,organisation_id:decision.organisation_id,alert_type:"entitlement_exception",severity:"warning",title:"Entitlement requires commercial review",detail:`${tenantName(decision.organisation_id)} feature ${decision.feature_code} requires founder review: ${decision.reason}.`,resource_type:"entitlement_decision",resource_ref:String(decision.id),href:"/founder/entitlements",metadata:{featureCode:decision.feature_code,outcome:decision.outcome,decidedAt:decision.decided_at}});
     }
+    let insertedCount=0;
     if(alerts.length){
-      const {error}=await admin.from("commercial_founder_notifications").upsert(alerts,{onConflict:"dedupe_key",ignoreDuplicates:true});
+      const {data:inserted,error}=await admin.from("commercial_founder_notifications").upsert(alerts,{onConflict:"dedupe_key",ignoreDuplicates:true}).select("id");
       if(error) throw new Error("Founder commercial notifications could not be persisted.");
+      insertedCount=Array.isArray(inserted)?inserted.length:0;
+      if(insertedCount) await writeFounderNotificationAudit(admin,actor,"founder_notifications.synced","platform");
     }
-    await writeFounderNotificationAudit(admin,actor,"founder_notifications.synced","platform");
-    return { generated: alerts.length };
+    return { generated: alerts.length, inserted: insertedCount };
   });
 
 export const listFounderCommercialNotifications = createServerFn({ method: "GET" })
