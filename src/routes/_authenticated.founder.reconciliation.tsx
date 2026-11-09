@@ -93,7 +93,7 @@ function FounderReconciliationWorkspace() {
       if (!providerRows.length) throw new Error("The statement contains no data rows.");
       if (providerRows.some((row) => !Number.isSafeInteger(row.amountMinor))) throw new Error("Statement amount exceeds safe transport precision; use manual exception handling.");
       const result = await reconcileCommercialProviderStatementRun({ data: { runId: selectedRun, providerRows } });
-      setMessage(`Statement reconciled. ${result.length} reconciliation findings persisted.`);
+      setMessage(`Statement reconciled. ${result.findingCount} reconciliation findings persisted${result.replayed ? " (already imported)" : ""}.`);
       await refresh();
     } catch (error) { setMessage(error instanceof Error ? error.message : "Statement reconciliation failed."); }
     finally { setBusy(false); }
