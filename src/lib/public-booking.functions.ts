@@ -15,6 +15,9 @@ async function resolvePublicProperty(propertySlug: string) {
 
   if (error) throw new Error("Unable to load this property.");
   if (!data || data.status !== "active") throw new Error("This property is not available for online reservations.");
+  if (!data.currency || !/^[A-Z]{3}$/.test(data.currency)) {
+    throw new Error("A valid property currency must be configured before online reservations can be enabled.");
+  }
 
   return { property: data, supabaseAdmin };
 }
