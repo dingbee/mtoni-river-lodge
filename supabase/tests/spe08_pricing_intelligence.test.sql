@@ -1,6 +1,5 @@
 -- SPE-08 property-scoped pricing intelligence contracts.
 BEGIN;
-SELECT plan(1);
 
 DO $$
 DECLARE t text;
@@ -130,6 +129,5 @@ BEGIN
   END;
   IF NOT blocked THEN RAISE EXCEPTION 'Recommendation audit mutation was not blocked'; END IF;
 END $$;
-SELECT pass('spe08_pricing_intelligence contract assertions passed');
 
 ROLLBACK;

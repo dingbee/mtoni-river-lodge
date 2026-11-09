@@ -1,5 +1,4 @@
 BEGIN;
-SELECT plan(1);
 
 DO $$
 DECLARE
@@ -51,6 +50,5 @@ BEGIN
   END IF;
 END;
 $$;
-SELECT pass('staynas_payment_provider_management contract assertions passed');
 
 ROLLBACK;

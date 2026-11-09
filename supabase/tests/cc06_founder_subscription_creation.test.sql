@@ -1,6 +1,5 @@
 -- CC-06 founder subscription creation service authorization contract.
 BEGIN;
-SELECT plan(1);
 DO $$
 BEGIN
   IF has_function_privilege('anon','public.commercial_is_founder_admin_service(uuid)','EXECUTE')
@@ -14,6 +13,5 @@ BEGIN
     RAISE EXCEPTION 'Founder subscription registration service grants violate founder-only authorization';
   END IF;
 END $$;
-SELECT pass('cc06_founder_subscription_creation contract assertions passed');
 
 ROLLBACK;

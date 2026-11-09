@@ -1,6 +1,5 @@
 \set ON_ERROR_STOP on
 BEGIN;
-SELECT plan(1);
 DO $test$
 DECLARE
   v_founder uuid := '81000000-0000-4000-8000-000000000001';
@@ -113,6 +112,5 @@ BEGIN
   END;
 END;
 $test$;
-SELECT pass('cc05_entitlement_engine contract assertions passed');
 
 ROLLBACK;
