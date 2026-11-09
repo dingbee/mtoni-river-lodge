@@ -251,7 +251,8 @@ export async function getPesapalPropertyAccountToken(
   environment: PesapalPropertyEnvironment,
 ): Promise<string> {
   const credentials = normalizePesapalPropertyCredentials(credentialsInput);
-  const cacheKey = `${environment}:${credentials.consumer_key}`;
+  const cacheIdentity = createHash("sha256").update(`${credentials.consumer_key}\u0000${credentials.consumer_secret}`).digest("hex");
+  const cacheKey = `${environment}:${cacheIdentity}`;
   const cached = propertyTokenCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now() + 30_000) return cached.token;
 
