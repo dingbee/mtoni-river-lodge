@@ -71,6 +71,39 @@ BEGIN
     OR to_regclass('public.commercial_revenue_unallocated_facts') IS NULL THEN
     RAISE EXCEPTION 'CC-07 reporting views are incomplete';
   END IF;
+
+  IF to_regclass('public.commercial_subscription_revenue_movements') IS NULL
+    OR to_regclass('public.commercial_subscription_revenue_movement_facts') IS NULL
+    OR to_regclass('public.commercial_subscription_recurring_value_facts') IS NULL
+    OR to_regclass('public.commercial_founder_revenue_invoice_facts') IS NULL
+    OR to_regclass('public.commercial_founder_revenue_collection_facts') IS NULL
+    OR to_regclass('public.commercial_founder_revenue_reversal_facts') IS NULL
+    OR to_regclass('public.commercial_founder_receivables_aging') IS NULL THEN
+    RAISE EXCEPTION 'CC-07 recurring revenue, movement or precision-safe reporting views are incomplete';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_class WHERE oid='public.commercial_subscription_revenue_movements'::regclass
+      AND relrowsecurity AND relforcerowsecurity
+  ) OR has_table_privilege('anon','public.commercial_subscription_revenue_movements','SELECT')
+    OR has_table_privilege('authenticated','public.commercial_subscription_revenue_movements','SELECT')
+    OR has_table_privilege('service_role','public.commercial_subscription_revenue_movements','UPDATE')
+    OR has_table_privilege('service_role','public.commercial_subscription_revenue_movements','DELETE')
+    OR NOT has_table_privilege('service_role','public.commercial_subscription_revenue_movements','INSERT') THEN
+    RAISE EXCEPTION 'Subscription revenue movement ledger grants violate append-only founder boundary';
+  END IF;
+  IF has_function_privilege('anon','public.commercial_replace_active_subscription_for_founder(uuid,text,integer,text,text,integer,text[],text,jsonb,text,text,timestamptz,text,text,uuid,uuid)','EXECUTE')
+    OR has_function_privilege('authenticated','public.commercial_replace_active_subscription_for_founder(uuid,text,integer,text,text,integer,text[],text,jsonb,text,text,timestamptz,text,text,uuid,uuid)','EXECUTE')
+    OR NOT has_function_privilege('service_role','public.commercial_replace_active_subscription_for_founder(uuid,text,integer,text,text,integer,text[],text,jsonb,text,text,timestamptz,text,text,uuid,uuid)','EXECUTE') THEN
+    RAISE EXCEPTION 'Subscription replacement RPC grants violate service-only boundary';
+  END IF;
+  IF (SELECT data_type FROM information_schema.columns WHERE table_schema='public'
+      AND table_name='commercial_founder_revenue_invoice_facts' AND column_name='net_invoiced_minor')<>'text'
+    OR (SELECT data_type FROM information_schema.columns WHERE table_schema='public'
+      AND table_name='commercial_founder_revenue_collection_facts' AND column_name='net_collected_minor')<>'text'
+    OR (SELECT data_type FROM information_schema.columns WHERE table_schema='public'
+      AND table_name='commercial_founder_receivables_aging' AND column_name='outstanding_minor')<>'text' THEN
+    RAISE EXCEPTION 'Founder reporting projections must serialize NUMERIC(20,0) as text';
+  END IF;
   IF has_table_privilege('anon','public.commercial_receivables_aging','SELECT')
     OR has_table_privilege('authenticated','public.commercial_receivables_aging','SELECT')
     OR NOT has_table_privilege('service_role','public.commercial_receivables_aging','SELECT') THEN
