@@ -82,3 +82,24 @@ No browser input may supply the usage count or limit. The future CPS campaign wr
 - CPS-04/05 must calculate active campaign usage server-side and call the entitlement check before publishing or activating a campaign.
 - CPS-08 must exercise the entitlement boundary for Mtoni and at least one independent property.
 - A founder-approved add-on catalogue entry, grant rule, price and quota must be published through the existing Founder Commercial Control Centre before any tenant receives access.
+
+
+## Verified CC-03 activation dependency
+
+The inspected CC-03 database contract makes the accepted subscription snapshot immutable, including `addon_codes`. A plan/add-on change must not be implemented as an in-place update to an accepted subscription.
+
+The current repository exposes founder lifecycle commands (activate, suspend, reinstate, cancel and renewal authorization), but no verified founder command/API that creates a new subscription from a server-resolved add-on price selection or amends commercial add-ons through a new accepted subscription snapshot.
+
+The inspected live UAT database also currently has:
+- No current published commercial policy pointers.
+- Zero entitlement grant rules.
+- Zero durable entitlement assignments.
+- Zero durable entitlement decisions.
+
+Therefore the code contracts are implemented, but the commercial add-on is not operationally activated in UAT. The new founder grant control correctly refuses to issue an add-on feature grant until the add-on exists and is active in a published catalogue.
+
+**Dependency owner:** CC-03 Subscription Administration / Founder Commercial Control Centre.
+
+**Closure condition:** Provide a founder-authorized commercial purchase/activation path that resolves the add-on price from the published CC-02 pricing policy, captures explicit commercial acceptance, creates the immutable subscription snapshot with the add-on code, and records the appropriate subscription lifecycle/audit evidence. Do not mutate an existing accepted subscription snapshot. Once this contract is available, publish the add-on feature grants and quota policy through Founder Admin.
+
+CPS-02 does not create a parallel subscription workflow or bypass CC-03 immutability. The add-on activation path remains a release-blocking dependency until CC-03 closes it.
