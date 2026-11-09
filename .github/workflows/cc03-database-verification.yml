@@ -98,6 +98,6 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f scripts/ci/cc03/cc03_trial_activation.sql
           psql -v ON_ERROR_STOP=1 -f scripts/ci/cc03/cc03_subscription_administration.sql
           psql -v ON_ERROR_STOP=1 -f scripts/ci/cc03/cc03_service_role_privilege_hardening.sql
-          psql -v ON_ERROR_STOP=1 -f supabase/tests/cc03_founder_policy_configuration.test.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/ci/cc03/cc03_founder_policy_configuration.sql
       - name: Verify concurrent one-time trial activation
         run: bash supabase/tests/cc03_concurrent_trial_activation.sh
