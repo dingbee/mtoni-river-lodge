@@ -160,7 +160,7 @@ export const getConciergeJourney = createServerFn({ method: "POST" })
     const [messages, intents, lead, attributions, feedback, outcomes] = await Promise.all([
       s.from("ai_concierge_messages").select("id, role, content, confidence, escalated, created_at").eq("session_id", data.session_id).order("created_at", { ascending: true }),
       s.from("ai_concierge_intents").select("id, intent_level, confidence, keywords, created_at").eq("session_id", data.session_id).order("created_at", { ascending: true }),
-      s.from("ai_concierge_leads").select("id, name, email, intent_level, created_at").eq("session_id", data.session_id).maybeSingle(),
+      (s as any).from("ai_concierge_leads").select("id, name, email, intent_level, created_at").eq("session_id", data.session_id).maybeSingle(),
       s.from("ai_concierge_attributions").select("id, conversion_type, booking_id, metadata, created_at").eq("session_id", data.session_id).order("created_at", { ascending: true }),
       s.from("ai_concierge_feedback").select("id, rating, comment, created_at").eq("session_id", data.session_id).order("created_at", { ascending: true }),
       s.from("ai_concierge_outcomes").select("id, outcome_type, confidence, evidence, created_at").eq("session_id", data.session_id).order("created_at", { ascending: true }),
@@ -218,7 +218,7 @@ export const classifyConciergeOutcomes = createServerFn({ method: "POST" })
     const [existing, intents, leads, atts, msgs] = await Promise.all([
       s.from("ai_concierge_outcomes").select("session_id").in("session_id", ids),
       s.from("ai_concierge_intents").select("session_id, intent_level").in("session_id", ids),
-      s.from("ai_concierge_leads").select("session_id").in("session_id", ids),
+      (s as any).from("ai_concierge_leads").select("session_id").in("session_id", ids),
       s.from("ai_concierge_attributions").select("session_id, conversion_type").in("session_id", ids),
       s.from("ai_concierge_messages").select("session_id, role, content").in("session_id", ids),
     ]);
