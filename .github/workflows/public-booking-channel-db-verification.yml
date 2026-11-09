@@ -121,12 +121,12 @@ jobs:
             _property_id uuid,_room_id uuid,_check_in date,_check_out date,_adults integer,
             _children_below_6 integer DEFAULT 0,_children_7_plus integer DEFAULT 0
           ) RETURNS jsonb LANGUAGE plpgsql AS $function$
-          DECLARE v_room record; v_property_currency text; v_occupants integer;
+          DECLARE v_room record; v_property_currency text; v_occupants integer; v_children integer;
           BEGIN
             IF upper(COALESCE(v_room.currency,'')) <> v_property_currency THEN
               RAISE EXCEPTION 'Room currency % does not match property currency %', v_room.currency, v_property_currency;
             END IF;
-            v_occupants := _adults;
+            v_occupants := _adults + v_children;
             RETURN jsonb_build_object('currency',v_property_currency);
           END;
           $function$;
