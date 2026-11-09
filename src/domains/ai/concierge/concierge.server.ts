@@ -34,7 +34,7 @@ function safeString(v: unknown, max = 500) {
 async function loadRoomCatalog(supabaseAdmin: any, propertyId: string): Promise<ConciergeRoomCatalogItem[]> {
   const { data, error } = await (supabaseAdmin as any)
     .from("rooms")
-    .select("slug,name,short_description,capacity_adults,capacity_children,max_occupancy,base_price,currency")
+    .select("slug,name,short_description,capacity_adults,capacity_children,max_occupancy")
     .eq("property_id", propertyId)
     .eq("status", "active")
     .order("sort_order", { ascending: true })
@@ -84,7 +84,12 @@ async function loadPropertyFacts(supabaseAdmin: any, propertyId: string): Promis
 }
 
 function buildRoomsContext(rooms: ConciergeRoomCatalogItem[]) {
-  return rooms.map((r) => "- " + r.name + " (slug: " + r.slug + ") — from " + r.currency + " " + Number(r.base_price).toLocaleString() + "/night. " + (r.short_description ?? "")).join("\n");
+  return rooms.map((room) =>
+    "- " + room.name + " (slug: " + room.slug + ") — capacity " +
+    room.capacity_adults + " adults + " + room.capacity_children +
+    " children, maximum " + room.max_occupancy + " guests. " +
+    (room.short_description ?? "")
+  ).join("\n");
 }
 
 function buildSystemPrompt(
@@ -251,7 +256,10 @@ export async function handleConciergeChat(
   }
 
   const intentCtx = `level=${intent.level} confidence=${intent.confidence.toFixed(2)}; dates=${intent.detected.check_in ?? "?"} → ${intent.detected.check_out ?? "?"}; party=${intent.detected.adults ?? "?"} adults / ${intent.detected.children ?? 0} children; interests=${(intent.detected.interests ?? []).join(",") || "none"}`;
-  const recsCtx = recommendations.map((r) => `- [${r.type}] ${r.name} (slug: ${r.slug}, from ${r.currency} ${r.from_price}${r.type === "experience" ? ` ${r.unit}` : "/night"}, conf ${r.confidence.toFixed(2)}): ${r.reasoning.join(" ")}`).join("\n");
+  const recsCtx = recommendations.map((recommendation) => recommendation.type === "room"
+    ? `- [room] ${recommendation.name} (slug: ${recommendation.slug}, conf ${recommendation.confidence.toFixed(2)}): ${recommendation.reasoning.join(" ")}`
+    : `- [experience] ${recommendation.name} (slug: ${recommendation.slug}, from ${recommendation.currency} ${recommendation.from_price} ${recommendation.unit}, conf ${recommendation.confidence.toFixed(2)}): ${recommendation.reasoning.join(" ")}`
+  ).join("\n");
   const availabilityCtx = (availabilityOutcome ? `Outcome: ${availabilityOutcome}\n` : "") + availability.map((a) => `- ${a.name} (slug: ${a.slug}) — ${a.is_available ? (a.fits_party ? `available (${a.min_available} left), fits party` : "available but does not fit party") : "not available"} for ${a.nights} night(s), full-stay total ${a.currency} ${a.nightly_total}`).join("\n") + (plan?.booking_url ? `\nbooking_url: ${plan.booking_url}` : "");
 
   const memoryCtx = await loadConciergeMemoryContext({ sessionId: sessionId!, guestId: existingGuestId, propertyId });
