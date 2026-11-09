@@ -36,9 +36,10 @@ INSERT INTO public.staynas_property_members(property_id,user_id,role) VALUES
  ('20000000-0000-4000-8000-000000000002','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2','owner'),
  ('20000000-0000-4000-8000-000000000003','cccccccc-cccc-4ccc-8ccc-ccccccccccc3','owner');
 
-\i supabase/migrations/20261108131500_lb01_product_connection_persistence.sql
-\i supabase/migrations/20261108143000_lb01_service_auth_nonce_ledger.sql
-\i supabase/migrations/20261109110000_lb01_secure_handoff_and_delivery.sql
+\i supabase/migrations/20261109110846_lb01_product_connection_persistence.sql
+\i supabase/migrations/20261109110948_lb01_product_connection_persistence_schema.sql
+\i supabase/migrations/20261109111013_lb01_service_auth_nonce_ledger.sql
+\i supabase/migrations/20261109111027_lb01_secure_handoff_and_delivery.sql
 
 SET ROLE authenticated;
 SELECT set_config('request.test_user_id','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',false);
