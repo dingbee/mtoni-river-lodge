@@ -444,15 +444,15 @@ export const createEscalation = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const propertyId = await requirePropertyScope(context.supabase, context.userId);
-    await requireSessionInProperty(context.supabase, data.session_id, propertyId);
     const session = await requireSessionInProperty(context.supabase, data.session_id, propertyId);
     const dedupeKey = createHash("sha256")
       .update([propertyId, data.session_id, data.reason, data.summary ?? ""].join("|"))
       .digest("hex");
-    const { data: result, error } = await context.supabase.rpc("staynas_create_concierge_escalation", {
+    const { data: result, error } = await (context.supabase as any).rpc("staynas_create_concierge_escalation", {
       p_property_id: propertyId,
       p_session_id: data.session_id,
       p_guest_id: session.guest_id,
+      p_channel: data.channel,
       p_reason: data.reason,
       p_summary: data.summary ?? null,
       p_ai_confidence: data.ai_confidence ?? null,
