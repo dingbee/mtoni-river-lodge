@@ -180,7 +180,7 @@ function DistributionConnectionsPage() {
               {connection.lifecycle === "suspended"
                 ? <Button variant="outline" size="sm" disabled={!lifecycleReason.trim() || transition.isPending} onClick={() => transition.mutate({ connectionId: connection.id, action: "resume" })}>Resume</Button>
                 : <Button variant="outline" size="sm" disabled={!lifecycleReason.trim() || transition.isPending} onClick={() => transition.mutate({ connectionId: connection.id, action: "suspend" })}>Suspend</Button>}
-              <Button variant="destructive" size="sm" disabled={!lifecycleReason.trim() || transition.isPending} onClick={() => transition.mutate({ connectionId: connection.id, action: "revoke" })}>Revoke</Button>
+              <Button variant="destructive" size="sm" disabled={!lifecycleReason.trim() || transition.isPending} onClick={() => { if (window.confirm("Revoke this distribution connection permanently? This cannot be undone.")) transition.mutate({ connectionId: connection.id, action: "revoke" }); }}>Revoke</Button>
             </>}
           </div>
         </div>)}
