@@ -16,6 +16,97 @@ function getPublicClient() {
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date");
 
+const campaignBookingContextSchema = z.object({
+  propertySlug: z.string().trim().min(3).max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
+  campaignSlug: z.string().trim().min(2).max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
+  offerId: z.string().uuid().optional(),
+  sessionKey: z.string().trim().min(16).max(160).optional(),
+  utmSource: z.string().trim().max(200).optional(),
+  utmMedium: z.string().trim().max(200).optional(),
+  utmCampaign: z.string().trim().max(200).optional(),
+  utmContent: z.string().trim().max(200).optional(),
+  utmTerm: z.string().trim().max(200).optional(),
+  referrer: z.string().url().max(2000).optional(),
+}).superRefine((value, ctx) => {
+  const supplied = [value.propertySlug, value.campaignSlug, value.offerId, value.sessionKey].filter(Boolean).length;
+  if (supplied !== 0 && supplied !== 4) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Campaign booking context must include property, campaign, offer and session identifiers." });
+  }
+});
+
+async function resolveCampaignBookingContext(
+  sb: any,
+  propertyId: string,
+  input: {
+    propertySlug?: string; campaignSlug?: string; offerId?: string; sessionKey?: string;
+    ratePlanId?: string; utmSource?: string; utmMedium?: string; utmCampaign?: string;
+    utmContent?: string; utmTerm?: string; referrer?: string;
+  },
+) {
+  if (!input.campaignSlug && !input.offerId && !input.propertySlug && !input.sessionKey) return null;
+  if (!input.propertySlug || !input.campaignSlug || !input.offerId || !input.sessionKey || !input.ratePlanId) {
+    throw new Error("Campaign booking requires a complete campaign offer and published rate-plan context.");
+  }
+  const [{ data: property, error: propertyError }, { data: campaign, error: campaignError }] = await Promise.all([
+    sb.from("staynas_properties").select("id,slug,currency,status").eq("id", propertyId).maybeSingle(),
+    sb.from("booking_campaigns").select("id,property_id,status,starts_at,ends_at")
+      .eq("property_id", propertyId).eq("slug", input.campaignSlug).eq("status", "published").maybeSingle(),
+  ]);
+  const now = Date.now();
+  if (propertyError || !property || property.status !== "active" || property.slug !== input.propertySlug
+    || !/^[A-Z]{3}$/.test(property.currency ?? "")) {
+    throw new Error("Campaign property does not match the active booking property or has no configured currency.");
+  }
+  if (campaignError || !campaign || (campaign.starts_at && Date.parse(campaign.starts_at) > now)
+    || (campaign.ends_at && Date.parse(campaign.ends_at) <= now)) {
+    throw new Error("Campaign is not currently eligible for booking.");
+  }
+  const { data: offer, error: offerError } = await sb.from("campaign_offers")
+    .select("id,rate_plan_publication_id").eq("id", input.offerId)
+    .eq("campaign_id", campaign.id).eq("property_id", propertyId).eq("active", true).maybeSingle();
+  if (offerError || !offer) throw new Error("Selected campaign offer is no longer available.");
+  const { data: publication, error: publicationError } = await sb.from("staynas_rate_plan_publications")
+    .select("id,rate_plan_id,currency,effective_from,effective_to")
+    .eq("id", offer.rate_plan_publication_id).eq("property_id", propertyId).maybeSingle();
+  if (publicationError || !publication || publication.rate_plan_id !== input.ratePlanId
+    || publication.currency !== property.currency
+    || (publication.effective_from && publication.effective_from > new Date().toISOString().slice(0,10))
+    || (publication.effective_to && publication.effective_to < new Date().toISOString().slice(0,10))) {
+    throw new Error("Campaign offer does not match a currently effective published pricing snapshot in the property currency.");
+  }
+  const { data: plan, error: planError } = await sb.from("staynas_rate_plans")
+    .select("id,active,publication_status,currency").eq("id", publication.rate_plan_id)
+    .eq("property_id", propertyId).maybeSingle();
+  if (planError || !plan || !plan.active || plan.publication_status !== "published" || plan.currency !== property.currency) {
+    throw new Error("Campaign rate plan is no longer active and published for this property.");
+  }
+  const { data: selections, error: selectionsError } = await sb.from("campaign_room_selections")
+    .select("room_id").eq("campaign_id", campaign.id).eq("property_id", propertyId);
+  if (selectionsError || !selections?.length) throw new Error("Campaign has no active room selection.");
+  return {
+    campaignId: campaign.id,
+    offerId: offer.id,
+    allowedRoomIds: new Set<string>(selections.map((item: any) => item.room_id)),
+    sessionKey: input.sessionKey,
+    attribution: {
+      source: input.utmSource ?? null, medium: input.utmMedium ?? null,
+      utm_campaign: input.utmCampaign ?? null, utm_content: input.utmContent ?? null,
+      utm_term: input.utmTerm ?? null, referrer: input.referrer ?? null,
+    },
+  };
+}
+
+async function assertCampaignRoomSelection(sb: any, propertyId: string, roomSlug: string, context: Awaited<ReturnType<typeof resolveCampaignBookingContext>>) {
+  if (!context) return;
+  const { data: room, error } = await sb.from("rooms").select("id")
+    .eq("property_id", propertyId).eq("slug", roomSlug).eq("status", "active").maybeSingle();
+  if (error || !room || !context.allowedRoomIds.has(room.id)) {
+    throw new Error("Selected room is not included in this campaign.");
+  }
+}
+
+
+
 const availabilitySchema = z.object({
   checkIn: dateStr,
   checkOut: dateStr,
@@ -24,7 +115,7 @@ const availabilitySchema = z.object({
   childrenBelow6: z.number().int().min(0).max(10).default(0),
   children7Plus: z.number().int().min(0).max(10).default(0),
   ratePlanId: z.string().uuid().optional(),
-});
+}).merge(campaignBookingContextSchema);
 
 export type PublicRatePlanOption = { rate_plan_id: string; name: string; description: string | null; meal_plan: string | null; refundable: boolean; currency: string; total: number; average_nightly_rate: number; minimum_stay: number; nightly_breakdown: Array<{ date: string; nightly_rate: number; currency: string; source_label: string; pricing_basis: string; source_rate: number }>; publication_id: string; publication_number: number; rate_plan_version: number; snapshot_hash: string };
 
@@ -104,7 +195,9 @@ export const checkAvailability = createServerFn({ method: "POST" })
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
-    const { data: rows, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced_with_rate_plan", {
+    const sb: any = supabaseAdmin;
+    const campaignContext = await resolveCampaignBookingContext(sb, propertyId, data);
+    const { data: rows, error } = await sb.rpc("get_staynas_room_availability_priced_with_rate_plan", {
       _check_in: data.checkIn,
       _check_out: data.checkOut,
       _property_id: propertyId,
@@ -114,7 +207,9 @@ export const checkAvailability = createServerFn({ method: "POST" })
       _rate_plan_id: data.ratePlanId ?? null,
     });
     if (error) throw new Error(error.message);
-    const mapped = await Promise.all(((rows ?? []) as any[]).map(async (r) => {
+    const mapped = await Promise.all(((rows ?? []) as any[]).filter((r) =>
+      !campaignContext || campaignContext.allowedRoomIds.has(r.room_id)
+    ).map(async (r) => {
       let ratePlanOptions: PublicRatePlanOption[] = [];
       if (r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" || r.pricing_quote?.pricing_evidence?.rate_plan_id) {
         const { data: discovery, error: discoveryError } = await (supabaseAdmin as any).rpc("discover_staynas_public_rate_plans", {
@@ -180,7 +275,7 @@ const createBookingSchema = z.object({
   extras: z.array(extraSchema).max(20).default([]),
   holdId: z.string().uuid().optional(),
   sessionId: z.string().min(6).max(120).optional(),
-});
+}).merge(campaignBookingContextSchema);
 
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 
@@ -196,11 +291,14 @@ export const getBookingQuote = createServerFn({ method: "POST" })
     childrenBelow6: z.number().int().min(0).max(10).default(0),
     children7Plus: z.number().int().min(0).max(10).default(0),
     extras: z.array(extraSchema).max(20).default([]),
-  }).parse(d))
+  }).merge(campaignBookingContextSchema).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
-    const { data: quote, error } = await (supabaseAdmin as any).rpc("staynas_create_reservation_quote", {
+    const sb: any = supabaseAdmin;
+    const campaignContext = await resolveCampaignBookingContext(sb, propertyId, data);
+    await assertCampaignRoomSelection(sb, propertyId, data.roomSlug, campaignContext);
+    const { data: quote, error } = await sb.rpc("staynas_create_reservation_quote", {
       _property_id: propertyId,
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
@@ -219,6 +317,18 @@ export const getBookingQuote = createServerFn({ method: "POST" })
     if (quote.ok === false) {
       throw new Error(`Pricing rejected [${quote.error_code ?? "INVALID_RATE_CONFIGURATION"}]: ${quote.message ?? "Pricing configuration is invalid"}`);
     }
+    if (campaignContext) {
+      const { error: attributionError } = await sb.from("campaign_attribution").upsert({
+        campaign_id: campaignContext.campaignId, property_id: propertyId,
+        session_key: campaignContext.sessionKey, event_type: "booking_started",
+        event_key: `${campaignContext.sessionKey}:booking_started`,
+        source: campaignContext.attribution.source, medium: campaignContext.attribution.medium,
+        utm_campaign: campaignContext.attribution.utm_campaign, utm_content: campaignContext.attribution.utm_content,
+        utm_term: campaignContext.attribution.utm_term, referrer: campaignContext.attribution.referrer,
+        metadata: { offerId: campaignContext.offerId }, occurred_at: new Date().toISOString(),
+      }, { onConflict: "property_id,event_key", ignoreDuplicates: true });
+      if (attributionError) throw new Error("Campaign booking-start attribution could not be recorded.");
+    }
     return quote as BookingPricingQuote;
   });
 
@@ -228,6 +338,10 @@ export const createBooking = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const sb: any = supabaseAdmin;
     const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+    const campaignContext = await resolveCampaignBookingContext(sb, propertyId, {
+      ...data, sessionKey: data.sessionKey ?? (data.sessionId && data.sessionId.length >= 16 ? data.sessionId : data.quoteId),
+    });
+    await assertCampaignRoomSelection(sb, propertyId, data.roomSlug, campaignContext);
     const { data: result, error } = await sb.rpc("staynas_create_reservation_from_quote", {
       _quote_id: data.quoteId,
       _property_id: propertyId,
@@ -256,6 +370,18 @@ export const createBooking = createServerFn({ method: "POST" })
     }
     const row = result as { booking_id?: string; reference?: string; total?: number; currency?: string };
     if (!row?.booking_id) throw new Error("Booking could not be created");
+    if (campaignContext) {
+      const { error: attributionError } = await sb.from("campaign_attribution").upsert({
+        campaign_id: campaignContext.campaignId, property_id: propertyId, booking_id: row.booking_id,
+        session_key: campaignContext.sessionKey, event_type: "booking_completed",
+        event_key: `${campaignContext.sessionKey}:booking_completed`,
+        source: campaignContext.attribution.source, medium: campaignContext.attribution.medium,
+        utm_campaign: campaignContext.attribution.utm_campaign, utm_content: campaignContext.attribution.utm_content,
+        utm_term: campaignContext.attribution.utm_term, referrer: campaignContext.attribution.referrer,
+        metadata: { offerId: campaignContext.offerId }, occurred_at: new Date().toISOString(),
+      }, { onConflict: "property_id,event_key", ignoreDuplicates: true });
+      if (attributionError) console.error("[StayNas campaign attribution] Reservation created but attribution persistence failed", { code: attributionError.code, propertyId });
+    }
     // Send "reservation received" email via Lovable Emails. Never let email failure block booking.
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
