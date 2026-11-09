@@ -36,11 +36,15 @@ export const Route = createFileRoute("/")({
 
     if (isProductWebsiteHost) return;
 
-    // Preserve the existing app/property entry behaviour on app.staynas.com,
-    // tenant subdomains and property domains.
+    // Resolve platform authority from the authenticated database identity.
+    // Never infer founder access from email, user metadata or a tenant role.
     const { data, error } = await supabase.auth.getUser();
     if (!error && data.user) {
-      throw redirect({ to: "/admin" });
+      const { data: isFounder, error: founderError } = await (supabase as any).rpc(
+        "commercial_is_founder_admin",
+        { _principal_id: data.user.id },
+      );
+      throw redirect({ to: !founderError && isFounder === true ? "/founder" : "/settings" });
     }
 
     throw redirect({ to: "/rooms" });
