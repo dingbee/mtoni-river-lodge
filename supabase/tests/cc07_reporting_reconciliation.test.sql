@@ -154,6 +154,7 @@ DECLARE
   v_run uuid;
   v_item uuid;
   v_currency_item uuid;
+  v_large_amount_item uuid;
   v_event uuid;
   v_provider uuid;
   v_run_payload jsonb;
@@ -198,19 +199,19 @@ BEGIN
 
   v_import := public.commercial_import_reconciliation_statement(
     v_replayed_id,
-    '[{"item_type":"matched","internal_payment_id":null,"provider_ref":"cc07-statement-row-1","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"TZS","evidence":{"test":true},"resolution_status":"resolved","resolution_ref":"exact_match"},{"item_type":"currency_mismatch","internal_payment_id":null,"provider_ref":"cc07-statement-row-2","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"USD","evidence":{"test":true},"resolution_status":"unresolved","resolution_ref":null}]'::jsonb,
+    '[{"item_type":"matched","internal_payment_id":null,"provider_ref":"cc07-statement-row-1","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"TZS","evidence":{"test":true},"resolution_status":"resolved","resolution_ref":"exact_match"},{"item_type":"currency_mismatch","internal_payment_id":null,"provider_ref":"cc07-statement-row-2","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"USD","evidence":{"test":true},"resolution_status":"unresolved","resolution_ref":null},{"item_type":"missing_internal","internal_payment_id":null,"provider_ref":"cc07-large-amount-row","expected_amount_minor":null,"observed_amount_minor":"90071992547409931234","expected_currency":null,"observed_currency":"TZS","evidence":{"test":"exact-numeric"},"resolution_status":"unresolved","resolution_ref":null}]'::jsonb,
     NULL
   );
-  IF (v_import->>'findingCount')::integer <> 2 OR (v_import->>'replayed')::boolean IS DISTINCT FROM false THEN
+  IF (v_import->>'findingCount')::integer <> 3 OR (v_import->>'replayed')::boolean IS DISTINCT FROM false THEN
     RAISE EXCEPTION 'First provider statement import was not committed';
   END IF;
   v_import := public.commercial_import_reconciliation_statement(
     v_replayed_id,
-    '[{"item_type":"matched","internal_payment_id":null,"provider_ref":"cc07-statement-row-1","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"TZS","evidence":{"test":true},"resolution_status":"resolved","resolution_ref":"exact_match"},{"item_type":"currency_mismatch","internal_payment_id":null,"provider_ref":"cc07-statement-row-2","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"USD","evidence":{"test":true},"resolution_status":"unresolved","resolution_ref":null}]'::jsonb,
+    '[{"item_type":"matched","internal_payment_id":null,"provider_ref":"cc07-statement-row-1","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"TZS","evidence":{"test":true},"resolution_status":"resolved","resolution_ref":"exact_match"},{"item_type":"currency_mismatch","internal_payment_id":null,"provider_ref":"cc07-statement-row-2","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"USD","evidence":{"test":true},"resolution_status":"unresolved","resolution_ref":null},{"item_type":"missing_internal","internal_payment_id":null,"provider_ref":"cc07-large-amount-row","expected_amount_minor":null,"observed_amount_minor":"90071992547409931234","expected_currency":null,"observed_currency":"TZS","evidence":{"test":"exact-numeric"},"resolution_status":"unresolved","resolution_ref":null}]'::jsonb,
     NULL
   );
   SELECT count(*) INTO v_item_count FROM public.commercial_reconciliation_items WHERE run_id=v_replayed_id;
-  IF (v_import->>'replayed')::boolean IS DISTINCT FROM true OR v_item_count <> 2 THEN
+  IF (v_import->>'replayed')::boolean IS DISTINCT FROM true OR v_item_count <> 3 THEN
     RAISE EXCEPTION 'Repeated statement import created duplicate reconciliation items';
   END IF;
   v_event := public.commercial_record_reconciliation_item_event(
@@ -272,10 +273,17 @@ BEGIN
     WHERE run_id=v_replayed_id AND item_type='currency_mismatch';
   IF v_currency_item IS NULL THEN RAISE EXCEPTION 'Mixed-currency statement row was not recorded as a currency mismatch'; END IF;
   PERFORM public.commercial_resolve_reconciliation_item(v_currency_item,'cc07-currency-mismatch-reviewed',NULL);
+  SELECT id INTO v_large_amount_item FROM public.commercial_reconciliation_items
+    WHERE run_id=v_replayed_id AND provider_ref='cc07-large-amount-row';
+  IF v_large_amount_item IS NULL OR
+    (SELECT observed_amount_minor::text FROM public.commercial_reconciliation_items WHERE id=v_large_amount_item)<>'90071992547409931234' THEN
+    RAISE EXCEPTION '20-digit provider amount was not persisted exactly';
+  END IF;
+  PERFORM public.commercial_resolve_reconciliation_item(v_large_amount_item,'cc07-large-amount-reviewed',NULL);
   PERFORM public.commercial_complete_reconciliation_run(v_replayed_id,NULL);
   v_import := public.commercial_import_reconciliation_statement(
     v_replayed_id,
-    '[{"item_type":"matched","internal_payment_id":null,"provider_ref":"cc07-statement-row-1","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"TZS","evidence":{"test":true},"resolution_status":"resolved","resolution_ref":"exact_match"},{"item_type":"currency_mismatch","internal_payment_id":null,"provider_ref":"cc07-statement-row-2","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"USD","evidence":{"test":true},"resolution_status":"unresolved","resolution_ref":null}]'::jsonb,
+    '[{"item_type":"matched","internal_payment_id":null,"provider_ref":"cc07-statement-row-1","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"TZS","evidence":{"test":true},"resolution_status":"resolved","resolution_ref":"exact_match"},{"item_type":"currency_mismatch","internal_payment_id":null,"provider_ref":"cc07-statement-row-2","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"USD","evidence":{"test":true},"resolution_status":"unresolved","resolution_ref":null},{"item_type":"missing_internal","internal_payment_id":null,"provider_ref":"cc07-large-amount-row","expected_amount_minor":null,"observed_amount_minor":"90071992547409931234","expected_currency":null,"observed_currency":"TZS","evidence":{"test":"exact-numeric"},"resolution_status":"unresolved","resolution_ref":null}]'::jsonb,
     NULL
   );
   IF (v_import->>'replayed')::boolean IS DISTINCT FROM true THEN
