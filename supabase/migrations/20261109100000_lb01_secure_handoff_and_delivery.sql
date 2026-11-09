@@ -142,10 +142,16 @@ BEGIN
       SET status = 'revoked', revoked_at = now(), revoked_by = coalesce(NEW.revoked_by, NEW.requested_by)
       WHERE connection_id = NEW.id AND status = 'active';
     UPDATE public.lb01_peer_credentials
-      SET status = 'revoked', revoked_at = now()
+      SET status = 'revoked', revoked_at = now(),
+          encrypted_token = decode('', 'hex'),
+          encryption_iv = decode(repeat('00',12), 'hex'),
+          encryption_tag = decode(repeat('00',16), 'hex')
       WHERE connection_id = NEW.id AND status = 'active';
     UPDATE public.lb01_credential_handoffs
-      SET consumed_at = coalesce(consumed_at, now())
+      SET consumed_at = coalesce(consumed_at, now()),
+          encrypted_token = decode('', 'hex'),
+          encryption_iv = decode(repeat('00',12), 'hex'),
+          encryption_tag = decode(repeat('00',16), 'hex')
       WHERE connection_id = NEW.id AND consumed_at IS NULL;
   END IF;
   RETURN NEW;
@@ -155,6 +161,54 @@ DROP TRIGGER IF EXISTS lb01_revoke_connection_credentials ON public.staynas_prod
 CREATE TRIGGER lb01_revoke_connection_credentials
   AFTER UPDATE OF status ON public.staynas_product_connections
   FOR EACH ROW EXECUTE FUNCTION public.lb01_revoke_connection_credentials();
+
+CREATE OR REPLACE FUNCTION public.lb01_clear_revoked_credential_handoffs()
+RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $lb01$
+BEGIN
+  IF NEW.status = 'revoked' AND OLD.status IS DISTINCT FROM 'revoked' THEN
+    UPDATE public.lb01_credential_handoffs
+      SET consumed_at = coalesce(consumed_at, now()),
+          encrypted_token = decode('', 'hex'),
+          encryption_iv = decode(repeat('00',12), 'hex'),
+          encryption_tag = decode(repeat('00',16), 'hex')
+      WHERE credential_id = NEW.id;
+  END IF;
+  RETURN NEW;
+END;
+$lb01$;
+REVOKE ALL ON FUNCTION public.lb01_clear_revoked_credential_handoffs() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS lb01_clear_revoked_credential_handoffs ON public.product_service_credentials;
+CREATE TRIGGER lb01_clear_revoked_credential_handoffs
+  AFTER UPDATE OF status ON public.product_service_credentials
+  FOR EACH ROW WHEN (NEW.status = 'revoked' AND OLD.status IS DISTINCT FROM 'revoked')
+  EXECUTE FUNCTION public.lb01_clear_revoked_credential_handoffs();
+
+CREATE OR REPLACE FUNCTION public.lb01_purge_expired_handoffs(_limit integer DEFAULT 1000)
+RETURNS integer
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $lb01$
+DECLARE _deleted integer;
+BEGIN
+  IF coalesce(auth.role(), '') <> 'service_role' THEN
+    RAISE EXCEPTION 'Service authentication required' USING ERRCODE = '42501';
+  END IF;
+  WITH expired AS (
+    SELECT id FROM public.lb01_credential_handoffs
+    WHERE expires_at <= now()
+       OR (consumed_at IS NOT NULL AND consumed_at <= now() - interval '2 minutes')
+    ORDER BY expires_at
+    LIMIT greatest(1, least(coalesce(_limit, 1000), 10000))
+    FOR UPDATE SKIP LOCKED
+  )
+  DELETE FROM public.lb01_credential_handoffs h USING expired e WHERE h.id = e.id;
+  GET DIAGNOSTICS _deleted = ROW_COUNT;
+  RETURN _deleted;
+END;
+$lb01$;
+REVOKE ALL ON FUNCTION public.lb01_purge_expired_handoffs(integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.lb01_purge_expired_handoffs(integer) TO service_role;
 
 -- A peer must be able to deliver the other product's approval while this side
 -- is still pending. Suspended/revoked mappings remain blocked.
