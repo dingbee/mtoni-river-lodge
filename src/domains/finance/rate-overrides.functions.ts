@@ -22,9 +22,9 @@ export const listStayNasRateOverrides = createServerFn({ method: "GET" })
     const sb: any = context.supabase;
     const [property, plans, roomTypes, rooms, overrides, audit] = await Promise.all([
       sb.from("staynas_properties").select("id,name,currency,timezone").eq("id",propertyId).single(),
-      sb.from("staynas_rate_plans").select("id,code,name,publication_status,active").eq("property_id",propertyId).order("name"),
+      sb.from("staynas_rate_plans").select("id,code,name,currency,publication_status,active").eq("property_id",propertyId).order("name"),
       sb.rpc("get_staynas_rate_plan_room_types", { _property_id: propertyId }),
-      sb.rpc("get_staynas_rate_override_rooms", { _property_id: propertyId }),
+      sb.from("rooms").select("id,name,catalogue_type_id,currency").eq("property_id",propertyId).eq("status","active").order("name"),
       sb.from("staynas_rate_overrides").select("*").eq("property_id",propertyId).order("created_at",{ascending:false}),
       sb.from("staynas_rate_override_audit").select("*").eq("property_id",propertyId).order("created_at",{ascending:false}).limit(100),
     ]);
@@ -35,7 +35,7 @@ export const listStayNasRateOverrides = createServerFn({ method: "GET" })
       property: property.data,
       plans: plans.data ?? [],
       roomTypes: roomTypes.data ?? [],
-      rooms: rooms.data ?? [],
+      rooms: (rooms.data ?? []).map((room: any) => ({ ...room, room_type_id: room.catalogue_type_id })),
       overrides: overrides.data ?? [],
       audit: audit.data ?? [],
     };
@@ -52,11 +52,28 @@ export const createStayNasRateOverride = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await activeProperty(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const { data: property, error: propertyError } = await sb.from("staynas_properties")
-      .select("currency").eq("id",propertyId).single();
-    if (propertyError || !property?.currency) throw new Error("Property currency is not configured.");
-    if (String(data.currency).toUpperCase() !== String(property.currency).toUpperCase()) {
-      throw new Error("Override currency must match the active property currency.");
+    let expectedCurrency = "";
+    if (data.scope === "room_date") {
+      const { data: room, error } = await sb.from("rooms")
+        .select("currency").eq("id",data.room_id).eq("property_id",propertyId).maybeSingle();
+      if (error || !room) throw new Error("Override room is not part of the active property.");
+      expectedCurrency = String(room.currency ?? "").toUpperCase();
+    } else if (data.scope === "room_type") {
+      const { data: rows, error } = await sb.from("rooms")
+        .select("currency").eq("catalogue_type_id",data.room_type_id).eq("property_id",propertyId).eq("status","active");
+      if (error || !rows?.length) throw new Error("Override room type has no active rooms in this property.");
+      const currencies = Array.from(new Set(rows.map((row: any) => String(row.currency ?? "").toUpperCase())));
+      if (currencies.length !== 1) throw new Error("A room-type override cannot span rooms with different transaction currencies.");
+      expectedCurrency = currencies[0];
+    } else {
+      const { data: plan, error } = await sb.from("staynas_rate_plans")
+        .select("currency").eq("id",data.rate_plan_id).eq("property_id",propertyId).maybeSingle();
+      if (error || !plan) throw new Error("Override rate plan is not part of the active property.");
+      expectedCurrency = String(plan.currency ?? "").toUpperCase();
+    }
+    if (!/^[A-Z]{3}$/.test(expectedCurrency)) throw new Error("The selected pricing source has no valid transaction currency.");
+    if (String(data.currency).toUpperCase() !== expectedCurrency) {
+      throw new Error(`Override currency must match the selected pricing source currency (${expectedCurrency}).`);
     }
     if (data.scope === "room_date") {
       const { data: result, error } = await sb.rpc("apply_staynas_room_date_rate_override", {
@@ -72,7 +89,7 @@ export const createStayNasRateOverride = createServerFn({ method: "POST" })
     const { data: row, error } = await sb.from("staynas_rate_overrides").insert({
       ...data,
       property_id: propertyId,
-      currency: String(property.currency).toUpperCase(),
+      currency: expectedCurrency,
       status: "pending",
       created_by: context.userId,
     }).select("*").single();
