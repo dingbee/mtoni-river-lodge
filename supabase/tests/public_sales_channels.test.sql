@@ -48,6 +48,30 @@ BEGIN
      OR pg_get_functiondef(v_booking_signature) NOT LIKE '%FOR UPDATE%' THEN
     RAISE EXCEPTION 'Public reservation wrapper does not bind the accepted quote to its channel';
   END IF;
+  IF (SELECT is_nullable FROM information_schema.columns WHERE table_schema='public' AND table_name='staynas_properties' AND column_name='currency')<>'NO' THEN
+    RAISE EXCEPTION 'Property operating currency must be required';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name IN ('rooms','bookings','extras')
+      AND column_name='currency' AND column_default IS NOT NULL
+  ) THEN
+    RAISE EXCEPTION 'Property transaction currency columns must not default to USD or another implicit currency';
+  END IF;
+  IF pg_get_functiondef('public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamp with time zone)'::regprocedure)
+       NOT LIKE '%calculate_staynas_room_pricing_legacy%'
+     OR pg_get_functiondef('public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamp with time zone)'::regprocedure)
+       LIKE '%Room currency does not match property currency%'
+     OR pg_get_functiondef('public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamp with time zone)'::regprocedure)
+       NOT LIKE '%upper(v_plan.currency)%' THEN
+    RAISE EXCEPTION 'Published pricing must use the selected rate-plan transaction currency and legacy prices must remain non-recursive';
+  END IF;
+  IF pg_get_functiondef('public.calculate_staynas_room_pricing_legacy(uuid,uuid,date,date,integer,integer,integer)'::regprocedure)
+       NOT LIKE '%upper(v_room.currency)%'
+     OR pg_get_functiondef('public.calculate_staynas_room_pricing_legacy(uuid,uuid,date,date,integer,integer,integer)'::regprocedure)
+       LIKE '%Room currency % does not match property currency %' THEN
+    RAISE EXCEPTION 'Legacy room prices must retain their explicit transaction currency';
+  END IF;
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
     WHERE conrelid='public.bookings'::regclass AND conname='bookings_channel_property_fk'
