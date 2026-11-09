@@ -32,7 +32,7 @@ DECLARE
   v_status text;
 BEGIN
   INSERT INTO auth.users(id) VALUES (v_user);
-  INSERT INTO public.staynas_organisations(id,slug,name) VALUES(v_org,'cc04-ledger-test','CC04 Ledger Test');
+  INSERT INTO public.staynas_organisations(id,slug,name,currency) VALUES(v_org,'cc04-ledger-test','CC04 Ledger Test','TZS');
   INSERT INTO public.commercial_accounts(id,organisation_id) VALUES(v_account,v_org);
   INSERT INTO public.commercial_subscriptions(
     id,account_id,plan_code,plan_version,currency,billing_term,property_count,
@@ -276,7 +276,7 @@ BEGIN
   END IF;
 
   INSERT INTO public.staynas_organisations(id,slug,name) VALUES
-    (v_org2,'cc04-isolation-test','CC04 Isolation Test');
+    (v_org2,'cc04-isolation-test','CC04 Isolation Test','TZS');
   INSERT INTO public.commercial_accounts(id,organisation_id) VALUES (v_account2,v_org2);
   INSERT INTO public.commercial_subscriptions(
     id,account_id,plan_code,plan_version,currency,billing_term,property_count,
