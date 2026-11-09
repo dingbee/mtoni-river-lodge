@@ -114,6 +114,20 @@ jobs:
             RETURN jsonb_build_object('currency',v_property_currency);
           END;
           $function$;
+          INSERT INTO public.staynas_properties(id,slug,status,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','mtoni-river-lodge','setup','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','nolmark-cdma-staynas','active','USD');
+          INSERT INTO public.staynas_property_domains(id,property_id,hostname,verification_status)
+          VALUES ('5d8c9b45-90b8-4b34-89a5-4c2c7bfae521','258a4f01-28ac-4efb-a641-c7649e55dc95','mtoniriverlodge.com','pending');
+          INSERT INTO public.rooms(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          INSERT INTO public.extras(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          INSERT INTO public.bookings(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
           SQL
       - name: Apply public sales-channel migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109120000_public_sales_channels.sql
