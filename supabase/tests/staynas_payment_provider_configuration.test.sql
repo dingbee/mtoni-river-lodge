@@ -2,8 +2,8 @@
 BEGIN;
 
 INSERT INTO public.staynas_organisations(id,slug,name,status)
-VALUES ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','provider-test','Provider Test','active');
-INSERT INTO public.staynas_properties(id,organisation_id,slug,code,name,status)
+VALUES ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','provider-test','Provider Test','active','TZS');
+INSERT INTO public.staynas_properties(id,organisation_id,slug,code,name,status,currency)
 VALUES ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','provider-test','PT','Provider Test Property','active');
 
 DO $$
