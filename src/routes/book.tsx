@@ -35,12 +35,50 @@ import { DatePickerField } from "@/components/os/DatePickerField";
 export const Route = createFileRoute("/book")({
   validateSearch: (
     search: Record<string, unknown>
-  ): { step?: 1 | 2 | 3 | 4; session?: string; room?: string } => {
+  ): {
+    step?: 1 | 2 | 3 | 4;
+    session?: string;
+    room?: string;
+    check_in?: string;
+    check_out?: string;
+    adults?: number;
+    children_below_6?: number;
+    children_7_plus?: number;
+  } => {
     const raw = Number(search.step);
     const step = raw === 2 || raw === 3 || raw === 4 ? raw : 1;
     const session = typeof search.session === "string" ? search.session : undefined;
     const room = typeof search.room === "string" ? search.room : undefined;
-    return { step: step as 1 | 2 | 3 | 4, session, room };
+    const validDate = (value: unknown): value is string => {
+      if (typeof value !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;
+      const date = new Date(`${value}T00:00:00.000Z`);
+      return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+    };
+    const checkIn = validDate(search.check_in) ? search.check_in : undefined;
+    const checkOut = validDate(search.check_out) ? search.check_out : undefined;
+    const validDates = !!checkIn && !!checkOut && checkOut > checkIn;
+    const adultsValue = Number(search.adults);
+    const adults = Number.isInteger(adultsValue) && adultsValue >= 1 && adultsValue <= 10
+      ? adultsValue
+      : undefined;
+    const below6 = Number(search.children_below_6);
+    const plus7 = Number(search.children_7_plus);
+    const totalChildren = Number(search.children);
+    const validChildBuckets =
+      Number.isInteger(below6) && below6 >= 0 && below6 <= 10 &&
+      Number.isInteger(plus7) && plus7 >= 0 && plus7 <= 10 &&
+      below6 + plus7 <= 10 &&
+      (!Number.isInteger(totalChildren) || totalChildren === below6 + plus7);
+    return {
+      step: step as 1 | 2 | 3 | 4,
+      session,
+      room,
+      check_in: validDates ? checkIn : undefined,
+      check_out: validDates ? checkOut : undefined,
+      adults,
+      children_below_6: validChildBuckets ? below6 : undefined,
+      children_7_plus: validChildBuckets ? plus7 : undefined,
+    };
   },
   head: () => ({
     meta: [
@@ -115,7 +153,16 @@ function readPersisted(): Partial<PersistedState> {
 function BookPage() {
   // Step + session live in the URL so back/forward is always explicit
   // routing, never a browser-history pop into a different session.
-  const { step: stepNum, session: incomingSession, room: incomingRoom } = Route.useSearch();
+  const {
+    step: stepNum,
+    session: incomingSession,
+    room: incomingRoom,
+    check_in: incomingCheckIn,
+    check_out: incomingCheckOut,
+    adults: incomingAdults,
+    children_below_6: incomingChildrenBelow6,
+    children_7_plus: incomingChildren7Plus,
+  } = Route.useSearch();
   const navigate = Route.useNavigate();
   const step: Step = NUM_TO_STEP[stepNum as 1 | 2 | 3 | 4];
 
@@ -163,11 +210,11 @@ function BookPage() {
   const p = bootstrapRef.current.state;
 
   const [sessionId, setSessionId] = useState<string>(bootstrapRef.current.sessionId);
-  const [checkIn, setCheckIn] = useState(p.checkIn ?? "");
-  const [checkOut, setCheckOut] = useState(p.checkOut ?? "");
-  const [adults, setAdults] = useState(p.adults ?? 2);
-  const [childrenBelow6, setChildrenBelow6] = useState(p.childrenBelow6 ?? 0);
-  const [children7Plus, setChildren7Plus] = useState(p.children7Plus ?? 0);
+  const [checkIn, setCheckIn] = useState(p.checkIn || incomingCheckIn || "");
+  const [checkOut, setCheckOut] = useState(p.checkOut || incomingCheckOut || "");
+  const [adults, setAdults] = useState(p.adults ?? incomingAdults ?? 2);
+  const [childrenBelow6, setChildrenBelow6] = useState(p.childrenBelow6 ?? incomingChildrenBelow6 ?? 0);
+  const [children7Plus, setChildren7Plus] = useState(p.children7Plus ?? incomingChildren7Plus ?? 0);
   const [results, setResults] = useState<AvailabilityResult>(p.results ?? []);
   const [selectedRoom, setSelectedRoom] = useState<AvailabilityRoom | null>(p.selectedRoom ?? null);
   const [extras, setExtras] = useState<Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>>(p.extras ?? []);
