@@ -199,7 +199,7 @@ function PublicPropertyBookingPage() {
   }
 
   const { property, rooms, branding } = propertyData;
-  const currency = property.currency || "USD";
+  const currency = property.currency;
   const brandStyle = {
     "--direct-primary": branding.primaryColor,
     "--direct-secondary": branding.secondaryColor,
