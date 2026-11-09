@@ -65,7 +65,7 @@ function Metric({ title, value, detail, icon: Icon }: { title: string; value: st
   </article>;
 }
 
-function CurrencyMetric({ title, values }: { title: string; values: { TZS: number; USD: number } }) {
+function CurrencyMetric({ title, values }: { title: string; values: { TZS: string; USD: string } }) {
   return <article className="rounded-xl border bg-card p-4">
     <p className="text-sm text-muted-foreground">{title}</p>
     <div className="mt-3 grid grid-cols-2 gap-3">
