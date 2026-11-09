@@ -8,7 +8,7 @@ async function handleNotification(orderTrackingId: string, merchantReference: st
 
   console.info("[pesapal] IPN received", { orderTrackingId, merchantReference, notificationType });
 
-  const { data: booking } = await supabaseAdmin
+  const { data: booking } = await (supabaseAdmin as any)
     .from("bookings")
     .select("id, payment_status, payment_provider_account_id, pesapal_order_tracking_id, pesapal_merchant_reference")
     .eq("pesapal_merchant_reference", merchantReference)
