@@ -236,14 +236,14 @@ SET LOCAL ROLE service_role;
 UPDATE public.staynas_properties SET status='active'
 WHERE id='20000000-0000-4000-8000-000000000001';
 INSERT INTO public.campaign_attribution(campaign_id,property_id,session_key,event_type,event_key,utm_campaign)
-VALUES ('60000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','session-key-cps03-0001','page_view','session-key-cps03-0001:page_view','resident-escape')
+VALUES ('60000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','session-key-cps03-0001','page_view','60000000-0000-4000-8000-000000000001:session-key-cps03-0001:page_view','resident-escape')
 ON CONFLICT (property_id,event_key) DO NOTHING;
 INSERT INTO public.campaign_attribution(campaign_id,property_id,session_key,event_type,event_key,utm_campaign)
-VALUES ('60000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','session-key-cps03-0001','page_view','session-key-cps03-0001:page_view','resident-escape')
+VALUES ('60000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','session-key-cps03-0001','page_view','60000000-0000-4000-8000-000000000001:session-key-cps03-0001:page_view','resident-escape')
 ON CONFLICT (property_id,event_key) DO NOTHING;
 DO $test$
 BEGIN
-  IF (SELECT count(*) FROM public.campaign_attribution WHERE property_id='20000000-0000-4000-8000-000000000001' AND event_key='session-key-cps03-0001:page_view') <> 1 THEN
+  IF (SELECT count(*) FROM public.campaign_attribution WHERE property_id='20000000-0000-4000-8000-000000000001' AND event_key='60000000-0000-4000-8000-000000000001:session-key-cps03-0001:page_view') <> 1 THEN
     RAISE EXCEPTION 'Campaign attribution event key is not idempotent';
   END IF;
 END
