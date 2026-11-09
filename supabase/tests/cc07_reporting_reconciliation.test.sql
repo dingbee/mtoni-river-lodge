@@ -537,8 +537,8 @@ BEGIN
     subtotal_minor,tax_minor,discount_minor,total_minor,amount_paid_minor,pricing_snapshot,tax_snapshot
   )
   SELECT v_customer_org,v_account,v_final_sub,'CC07-AGING-'||x.label,'cc07-aging-'||x.label,
-    now()-interval '400 days'+(x.n||' days')::interval,
-    now()-interval '370 days'+(x.n||' days')::interval,
+    now()-interval '150 days'+(x.n||' days')::interval,
+    now()-interval '120 days'+(x.n||' days')::interval,
     'TZS','monthly','issued',now()-interval '120 days',x.due_at,
     1000,0,0,1000,0,'{"test":true}'::jsonb,'{"test":true}'::jsonb
   FROM (VALUES
