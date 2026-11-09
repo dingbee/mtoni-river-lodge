@@ -64,6 +64,15 @@ BEGIN
     RAISE EXCEPTION 'Guest payment events and bookings must persist the exact property provider account';
   END IF;
   IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='bookings' AND column_name='payment_provider_credential_secret_ref'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='bookings' AND column_name='payment_provider_environment'
+  ) THEN
+    RAISE EXCEPTION 'Booking payment credentials reference and environment must be snapshotted';
+  END IF;
+  IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
     WHERE conrelid='public.bookings'::regclass AND conname='bookings_payment_provider_account_property_fk'
   ) OR NOT EXISTS (
