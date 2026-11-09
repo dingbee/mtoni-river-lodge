@@ -86,11 +86,13 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261107104539_cc03_subscription_administration.sql
       - name: Apply CC-03.06 service-role privilege hardening migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261107104634_cc03_service_role_delete_privilege_hardening.sql
+      - name: Apply CC-03.07 least-privilege reconciliation migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261107105800_cc03_service_role_least_privilege_reconciliation.sql
       - name: Verify persistence, authorization, lifecycle and trial activation contracts
         run: |
-          psql -v ON_ERROR_STOP=1 -f supabase/tests/cc03_subscription_lifecycle.test.sql
-          psql -v ON_ERROR_STOP=1 -f supabase/tests/cc03_trial_activation.test.sql
-          psql -v ON_ERROR_STOP=1 -f supabase/tests/cc03_subscription_administration.test.sql
-          psql -v ON_ERROR_STOP=1 -f supabase/tests/cc03_service_role_privilege_hardening.test.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/ci/cc03/cc03_subscription_lifecycle.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/ci/cc03/cc03_trial_activation.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/ci/cc03/cc03_subscription_administration.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/ci/cc03/cc03_service_role_privilege_hardening.sql
       - name: Verify concurrent one-time trial activation
         run: bash supabase/tests/cc03_concurrent_trial_activation.sh
