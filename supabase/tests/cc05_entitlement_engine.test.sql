@@ -38,10 +38,10 @@ BEGIN
   INSERT INTO auth.users(id) VALUES (v_founder),(v_tenant);
   INSERT INTO public.staynas_organisations(id,slug,name,status)
   VALUES (v_founder_org,'cc05-founder','CC05 Founder','active'),
-         (v_tenant_org,'cc05-tenant','CC05 Tenant','active');
-  INSERT INTO public.staynas_properties(id,organisation_id,slug,code,name,status)
-  VALUES (v_founder_property,v_founder_org,'cc05-founder-property','CC05F','Founder Property','active'),
-         (v_tenant_property,v_tenant_org,'cc05-tenant-property','CC05T','Tenant Property','active');
+         (v_tenant_org,'cc05-tenant','CC05 Tenant','active','TZS');
+  INSERT INTO public.staynas_properties(id,organisation_id,slug,code,name,status,currency)
+  VALUES (v_founder_property,v_founder_org,'cc05-founder-property','CC05F','Founder Property','active','TZS'),
+         (v_tenant_property,v_tenant_org,'cc05-tenant-property','CC05T','Tenant Property','active','TZS');
   INSERT INTO public.staynas_property_members(property_id,user_id,status,role)
   VALUES (v_founder_property,v_founder,'active','owner'),
          (v_tenant_property,v_tenant,'active','owner');
