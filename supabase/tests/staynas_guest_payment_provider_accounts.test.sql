@@ -3,7 +3,7 @@ BEGIN;
 INSERT INTO public.staynas_organisations(id,slug,name,status)
 VALUES
  ('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','guest-provider-ci','Guest Provider CI','active'),
- ('ffffffff-ffff-4fff-8fff-ffffffffffff','guest-provider-other','Guest Provider Other','active','TZS');
+ ('ffffffff-ffff-4fff-8fff-ffffffffffff','guest-provider-other','Guest Provider Other','active');
 INSERT INTO public.staynas_properties(id,organisation_id,slug,code,name,status,currency)
 VALUES ('11111111-1111-4111-8111-111111111111','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','guest-provider-ci','GPCI','Guest Provider CI','active');
 
