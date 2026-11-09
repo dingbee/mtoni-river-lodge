@@ -13,7 +13,14 @@ export const initiatePayment = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { ensureIpn, submitPesapalOrder } = await import("./pesapal.server");
+    const {
+      ensurePesapalPropertyAccountIpn,
+      submitPesapalPropertyAccountOrder,
+    } = await import("./pesapal.server");
+    const {
+      getActivePropertyPesapalAccount,
+      readPropertyPesapalCredentials,
+    } = await import("./property-pesapal-account.server");
 
     const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
     const propertyId = channel.propertyId;
@@ -35,12 +42,28 @@ export const initiatePayment = createServerFn({ method: "POST" })
       throw new Error("Booking is already paid");
     }
 
+    const account = await getActivePropertyPesapalAccount(supabaseAdmin, channel.organisationId, propertyId, booking.currency);
+    const credentials = await readPropertyPesapalCredentials(supabaseAdmin, account.credential_secret_ref);
     const baseUrl = `https://${channel.hostname}`;
     console.info("[pesapal] initiatePayment", {
       reference: data.reference,
       baseUrl,
     });
-    const notificationId = await ensureIpn(baseUrl);
+    const storedIpnId = typeof account.public_configuration?.ipn_id === "string"
+      ? account.public_configuration.ipn_id
+      : null;
+    const ipn = await ensurePesapalPropertyAccountIpn(baseUrl, credentials, account.environment, storedIpnId);
+    if (account.public_configuration?.ipn_id !== ipn.ipnId || account.public_configuration?.ipn_url !== ipn.ipnUrl) {
+      const { error: ipnConfigError } = await supabaseAdmin
+        .from("staynas_guest_payment_provider_accounts")
+        .update({ public_configuration: { ...account.public_configuration, ipn_id: ipn.ipnId, ipn_url: ipn.ipnUrl } })
+        .eq("id", account.id).eq("property_id", propertyId).eq("organisation_id", channel.organisationId);
+      if (ipnConfigError) throw new Error("Property Pesapal IPN registration could not be persisted.");
+    }
+    const { error: accountBindingError } = await supabaseAdmin.from("bookings")
+      .update({ payment_provider: "pesapal", payment_provider_account_id: account.id })
+      .eq("id", booking.id).eq("property_id", propertyId).eq("sales_channel_id", channel.channelId);
+    if (accountBindingError) throw new Error("Booking could not be bound to its property Pesapal account.");
 
     if (booking.currency !== "TZS" && booking.currency !== "USD") {
       throw new Error("Booking currency is missing or unsupported. Payment cannot be initiated.");
@@ -55,13 +78,13 @@ export const initiatePayment = createServerFn({ method: "POST" })
     const [firstName, ...rest] = (booking.guest_name ?? "").trim().split(/\s+/);
     const lastName = rest.join(" ") || firstName || "Guest";
 
-    const order = await submitPesapalOrder({
+    const order = await submitPesapalPropertyAccountOrder({
       merchantReference: merchantRef,
       amount: deposit,
       currency: booking.currency,
       description: `Mtoni River Lodge deposit – ${booking.reference}`,
       callbackUrl,
-      notificationId,
+      notificationId: ipn.ipnId,
       email: booking.guest_email,
       phone: booking.guest_phone,
       firstName: firstName || "Guest",
@@ -71,6 +94,8 @@ export const initiatePayment = createServerFn({ method: "POST" })
     await supabaseAdmin
       .from("bookings")
       .update({
+        payment_provider: "pesapal",
+        payment_provider_account_id: account.id,
         pesapal_order_tracking_id: order.order_tracking_id,
         pesapal_merchant_reference: order.merchant_reference,
         payment_initiated_at: new Date().toISOString(),
@@ -79,6 +104,7 @@ export const initiatePayment = createServerFn({ method: "POST" })
 
     await supabaseAdmin.from("payment_events").insert({
       booking_id: booking.id,
+      provider_account_id: account.id,
       provider: "pesapal",
       event_type: "order_submitted",
       order_tracking_id: order.order_tracking_id,
