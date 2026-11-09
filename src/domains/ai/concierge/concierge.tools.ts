@@ -52,6 +52,8 @@ export async function searchAvailability(input: {
   check_out: string;
   adults?: number;
   children?: number;
+  childrenBelow6?: number | null;
+  children7Plus?: number | null;
 }): Promise<ConciergeAvailabilityResult> {
   if (!isValidDate(input.check_in) || !isValidDate(input.check_out) || input.check_out <= input.check_in) {
     return { status: "invalid_search", rooms: [] };
@@ -59,6 +61,15 @@ export async function searchAvailability(input: {
   const adults = input.adults ?? 2;
   const children = input.children ?? 0;
   if (!Number.isInteger(adults) || !Number.isInteger(children) || adults < 1 || children < 0 || adults + children > 20) {
+    return { status: "invalid_search", rooms: [] };
+  }
+  if (children > 0 && (input.childrenBelow6 == null || input.children7Plus == null)) {
+    return { status: "child_age_breakdown_required", rooms: [] };
+  }
+  const childrenBelow6 = children === 0 ? 0 : input.childrenBelow6!;
+  const children7Plus = children === 0 ? 0 : input.children7Plus!;
+  if (!Number.isInteger(childrenBelow6) || !Number.isInteger(children7Plus) ||
+      childrenBelow6 < 0 || children7Plus < 0 || childrenBelow6 + children7Plus !== children) {
     return { status: "invalid_search", rooms: [] };
   }
   if (!input.propertyId) return { status: "property_resolution_failure", rooms: [] };
@@ -70,8 +81,8 @@ export async function searchAvailability(input: {
       _check_out: input.check_out,
       _property_id: input.propertyId,
       _adults: adults,
-      _children_below_6: 0,
-      _children_7_plus: children,
+      _children_below_6: childrenBelow6,
+      _children_7_plus: children7Plus,
     });
     if (error) {
       const detail = String(error.message ?? "").toLowerCase();
