@@ -56,6 +56,57 @@ describe("CC-05 entitlement resolver", () => {
     expect(resolveEntitlement(base, "reservations").allowed).toBe(true);
   });
 
+  it("allows usage below the founder-configured quota", () => {
+    const input = {
+      ...base,
+      addonFeatureGrants: [{ addonCode: "direct_booking_campaign_studio", featureCodes: ["campaign_studio"] }],
+      purchasedAddonCodes: ["direct_booking_campaign_studio"],
+      usage: {
+        metric: "campaign_pages.max_active_per_property",
+        used: 2,
+        limit: 5,
+        scope: "property" as const,
+        period: "concurrent" as const,
+        policyConfigured: true,
+      },
+    };
+    expect(resolveEntitlement(input, "campaign_studio").outcome).toBe("granted");
+  });
+
+  it("denies usage at or above the founder-configured quota", () => {
+    const input = {
+      ...base,
+      addonFeatureGrants: [{ addonCode: "direct_booking_campaign_studio", featureCodes: ["campaign_studio"] }],
+      purchasedAddonCodes: ["direct_booking_campaign_studio"],
+      usage: {
+        metric: "campaign_pages.max_active_per_property",
+        used: 5,
+        limit: 5,
+        scope: "property" as const,
+        period: "concurrent" as const,
+        policyConfigured: true,
+      },
+    };
+    expect(resolveEntitlement(input, "campaign_studio").outcome).toBe("usage_limit_reached");
+  });
+
+  it("fails closed when founder quota policy is missing or ambiguous", () => {
+    const input = {
+      ...base,
+      addonFeatureGrants: [{ addonCode: "direct_booking_campaign_studio", featureCodes: ["campaign_studio"] }],
+      purchasedAddonCodes: ["direct_booking_campaign_studio"],
+      usage: {
+        metric: "campaign_pages.max_active_per_property",
+        used: 1,
+        limit: -1,
+        scope: "property" as const,
+        period: "concurrent" as const,
+        policyConfigured: false,
+      },
+    };
+    expect(resolveEntitlement(input, "campaign_studio").outcome).toBe("commercial_review_required");
+  });
+
   it("fails closed when property creation count cannot be verified", () => {
     const input = { ...base, propertyAllowance: 2, activePropertyCount: undefined, propertyCreationRequested: true };
     expect(resolveEntitlement(input, "reservations").outcome).toBe("commercial_review_required");
