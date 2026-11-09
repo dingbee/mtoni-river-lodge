@@ -36,7 +36,7 @@ BEGIN
   BEGIN
     DELETE FROM public.commercial_founder_notifications WHERE dedupe_key='cc06-test-alert-0001';
     RAISE EXCEPTION 'Notification deletion was not blocked';
-  EXCEPTION WHEN raise_exception THEN
+  EXCEPTION WHEN SQLSTATE '55000' THEN
     IF SQLERRM NOT LIKE 'Founder commercial notification history cannot be deleted' THEN RAISE; END IF;
   END;
 END $$;
