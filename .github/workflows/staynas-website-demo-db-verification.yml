@@ -1,0 +1,56 @@
+name: StayNas website demo-request database verification
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  demo-request-database:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: staynas_website_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d staynas_website_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: staynas_website_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Bootstrap isolated authorization helper
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE anon NOLOGIN;
+          CREATE ROLE authenticated NOLOGIN;
+          CREATE ROLE service_role NOLOGIN BYPASSRLS;
+          CREATE FUNCTION public.is_staynas_founder_ai_admin()
+          RETURNS boolean
+          LANGUAGE sql STABLE
+          AS $function$
+            SELECT COALESCE(current_setting('request.jwt.claim.role', true), '') = 'founder'
+          $function$;
+          SQL
+      - name: Apply unapplied website demo-request schema to ephemeral PostgreSQL
+        run: psql -v ON_ERROR_STOP=1 -f supabase/review/20261107100000_staynas_website_demo_requests.sql
+      - name: Verify grants, RLS, deduplication and rate limits
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/staynas_website_demo_requests.test.sql

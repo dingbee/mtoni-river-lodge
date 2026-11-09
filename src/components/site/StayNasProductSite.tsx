@@ -1,7 +1,9 @@
-import type { ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+import { useEffect, useState, type ReactNode } from "react";
+import { Link, useLocation } from "@tanstack/react-router";
+import { trackGAEvent, trackPageView } from "@/lib/analytics";
 import { ArrowRight, ArrowUpRight, BedDouble, Building2, CalendarCheck, ChartNoAxesCombined, Check, CircleDot, CreditCard, Globe2, House, Layers3, Network, ShieldCheck, Sparkles, Users, Workflow, Wrench } from "lucide-react";
 import { STAYNAS_PUBLIC_CAPABILITIES, STAYNAS_PILLARS, type PublicCapability } from "@/lib/staynas-public-capabilities";
+import { StayNasDemoRequestForm, StayNasModulePreview } from "@/components/site/StayNasWebsiteEnhancements";
 
 const capabilityIcons: Record<string, typeof BedDouble> = {
   reservations: CalendarCheck,
@@ -28,8 +30,10 @@ const statusStyles: Record<PublicCapability["status"], string> = {
 export function ProductSiteHeader() {
   const links = [
     { to: "/platform", label: "Platform" },
+    { to: "/modules", label: "Modules" },
     { to: "/solutions", label: "Solutions" },
     { to: "/integrations", label: "Integrations" },
+    { to: "/pricing", label: "Plans" },
   ] as const;
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0c211b]/95 text-white backdrop-blur-xl">
@@ -63,11 +67,11 @@ export function ProductSiteFooter() {
         </div>
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/40">Explore</p>
-          <div className="mt-5 flex flex-col gap-3 text-sm text-white/70"><Link to="/platform">Platform</Link><Link to="/solutions">Solutions</Link><Link to="/integrations">Integrations</Link><Link to="/request-demo">Request a demo</Link></div>
+          <div className="mt-5 flex flex-col gap-3 text-sm text-white/70"><Link to="/platform">Platform</Link><Link to="/modules">Modules</Link><Link to="/product-tour">Product walkthrough</Link><Link to="/solutions">Solutions</Link><Link to="/integrations">Integrations</Link><Link to="/pricing">Plans & pricing</Link><Link to="/request-demo">Request a demo</Link></div>
         </div>
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/40">Company</p>
-          <div className="mt-5 flex flex-col gap-3 text-sm text-white/70"><a href="https://nolmark.co" target="_blank" rel="noreferrer">Nolmark CDMA</a><a href="https://github.com/dingbee/mtoni-river-lodge" target="_blank" rel="noreferrer">Product engineering</a></div>
+          <div className="mt-5 flex flex-col gap-3 text-sm text-white/70"><Link to="/architecture">Architecture</Link><Link to="/security">Trust & security</Link><a href="https://nolmark.co" target="_blank" rel="noreferrer">Nolmark CDMA</a></div>
         </div>
       </div>
       <div className="border-t border-white/10"><div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-5 text-xs text-white/35 sm:flex-row sm:items-center sm:justify-between lg:px-10"><span>© {new Date().getFullYear()} StayNas. All rights reserved.</span><span>Hospitality Operating System · staynas.com</span></div></div>
@@ -76,7 +80,76 @@ export function ProductSiteFooter() {
 }
 
 function SiteShell({ children }: { children: ReactNode }) {
-  return <div className="min-h-screen bg-[#f6f5ef] text-[#15251f]"><ProductSiteHeader/>{children}<ProductSiteFooter/></div>;
+  return <div className="min-h-screen bg-[#f6f5ef] text-[#15251f]"><ProductSiteHeader/><StayNasAnalytics/>{children}<ProductSiteFooter/></div>;
+}
+
+function StayNasAnalytics() {
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const [consent, setConsent] = useState<boolean | null>(null);
+  const ga4Id = import.meta.env.VITE_STAYNAS_GA4_MEASUREMENT_ID as string | undefined;
+  const gtmId = import.meta.env.VITE_STAYNAS_GTM_CONTAINER_ID as string | undefined;
+  const configured = Boolean(ga4Id || gtmId);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("staynas-analytics-consent");
+    setConsent(saved === "granted" ? true : saved === "denied" ? false : null);
+  }, []);
+
+  useEffect(() => {
+    if (!configured || consent !== true) return;
+    window.dataLayer = window.dataLayer || [];
+    let script: HTMLScriptElement;
+    if (gtmId) {
+      window.dataLayer.push({ "gtm.start": Date.now(), event: "gtm.js" });
+      script = document.createElement("script");
+      script.async = true;
+      script.src = `https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(gtmId)}`;
+    } else if (ga4Id) {
+      window.gtag = (...args: unknown[]) => window.dataLayer.push(args);
+      window.gtag("js", new Date());
+      window.gtag("config", ga4Id, { send_page_view: false });
+      script = document.createElement("script");
+      script.async = true;
+      script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(ga4Id)}`;
+    } else {
+      return;
+    }
+    document.head.appendChild(script);
+    const handleClick = (event: MouseEvent) => {
+      if (!(event.target instanceof Element)) return;
+      const anchor = event.target.closest("a[href]");
+      if (!(anchor instanceof HTMLAnchorElement)) return;
+      const destination = new URL(anchor.href, window.location.href);
+      if (destination.origin === window.location.origin && destination.pathname === "/request-demo") {
+        trackGAEvent("demo_request_click", { event_category: "conversion", cta_location: "product_website" });
+      }
+    };
+    const handleDemoSuccess = (event: Event) => {
+      const detail = (event as CustomEvent<{ propertyType?: string; propertyCount?: string }>).detail ?? {};
+      trackGAEvent("generate_lead", { event_category: "conversion", form_name: "staynas_demo_request", property_type: detail.propertyType, property_count_band: detail.propertyCount });
+    };
+    document.addEventListener("click", handleClick);
+    window.addEventListener("staynas:demo-request-success", handleDemoSuccess);
+    return () => {
+      document.removeEventListener("click", handleClick);
+      window.removeEventListener("staynas:demo-request-success", handleDemoSuccess);
+      script.remove();
+    };
+  }, [configured, consent, ga4Id, gtmId]);
+
+  useEffect(() => {
+    if (configured && consent === true) trackPageView(pathname);
+  }, [configured, consent, pathname]);
+
+  if (!configured || consent !== null) return null;
+  const choose = (granted: boolean) => {
+    window.localStorage.setItem("staynas-analytics-consent", granted ? "granted" : "denied");
+    setConsent(granted);
+  };
+  return <aside aria-label="Analytics preferences" className="fixed inset-x-4 bottom-4 z-[60] mx-auto flex max-w-3xl flex-col gap-3 rounded-2xl border border-[#d8ddd5] bg-white p-5 shadow-2xl sm:flex-row sm:items-center sm:justify-between">
+    <div><p className="text-sm font-semibold text-[#15251f]">Help improve StayNas</p><p className="mt-1 text-xs leading-5 text-[#69756e]">With your permission, we use analytics to understand website visits and demo interest. Form details and personal contact information are not sent to analytics.</p></div>
+    <div className="flex shrink-0 gap-2"><button type="button" onClick={() => choose(false)} className="rounded-full border border-[#d8ddd5] px-4 py-2.5 text-xs font-semibold text-[#526057]">Essential only</button><button type="button" onClick={() => choose(true)} className="rounded-full bg-[#173d2d] px-4 py-2.5 text-xs font-semibold text-white">Allow analytics</button></div>
+  </aside>;
 }
 
 function Eyebrow({ children }: { children: ReactNode }) {
@@ -98,6 +171,16 @@ function CapabilityCard({ item }: { item: PublicCapability }) {
 export function ProductHomePage() {
   return <SiteShell>
     <main>
+      <script type="application/ld+json">{JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        name: "StayNas",
+        description: "A hospitality operating system connecting reservations, guest experience, property operations, finance and hospitality intelligence.",
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web",
+        url: "https://staynas.com",
+        provider: { "@type": "Organization", name: "Nolmark CDMA", url: "https://nolmark.co" },
+      })}</script>
       <section className="relative overflow-hidden bg-[#0c211b] text-white">
         <div className="absolute inset-0 opacity-30" style={{backgroundImage:"radial-gradient(ellipse at 78% 18%, rgba(199,169,107,.42), transparent 34%), radial-gradient(ellipse at 12% 90%, rgba(65,116,83,.5), transparent 40%)"}}/>
         <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-6 py-20 lg:grid-cols-[1.05fr_.95fr] lg:px-10 lg:py-28">
@@ -105,7 +188,7 @@ export function ProductHomePage() {
             <Eyebrow>Hospitality Operating System</Eyebrow>
             <h1 className="mt-6 max-w-3xl text-5xl font-semibold leading-[1.04] tracking-[-0.045em] sm:text-6xl lg:text-[4.5rem]">Every stay.<br/><span className="text-[#d7bd85]">Every operation.</span><br/>One intelligent system.</h1>
             <p className="mt-7 max-w-xl text-base leading-8 text-white/65 sm:text-lg">StayNas connects reservations, guest experience, property operations, financial control and hospitality intelligence in one operating environment.</p>
-            <div className="mt-9 flex flex-wrap gap-3"><Link to="/platform" className="inline-flex items-center gap-2 rounded-full bg-[#d7bd85] px-6 py-4 text-sm font-semibold text-[#14271f] transition hover:bg-[#e5d0a4]">Explore the platform <ArrowRight className="h-4 w-4"/></Link><Link to="/request-demo" className="inline-flex items-center gap-2 rounded-full border border-white/25 px-6 py-4 text-sm font-semibold text-white transition hover:bg-white/10">Request a demonstration</Link></div>
+            <div className="mt-9 flex flex-wrap gap-3"><Link to="/platform" className="inline-flex items-center gap-2 rounded-full bg-[#d7bd85] px-6 py-4 text-sm font-semibold text-[#14271f] transition hover:bg-[#e5d0a4]">Explore the platform <ArrowRight className="h-4 w-4"/></Link><Link to="/request-demo" className="inline-flex items-center gap-2 rounded-full border border-white/25 px-6 py-4 text-sm font-semibold text-white transition hover:bg-white/10">Request a demonstration</Link><Link to="/product-tour" className="inline-flex items-center gap-2 px-3 py-4 text-sm font-semibold text-white/75 hover:text-white">Take the product walkthrough <ArrowRight className="h-4 w-4"/></Link></div>
             <div className="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-xs text-white/45"><span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-[#d7bd85]"/> Property-aware architecture</span><span className="flex items-center gap-2"><Network className="h-4 w-4 text-[#d7bd85]"/> Connected workflows</span></div>
           </div>
           <div className="relative">
@@ -135,6 +218,7 @@ export function ProductHomePage() {
         <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div className="max-w-2xl"><Eyebrow>Built for hospitality teams</Eyebrow><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">A clearer way to run hospitality.</h2><p className="mt-4 text-base leading-7 text-[#69756e]">For independent properties, lodges, resorts and multi-property operators.</p></div><Link to="/solutions" className="inline-flex items-center gap-2 text-sm font-semibold text-[#315744]">Explore solutions <ArrowRight className="h-4 w-4"/></Link></div>
         <div className="mt-10 grid gap-4 md:grid-cols-3">{[{icon:House,title:"Independent properties",desc:"Connect reservations, front desk, housekeeping and guest relationships."},{icon:Building2,title:"Lodges & resorts",desc:"Coordinate guest journeys and property operations around the character of each stay."},{icon:Layers3,title:"Hospitality groups",desc:"Build a foundation for property-level operations and broader management visibility."}].map(item=><article key={item.title} className="rounded-2xl border border-[#deded4] bg-white p-6"><item.icon className="h-6 w-6 text-[#a1844f]"/><h3 className="mt-5 text-lg font-semibold">{item.title}</h3><p className="mt-2 text-sm leading-6 text-[#69756e]">{item.desc}</p></article>)}</div>
       </section>
+      <StayNasModulePreview/>
       <section className="bg-[#10271f] text-white"><div className="mx-auto flex max-w-7xl flex-col gap-8 px-6 py-16 lg:flex-row lg:items-center lg:justify-between lg:px-10"><div className="max-w-2xl"><Eyebrow>See StayNas in context</Eyebrow><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Explore what one connected operating system can do.</h2><p className="mt-4 text-sm leading-7 text-white/60">Arrange a product walkthrough focused on your property type, operating model and priorities.</p></div><Link to="/request-demo" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#d7bd85] px-7 py-4 text-sm font-semibold text-[#14271f]">Request a demo <ArrowRight className="h-4 w-4"/></Link></div></section>
     </main>
   </SiteShell>;
@@ -156,13 +240,13 @@ export function ProductInfoPage({ page }: { page: "platform" | "solutions" | "in
 
   if (page === "integrations") return <SiteShell><main>
     <section className="bg-[#0c211b] px-6 py-16 text-white lg:px-10 lg:py-20"><div className="mx-auto max-w-7xl"><Eyebrow>Connected hospitality ecosystem</Eyebrow><h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl">Connect the systems around your property.</h1><p className="mt-6 max-w-2xl text-base leading-8 text-white/65">StayNas is designed to operate as the central property context while connecting specialist services through explicit integrations.</p></div></section>
-    <section className="mx-auto max-w-7xl px-6 py-16 lg:px-10"><div className="grid gap-4 md:grid-cols-2">{[{name:"Public Booking Network",kind:"Distribution",state:"Connector-specific implementation and verification required",desc:"A route for connecting external demand and booking channels to property availability and reservation workflows."},{name:"Payment providers",kind:"Payments",state:"Provider activation is deployment and tenant-configuration dependent",desc:"A property-aware approach to payment services, including local payment requirements and reconciliation."},{name:"Property websites & direct booking",kind:"Guest acquisition",state:"Direct booking foundation present",desc:"Guest-facing property pages and booking journeys connected to StayNas property configuration."},{name:"LexiBite",kind:"Food & beverage",state:"Ecosystem integration direction",desc:"A potential connection to a specialist FnB operating system while preserving LexiBite as an independent product."},{name:"External APIs & services",kind:"Extensibility",state:"Integration-specific",desc:"Connect additional services through defined contracts, access controls and property-scoped data boundaries."},{name:"Guest communications",kind:"Engagement",state:"Channel and provider dependent",desc:"Support guest communications around enquiries, pre-arrival information and the stay lifecycle."}].map(x=><article key={x.name} className="rounded-2xl border border-[#deded4] bg-white p-7"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9a835b]">{x.kind}</p><h2 className="mt-2 text-xl font-semibold">{x.name}</h2></div><Globe2 className="h-5 w-5 text-[#a1844f]"/></div><p className="mt-3 text-sm leading-7 text-[#69756e]">{x.desc}</p><p className="mt-5 border-t border-[#ecece5] pt-4 text-xs font-medium text-[#52665a]">{x.state}</p></article>)}</div><div className="mt-10 rounded-2xl bg-[#e9ede6] p-7"><h2 className="text-lg font-semibold">Integration governance matters.</h2><p className="mt-3 max-w-3xl text-sm leading-7 text-[#69756e]">Each connection should define its data contract, property scope, authentication, event handling, error recovery and reconciliation responsibilities. A connector is only described as available after its implementation and operational verification are complete.</p></div></section>
+    <section className="mx-auto max-w-7xl px-6 py-16 lg:px-10"><div className="grid gap-4 md:grid-cols-2">{[{name:"Public Booking Network & channel distribution",kind:"Distribution",state:"Channel-specific connector implementation and verification required",desc:"A distribution layer for connecting external demand channels to property availability and reservation workflows. OTA and channel-manager connectivity is not claimed as universally live."},{name:"Payment providers",kind:"Payments",state:"Provider activation is deployment and tenant-configuration dependent",desc:"Property-configured payment services, including payment lifecycle handling and reconciliation. Availability depends on the selected provider and deployment."},{name:"Property websites & direct booking",kind:"Guest acquisition",state:"Direct booking foundation present; property publication is controlled",desc:"Guest-facing property pages and booking journeys connected to StayNas property configuration and availability."},{name:"Guest CRM & engagement",kind:"Guest data",state:"StayNas guest CRM implemented; external CRM connectors are integration-dependent",desc:"Guest profiles, stay context and service workflows inside StayNas, with external CRM connections subject to connector-specific delivery."},{name:"Email, SMS & WhatsApp",kind:"Communications",state:"Provider and channel configuration dependent",desc:"Guest communications around enquiries, pre-arrival information and the stay lifecycle. Each channel requires provider credentials, consent and operational verification."},{name:"Accounting & external finance",kind:"Finance",state:"Connector roadmap; no native accounting sync claimed",desc:"Potential connections to accounting and finance platforms through explicit ledger, settlement and reconciliation contracts."},{name:"LexiBite & food service",kind:"Food & beverage",state:"Ecosystem integration direction",desc:"A potential connection to the specialist LexiBite FnB operating system while preserving LexiBite as an independent product."},{name:"External APIs & analytics",kind:"Extensibility",state:"Integration-specific",desc:"Connect additional systems, reporting tools and data services through defined contracts, authentication, event handling and property-scoped data boundaries."}].map(x=><article key={x.name} className="rounded-2xl border border-[#deded4] bg-white p-7"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9a835b]">{x.kind}</p><h2 className="mt-2 text-xl font-semibold">{x.name}</h2></div><Globe2 className="h-5 w-5 text-[#a1844f]"/></div><p className="mt-3 text-sm leading-7 text-[#69756e]">{x.desc}</p><p className="mt-5 border-t border-[#ecece5] pt-4 text-xs font-medium text-[#52665a]">{x.state}</p></article>)}</div><div className="mt-10 rounded-2xl bg-[#e9ede6] p-7"><h2 className="text-lg font-semibold">Integration governance matters.</h2><p className="mt-3 max-w-3xl text-sm leading-7 text-[#69756e]">Each connection should define its data contract, property scope, authentication, event handling, error recovery and reconciliation responsibilities. A connector is only described as available after its implementation and operational verification are complete.</p></div></section>
     <CallToAction/>
   </main></SiteShell>;
 
   return <SiteShell><main>
     <section className="bg-[#0c211b] px-6 py-16 text-white lg:px-10 lg:py-20"><div className="mx-auto max-w-7xl"><Eyebrow>Product demonstration</Eyebrow><h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl">See how StayNas fits your operation.</h1><p className="mt-6 max-w-2xl text-base leading-8 text-white/65">A product walkthrough should reflect your property type, team structure, guest journey and integration priorities.</p></div></section>
-    <section className="mx-auto grid max-w-7xl gap-10 px-6 py-16 lg:grid-cols-[1fr_.85fr] lg:px-10"><div><Eyebrow>What we can walk through</Eyebrow><h2 className="mt-4 text-3xl font-semibold">A demonstration built around your operating priorities.</h2><div className="mt-8 space-y-5">{[{t:"Reservations to arrival",d:"Explore the connection between booking, guest details, online check-in and reception."},{t:"Daily property operations",d:"See how rooms, housekeeping tasks, inspections and exceptions fit together."},{t:"Management visibility",d:"Review operational, guest and revenue information available to property leaders."},{t:"Your integration landscape",d:"Discuss payment providers, booking distribution, websites and specialist systems."}].map(x=><div key={x.t} className="flex gap-4"><span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#e8ede6] text-[#42634d]"><Check className="h-4 w-4"/></span><div><h3 className="font-semibold">{x.t}</h3><p className="mt-1 text-sm leading-6 text-[#69756e]">{x.d}</p></div></div>)}</div></div><aside className="rounded-2xl border border-[#deded4] bg-white p-7"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9a835b]">Product enquiries</p><h2 className="mt-3 text-2xl font-semibold">Start a conversation with the StayNas team.</h2><p className="mt-4 text-sm leading-7 text-[#69756e]">StayNas is a Nolmark CDMA product. For a demonstration or commercial enquiry, contact Nolmark through its official website and mention StayNas.</p><a href="https://nolmark.co" target="_blank" rel="noreferrer" className="mt-7 inline-flex items-center gap-2 rounded-full bg-[#173d2d] px-6 py-3.5 text-sm font-semibold text-white">Contact Nolmark CDMA <ArrowUpRight className="h-4 w-4"/></a><p className="mt-5 text-xs leading-5 text-[#818b84]">No enquiry form is submitted on this page. The link opens Nolmark's website.</p></aside></section>
+    <section className="mx-auto grid max-w-7xl gap-10 px-6 py-16 lg:grid-cols-[1fr_.85fr] lg:px-10"><div><Eyebrow>What we can walk through</Eyebrow><h2 className="mt-4 text-3xl font-semibold">A demonstration built around your operating priorities.</h2><div className="mt-8 space-y-5">{[{t:"Reservations to arrival",d:"Explore the connection between booking, guest details, online check-in and reception."},{t:"Daily property operations",d:"See how rooms, housekeeping tasks, inspections and exceptions fit together."},{t:"Management visibility",d:"Review operational, guest and revenue information available to property leaders."},{t:"Your integration landscape",d:"Discuss payment providers, booking distribution, websites and specialist systems."}].map(x=><div key={x.t} className="flex gap-4"><span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#e8ede6] text-[#42634d]"><Check className="h-4 w-4"/></span><div><h3 className="font-semibold">{x.t}</h3><p className="mt-1 text-sm leading-6 text-[#69756e]">{x.d}</p></div></div>)}</div></div><StayNasDemoRequestForm/></section>
   </main></SiteShell>;
 }
 
