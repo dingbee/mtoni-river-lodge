@@ -46,6 +46,7 @@ describe("Concierge availability contract", () => {
     expect(result.rooms[0]).toMatchObject({
       slug: "river-suite", is_available: true, currency: "TZS", nightly_total: 250,
     });
+    expect(result.rooms[0]).not.toHaveProperty("base_price");
     expect(rpc).toHaveBeenCalledWith("get_staynas_room_availability_priced", expect.objectContaining({
       _property_id: propertyId, _adults: 2, _check_in: "2026-12-01", _check_out: "2026-12-03",
     }));
