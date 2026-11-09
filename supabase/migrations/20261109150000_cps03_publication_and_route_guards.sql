@@ -10,16 +10,12 @@ set search_path = pg_catalog, public
 as $function$
 begin
   if current_user <> 'service_role' then
-    if tg_table_name = 'booking_pages' and new.status is distinct from old.status then
-      raise exception 'Booking page publication must use the trusted server workflow'
+    if tg_op = 'INSERT' and new.status <> 'draft' then
+      raise exception 'Published booking resources must be created through the trusted server workflow'
         using errcode = '42501';
     end if;
-    if tg_table_name = 'booking_campaigns' and new.status is distinct from old.status then
-      raise exception 'Campaign lifecycle transitions must use the trusted server workflow'
-        using errcode = '42501';
-    end if;
-    if tg_table_name = 'campaign_page_content' and new.status is distinct from old.status then
-      raise exception 'Campaign content publication must use the trusted server workflow'
+    if tg_op = 'UPDATE' and new.status is distinct from old.status then
+      raise exception 'Booking resource lifecycle transitions must use the trusted server workflow'
         using errcode = '42501';
     end if;
   end if;
@@ -29,17 +25,17 @@ $function$;
 
 drop trigger if exists cps03_booking_pages_publication_guard on public.booking_pages;
 create trigger cps03_booking_pages_publication_guard
-before update of status on public.booking_pages
+before insert or update of status on public.booking_pages
 for each row execute function public.cps03_guard_publication_transition();
 
 drop trigger if exists cps03_booking_campaigns_publication_guard on public.booking_campaigns;
 create trigger cps03_booking_campaigns_publication_guard
-before update of status on public.booking_campaigns
+before insert or update of status on public.booking_campaigns
 for each row execute function public.cps03_guard_publication_transition();
 
 drop trigger if exists cps03_campaign_content_publication_guard on public.campaign_page_content;
 create trigger cps03_campaign_content_publication_guard
-before update of status on public.campaign_page_content
+before insert or update of status on public.campaign_page_content
 for each row execute function public.cps03_guard_publication_transition();
 
 -- Prevent collisions between the permanent /book route and campaign slugs.
