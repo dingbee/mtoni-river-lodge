@@ -58,6 +58,7 @@ export type CommercialCatalogueStatus = (typeof COMMERCIAL_CATALOGUE_STATUSES)[n
 const nonEmptyCode = z.string().trim().min(2).max(60).regex(/^[a-z][a-z0-9_]*$/);
 const nonEmptyName = z.string().trim().min(2).max(120);
 const description = z.string().trim().max(2000);
+const quotaMetric = z.string().trim().min(2).max(100).regex(/^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$/);
 
 export const commercialPlanSchema = z.object({
   code: z.enum(COMMERCIAL_PLAN_CODES),
@@ -104,7 +105,7 @@ export type CommercialPlanModule = z.infer<typeof commercialPlanModuleSchema>;
 
 export const commercialAddonQuotaSchema = z.object({
   featureCode: z.enum(COMMERCIAL_MODULE_CODES),
-  metric: nonEmptyCode,
+  metric: quotaMetric,
   limit: z.number().int().min(0).max(1_000_000),
   scope: z.enum(["property", "organisation"]),
   period: z.enum(["concurrent", "monthly", "billing_period", "lifetime"]),
