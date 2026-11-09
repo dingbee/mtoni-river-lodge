@@ -99,7 +99,7 @@ export const listConciergeLeads = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const propertyId = await requirePropertyScope(context.supabase, context.userId);
-    const { data, error } = await context.supabase
+    const { data, error } = await (context.supabase as any)
       .from("ai_concierge_leads")
       .select("id, session_id, name, email, phone, country, travel_period_start, travel_period_end, party_adults, party_children, interests, intent_level, status, notes, created_at, updated_at")
       .eq("property_id", propertyId)
@@ -124,7 +124,7 @@ export const updateConciergeLead = createServerFn({ method: "POST" })
     if (data.status) patch.status = data.status;
     if (typeof data.notes !== "undefined") patch.notes = data.notes;
     if (Object.keys(patch).length === 0) throw new Error("No lead changes supplied.");
-    const { error } = await context.supabase.from("ai_concierge_leads").update(patch).eq("id", data.id).eq("property_id", propertyId);
+    const { error } = await (context.supabase as any).from("ai_concierge_leads").update(patch).eq("id", data.id).eq("property_id", propertyId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
