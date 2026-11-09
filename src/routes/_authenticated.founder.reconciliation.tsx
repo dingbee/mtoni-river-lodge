@@ -15,6 +15,7 @@ type Workspace = {
   events: Array<Record<string, unknown>>;
   providers: Array<Record<string, unknown>>;
   organisations: Array<Record<string, unknown>>;
+  integrityExceptions: Array<Record<string, unknown>>;
 };
 
 export const Route = createFileRoute("/_authenticated/founder/reconciliation")({
@@ -233,6 +234,23 @@ function FounderReconciliationWorkspace() {
           </article>;
         })}
         {!data.runs.length && <p className="rounded-xl border p-6 text-sm text-muted-foreground">No reconciliation runs have been recorded.</p>}
+      </section>
+
+      <section className="space-y-3">
+        <div>
+          <h2 className="font-semibold">Subscription and ledger integrity</h2>
+          <p className="text-sm text-muted-foreground">Read-only cross-domain exceptions. This view detects missing current-period invoices, invoice term/currency mismatches, and active entitlements outside their subscription or effective window.</p>
+        </div>
+        {data.integrityExceptions.length ? data.integrityExceptions.map((item,index) => (
+          <article key={`${String(item.domain)}-${String(item.subscription_id)}-${String(item.assignment_id ?? index)}-${String(item.exception_type)}`} className="rounded-xl border p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-medium">{label(String(item.exception_type))}</p>
+              <span className="rounded-md border px-2 py-1 text-xs">{String(item.tenantName)}</span>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">Subscription {String(item.subscription_id)} · {String(item.currency ?? item.feature_code ?? "")}</p>
+            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words rounded bg-muted/40 p-3 text-xs">{JSON.stringify(item.evidence ?? {}, null, 2)}</pre>
+          </article>
+        )) : <p className="rounded-xl border p-6 text-sm text-muted-foreground">No subscription-to-invoice or entitlement-to-subscription consistency exceptions were detected.</p>}
       </section>
     </div>
   </main>;
