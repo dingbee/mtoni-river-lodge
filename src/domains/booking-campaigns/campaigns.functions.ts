@@ -298,7 +298,10 @@ export const getPublicBookingCampaign = createServerFn({ method: "GET" })
     const validPlans = new Set((plans ?? []).filter((plan: any) => plan.active && plan.publication_status === "published" && plan.currency === property.currency).map((plan: any) => plan.id));
     const validOffers = offers.flatMap((offer: any) => {
       const publication: any = publicationById.get(offer.rate_plan_publication_id);
-      if (!publication || publication.currency !== property.currency || !validPlans.has(publication.rate_plan_id)) return [];
+      const today = new Date().toISOString().slice(0, 10);
+      if (!publication || publication.currency !== property.currency || !validPlans.has(publication.rate_plan_id)
+        || (publication.effective_from && publication.effective_from > today)
+        || (publication.effective_to && publication.effective_to < today)) return [];
       return [{ ...offer, ratePlanId: publication.rate_plan_id, publicationId: publication.id, publicationNumber: publication.publication_number, currency: publication.currency }];
     });
     if (!validOffers.length) throw new Error("No active campaign offer has a valid published rate snapshot in the property's configured currency.");
