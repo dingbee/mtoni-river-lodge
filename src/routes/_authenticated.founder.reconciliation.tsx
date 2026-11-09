@@ -175,7 +175,7 @@ function FounderReconciliationWorkspace() {
 
       <section className="rounded-xl border p-4">
         <h2 className="font-semibold">Import provider statement</h2>
-        <p className="mt-1 text-xs text-muted-foreground">CSV columns: providerRef,amountMinor,currency,status. Status values: successful, failed, cancelled, reversed. Amounts must be integer minor units.</p>
+        <p className="mt-1 text-xs text-muted-foreground">CSV columns: providerRef,amountMinor,currency,status. Status values: successful, failed, cancelled, reversed. Amounts must be integer minor units. TZS/USD mismatches are recorded as exceptions; no conversion is applied.</p>
         <form onSubmit={importStatement} className="mt-3 space-y-3">
           <select required value={selectedRun} onChange={(e) => setSelectedRun(e.target.value)} className="h-10 w-full rounded-md border bg-background px-2 text-sm">
             <option value="">Select an open reconciliation run</option>
