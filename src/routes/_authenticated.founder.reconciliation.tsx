@@ -201,7 +201,7 @@ function FounderReconciliationWorkspace() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="rounded-md border px-2 py-1 text-xs">{label(run.status)}</span>
-                {run.status === "open" && <button disabled={busy} onClick={() => void completeRun(String(run.id))} className="rounded-md border px-3 py-1.5 text-xs">Close run</button>}
+                {["open", "discrepancy"].includes(String(run.status)) && <button disabled={busy} onClick={() => void completeRun(String(run.id))} className="rounded-md border px-3 py-1.5 text-xs">Close run</button>}
               </div>
             </div>
             {runItems.length > 0 && <div className="mt-4 space-y-3">
@@ -215,7 +215,7 @@ function FounderReconciliationWorkspace() {
                     <span className="text-xs">{label(item.resolution_status)}</span>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {run.status === "open" && item.resolution_status !== "resolved" && <>
+                    {["open", "discrepancy"].includes(String(run.status)) && item.resolution_status !== "resolved" && <>
                       <button disabled={busy} onClick={() => void recordEvent(String(item.id), "review_started")} className="rounded border px-2 py-1 text-xs">Under review</button>
                       <button disabled={busy} onClick={() => void recordEvent(String(item.id), "escalated")} className="rounded border px-2 py-1 text-xs">Escalate</button>
                       <input value={resolutionRefs[String(item.id)] ?? ""} onChange={(e) => setResolutionRefs((prev) => ({ ...prev, [String(item.id)]: e.target.value }))} placeholder="Resolution evidence reference" className="h-8 min-w-[220px] rounded border bg-background px-2 text-xs" />
