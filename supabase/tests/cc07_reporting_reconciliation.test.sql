@@ -234,6 +234,12 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.commercial_reconciliation_items WHERE id=v_item AND resolution_status='reviewed') THEN
     RAISE EXCEPTION 'Review-start lifecycle transition did not update exception state';
   END IF;
+  PERFORM public.commercial_record_reconciliation_item_event(
+    v_item,'escalated',NULL,'founder_admin','founder_escalation',NULL,'{"priority":"high"}'::jsonb,NULL
+  );
+  IF NOT EXISTS (SELECT 1 FROM public.commercial_reconciliation_items WHERE id=v_item AND resolution_status='escalated') THEN
+    RAISE EXCEPTION 'Escalation lifecycle transition did not update exception state';
+  END IF;
   PERFORM public.commercial_resolve_reconciliation_item(v_item,'cc07-test-resolution',NULL);
   PERFORM public.commercial_record_reconciliation_item_event(
     v_item,'reopened',NULL,'founder_admin','founder_exception_reopened',NULL,'{"reason":"new evidence"}'::jsonb,NULL
