@@ -430,7 +430,7 @@ function BookPage() {
           holdId: hold && hold.roomSlug === selectedRoom.slug ? hold.id : undefined,
           sessionId,
           propertySlug: campaignProperty, campaignSlug: campaign, offerId: offer,
-          sessionKey: campaign ? sessionId : undefined,
+          sessionKey: campaign ? (campaignSession ?? sessionId) : undefined,
           utmSource, utmMedium, utmCampaign, utmContent, utmTerm, referrer,
         },
       });
@@ -467,7 +467,7 @@ function BookPage() {
               checkIn, checkOut, adults, childrenBelow6, children7Plus,
               extras: selectedExtras,
               propertySlug: campaignProperty, campaignSlug: campaign, offerId: offer,
-              sessionKey: campaign ? sessionId : undefined,
+              sessionKey: campaign ? (campaignSession ?? sessionId) : undefined,
               utmSource, utmMedium, utmCampaign, utmContent, utmTerm, referrer,
             },
           });
@@ -509,7 +509,7 @@ function BookPage() {
         children7Plus,
         extras: selectedExtras,
         propertySlug: campaignProperty, campaignSlug: campaign, offerId: offer,
-        sessionKey: campaign ? sessionId : undefined,
+        sessionKey: campaign ? (campaignSession ?? sessionId) : undefined,
         utmSource, utmMedium, utmCampaign, utmContent, utmTerm, referrer,
       },
     }).then((quote) => {
