@@ -40,7 +40,8 @@ ALTER TABLE public.ai_escalations
   ADD COLUMN IF NOT EXISTS property_id uuid,
   ADD COLUMN IF NOT EXISTS dedupe_key text,
   ADD COLUMN IF NOT EXISTS acknowledged_at timestamptz,
-  ADD COLUMN IF NOT EXISTS acknowledged_by uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+  ADD COLUMN IF NOT EXISTS acknowledged_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS ops_task_id uuid REFERENCES public.ops_tasks(id) ON DELETE SET NULL;
 
 UPDATE public.ai_escalations escalation
 SET property_id = session.property_id
@@ -180,6 +181,8 @@ BEGIN
     'concierge', p_priority, 'pending'
   )
   RETURNING id INTO v_task_id;
+
+  UPDATE public.ai_escalations SET ops_task_id = v_task_id WHERE id = v_escalation_id;
 
   INSERT INTO public.notifications(user_id, channel, title, body, href, kind, meta)
   SELECT member.user_id, 'in_app', 'Guest needs assistance',
