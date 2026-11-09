@@ -208,6 +208,160 @@ GRANT EXECUTE ON FUNCTION public.staynas_create_concierge_escalation(uuid,uuid,u
   TO authenticated, service_role;
 
 
+-- Durable guest-facing status updates are emitted only through an active,
+-- outbound-enabled channel. The current web channel delivers into the session.
+CREATE TABLE IF NOT EXISTS public.ai_escalation_guest_notifications (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id uuid NOT NULL REFERENCES public.staynas_properties(id) ON DELETE RESTRICT,
+  escalation_id uuid NOT NULL REFERENCES public.ai_escalations(id) ON DELETE CASCADE,
+  session_id uuid NOT NULL REFERENCES public.ai_concierge_sessions(id) ON DELETE CASCADE,
+  status text NOT NULL CHECK (status IN ('assigned','in_progress','resolved','dismissed')),
+  channel text NOT NULL CHECK (channel IN ('web','email','whatsapp')),
+  delivery_status text NOT NULL CHECK (delivery_status IN ('sent','not_configured','failed')),
+  message_id uuid REFERENCES public.ai_concierge_messages(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  delivered_at timestamptz,
+  UNIQUE (escalation_id, status, channel)
+);
+ALTER TABLE public.ai_escalation_guest_notifications ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.ai_escalation_guest_notifications FROM PUBLIC, anon;
+GRANT SELECT ON public.ai_escalation_guest_notifications TO authenticated;
+GRANT ALL ON public.ai_escalation_guest_notifications TO service_role;
+CREATE POLICY "Escalation guest notifications read in active property"
+  ON public.ai_escalation_guest_notifications FOR SELECT TO authenticated
+  USING (public.staynas_ai_property_in_active_context(
+    property_id, ARRAY['owner','manager','admin','reservations','reception']::public.app_role[]
+  ));
+
+CREATE OR REPLACE FUNCTION public.staynas_transition_concierge_escalation(
+  p_escalation_id uuid,
+  p_property_id uuid,
+  p_status text DEFAULT NULL,
+  p_assigned_to uuid DEFAULT NULL,
+  p_resolution_notes text DEFAULT NULL
+)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $function$
+DECLARE
+  v_escalation public.ai_escalations%ROWTYPE;
+  v_next_status text;
+  v_message text;
+  v_message_id uuid;
+  v_web_enabled boolean;
+BEGIN
+  IF auth.role() <> 'service_role' AND NOT public.staynas_ai_property_in_active_context(
+    p_property_id, ARRAY['owner','manager','admin','reservations']::public.app_role[]
+  ) THEN
+    RAISE EXCEPTION 'Active property authorization is required' USING ERRCODE = '42501';
+  END IF;
+  IF p_status IS NOT NULL AND p_status NOT IN ('open','assigned','in_progress','resolved','dismissed') THEN
+    RAISE EXCEPTION 'Invalid escalation status' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT * INTO v_escalation
+  FROM public.ai_escalations
+  WHERE id = p_escalation_id AND property_id = p_property_id
+  FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Escalation not found in active property' USING ERRCODE = 'P0002';
+  END IF;
+
+  IF p_assigned_to IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM public.staynas_property_members member
+    WHERE member.property_id = p_property_id
+      AND member.user_id = p_assigned_to
+      AND member.status = 'active'
+  ) THEN
+    RAISE EXCEPTION 'Assignee must be an active member of the property' USING ERRCODE = '42501';
+  END IF;
+
+  IF v_escalation.status IN ('resolved','dismissed')
+     AND p_status IS NOT NULL AND p_status <> v_escalation.status THEN
+    RAISE EXCEPTION 'Closed escalations cannot be reopened' USING ERRCODE = '23514';
+  END IF;
+
+  v_next_status := coalesce(p_status, v_escalation.status);
+  UPDATE public.ai_escalations
+  SET status = v_next_status,
+      assigned_to = CASE WHEN p_assigned_to IS NOT NULL THEN p_assigned_to ELSE assigned_to END,
+      resolution_notes = CASE WHEN p_resolution_notes IS NOT NULL THEN left(p_resolution_notes,2000) ELSE resolution_notes END,
+      acknowledged_at = CASE
+        WHEN v_next_status IN ('assigned','in_progress') THEN coalesce(acknowledged_at, now())
+        ELSE acknowledged_at
+      END,
+      acknowledged_by = CASE
+        WHEN v_next_status IN ('assigned','in_progress') THEN coalesce(acknowledged_by, auth.uid())
+        ELSE acknowledged_by
+      END,
+      resolved_at = CASE
+        WHEN v_next_status IN ('resolved','dismissed') THEN coalesce(resolved_at, now())
+        ELSE resolved_at
+      END,
+      updated_at = now()
+  WHERE id = p_escalation_id AND property_id = p_property_id;
+
+  IF v_escalation.ops_task_id IS NOT NULL THEN
+    UPDATE public.ops_tasks
+    SET assigned_to = CASE WHEN p_assigned_to IS NOT NULL THEN p_assigned_to ELSE assigned_to END,
+        status = CASE
+          WHEN v_next_status = 'in_progress' THEN 'in_progress'::public.ops_task_status
+          WHEN v_next_status = 'resolved' THEN 'completed'::public.ops_task_status
+          WHEN v_next_status = 'dismissed' THEN 'cancelled'::public.ops_task_status
+          ELSE status
+        END,
+        completed_at = CASE WHEN v_next_status = 'resolved' THEN coalesce(completed_at,now()) ELSE completed_at END,
+        completed_by = CASE WHEN v_next_status = 'resolved' THEN coalesce(completed_by,auth.uid()) ELSE completed_by END,
+        updated_at = now()
+    WHERE id = v_escalation.ops_task_id AND property_id = p_property_id;
+  END IF;
+
+  IF v_next_status IN ('assigned','in_progress','resolved','dismissed')
+     AND NOT EXISTS (
+       SELECT 1 FROM public.ai_escalation_guest_notifications notification
+       WHERE notification.escalation_id = p_escalation_id
+         AND notification.status = v_next_status
+         AND notification.channel = 'web'
+     ) THEN
+    SELECT EXISTS (
+      SELECT 1 FROM public.ai_concierge_channels
+      WHERE channel = 'web' AND status = 'active' AND outbound_enabled = true
+    ) INTO v_web_enabled;
+
+    IF v_web_enabled THEN
+      v_message := CASE v_next_status
+        WHEN 'assigned' THEN 'The property team has received your request and is arranging assistance.'
+        WHEN 'in_progress' THEN 'A member of the property team is now working on your request.'
+        WHEN 'resolved' THEN 'The property team has marked your request as resolved. Send another message if you still need help.'
+        ELSE 'The property team has closed this request. Send another message if you still need assistance.'
+      END;
+      INSERT INTO public.ai_concierge_messages(session_id,role,content,confidence,escalated,model)
+      VALUES (v_escalation.session_id,'assistant',v_message,1.0,false,'staynas-concierge-handoff')
+      RETURNING id INTO v_message_id;
+
+      INSERT INTO public.ai_escalation_guest_notifications(
+        property_id,escalation_id,session_id,status,channel,delivery_status,message_id,delivered_at
+      )
+      VALUES (p_property_id,p_escalation_id,v_escalation.session_id,v_next_status,'web','sent',v_message_id,now());
+    ELSE
+      INSERT INTO public.ai_escalation_guest_notifications(
+        property_id,escalation_id,session_id,status,channel,delivery_status
+      )
+      VALUES (p_property_id,p_escalation_id,v_escalation.session_id,v_next_status,'web','not_configured');
+    END IF;
+  END IF;
+
+  RETURN true;
+END
+$function$;
+
+REVOKE ALL ON FUNCTION public.staynas_transition_concierge_escalation(uuid,uuid,text,uuid,text)
+  FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.staynas_transition_concierge_escalation(uuid,uuid,text,uuid,text)
+  TO authenticated, service_role;
+
 -- Durable, server-only rate limiting for anonymous Concierge endpoints.
 CREATE TABLE IF NOT EXISTS public.staynas_public_api_rate_limits (
   key_hash text PRIMARY KEY CHECK (key_hash ~ '^[a-f0-9]{64}),
