@@ -125,6 +125,46 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, open, busy]);
 
+  // Poll only while a guest handoff is open. Staff status transitions are
+  // delivered through the configured web channel and appended to this session.
+  useEffect(() => {
+    if (!open || !token || !escalation) return;
+    let active = true;
+    const refresh = async () => {
+      try {
+        const response = await fetch("/api/public/concierge/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_token: token }),
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const data = await response.json() as { messages?: ConciergeMessage[] };
+        if (!active || !Array.isArray(data.messages)) return;
+        const incoming = data.messages.filter((item) => item.role === "assistant" && Boolean(item.id));
+        setMessages((previous) => {
+          const known = new Set(previous.map((item) => item.id).filter(Boolean));
+          const fresh = incoming.filter((item) => item.id && !known.has(item.id));
+          return fresh.length ? [...previous, ...fresh] : previous;
+        });
+        if (incoming.some((item) =>
+          item.content.includes("marked your request as resolved") ||
+          item.content.includes("has closed this request")
+        )) {
+          setEscalation(null);
+        }
+      } catch {
+        // A missed poll is harmless; the next interval retries.
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 5000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [open, token, escalation]);
+
   async function sendText(raw: string) {
     const text = raw.trim();
     if (!text || busy) return;
