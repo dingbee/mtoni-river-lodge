@@ -6,26 +6,31 @@ Channex is the first provider adapter, not a hardcoded distribution mode. StayNa
 
 ## Configuration ownership
 
-- Provider catalogue, adapter availability, environment endpoint URLs, and capability policy are platform-managed configuration.
-- Property administrators select an enabled provider and environment, provide their Channex API key, and map their Channex property to a StayNas property.
-- The API key is submitted once to a server-only credential broker. The browser receives only a masked credential state and opaque reference; raw key material is never returned.
-- Sandbox and live credentials are distinct. Live activation requires an explicit platform-authorised release gate after certification.
-- Provider endpoint URLs are injected from trusted platform configuration. Tenant/browser payloads cannot choose arbitrary outbound URLs.
+- Provider catalogue, adapter availability, environment endpoint URLs, exact hostname allowlists, and capability policy are platform-managed configuration.
+- The live Nolmark CDMA UAT property uses the same tenant-scoped connection model as other properties; provider catalogue configuration is global platform configuration.
+- Channex is enabled for the sandbox environment only. The live environment is absent from its catalogue configuration.
+- Property owners/managers with an active selected property can register the external account reference and sandbox API key.
+- The API key is submitted to a server-only RPC and stored in Supabase Vault. The browser receives only a connection identifier and safe status; raw key material and Vault references are never returned.
+- Account, property grant, connection and audit event are created atomically. The credential is bound to the provider, sandbox environment and property connection.
+- Provider endpoint URLs are loaded from the trusted platform catalogue. Tenant/browser payloads cannot choose outbound URLs.
 
 ## Initial adapter scope
 
-This foundation implements only a read-only authenticated connection check by listing at most one accessible Channex property. Its manifest advertises only `connection.health`; it does not yet claim listing discovery. It does not claim to implement ARI writes, reservation ingestion, acknowledgement, webhook handling, or channel activation.
+The Channex 1.0.0 adapter performs a read-only authenticated health check by requesting at most one accessible Channex property. Its manifest advertises only `connection.health`.
 
-## Required next increments
+A newly provisioned connection remains `pending_validation`. That state is accepted only for the health-check capability. A successful sandbox health check moves the external account and connection to `connected` and appends an attributed lifecycle audit event. Failed checks return a normalized safe error and do not activate the connection.
 
-1. Persist platform-managed provider catalogue and per-environment endpoint configuration with strict host allowlisting and audit history.
-2. Add server functions for tenant-scoped account credential registration, property grant creation, connection lifecycle, and secret rotation.
-3. Add read-only listing/room/rate-plan discovery and explicit mapping approval.
-4. Add batched availability and rate/restriction updates with per-property throttling and retry controls.
-5. Add booking revision feed polling plus durable idempotent import; acknowledge only after StayNas commits the reservation.
-6. Add webhook delivery with polling fallback, reconciliation, and observability.
-7. Complete Channex certification in the application before any live activation.
+The platform settings page supports sandbox endpoint/allowlist configuration. Property settings support secure credential registration and a connection health check. No credentials are stored in ordinary configuration rows or returned to the browser.
+
+## Explicitly out of scope
+
+DC-07A does not implement listing discovery/mapping, room or rate-plan mapping, availability/rate/restriction writes, booking ingestion, acknowledgement, webhook processing, or live OTA activation. These remain separate increments with their own contracts, throttling, reconciliation and acceptance tests. No capability beyond `connection.health` is granted.
 
 ## Security and release boundaries
 
-No provider API key is stored in source, frontend environment variables, local storage, or ordinary connection rows. No production migration or deployment is authorised by this increment. The adapter receives only a server-created execution context and a credential handle bound to that exact connection/environment. Endpoint configuration must be loaded from trusted platform records, never accepted from a tenant request.
+- Platform catalogue mutations require the `staynas_platform_admins` allowlist; AI founder-admin authorization is not reused.
+- Tenant connection creation requires an active selected property and active owner/manager/admin membership, and the database RPC independently verifies active organisation/property scope.
+- Credential creation and resolution RPCs are executable only by `service_role`; browser roles have no table grants.
+- The credential broker is permitted to resolve a `pending_validation` secret only for `connection.health` in the sandbox environment.
+- The Channex staging hostname is explicitly allowlisted in the platform catalogue; no live endpoint is configured.
+- Database migrations were applied to the shared StayNas Supabase project for Nolmark CDMA UAT. This is not a production release or Vercel deployment. No reservation, membership, role or financial records were modified.
