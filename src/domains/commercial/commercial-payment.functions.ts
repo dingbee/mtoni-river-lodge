@@ -1020,11 +1020,11 @@ export const reconcileCommercialProviderStatementRun=createServerFn({method:"POS
     const { data: importResult, error: importError } = await admin.rpc("commercial_import_reconciliation_statement", {
       _run_id: data.runId,
       _rows: results.map((item) => ({
-        itemType: item.itemType, internalPaymentId: item.internalPaymentId,
-        providerRef: item.providerRef, expectedAmountMinor: item.expectedAmountMinor,
-        observedAmountMinor: item.observedAmountMinor, expectedCurrency: item.expectedCurrency,
-        observedCurrency: item.observedCurrency, evidence: item.evidence,
-        resolutionStatus: item.resolutionStatus, resolutionRef: item.resolutionRef,
+        item_type: item.itemType, internal_payment_id: item.internalPaymentId,
+        provider_ref: item.providerRef, expected_amount_minor: item.expectedAmountMinor,
+        observed_amount_minor: item.observedAmountMinor, expected_currency: item.expectedCurrency,
+        observed_currency: item.observedCurrency, evidence: item.evidence,
+        resolution_status: item.resolutionStatus, resolution_ref: item.resolutionRef,
       })),
       _actor_user_id: actor.userId,
     });
