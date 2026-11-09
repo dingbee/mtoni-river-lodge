@@ -800,7 +800,7 @@ WITH adjustments AS (
     )::numeric(20,0) AS one_time_minor
   FROM public.commercial_invoice_lines GROUP BY invoice_id
 )
-SELECT r.organisation_id,r.account_id,r.subscription_id,r.invoice_id,
+SELECT r.organisation_id,r.account_id,r.subscription_id,r.id AS invoice_id,
   date_trunc('month',r.issued_at) AS period_month,r.currency,
   greatest(r.total_minor+coalesce(ad.debit_notes_minor,0)
     -coalesce(ad.credit_notes_minor,0)-coalesce(ad.write_offs_minor,0),0)::numeric(20,0) AS net_invoiced_minor,
@@ -849,3 +849,63 @@ FROM public.commercial_payment_transactions p;
 ALTER VIEW public.commercial_founder_payment_workspace_facts SET (security_invoker=true);
 REVOKE ALL ON public.commercial_founder_payment_workspace_facts FROM PUBLIC,anon,authenticated;
 GRANT SELECT ON public.commercial_founder_payment_workspace_facts TO service_role;
+
+
+-- JSON-safe founder reporting views. Cast every NUMERIC(20,0) amount to text
+-- before PostgREST serializes it, preserving exact integer values in JavaScript.
+CREATE OR REPLACE VIEW public.commercial_founder_revenue_invoice_facts AS
+SELECT organisation_id,account_id,invoice_id,period_month,currency,
+  gross_invoiced_minor::numeric(20,0)::text AS gross_invoiced_minor,
+  net_invoiced_minor::numeric(20,0)::text AS net_invoiced_minor,
+  one_time_minor::numeric(20,0)::text AS one_time_minor,
+  credit_notes_minor::numeric(20,0)::text AS credit_notes_minor,
+  debit_notes_minor::numeric(20,0)::text AS debit_notes_minor,
+  write_offs_minor::numeric(20,0)::text AS write_offs_minor,
+  outstanding_minor::numeric(20,0)::text AS outstanding_minor,
+  credit_balance_minor::numeric(20,0)::text AS credit_balance_minor
+FROM public.commercial_revenue_invoice_facts;
+ALTER VIEW public.commercial_founder_revenue_invoice_facts SET (security_invoker=true);
+REVOKE ALL ON public.commercial_founder_revenue_invoice_facts FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.commercial_founder_revenue_invoice_facts TO service_role;
+
+CREATE OR REPLACE VIEW public.commercial_founder_revenue_collection_facts AS
+SELECT organisation_id,account_id,invoice_id,payment_id,period_month,currency,
+  net_collected_minor::numeric(20,0)::text AS net_collected_minor
+FROM public.commercial_revenue_collection_facts;
+ALTER VIEW public.commercial_founder_revenue_collection_facts SET (security_invoker=true);
+REVOKE ALL ON public.commercial_founder_revenue_collection_facts FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.commercial_founder_revenue_collection_facts TO service_role;
+
+CREATE OR REPLACE VIEW public.commercial_founder_revenue_unallocated_facts AS
+SELECT organisation_id,account_id,period_month,currency,
+  unallocated_minor::numeric(20,0)::text AS unallocated_minor
+FROM public.commercial_revenue_unallocated_facts;
+ALTER VIEW public.commercial_founder_revenue_unallocated_facts SET (security_invoker=true);
+REVOKE ALL ON public.commercial_founder_revenue_unallocated_facts FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.commercial_founder_revenue_unallocated_facts TO service_role;
+
+CREATE OR REPLACE VIEW public.commercial_founder_revenue_reversal_facts AS
+SELECT organisation_id,account_id,period_month,currency,
+  reversed_minor::numeric(20,0)::text AS reversed_minor,reversal_count
+FROM public.commercial_revenue_reversal_facts;
+ALTER VIEW public.commercial_founder_revenue_reversal_facts SET (security_invoker=true);
+REVOKE ALL ON public.commercial_founder_revenue_reversal_facts FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.commercial_founder_revenue_reversal_facts TO service_role;
+
+CREATE OR REPLACE VIEW public.commercial_founder_receivables_aging AS
+SELECT invoice_id,organisation_id,currency,status,aging_bucket,
+  outstanding_minor::numeric(20,0)::text AS outstanding_minor
+FROM public.commercial_receivables_aging;
+ALTER VIEW public.commercial_founder_receivables_aging SET (security_invoker=true);
+REVOKE ALL ON public.commercial_founder_receivables_aging FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.commercial_founder_receivables_aging TO service_role;
+
+CREATE OR REPLACE VIEW public.commercial_founder_subscription_movement_facts AS
+SELECT account_id,organisation_id,subscription_id,effective_at,currency,movement_type,
+  previous_mrr_minor::numeric(20,0)::text AS previous_mrr_minor,
+  movement_mrr_minor::numeric(20,0)::text AS movement_mrr_minor,
+  net_new_mrr_minor::numeric(20,0)::text AS net_new_mrr_minor
+FROM public.commercial_subscription_revenue_movement_facts;
+ALTER VIEW public.commercial_founder_subscription_movement_facts SET (security_invoker=true);
+REVOKE ALL ON public.commercial_founder_subscription_movement_facts FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.commercial_founder_subscription_movement_facts TO service_role;
