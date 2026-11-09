@@ -139,5 +139,7 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109150000_cps03_publication_and_route_guards.sql
       - name: Apply CPS-03 transactional campaign runtime migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109170000_cps03_campaign_runtime.sql
+      - name: Apply CPS-03 attribution idempotency migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109180000_cps03_attribution_idempotency.sql
       - name: Verify tenant boundaries, composite references, publication, quota and public visibility
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/cps03_campaign_tenant_isolation.test.sql
