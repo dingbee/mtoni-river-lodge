@@ -1,26 +1,30 @@
-# CC02.05 — Founder Administration
-
-This milestone defines the founder-side commercial administration authorization contract and audit evidence shape.
+# CC-03 follow-on — Founder-managed commercial policy administration
 
 ## Authority boundary
+- Nolmark CDMA is the global commercial owner.
+- Only a verified founder principal with active membership in the configured founder organisation may administer global policies.
+- Tenant administrators, tenant staff and service principals cannot read or write global policy configuration through the application.
+- Founder visibility in the navigation is convenience only; every server operation and the database write RPC independently rechecks founder authority.
+- No founder identity or founder-tenant mapping is created by this implementation.
 
-- Nolmark CDMA is the commercial owner.
-- Global commercial administration is restricted to a verified `founder_admin` identity in the configured Nolmark CDMA founder tenant.
-- Tenant administrators, tenant staff and service principals cannot administer the global catalogue, pricing, package composition, trial policy, commercial accounts or global audit log.
-- Tenant ownership or tenant-admin role does not imply founder authority.
-- The founder tenant identifier is configuration supplied by a trusted server-side authority source; it is not hardcoded into the policy.
-- The actor context must be constructed from verified server-side authentication and tenant membership. Browser-supplied role or tenant claims must never be trusted.
+## Configuration surface
+The authenticated founder workspace at `/admin/commercial` provides four policy editors:
+- Plan catalogue: Essential, Professional and Enterprise, versioned plan records, modules and add-ons.
+- Pricing: TZS/USD monthly and annual pricing, hybrid property allowances, add-on charges, and quote-required Enterprise pricing.
+- Package composition: included modules, independently purchasable add-ons and explicit compatibility rules.
+- Trial policy: plan-version trial policies using the fixed 14-day duration and subscription-activation trigger.
 
-## Covered actions
+Published catalogue, pricing, composition and trial payloads are schema-validated. Publishing requires all three SCEF plans; pricing must explicitly cover both currencies and both billing terms; trial policies must explicitly cover the three plans. No amounts, FX rates, bundle contents or policy values are pre-populated.
 
-The policy enumerates read and mutation actions for catalogue, pricing, package composition, trial policy, commercial accounts and commercial audit evidence. All are founder-only in this global administration contract.
+## Persistence and audit
+- `commercial_policy_config_versions` stores append-only immutable versions.
+- `commercial_policy_config_current` identifies the current published version per policy family.
+- The caller-bound `commercial_record_policy_config` database function derives `auth.uid()`, checks `commercial_is_founder_admin`, advances the current pointer when publishing, and writes the audit event in the same transaction.
+- Browser roles have no direct table privileges. The service role has read-only access for trusted server resolution.
+- Tenant-specific policy overrides are not supported.
 
-## Audit evidence contract
+## Trial activation
+Trial activation reads only the current published trial-policy version from durable database configuration. Missing, malformed, disabled, expired or ambiguous policy continues to fail closed. The former `STAYNAS_COMMERCIAL_TRIAL_POLICIES_JSON` environment dependency is no longer used.
 
-The event schema captures event/request identifiers, verified actor and tenant references, action, resource type/reference, outcome, timestamp and a reason code. It intentionally excludes credentials, payment secrets and raw personal data.
-
-## Security boundary and exclusions
-
-This is a pure policy evaluator and event contract, not a deployed security boundary. Server handlers must authenticate, resolve trusted membership, call the policy, enforce authorization again at the data boundary, and persist append-only audit evidence. RLS/grants and server-side authorization remain mandatory.
-
-No founder UI, API handler, persistence migration, audit table, role mutation, production write or deployment is included. CC-01 is certified; this milestone deliberately closes the authority policy and audit evidence contracts without claiming deployed enforcement or durable audit persistence.
+## Release boundary
+This change is additive and is not a production deployment or migration authorization. No production schema, founder membership, founder organisation mapping, catalogue, price, trial policy or subscription record is changed by this implementation sprint. Founder provisioning and first policy authoring remain controlled operational steps after review and release approval.
