@@ -27,7 +27,6 @@ export const initiatePayment = createServerFn({ method: "POST" })
     // Never initiate payment for a booking outside the configured property.
     assertSameProperty(booking.property_id, propertyId, "Booking");
     if (booking.sales_channel_id !== channel.channelId) throw new Error("Booking does not belong to this direct-booking channel");
-    if (booking.sales_channel_id !== channel.channelId) throw new Error("Booking does not belong to this direct-booking channel");
     if (booking.currency !== channel.currency) throw new Error("Booking currency does not match the published direct-booking channel");
     if (booking.guest_email.toLowerCase() !== data.email.toLowerCase()) {
       throw new Error("Email does not match booking");
@@ -115,6 +114,8 @@ export const getPaymentStatusByReference = createServerFn({ method: "POST" })
     if (!booking) throw new Error("Booking not found");
     // Never report payment state for a booking outside the configured property.
     assertSameProperty(booking.property_id, propertyId, "Booking");
+    if (booking.sales_channel_id !== channel.channelId) throw new Error("Booking does not belong to this direct-booking channel");
+    if (booking.currency !== channel.currency) throw new Error("Booking currency does not match the published direct-booking channel");
     if (booking.guest_email.toLowerCase() !== data.email.toLowerCase()) {
       throw new Error("Email does not match booking");
     }
