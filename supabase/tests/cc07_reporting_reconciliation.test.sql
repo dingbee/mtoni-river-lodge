@@ -106,6 +106,18 @@ BEGIN
       AND table_name='commercial_founder_receivables_aging' AND column_name='outstanding_minor')<>'text' THEN
     RAISE EXCEPTION 'Founder reporting projections must serialize NUMERIC(20,0) as text';
   END IF;
+
+  IF has_table_privilege('anon','public.commercial_founder_invoice_workspace_facts','SELECT')
+    OR has_table_privilege('authenticated','public.commercial_founder_invoice_workspace_facts','SELECT')
+    OR has_table_privilege('anon','public.commercial_founder_payment_workspace_facts','SELECT')
+    OR has_table_privilege('authenticated','public.commercial_founder_payment_workspace_facts','SELECT')
+    OR has_table_privilege('anon','public.commercial_founder_unallocated_collection_workspace_facts','SELECT')
+    OR has_table_privilege('authenticated','public.commercial_founder_unallocated_collection_workspace_facts','SELECT')
+    OR NOT has_table_privilege('service_role','public.commercial_founder_invoice_workspace_facts','SELECT')
+    OR NOT has_table_privilege('service_role','public.commercial_founder_payment_workspace_facts','SELECT')
+    OR NOT has_table_privilege('service_role','public.commercial_founder_unallocated_collection_workspace_facts','SELECT') THEN
+    RAISE EXCEPTION 'Founder financial projections are not restricted to the trusted server role';
+  END IF;
   IF has_table_privilege('anon','public.commercial_receivables_aging','SELECT')
     OR has_table_privilege('authenticated','public.commercial_receivables_aging','SELECT')
     OR NOT has_table_privilege('service_role','public.commercial_receivables_aging','SELECT') THEN
