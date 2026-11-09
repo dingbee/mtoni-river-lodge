@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertFounderAiAdmin } from "@/domains/ai/ai.authorization.server";
@@ -444,21 +445,24 @@ export const createEscalation = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const propertyId = await requirePropertyScope(context.supabase, context.userId);
     await requireSessionInProperty(context.supabase, data.session_id, propertyId);
-    const { data: row, error } = await context.supabase
-      .from("ai_escalations")
-      .insert({
-        session_id: data.session_id,
-        channel: data.channel,
-        reason: data.reason,
-        summary: data.summary ?? null,
-        ai_confidence: data.ai_confidence ?? null,
-        priority: data.priority ?? 2,
-        status: "open",
-      })
-      .select("id")
-      .single();
-    if (error) throw new Error(error.message);
-    return { id: row!.id };
+    const session = await requireSessionInProperty(context.supabase, data.session_id, propertyId);
+    const dedupeKey = createHash("sha256")
+      .update([propertyId, data.session_id, data.reason, data.summary ?? ""].join("|"))
+      .digest("hex");
+    const { data: result, error } = await context.supabase.rpc("staynas_create_concierge_escalation", {
+      p_property_id: propertyId,
+      p_session_id: data.session_id,
+      p_guest_id: session.guest_id,
+      p_reason: data.reason,
+      p_summary: data.summary ?? null,
+      p_ai_confidence: data.ai_confidence ?? null,
+      p_priority: data.priority ?? 2,
+      p_dedupe_key: dedupeKey,
+    });
+    if (error) throw new Error("Could not create the property escalation.");
+    const row = Array.isArray(result) ? result[0] : result;
+    if (!row?.escalation_id) throw new Error("Could not confirm the property escalation.");
+    return { id: row.escalation_id };
   });
 
 export const updateEscalation = createServerFn({ method: "POST" })
@@ -477,14 +481,23 @@ export const updateEscalation = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
-    const sessionIds = await propertySessionIds(context.supabase, propertyId);
-    if (sessionIds.length === 0) throw new Error("Escalation not found in the active property.");
+    const { data: existingEscalation, error: existingError } = await context.supabase
+      .from("ai_escalations")
+      .select("id, acknowledged_at")
+      .eq("id", data.id)
+      .eq("property_id", propertyId)
+      .maybeSingle();
+    if (existingError || !existingEscalation) throw new Error("Escalation not found in the active property.");
     const patch: Record<string, unknown> = {};
     if (data.status) {
       patch.status = data.status;
       patch.resolved_at = data.status === "resolved" || data.status === "dismissed"
         ? new Date().toISOString()
         : null;
+      if (data.status === "assigned" || data.status === "in_progress") {
+        patch.acknowledged_at = existingEscalation.acknowledged_at ?? new Date().toISOString();
+        patch.acknowledged_by = context.userId;
+      }
     }
     if (data.assigned_to !== undefined) {
       if (data.assigned_to !== null) {
@@ -505,7 +518,7 @@ export const updateEscalation = createServerFn({ method: "POST" })
       .from("ai_escalations")
       .update(patch as never)
       .eq("id", data.id)
-      .in("session_id", sessionIds)
+      .eq("property_id", propertyId)
       .select("id")
       .maybeSingle();
     if (error) throw new Error(error.message);
