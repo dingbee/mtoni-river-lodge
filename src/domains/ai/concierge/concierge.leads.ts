@@ -84,7 +84,7 @@ export async function captureLead(input: ConciergeLeadInput, propertyId: string)
     notes: clean(input.notes, 1000),
   };
 
-  const { data: inserted, error: insertError } = await supabaseAdmin
+  const { data: inserted, error: insertError } = await (supabaseAdmin as any)
     .from("ai_concierge_leads")
     .upsert(lead, { onConflict: "idempotency_key", ignoreDuplicates: true })
     .select("id, intent_level, created_at")
@@ -93,7 +93,7 @@ export async function captureLead(input: ConciergeLeadInput, propertyId: string)
 
   const { data, error } = inserted
     ? { data: inserted, error: null }
-    : await supabaseAdmin.from("ai_concierge_leads")
+    : await (supabaseAdmin as any).from("ai_concierge_leads")
         .select("id, intent_level, created_at")
         .eq("idempotency_key", idempotencyKey)
         .eq("property_id", propertyId)
