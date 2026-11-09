@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Supabase generated types lag the property-scoped payment schema. */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { resolvePublicDirectBookingChannel } from "@/lib/public-booking-channel.server";
