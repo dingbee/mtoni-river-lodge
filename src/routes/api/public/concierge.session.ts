@@ -34,10 +34,10 @@ export const Route = createFileRoute("/api/public/concierge/session")({
 
           const { resolvePublicPropertyFromHostname } = await import("@/lib/public-property.server");
           const propertyId = await resolvePublicPropertyFromHostname(request.headers.get("host"));
-          const { loadConciergeSession } = await import("@/domains/ai/concierge/concierge.server");
-          const session = await loadConciergeSession(token, propertyId);
-          if (!session) return Response.json({ error: "Conversation not found." }, { status: 404, headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } });
-          return Response.json(session, { headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } });
+          const { loadConciergeGuestUpdates } = await import("@/domains/ai/concierge/concierge.server");
+          const messages = await loadConciergeGuestUpdates(token, propertyId);
+          if (!messages) return Response.json({ error: "Conversation not found." }, { status: 404, headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } });
+          return Response.json({ messages }, { headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } });
         } catch (error) {
           const errorName = error instanceof Error ? error.name : "UnknownError";
           console.error("[concierge] public session refresh failed", { requestId, errorName });
