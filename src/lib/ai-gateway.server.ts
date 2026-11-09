@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 export const AI_GATEWAY_DEFAULT_MODEL =
-  process.env.AI_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini";
+  process.env.AI_PROVIDER_MODEL || process.env.AI_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini";
 
 export interface AiGatewayTool {
   type: "function";
