@@ -175,6 +175,12 @@ BEGIN
      OR NOT has_table_privilege('authenticated','public.ai_concierge_leads','UPDATE') THEN
     RAISE EXCEPTION 'authorized staff lead read/update access must be preserved';
   END IF;
+  IF has_table_privilege('authenticated','public.ai_concierge_leads','INSERT')
+     OR has_table_privilege('authenticated','public.ai_concierge_leads','DELETE')
+     OR has_table_privilege('authenticated','public.ai_concierge_sessions','INSERT')
+     OR has_table_privilege('authenticated','public.ai_concierge_messages','INSERT') THEN
+    RAISE EXCEPTION 'staff must not write raw Concierge records outside validated workflows';
+  END IF;
 END
 $test$;
 
