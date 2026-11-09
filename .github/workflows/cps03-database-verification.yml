@@ -67,7 +67,8 @@ jobs:
             slug text NOT NULL,
             code text NOT NULL,
             name text NOT NULL,
-            status text NOT NULL
+            status text NOT NULL,
+            currency text NOT NULL DEFAULT 'TZS'
           );
           CREATE TABLE public.staynas_property_members (
             property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
@@ -108,17 +109,35 @@ jobs:
             id uuid PRIMARY KEY,
             property_id uuid NOT NULL REFERENCES public.staynas_properties(id)
           );
-          CREATE TABLE public.staynas_rate_plan_publications (
+          CREATE TABLE public.staynas_rate_plans (
             id uuid PRIMARY KEY,
             property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
             code text NOT NULL,
             name text NOT NULL,
-            currency text NOT NULL
+            currency text NOT NULL,
+            publication_status text NOT NULL,
+            active boolean NOT NULL DEFAULT true
+          );
+          CREATE TABLE public.staynas_rate_plan_publications (
+            id uuid PRIMARY KEY,
+            property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+            rate_plan_id uuid NOT NULL REFERENCES public.staynas_rate_plans(id),
+            publication_number integer NOT NULL DEFAULT 1,
+            rate_plan_version integer NOT NULL DEFAULT 1,
+            code text NOT NULL,
+            name text NOT NULL,
+            currency text NOT NULL,
+            effective_from date,
+            effective_to date,
+            snapshot_hash text NOT NULL DEFAULT '0123456789abcdef0123456789abcdef',
+            published_at timestamptz NOT NULL DEFAULT now()
           );
           SQL
       - name: Apply CPS-03 campaign data and tenant isolation migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109130000_cps03_campaign_data_tenant_isolation.sql
       - name: Apply CPS-03 publication, route and attribution hardening
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109150000_cps03_publication_and_route_guards.sql
-      - name: Verify tenant boundaries, composite references and public publication gates
+      - name: Apply CPS-03 transactional campaign runtime migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109170000_cps03_campaign_runtime.sql
+      - name: Verify tenant boundaries, composite references, publication, quota and public visibility
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/cps03_campaign_tenant_isolation.test.sql
