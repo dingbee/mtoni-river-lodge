@@ -67,7 +67,7 @@ export async function verifyAndFinalizePayment(opts: {
   orderTrackingId: string;
   source: "ipn" | "status_check";
 }): Promise<{ outcome: FinalizeOutcome; paymentMethod: string | null }> {
-  const { data: booking, error: bookingError } = await supabaseAdmin
+  const { data: booking, error: bookingError } = await (supabaseAdmin as any)
     .from("bookings")
     .select("id, reference, payment_status, status, deposit_amount, total, paid_amount, currency, invoice_number, pesapal_order_tracking_id, payment_provider_account_id, property_id")
     .eq("id", opts.bookingId)
@@ -106,7 +106,7 @@ export async function verifyAndFinalizePayment(opts: {
 
     if (!amountsMatch || currency === null) {
       const nowIso = new Date().toISOString();
-      const { error: eventError } = await supabaseAdmin.from("payment_events").insert({
+      const { error: eventError } = await (supabaseAdmin as any).from("payment_events").insert({
         booking_id: booking.id,
         provider_account_id: providerAccount.id,
         provider: "pesapal",
@@ -129,8 +129,9 @@ export async function verifyAndFinalizePayment(opts: {
         .eq("id", booking.id);
       if (bookingUpdateError) throw new Error(`Unable to mark Pesapal payment mismatch: ${bookingUpdateError.message}`);
 
-      const { error: mismatchEventError } = await supabaseAdmin.from("payment_events").insert({
+      const { error: mismatchEventError } = await (supabaseAdmin as any).from("payment_events").insert({
         booking_id: booking.id,
+        provider_account_id: providerAccount.id,
         provider: "pesapal",
         event_type: "security:payment_mismatch",
         order_tracking_id: opts.orderTrackingId,
