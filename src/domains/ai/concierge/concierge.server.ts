@@ -322,7 +322,7 @@ export async function handleConciergeChat(
     const { error: escalationError } = await supabaseAdmin.rpc("staynas_create_concierge_escalation", {
       p_property_id: propertyId,
       p_session_id: sessionId,
-      p_guest_id: memoryCtx.guestId ?? existingGuestId ?? null,
+      p_guest_id: existingGuestId ?? null,
       p_channel: "web",
       p_reason: reason,
       p_summary: message.slice(0, 2000),
