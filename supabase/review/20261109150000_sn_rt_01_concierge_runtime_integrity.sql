@@ -61,6 +61,8 @@ BEGIN
 END
 $lead_consent$;
 
+ALTER TABLE public.ai_concierge_leads VALIDATE CONSTRAINT ai_concierge_leads_consent_required;
+
 -- Escalations carry an explicit property owner and a property/session composite
 -- relationship. Historical rows are associated only through their own session.
 ALTER TABLE public.ai_escalations
