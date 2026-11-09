@@ -227,7 +227,7 @@ BEGIN
     (
       COALESCE(s.available, false)
       AND q.quote IS NOT NULL
-      AND COALESCE(q.quote->>'ok', 'true') <> 'false'
+      AND q.quote->>'ok' IS DISTINCT FROM 'false'
     ),
     (
       _adults <= r.capacity_adults
