@@ -86,7 +86,7 @@ function FounderReconciliationWorkspace() {
       const lines = statement.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
       const providerRows = lines.slice(1).map((line, index) => {
         const [providerRef, amountMinor, rowCurrency, status] = line.split(",").map((part) => part.trim());
-        if (!providerRef || !/^\d+$/.test(amountMinor ?? "") || !["TZS", "USD"].includes(rowCurrency ?? "")
+        if (!providerRef || !/^(0|[1-9]\d{0,19})$/.test(amountMinor ?? "") || !["TZS", "USD"].includes(rowCurrency ?? "")
           || !["successful", "failed", "cancelled", "reversed"].includes(status ?? "")) {
           throw new Error(`Invalid statement row ${index + 2}. Expected providerRef,amountMinor,currency,status.`);
         }
