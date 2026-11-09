@@ -272,6 +272,95 @@ REVOKE ALL ON FUNCTION public.commercial_resolve_reconciliation_item(uuid,text,u
 GRANT EXECUTE ON FUNCTION public.commercial_resolve_reconciliation_item(uuid,text,uuid)
   TO service_role;
 
+-- A provider statement may be imported only once per reconciliation run.
+-- The import record and all findings commit atomically.
+CREATE TABLE IF NOT EXISTS public.commercial_reconciliation_statement_imports (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  run_id uuid NOT NULL UNIQUE REFERENCES public.commercial_reconciliation_runs(id) ON DELETE RESTRICT,
+  source_ref text NOT NULL,
+  row_count integer NOT NULL CHECK (row_count >= 0),
+  finding_count integer NOT NULL CHECK (finding_count >= 0),
+  imported_by uuid REFERENCES auth.users(id) ON DELETE RESTRICT,
+  imported_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.commercial_reconciliation_statement_imports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.commercial_reconciliation_statement_imports FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON public.commercial_reconciliation_statement_imports FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT, INSERT ON public.commercial_reconciliation_statement_imports TO service_role;
+CREATE POLICY commercial_reconciliation_statement_imports_service_role
+  ON public.commercial_reconciliation_statement_imports
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+DROP TRIGGER IF EXISTS commercial_reconciliation_statement_imports_immutable
+  ON public.commercial_reconciliation_statement_imports;
+CREATE TRIGGER commercial_reconciliation_statement_imports_immutable
+  BEFORE UPDATE OR DELETE ON public.commercial_reconciliation_statement_imports
+  FOR EACH ROW EXECUTE FUNCTION public.reject_commercial_reconciliation_event_mutation();
+
+CREATE OR REPLACE FUNCTION public.commercial_import_reconciliation_statement(
+  _run_id uuid, _rows jsonb, _actor_user_id uuid
+)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $function$
+DECLARE v_role text := current_setting('request.jwt.claim.role', true);
+  v_run public.commercial_reconciliation_runs%ROWTYPE;
+  v_existing public.commercial_reconciliation_statement_imports%ROWTYPE;
+  v_row record; v_finding_count integer := 0; v_id uuid;
+BEGIN
+  IF v_role IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'Service role required' USING ERRCODE = '42501';
+  END IF;
+  IF jsonb_typeof(_rows) IS DISTINCT FROM 'array' OR jsonb_array_length(_rows) > 1000 THEN
+    RAISE EXCEPTION 'Provider statement rows must be an array of at most 1000 findings' USING ERRCODE = '22023';
+  END IF;
+  SELECT * INTO v_run FROM public.commercial_reconciliation_runs
+    WHERE id=_run_id FOR UPDATE;
+  IF NOT FOUND OR v_run.status <> 'open' THEN
+    RAISE EXCEPTION 'Open reconciliation run was not found' USING ERRCODE = '55000';
+  END IF;
+  SELECT * INTO v_existing FROM public.commercial_reconciliation_statement_imports
+    WHERE run_id=_run_id;
+  IF FOUND THEN
+    RETURN jsonb_build_object('runId',_run_id,'rowCount',v_existing.row_count,
+      'findingCount',v_existing.finding_count,'replayed',true);
+  END IF;
+  FOR v_row IN
+    SELECT * FROM jsonb_to_recordset(_rows) AS x(
+      itemType text, internalPaymentId uuid, providerRef text,
+      expectedAmountMinor numeric, observedAmountMinor numeric,
+      expectedCurrency text, observedCurrency text, evidence jsonb,
+      resolutionStatus text, resolutionRef text
+    )
+  LOOP
+    v_id := public.commercial_create_reconciliation_item(
+      _run_id,v_row.itemType,v_row.internalPaymentId,v_row.providerRef,
+      v_row.expectedAmountMinor,v_row.observedAmountMinor,
+      v_row.expectedCurrency,v_row.observedCurrency,
+      coalesce(v_row.evidence,'{}'::jsonb),v_row.resolutionStatus,
+      v_row.resolutionRef,_actor_user_id
+    );
+    v_finding_count := v_finding_count + 1;
+  END LOOP;
+  INSERT INTO public.commercial_reconciliation_statement_imports(
+    run_id,source_ref,row_count,finding_count,imported_by
+  ) VALUES (_run_id,v_run.source_ref,jsonb_array_length(_rows),v_finding_count,_actor_user_id);
+  INSERT INTO public.commercial_financial_audit_events(
+    request_id,actor_user_id,actor_organisation_id,actor_role,action,
+    resource_type,resource_ref,outcome,metadata
+  ) VALUES (
+    gen_random_uuid()::text,_actor_user_id,v_run.organisation_id,'founder_admin',
+    'reconciliation.statement_imported','reconciliation_run',_run_id::text,'succeeded',
+    jsonb_build_object('rowCount',jsonb_array_length(_rows),'findingCount',v_finding_count,'sourceRef',v_run.source_ref)
+  );
+  RETURN jsonb_build_object('runId',_run_id,'rowCount',jsonb_array_length(_rows),
+    'findingCount',v_finding_count,'replayed',false);
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.commercial_import_reconciliation_statement(uuid,jsonb,uuid)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.commercial_import_reconciliation_statement(uuid,jsonb,uuid)
+  TO service_role;
+
 -- Serialize run closure against item creation and resolution to prevent
 -- a run being marked complete while a concurrent exception is still committing.
 CREATE OR REPLACE FUNCTION public.commercial_complete_reconciliation_run(
