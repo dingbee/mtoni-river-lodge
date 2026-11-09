@@ -486,7 +486,7 @@ GRANT SELECT ON public.commercial_receivables_aging TO service_role;
 CREATE OR REPLACE VIEW public.commercial_revenue_invoice_facts AS
 SELECT r.organisation_id, r.account_id, r.subscription_id, r.invoice_id,
   date_trunc('month', r.issued_at) AS period_month, r.currency,
-  greatest(r.total_minor + r.debits_minor - r.credits_minor,0) AS net_invoiced_minor,
+  greatest(r.total_minor + r.debits_minor - r.credits_minor,0)::numeric(20,0) AS net_invoiced_minor,
   r.outstanding_minor, r.credit_balance_minor,
   r.issued_at
 FROM (
