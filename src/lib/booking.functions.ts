@@ -221,7 +221,6 @@ export const createBooking = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const sb: any = supabaseAdmin;
     const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
-    const propertyId = channel.propertyId;
     const { data: result, error } = await sb.rpc("staynas_create_public_channel_reservation", {
       _sales_channel_id: channel.channelId,
       _quote_id: data.quoteId,
