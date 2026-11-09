@@ -113,11 +113,12 @@ function FounderCommercialReporting() {
       return;
     }
     const lines: string[][] = [["metric", "unit", "value"]];
+    const currencies: Currency[] = report.currencyScope === "TZS" ? ["TZS"] : report.currencyScope === "USD" ? ["USD"] : ["TZS", "USD"];
     for (const metric of ["grossInvoiced", "invoiced", "oneTime", "credits", "debits", "writeOffs", "collected", "reversed", "outstanding", "unallocated", "mrr", "arr", "arpt", "newMrr", "expansionMrr", "contractionMrr", "churnedMrr", "netNewMrr"] as const) {
-      for (const currency of ["TZS", "USD"] as const) lines.push([metric, currency, report.totals[metric][currency]]);
+      for (const reportCurrency of currencies) lines.push([metric, reportCurrency, report.totals[metric][reportCurrency]]);
     }
     for (const [bucket, values] of aging) {
-      for (const currency of ["TZS", "USD"] as const) lines.push([`aging_${bucket.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`, currency, values[currency]]);
+      for (const reportCurrency of currencies) lines.push([`aging_${bucket.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`, reportCurrency, values[reportCurrency]]);
     }
     lines.push(["count_invoices", "count", String(report.counts.invoices)]);
     lines.push(["count_collections", "count", String(report.counts.collections)]);
@@ -125,8 +126,8 @@ function FounderCommercialReporting() {
     lines.push(["count_overdue_invoices", "count", String(report.counts.overdueInvoices)]);
     lines.push(["period_start", "date", report.periodStart]);
     lines.push(["period_end_exclusive", "date", report.periodEnd]);
-    lines.push(["currency_scope", "currency", currency]);
-    lines.push(["tenant_scope", "tenant_id", organisationId || "all_customer_tenants"]);
+    lines.push(["currency_scope", "currency", report.currencyScope]);
+    lines.push(["tenant_scope", "tenant_id", report.organisationId || "all_customer_tenants"]);
     lines.push(["generated_at", "timestamp", new Date().toISOString()]);
     const csv = lines.map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\r\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
