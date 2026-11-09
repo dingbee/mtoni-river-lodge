@@ -296,6 +296,14 @@ DECLARE
   v_first_new_sub uuid;
   v_final_sub uuid;
   v_new_invoice uuid := '97000000-0000-4000-8000-000000000008';
+  v_usd_org uuid := '97000000-0000-4000-8000-000000000009';
+  v_usd_account uuid := '97000000-0000-4000-8000-00000000000a';
+  v_tzs_new_sub uuid := '97000000-0000-4000-8000-00000000000b';
+  v_usd_sub uuid := '97000000-0000-4000-8000-00000000000c';
+  v_trial_org uuid := '97000000-0000-4000-8000-00000000000d';
+  v_trial_account uuid := '97000000-0000-4000-8000-00000000000e';
+  v_trial_sub uuid := '97000000-0000-4000-8000-00000000000f';
+  v_trial_started timestamptz := now();
   v_period_start timestamptz;
   v_period_end timestamptz;
   v_churn_result jsonb;
@@ -454,6 +462,97 @@ BEGIN
       WHERE table_schema='public' AND table_name='commercial_founder_subscription_movement_facts'
         AND column_name='net_new_mrr_minor')<>'text' THEN
     RAISE EXCEPTION 'Founder movement facts must preserve exact numeric values as text';
+  END IF;
+
+  -- Explicit currency isolation: no USD amount is converted into the TZS ledger.
+  INSERT INTO public.staynas_organisations(id,slug,name,status)
+    VALUES (v_usd_org,'cc07-usd-test','CC07 USD Customer','active');
+  INSERT INTO public.commercial_accounts(id,organisation_id,status)
+    VALUES (v_usd_account,v_usd_org,'active');
+  INSERT INTO public.commercial_subscriptions(
+    id,account_id,plan_code,plan_version,currency,billing_term,property_count,addon_codes,
+    price_resolution_ref,accepted_price_snapshot,quote_required,commercial_acceptance_ref,
+    status,activated_at,current_period_starts_at,current_period_ends_at
+  ) VALUES
+    (v_tzs_new_sub,v_account,'essential',1,'TZS','monthly',1,ARRAY[]::text[],
+      'cc07-tzs-current','{"currency":"TZS","planCode":"essential","planVersion":1,"billingTerm":"monthly","propertyCount":1,"priceCode":"tzs-current","quoteRequired":false,"total":200000,"lineItems":[{"kind":"plan_base","code":"essential","quantity":1,"unitAmountMinor":200000,"amountMinor":200000}],"addonCodes":[]}'::jsonb,
+      false,'cc07-tzs-acceptance','active',now(),now(),now()+interval '30 days'),
+    (v_usd_sub,v_usd_account,'essential',1,'USD','monthly',1,ARRAY[]::text[],
+      'cc07-usd-current','{"currency":"USD","planCode":"essential","planVersion":1,"billingTerm":"monthly","propertyCount":1,"priceCode":"usd-current","quoteRequired":false,"total":250000,"lineItems":[{"kind":"plan_base","code":"essential","quantity":1,"unitAmountMinor":250000,"amountMinor":250000}],"addonCodes":[]}'::jsonb,
+      false,'cc07-usd-acceptance','active',now(),now(),now()+interval '30 days');
+  IF (SELECT mrr_minor FROM public.commercial_subscription_recurring_value_facts WHERE subscription_id=v_tzs_new_sub)<>'200000'
+    OR (SELECT currency FROM public.commercial_subscription_recurring_value_facts WHERE subscription_id=v_tzs_new_sub)<>'TZS'
+    OR (SELECT mrr_minor FROM public.commercial_subscription_recurring_value_facts WHERE subscription_id=v_usd_sub)<>'250000'
+    OR (SELECT currency FROM public.commercial_subscription_recurring_value_facts WHERE subscription_id=v_usd_sub)<>'USD' THEN
+    RAISE EXCEPTION 'TZS/USD recurring revenue facts were mixed or converted';
+  END IF;
+
+  -- Trial activations must not appear in paid MRR or new-MRR movement facts.
+  INSERT INTO public.staynas_organisations(id,slug,name,status)
+    VALUES (v_trial_org,'cc07-trial-test','CC07 Trial Customer','active');
+  INSERT INTO public.commercial_accounts(id,organisation_id,status)
+    VALUES (v_trial_account,v_trial_org,'active');
+  INSERT INTO public.commercial_subscriptions(
+    id,account_id,plan_code,plan_version,currency,billing_term,property_count,addon_codes,
+    price_resolution_ref,accepted_price_snapshot,quote_required,status,activated_at,
+    trial_policy_version,trial_started_at,trial_ends_at,created_by
+  ) VALUES (
+    v_trial_sub,v_trial_account,'essential',1,'TZS','monthly',1,ARRAY[]::text[],
+    'cc07-trial-price','{"currency":"TZS","planCode":"essential","planVersion":1,"billingTerm":"monthly","propertyCount":1,"priceCode":"trial-price","quoteRequired":false,"total":100000,"lineItems":[{"kind":"plan_base","code":"essential","quantity":1,"unitAmountMinor":100000,"amountMinor":100000}],"addonCodes":[]}'::jsonb,
+    false,'trialing',v_trial_started,1,v_trial_started,v_trial_started+interval '336 hours',v_user
+  );
+  INSERT INTO public.commercial_trial_claims(
+    account_id,subscription_id,policy_version,claimed_at,trial_started_at,trial_ends_at
+  ) VALUES (
+    v_trial_account,v_trial_sub,1,v_trial_started,v_trial_started,v_trial_started+interval '336 hours'
+  );
+  INSERT INTO public.commercial_subscription_events(
+    account_id,subscription_id,event_type,occurred_at,idempotency_key,actor_user_id,
+    actor_organisation_id,actor_role,reason_code,event_metadata
+  ) VALUES (
+    v_trial_account,v_trial_sub,'activate_trial',v_trial_started,'cc07-trial-activated',
+    v_user,v_founder_org,'founder_admin','test_trial','{}'::jsonb
+  );
+  IF EXISTS (SELECT 1 FROM public.commercial_subscription_recurring_value_facts WHERE subscription_id=v_trial_sub)
+    OR EXISTS (SELECT 1 FROM public.commercial_subscription_revenue_movement_facts WHERE subscription_id=v_trial_sub) THEN
+    RAISE EXCEPTION 'Trial subscription was incorrectly included in paid MRR';
+  END IF;
+
+  -- Aging boundaries on both sides of 30, 60 and 90 days.
+  INSERT INTO public.commercial_invoices(
+    organisation_id,account_id,subscription_id,invoice_number,idempotency_key,
+    billing_period_start,billing_period_end,currency,billing_term,status,issued_at,due_at,
+    subtotal_minor,tax_minor,discount_minor,total_minor,amount_paid_minor,pricing_snapshot,tax_snapshot
+  )
+  SELECT v_customer_org,v_account,v_final_sub,'CC07-AGING-'||x.label,'cc07-aging-'||x.label,
+    now()-interval '400 days'+(x.n||' days')::interval,
+    now()-interval '370 days'+(x.n||' days')::interval,
+    'TZS','monthly','issued',now()-interval '120 days',x.due_at,
+    1000,0,0,1000,0,'{"test":true}'::jsonb,'{"test":true}'::jsonb
+  FROM (VALUES
+    (1,'current',now()+interval '1 day'),
+    (2,'d30_before',now()-interval '30 days'+interval '1 second'),
+    (3,'d30_after',now()-interval '30 days'-interval '1 second'),
+    (4,'d60_before',now()-interval '60 days'+interval '1 second'),
+    (5,'d60_after',now()-interval '60 days'-interval '1 second'),
+    (6,'d90_before',now()-interval '90 days'+interval '1 second'),
+    (7,'d90_after',now()-interval '90 days'-interval '1 second')
+  ) AS x(n,label,due_at);
+  IF NOT EXISTS (SELECT 1 FROM public.commercial_receivables_aging WHERE invoice_id IN
+      (SELECT id FROM public.commercial_invoices WHERE invoice_number='CC07-AGING-current') AND aging_bucket='current')
+    OR NOT EXISTS (SELECT 1 FROM public.commercial_receivables_aging WHERE invoice_id IN
+      (SELECT id FROM public.commercial_invoices WHERE invoice_number='CC07-AGING-d30_before') AND aging_bucket='1_30')
+    OR NOT EXISTS (SELECT 1 FROM public.commercial_receivables_aging WHERE invoice_id IN
+      (SELECT id FROM public.commercial_invoices WHERE invoice_number='CC07-AGING-d30_after') AND aging_bucket='31_60')
+    OR NOT EXISTS (SELECT 1 FROM public.commercial_receivables_aging WHERE invoice_id IN
+      (SELECT id FROM public.commercial_invoices WHERE invoice_number='CC07-AGING-d60_before') AND aging_bucket='31_60')
+    OR NOT EXISTS (SELECT 1 FROM public.commercial_receivables_aging WHERE invoice_id IN
+      (SELECT id FROM public.commercial_invoices WHERE invoice_number='CC07-AGING-d60_after') AND aging_bucket='61_90')
+    OR NOT EXISTS (SELECT 1 FROM public.commercial_receivables_aging WHERE invoice_id IN
+      (SELECT id FROM public.commercial_invoices WHERE invoice_number='CC07-AGING-d90_before') AND aging_bucket='61_90')
+    OR NOT EXISTS (SELECT 1 FROM public.commercial_receivables_aging WHERE invoice_id IN
+      (SELECT id FROM public.commercial_invoices WHERE invoice_number='CC07-AGING-d90_after') AND aging_bucket='over_90') THEN
+    RAISE EXCEPTION 'Receivables aging boundary classification failed';
   END IF;
 END
 $revenue_test$;
