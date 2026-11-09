@@ -36,9 +36,19 @@ type Campaign = {
 };
 type StudioResources = {
   currency: string;
+  timezone: string;
   rooms: Array<{ id: string; slug: string; name: string; max_occupancy: number }>;
   publications: Array<{ id: string; code: string; name: string; currency: string; publication_number: number; rate_plan_version: number; effective_from: string | null; effective_to: string | null }>;
 };
+
+function dateInPropertyTimezone(value: string | null, timezone: string) {
+  if (!value) return "";
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone || "UTC", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(new Date(value));
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
 
 function CampaignStudioPage() {
   const queryClient = useQueryClient();
@@ -84,8 +94,8 @@ function CampaignStudioPage() {
   const createCampaign = useMutation({
     mutationFn: () => createFn({ data: {
       name, slug,
-      startsAt: startsAtDate ? new Date(`${startsAtDate}T00:00:00`).toISOString() : null,
-      endsAt: endsAtDate ? new Date(`${endsAtDate}T23:59:59`).toISOString() : null,
+      startsOn: startsAtDate || null,
+      endsOn: endsAtDate || null,
     } }),
     onSuccess: async (created) => {
       setName(""); setSlug(""); setSelectedId(created.id); setHeadline(created.name);
@@ -118,8 +128,8 @@ function CampaignStudioPage() {
   const saveSchedule = useMutation({
     mutationFn: () => scheduleFn({ data: {
       campaignId: selectedId,
-      startsAt: startsAtDate ? new Date(`${startsAtDate}T00:00:00`).toISOString() : null,
-      endsAt: endsAtDate ? new Date(`${endsAtDate}T23:59:59`).toISOString() : null,
+      startsOn: startsAtDate || null,
+      endsOn: endsAtDate || null,
     } }),
     onSuccess: async () => { await refresh(); toast.success("Campaign schedule saved."); },
     onError: (error: Error) => toast.error(error.message),
@@ -157,7 +167,7 @@ function CampaignStudioPage() {
               {campaigns.isLoading && <p className="text-sm text-muted-foreground">Loading campaigns…</p>}
               {campaigns.isError && <p className="text-sm text-destructive">Campaigns could not be loaded.</p>}
               {!campaigns.isLoading && !campaigns.data?.length && <p className="text-sm text-muted-foreground">No campaigns have been created for this property.</p>}
-              {campaigns.data?.map((campaign) => <button key={campaign.id} type="button" onClick={() => { setSelectedId(campaign.id); setHeadline(campaign.name); setDescription(""); setHighlights(""); setStartsAtDate(campaign.starts_at?.slice(0,10) ?? ""); setEndsAtDate(campaign.ends_at?.slice(0,10) ?? ""); setPreview(null); }} className={`flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left ${selectedId === campaign.id ? "border-primary bg-primary/5" : "hover:bg-muted/50"}`}>
+              {campaigns.data?.map((campaign) => <button key={campaign.id} type="button" onClick={() => { setSelectedId(campaign.id); setHeadline(campaign.name); setDescription(""); setHighlights(""); setStartsAtDate(dateInPropertyTimezone(campaign.starts_at, resources.data?.timezone ?? "UTC")); setEndsAtDate(dateInPropertyTimezone(campaign.ends_at, resources.data?.timezone ?? "UTC")); setPreview(null); }} className={`flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left ${selectedId === campaign.id ? "border-primary bg-primary/5" : "hover:bg-muted/50"}`}>
                 <span className="min-w-0"><span className="block truncate text-sm font-medium">{campaign.name}</span><span className="block truncate text-xs text-muted-foreground">/{campaign.slug}</span></span>
                 <Badge variant={campaign.status === "published" ? "default" : "secondary"}>{campaign.status}</Badge>
               </button>)}
@@ -181,7 +191,7 @@ function CampaignStudioPage() {
             </div>
             <div className="border-t pt-4"><div className="mb-3 flex items-center gap-2 font-medium"><Settings2 className="h-4 w-4" /> Booking offer configuration</div>
               {resources.isError && <p className="text-sm text-destructive">Property booking resources could not be loaded.</p>}
-              <p className="mb-3 text-xs text-muted-foreground">Property currency: {resources.data?.currency ?? "Not configured"}. Only active rooms and current published rate snapshots in this currency are selectable.</p>
+              <p className="mb-3 text-xs text-muted-foreground">Property currency: {resources.data?.currency ?? "Not configured"} · timezone: {resources.data?.timezone ?? "Not configured"}. Schedule dates use the property's timezone. Only active rooms and current published rate snapshots in this currency are selectable.</p>
               <div className="space-y-2">
                 <Label>Included room types</Label>
                 {resources.data?.rooms.map((room) => <label key={room.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={roomIds.includes(room.id)} onChange={(event) => setRoomIds((current) => event.target.checked ? [...current, room.id] : current.filter((id) => id !== room.id))} />{room.name} <span className="text-xs text-muted-foreground">· max {room.max_occupancy}</span></label>)}
