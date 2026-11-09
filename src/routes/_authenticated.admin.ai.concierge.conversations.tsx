@@ -11,7 +11,6 @@ import {
   listConciergeConversations,
   getOmnichannelAnalytics,
 } from "@/domains/ai/concierge/omnichannel.functions";
-import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/concierge/conversations")({
   head: () => ({
@@ -24,12 +23,6 @@ export const Route = createFileRoute("/_authenticated/admin/ai/concierge/convers
 });
 
 type ChannelFilter = "all" | "web" | "whatsapp" | "email";
-type ConversationRow = Pick<
-  Tables<"ai_concierge_sessions">,
-  "id" | "channel" | "guest_name" | "guest_email" |
-  "message_count" | "last_active_at" | "escalated" | "identity_confidence"
->;
-
 function ConversationsPage() {
   const listFn = useServerFn(listConciergeConversations);
   const statsFn = useServerFn(getOmnichannelAnalytics);
