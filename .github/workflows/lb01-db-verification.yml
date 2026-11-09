@@ -30,4 +30,4 @@ jobs:
       - name: Verify reciprocal connection persistence and isolation
         env:
           PGPASSWORD: postgres
-        run: psql -h localhost -U postgres -d staynas_lb01_test -v ON_ERROR_STOP=1 -f supabase/tests/lb01_product_connection_persistence.sql
+        run: psql -h localhost -U postgres -d staynas_lb01_test -v ON_ERROR_STOP=1 -f supabase/verification/lb01_product_connection_persistence.sql
