@@ -139,6 +139,21 @@ $test$;
 
 RESET ROLE;
 SET LOCAL ROLE service_role;
+DO $test$
+BEGIN
+  PERFORM public.cps03_configure_booking_campaign(
+    '60000000-0000-4000-8000-000000000001',
+    '20000000-0000-4000-8000-000000000001',
+    '10000000-0000-4000-8000-000000000001',
+    ARRAY['30000000-0000-4000-8000-000000000001']::uuid[],
+    '50000000-0000-4000-8000-000000000001',
+    'resident-rate',
+    'Resident Rate',
+    'Published resident rate snapshot',
+    '40000000-0000-4000-8000-000000000001'
+  );
+END
+$test$;
 UPDATE public.booking_pages SET status='published', published_at=now()
 WHERE property_id='20000000-0000-4000-8000-000000000001';
 DO $test$
@@ -205,8 +220,34 @@ $test$;
 
 RESET ROLE;
 SET LOCAL ROLE service_role;
-INSERT INTO public.campaign_attribution(campaign_id,property_id,session_key,event_type)
-VALUES ('60000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','session-key-cps03-0001','page_view');
-
+INSERT INTO public.campaign_attribution(campaign_id,property_id,session_key,event_type,event_key,utm_campaign)
+VALUES ('60000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','session-key-cps03-0001','page_view','session-key-cps03-0001:page_view','resident-escape')
+ON CONFLICT (property_id,event_key) DO NOTHING;
+INSERT INTO public.campaign_attribution(campaign_id,property_id,session_key,event_type,event_key,utm_campaign)
+VALUES ('60000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','session-key-cps03-0001','page_view','session-key-cps03-0001:page_view','resident-escape')
+ON CONFLICT (property_id,event_key) DO NOTHING;
+DO $test$
+BEGIN
+  IF (SELECT count(*) FROM public.campaign_attribution WHERE property_id='20000000-0000-4000-8000-000000000001' AND event_key='session-key-cps03-0001:page_view') <> 1 THEN
+    RAISE EXCEPTION 'Campaign attribution event key is not idempotent';
+  END IF;
+END
+$test$;
+SELECT public.cps03_transition_booking_campaign(
+  '60000000-0000-4000-8000-000000000001',
+  '20000000-0000-4000-8000-000000000001',
+  '10000000-0000-4000-8000-000000000001',
+  '40000000-0000-4000-8000-000000000001',
+  'pause'
+);
+RESET ROLE;
+SET LOCAL ROLE anon;
+DO $test$
+BEGIN
+  IF (SELECT count(*) FROM public.booking_campaigns WHERE id='60000000-0000-4000-8000-000000000001') <> 0 THEN
+    RAISE EXCEPTION 'Paused campaign remained publicly visible';
+  END IF;
+END
+$test$;
 RESET ROLE;
 ROLLBACK;
