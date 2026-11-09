@@ -444,17 +444,22 @@ export const createCommercialReconciliationRun = createServerFn({method:"POST"})
   .handler(async ({data,context})=>{
     const actor=await resolveVerifiedFounderActor(context);
     const admin=await getAdmin();
-    const {data:provider,error:providerError}=await admin.from("commercial_provider_accounts")
-      .select("id,organisation_id,supported_currencies").eq("id",data.providerAccountId).maybeSingle();
-    if(providerError||!provider||!provider.supported_currencies.includes(data.currency)) throw new Error("Provider account/currency is not configured.");
-    const {data:run,error}=await admin.from("commercial_reconciliation_runs").insert({
-      organisation_id:provider.organisation_id,provider_account_id:provider.id,currency:data.currency,
-      period_start:data.periodStart,period_end:data.periodEnd,source_ref:data.sourceRef,started_by:actor.userId,
-    }).select("id,status").single();
-    if(error||!run) throw new Error("Reconciliation run could not be created.");
-    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
-      organisationId:provider.organisation_id,actorRole:"founder_admin",action:"reconciliation.started",
-      resourceType:"reconciliation_run",resourceRef:run.id,metadata:{currency:data.currency,sourceRef:data.sourceRef}});
+    const { data: provider, error: providerError } = await admin.from("commercial_provider_accounts")
+      .select("id,organisation_id,supported_currencies,status").eq("id",data.providerAccountId).maybeSingle();
+    if(providerError||!provider||provider.status!=="active"||!provider.supported_currencies.includes(data.currency)) {
+      throw new Error("Active provider account/currency is not configured.");
+    }
+    const { data: run, error } = await admin.rpc("commercial_create_reconciliation_run", {
+      _provider_account_id: data.providerAccountId, _currency: data.currency,
+      _period_start: data.periodStart, _period_end: data.periodEnd,
+      _source_ref: data.sourceRef, _actor_user_id: actor.userId,
+    });
+    if(error||!run?.id) throw new Error("Reconciliation run could not be created or replayed.");
+    if (run.replayed !== true) {
+      await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
+        organisationId:provider.organisation_id,actorRole:"founder_admin",action:"reconciliation.started",
+        resourceType:"reconciliation_run",resourceRef:run.id,metadata:{currency:data.currency,sourceRef:data.sourceRef}});
+    }
     return run;
   });
 
