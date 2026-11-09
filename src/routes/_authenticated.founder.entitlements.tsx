@@ -20,7 +20,11 @@ const label = (value: unknown) => String(value ?? "—").replaceAll("_", " ").re
 const date = (value: unknown) => value ? new Date(String(value)).toLocaleString() : "—";
 
 function FounderEntitlements() {
-  const data=Route.useLoaderData();
+  const data=Route.useLoaderData() as {
+    tenants: Array<{id:string;name:string;slug:string}>;
+    entitlementGrantRules: Array<Record<string,unknown>>;
+    entitlementDecisions: Array<Record<string,unknown>>;
+  };
   const router=useRouter();
   const [grantType,setGrantType]=useState<"override"|"custom_feature"|"addon_feature"|"platform_restriction">("override");
   const [organisationId,setOrganisationId]=useState(String(data.tenants[0]?.id??""));

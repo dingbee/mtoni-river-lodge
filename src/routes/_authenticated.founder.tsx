@@ -4,6 +4,33 @@ import { Activity, AlertCircle, Building2, CalendarClock, CheckCircle2, CircleDo
 import { getFounderCommercialWorkspace } from "@/domains/commercial/founder-control-centre.functions";
 import { administerCommercialSubscription } from "@/domains/commercial/subscription-administration.functions";
 
+type FounderWorkspaceData = {
+  generatedAt: string;
+  metrics: {
+    totalTenants: number; activeTenants: number; trialTenants: number; paidSubscriptions: number;
+    suspendedTenants: number; expiredSubscriptions: number; renewalsApproaching: number; overdueInvoices: number;
+    totalInvoicedByCurrency: { TZS: number; USD: number };
+    collectedByCurrency: { TZS: number; USD: number };
+    outstandingByCurrency: { TZS: number; USD: number };
+    mrrArrByCurrency: { TZS: { mrrMinor: number; arrMinor: number }; USD: { mrrMinor: number; arrMinor: number } };
+  };
+  tenants: Array<{
+    id: string; slug: string; name: string; status: string; propertyCount: number; subscriptionCount: number;
+    subscription: { id: string; planCode: string; status: string; propertyAllowance: number } | null;
+    entitlementCount: number; outstandingByCurrency: { TZS: number; USD: number };
+    lastPayment: { amountMinor: number; currency: "TZS" | "USD"; confirmedAt: string | null; reference: string | null } | null;
+    commercialHealth: string;
+  }>;
+  subscriptions: Array<Record<string, unknown>>;
+  invoices: Array<Record<string, unknown>>;
+  payments: Array<Record<string, unknown>>;
+  entitlementAssignments: Array<Record<string, unknown>>;
+  entitlementDecisions: Array<Record<string, unknown>>;
+  policyVersions: Array<Record<string, unknown>>;
+  notifications: Array<Record<string, unknown>>;
+  recentEvents: Array<Record<string, unknown>>;
+};
+
 export const Route = createFileRoute("/_authenticated/founder")({
   head: () => ({ meta: [{ title: "Founder Commercial Control Centre — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
   beforeLoad: async () => {
@@ -11,7 +38,7 @@ export const Route = createFileRoute("/_authenticated/founder")({
     const access = await getCommercialFounderStatus();
     if (!access.isFounderAdmin) throw redirect({ to: "/settings" });
   },
-  loader: () => getFounderCommercialWorkspace(),
+  loader: async () => await getFounderCommercialWorkspace() as FounderWorkspaceData,
   component: FounderWorkspace,
 });
 
@@ -85,7 +112,7 @@ function SubscriptionAction({ subscription }: { subscription: Record<string, unk
 }
 
 function FounderWorkspace() {
-  const data = Route.useLoaderData();
+  const data = Route.useLoaderData() as FounderWorkspaceData;
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const tenants = useMemo(() => data.tenants.filter((tenant) => {

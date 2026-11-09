@@ -179,7 +179,18 @@ function ConfirmPendingPayment({ payment }: { payment: Record<string, unknown> }
 }
 
 function FounderBilling() {
-  const { workspace, receivables } = Route.useLoaderData();
+  const { workspace, receivables } = Route.useLoaderData() as {
+    workspace: {
+      tenants: Array<{ id: string; name: string; accountId: string | null }>;
+      subscriptions: Array<Record<string, unknown>>;
+      providerAccounts: Array<Record<string, unknown>>;
+      invoices: Array<Record<string, unknown>>;
+      payments: Array<Record<string, unknown>>;
+      unallocatedCollections: Array<Record<string, unknown>>;
+      reconciliationRuns: Array<Record<string, unknown>>;
+    };
+    receivables: Record<Currency, Record<string, unknown>>;
+  };
   const invoices=workspace.invoices as Array<Record<string,unknown>>;
   const payments=workspace.payments as Array<Record<string,unknown>>;
   const accounts=workspace.tenants.filter((t)=>t.accountId) as Array<Record<string,unknown>>;
