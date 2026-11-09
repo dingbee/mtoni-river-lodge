@@ -119,12 +119,14 @@ export async function searchAvailability(input: {
   }
 }
 
-function buildBookingUrl(intent: ConciergeIntentSignal, roomSlug?: string): string {
+export function buildBookingUrl(intent: ConciergeIntentSignal, roomSlug?: string): string {
   const params = new URLSearchParams();
   if (intent.detected.check_in) params.set("check_in", intent.detected.check_in);
   if (intent.detected.check_out) params.set("check_out", intent.detected.check_out);
   if (intent.detected.adults) params.set("adults", String(intent.detected.adults));
-  if (intent.detected.children) params.set("children", String(intent.detected.children));
+  if (intent.detected.children != null) params.set("children", String(intent.detected.children));
+  if (intent.detected.children_below_6 != null) params.set("children_below_6", String(intent.detected.children_below_6));
+  if (intent.detected.children_7_plus != null) params.set("children_7_plus", String(intent.detected.children_7_plus));
   if (roomSlug) params.set("room", roomSlug);
   const qs = params.toString();
   return qs ? `/book?${qs}` : "/book";
