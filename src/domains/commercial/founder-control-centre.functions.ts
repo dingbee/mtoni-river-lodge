@@ -7,11 +7,11 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { resolveVerifiedFounderActor } from "./subscription.functions";
 
 type Row = Record<string, unknown>;
-type MoneyByCurrency = { TZS: number; USD: number };
-const emptyMoney = (): MoneyByCurrency => ({ TZS: 0, USD: 0 });
+type MoneyByCurrency = { TZS: string; USD: string };
+const emptyMoney = (): MoneyByCurrency => ({ TZS: "0", USD: "0" });
 const numeric = (value: unknown) => { const result = Number(value ?? 0); return Number.isFinite(result) ? result : 0; };
 const currencyOf = (value: unknown): "TZS" | "USD" | null => value === "TZS" || value === "USD" ? value : null;
-const addMoney = (target: MoneyByCurrency, currency: unknown, amount: unknown) => { const key = currencyOf(currency); if (key) target[key] += numeric(amount); };
+const addMoney = (target: MoneyByCurrency, currency: unknown, amount: unknown) => { const key = currencyOf(currency); if (key) target[key] = (BigInt(target[key]) + BigInt(String(amount ?? 0))).toString(); };
 const rows = (value: unknown): Row[] => Array.isArray(value) ? value as Row[] : [];
 
 export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
@@ -28,8 +28,8 @@ export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
       admin.from("commercial_account_contacts").select("account_id,contact_name,contact_email,contact_phone,contact_role,created_at,updated_at"),
       admin.from("commercial_subscriptions").select("id,account_id,plan_code,plan_version,currency,billing_term,status,property_count,addon_codes,trial_started_at,trial_ends_at,current_period_starts_at,current_period_ends_at,cancel_at_period_end,accepted_price_snapshot,quote_required,created_at"),
       admin.from("staynas_properties").select("id,organisation_id,name,status,created_at"),
-      admin.from("commercial_invoice_receivables").select("id,organisation_id,account_id,subscription_id,invoice_number,currency,status,issued_at,due_at,total_minor,amount_paid_minor,outstanding_minor,is_overdue"),
-      admin.from("commercial_payment_transactions").select("id,organisation_id,invoice_id,provider,provider_transaction_ref,amount_minor,currency,payment_method,status,confirmed_at,created_at").order("created_at", { ascending: false }),
+      admin.from("commercial_founder_invoice_workspace_facts").select("id,organisation_id,account_id,subscription_id,invoice_number,currency,status,issued_at,due_at,total_minor,amount_paid_minor,outstanding_minor,is_overdue"),
+      admin.from("commercial_founder_payment_workspace_facts").select("id,organisation_id,invoice_id,provider,provider_transaction_ref,amount_minor,currency,payment_method,status,confirmed_at,created_at").order("created_at", { ascending: false }),
       admin.from("commercial_entitlement_assignments").select("id,organisation_id,feature_code,source_type,status,effective_from,effective_to"),
       admin.from("commercial_audit_events").select("id,actor_user_id,actor_role,action,resource_type,resource_ref,outcome,reason_code,occurred_at,metadata").order("occurred_at", { ascending: false }).limit(30),
       admin.from("commercial_financial_audit_events").select("id,actor_user_id,actor_role,action,resource_type,resource_ref,outcome,reason_code,occurred_at,metadata").order("occurred_at", { ascending: false }).limit(30),
@@ -95,7 +95,7 @@ export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
         entitlementCount: tenantAssignments.length, outstandingByCurrency,
         overdueInvoiceCount: tenantInvoices.filter((invoice) => invoice.is_overdue === true).length,
         lastPayment: lastSuccessfulPayment ? {
-          amountMinor: numeric(lastSuccessfulPayment.amount_minor), currency: currencyOf(lastSuccessfulPayment.currency) as "TZS" | "USD",
+          amountMinor: String(lastSuccessfulPayment.amount_minor ?? "0"), currency: currencyOf(lastSuccessfulPayment.currency) as "TZS" | "USD",
           confirmedAt: lastSuccessfulPayment.confirmed_at ?? null, reference: lastSuccessfulPayment.provider_transaction_ref ?? null,
         } : null,
         commercialHealth,
@@ -109,16 +109,16 @@ export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
       addMoney(collectedByCurrency, invoice.currency, invoice.amount_paid_minor);
       addMoney(outstandingByCurrency, invoice.currency, invoice.outstanding_minor);
     }
-    const recurringByCurrency = { TZS: { mrrMinor: 0, arrMinor: 0 }, USD: { mrrMinor: 0, arrMinor: 0 } };
-    for (const subscription of subscriptions) {
-      if (subscription.status !== "active") continue;
-      const currency = currencyOf(subscription.currency);
+    const recurringByCurrency = { TZS: { mrrMinor: "0", arrMinor: "0" }, USD: { mrrMinor: "0", arrMinor: "0" } };
+    const recurringResult = await admin.from("commercial_subscription_recurring_value_facts")
+      .select("subscription_id,account_id,organisation_id,currency,mrr_minor,arr_minor")
+      .in("organisation_id", Array.from(customerOrganisationIds));
+    if (recurringResult.error) throw new Error("Exact recurring subscription values could not be loaded.");
+    for (const fact of rows(recurringResult.data)) {
+      const currency = currencyOf(fact.currency);
       if (!currency) continue;
-      const snapshot = subscription.accepted_price_snapshot as Record<string, unknown> | null;
-      const total = numeric(snapshot?.total ?? snapshot?.totalAmountMinor);
-      if (total <= 0 || subscription.quote_required === true) continue;
-      if (subscription.billing_term === "monthly") { recurringByCurrency[currency].mrrMinor += total; recurringByCurrency[currency].arrMinor += total * 12; }
-      else if (subscription.billing_term === "annual") { recurringByCurrency[currency].mrrMinor += total / 12; recurringByCurrency[currency].arrMinor += total; }
+      recurringByCurrency[currency].mrrMinor = (BigInt(recurringByCurrency[currency].mrrMinor) + BigInt(String(fact.mrr_minor))).toString();
+      recurringByCurrency[currency].arrMinor = (BigInt(recurringByCurrency[currency].arrMinor) + BigInt(String(fact.arr_minor))).toString();
     }
     const recentEvents: Row[] = [
       ...rows(eventsResult.data).map((event): Row => ({ ...event, eventSource: "commercial" })),
