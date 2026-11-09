@@ -80,7 +80,7 @@ export async function getPropertyPesapalAccountForSettlement(
     .eq("provider", "pesapal")
     .maybeSingle();
   if (error) throw new Error("Booking's property Pesapal account could not be loaded.");
-  if (!data || !data.credential_secret_ref) {
+  if (!data) {
     throw new Error("The booking has no valid property-scoped Pesapal account. Platform credentials are not used as a fallback.");
   }
   return data as PropertyPesapalAccount;
