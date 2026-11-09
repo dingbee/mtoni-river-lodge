@@ -1017,23 +1017,19 @@ export const reconcileCommercialProviderStatementRun=createServerFn({method:"POS
     });
     const {reconcileCommercialProviderStatement}=await import("./commercial-reconciliation-engine");
     const results=reconcileCommercialProviderStatement(internal,data.providerRows);
-    for (const item of results) {
-      const { error: insertError } = await admin.rpc("commercial_create_reconciliation_item", {
-        _run_id: data.runId, _item_type: item.itemType,
-        _internal_payment_id: item.internalPaymentId, _provider_ref: item.providerRef,
-        _expected_amount_minor: item.expectedAmountMinor, _observed_amount_minor: item.observedAmountMinor,
-        _expected_currency: item.expectedCurrency, _observed_currency: item.observedCurrency,
-        _evidence: item.evidence, _resolution_status: item.resolutionStatus,
-        _resolution_ref: item.resolutionRef, _actor_user_id: actor.userId,
-      });
-      if (insertError) throw new Error("Reconciliation item and exception evidence could not be persisted atomically.");
-    }
-    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
-      organisationId:run.organisation_id,actorRole:"founder_admin",action:"reconciliation.statement_compared",
-      resourceType:"reconciliation_run",resourceRef:data.runId,
-      metadata:{providerRows:data.providerRows.length,internalPayments:internal.length,findings:results.length,
-        discrepancies:results.filter(item=>item.resolutionStatus==="unresolved").length}});
-    return results;
+    const { data: importResult, error: importError } = await admin.rpc("commercial_import_reconciliation_statement", {
+      _run_id: data.runId,
+      _rows: results.map((item) => ({
+        itemType: item.itemType, internalPaymentId: item.internalPaymentId,
+        providerRef: item.providerRef, expectedAmountMinor: item.expectedAmountMinor,
+        observedAmountMinor: item.observedAmountMinor, expectedCurrency: item.expectedCurrency,
+        observedCurrency: item.observedCurrency, evidence: item.evidence,
+        resolutionStatus: item.resolutionStatus, resolutionRef: item.resolutionRef,
+      })),
+      _actor_user_id: actor.userId,
+    });
+    if (importError || !importResult) throw new Error("Provider statement and all reconciliation findings could not be committed atomically.");
+    return { ...importResult, results };
   });
 
 export const markCommercialPaymentAttemptFailed=createServerFn({method:"POST"})
