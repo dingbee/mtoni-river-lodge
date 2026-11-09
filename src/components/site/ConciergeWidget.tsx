@@ -8,6 +8,7 @@ import type {
   ConciergeRecommendation,
   ConciergeAvailabilityRoom,
   ConciergeBookingPlan,
+  ConciergeAvailabilityOutcome,
 } from "@/domains/ai/concierge/concierge.types";
 
 const STORAGE_KEY = "staynas.concierge.session";
@@ -37,6 +38,19 @@ function postBeacon(url: string, body: unknown) {
 }
 
 type ChatMessage = ConciergeMessage & { pending?: boolean };
+
+function availabilityOutcomeLabel(status: ConciergeAvailabilityOutcome): string {
+  const labels: Record<ConciergeAvailabilityOutcome, string> = {
+    available: "Availability verified for these dates.",
+    unavailable: "No suitable rooms are available for these dates.",
+    invalid_search: "Please check the dates and guest count.",
+    property_resolution_failure: "This website is not configured for guest availability.",
+    inventory_service_failure: "Room availability could not be verified right now.",
+    pricing_service_failure: "Room pricing could not be verified right now.",
+    temporary_failure: "The availability service is temporarily unavailable.",
+  };
+  return labels[status];
+}
 
 function useSessionToken() {
   const [token, setToken] = useState<string | null>(null);
@@ -253,6 +267,7 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
                 )}
               >
                 {m.content}
+                {m.availability_outcome && <p className="mt-1 text-[11px] opacity-80">{availabilityOutcomeLabel(m.availability_outcome)}</p>}
                 {m.citations && m.citations.length > 0 && (
                   <div className="mt-2 border-t border-border/60 pt-2 text-[11px] opacity-80">
                     <p className="font-medium">Source: StayNas property information</p>
@@ -483,7 +498,7 @@ function LeadForm(props: {
   onCancel: () => void;
 }) {
   const v = props.value;
-  const set = (k: keyof LeadFormValue, val: string | boolean) => props.onChange({ ...v, [k]: val });
+  const set = <K extends keyof LeadFormValue>(k: K, val: LeadFormValue[K]) => props.onChange({ ...v, [k]: val });
   return (
     <div className="mr-auto w-full max-w-[95%] space-y-1.5 rounded-md border border-border bg-background p-2 text-xs">
       <p className="font-medium">Share your details</p>
