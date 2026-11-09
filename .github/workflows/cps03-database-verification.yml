@@ -68,7 +68,8 @@ jobs:
             code text NOT NULL,
             name text NOT NULL,
             status text NOT NULL,
-            currency text NOT NULL DEFAULT 'TZS'
+            currency text NOT NULL DEFAULT 'TZS',
+            timezone text NOT NULL DEFAULT 'Africa/Dar_es_Salaam'
           );
           CREATE TABLE public.staynas_property_members (
             property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
@@ -141,6 +142,8 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109170000_cps03_campaign_runtime.sql
       - name: Apply CPS-03 attribution idempotency migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109180000_cps03_attribution_idempotency.sql
+      - name: Apply CPS-03 property-timezone schedule migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109190000_cps03_property_timezone_schedule.sql
       - name: Verify tenant boundaries, composite references, publication, quota and public visibility
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/cps03_campaign_tenant_isolation.test.sql
 
