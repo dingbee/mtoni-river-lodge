@@ -326,18 +326,18 @@ BEGIN
   END IF;
   FOR v_row IN
     SELECT * FROM jsonb_to_recordset(_rows) AS x(
-      itemType text, internalPaymentId uuid, providerRef text,
-      expectedAmountMinor numeric, observedAmountMinor numeric,
-      expectedCurrency text, observedCurrency text, evidence jsonb,
-      resolutionStatus text, resolutionRef text
+      item_type text, internal_payment_id uuid, provider_ref text,
+      expected_amount_minor numeric, observed_amount_minor numeric,
+      expected_currency text, observed_currency text, evidence jsonb,
+      resolution_status text, resolution_ref text
     )
   LOOP
     v_id := public.commercial_create_reconciliation_item(
-      _run_id,v_row.itemType,v_row.internalPaymentId,v_row.providerRef,
-      v_row.expectedAmountMinor,v_row.observedAmountMinor,
-      v_row.expectedCurrency,v_row.observedCurrency,
-      coalesce(v_row.evidence,'{}'::jsonb),v_row.resolutionStatus,
-      v_row.resolutionRef,_actor_user_id
+      _run_id,v_row.item_type,v_row.internal_payment_id,v_row.provider_ref,
+      v_row.expected_amount_minor,v_row.observed_amount_minor,
+      v_row.expected_currency,v_row.observed_currency,
+      coalesce(v_row.evidence,'{}'::jsonb),v_row.resolution_status,
+      v_row.resolution_ref,_actor_user_id
     );
     v_finding_count := v_finding_count + 1;
   END LOOP;
