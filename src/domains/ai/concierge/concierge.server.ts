@@ -240,7 +240,7 @@ export async function handleConciergeChat(
 
   const intentCtx = `level=${intent.level} confidence=${intent.confidence.toFixed(2)}; dates=${intent.detected.check_in ?? "?"} → ${intent.detected.check_out ?? "?"}; party=${intent.detected.adults ?? "?"} adults / ${intent.detected.children ?? 0} children; interests=${(intent.detected.interests ?? []).join(",") || "none"}`;
   const recsCtx = recommendations.map((r) => `- [${r.type}] ${r.name} (slug: ${r.slug}, from ${r.currency} ${r.from_price}${r.type === "experience" ? ` ${r.unit}` : "/night"}, conf ${r.confidence.toFixed(2)}): ${r.reasoning.join(" ")}`).join("\n");
-  const availabilityCtx = availabilityOutcome ? `Outcome: ${availabilityOutcome}\n` : "" + availability.map((a) => `- ${a.name} (slug: ${a.slug}) — ${a.is_available ? (a.fits_party ? `available (${a.min_available} left), fits party` : "available but does not fit party") : "not available"} for ${a.nights} night(s), full-stay total ${a.currency} ${a.nightly_total}`).join("\n") + (plan?.booking_url ? `\nbooking_url: ${plan.booking_url}` : "");
+  const availabilityCtx = (availabilityOutcome ? `Outcome: ${availabilityOutcome}\n` : "") + availability.map((a) => `- ${a.name} (slug: ${a.slug}) — ${a.is_available ? (a.fits_party ? `available (${a.min_available} left), fits party` : "available but does not fit party") : "not available"} for ${a.nights} night(s), full-stay total ${a.currency} ${a.nightly_total}`).join("\n") + (plan?.booking_url ? `\nbooking_url: ${plan.booking_url}` : "");
 
   const memoryCtx = await loadConciergeMemoryContext({ sessionId: sessionId!, guestId: existingGuestId, propertyId });
   const memoryPromptSection = memoryCtx.contextText ? [
@@ -268,7 +268,8 @@ export async function handleConciergeChat(
     return [source];
   });
   const confidence = typeof parsed.confidence === "number" ? Math.max(0, Math.min(1, parsed.confidence)) : 0.6;
-  const shouldEscalate = Boolean(parsed.escalate) || confidence < LOW_CONFIDENCE;
+  const availabilityFailure = ["property_resolution_failure", "inventory_service_failure", "pricing_service_failure", "temporary_failure"].includes(availabilityOutcome ?? "");
+  const shouldEscalate = Boolean(parsed.escalate) || confidence < LOW_CONFIDENCE || availabilityFailure;
 
   const { data: assistantRow } = await supabaseAdmin.from("ai_concierge_messages").insert({
     session_id: sessionId, role: "assistant", content: answer, citations: citations as any,
