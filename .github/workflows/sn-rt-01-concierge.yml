@@ -57,6 +57,7 @@ jobs:
           src/domains/ai/concierge/concierge.leads.test.ts
           src/domains/ai/concierge/concierge.tools.test.ts
           src/domains/ai/concierge/concierge.intent.test.ts
+          src/domains/ai/concierge/concierge.recommendations.test.ts
           src/domains/ai/concierge/omnichannel.contracts.test.ts
           src/domains/ai/concierge/webhooks/webhook-processor.server.test.ts
       - name: Generate routes and verify production build
@@ -76,6 +77,8 @@ jobs:
           src/domains/ai/concierge/concierge.intent.ts
           src/domains/ai/concierge/concierge.intent.test.ts
           src/domains/ai/concierge/concierge.types.ts
+          src/domains/ai/concierge/concierge.recommendations.ts
+          src/domains/ai/concierge/concierge.recommendations.test.ts
           src/domains/ai/concierge/concierge.tools.ts
           src/domains/ai/concierge/concierge.tools.test.ts
           src/domains/ai/concierge/concierge.leads.ts
