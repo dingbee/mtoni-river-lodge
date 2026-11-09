@@ -100,7 +100,7 @@ function FounderCommercialReporting() {
     [">90 days", report.receivablesAging.over90],
   ] as const;
   const downloadCsv = () => {
-    const lines: string[][] = [["metric", "currency", "amount_minor"]];
+    const lines: string[][] = [["metric", "unit", "value"]];
     for (const metric of ["grossInvoiced", "invoiced", "oneTime", "credits", "debits", "writeOffs", "collected", "reversed", "outstanding", "unallocated", "mrr", "arr", "arpt", "newMrr", "expansionMrr", "contractionMrr", "churnedMrr", "netNewMrr"] as const) {
       for (const currency of ["TZS", "USD"] as const) lines.push([metric, currency, report.totals[metric][currency]]);
     }
