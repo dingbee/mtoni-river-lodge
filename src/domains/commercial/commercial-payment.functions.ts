@@ -977,9 +977,6 @@ export const reconcileCommercialProviderStatementRun=createServerFn({method:"POS
       .eq("id",data.runId).maybeSingle();
     if(runError||!run||run.status!=="open") throw new Error("Open reconciliation run was not found.");
     if(!run.provider_account_id||!run.organisation_id) throw new Error("A tenant provider account is required for automated statement matching.");
-    if (data.providerRows.some((row) => row.currency !== run.currency)) {
-      throw new Error("Provider statement currency must match the reconciliation run currency. TZS and USD cannot be reconciled together.");
-    }
     const {data:payments,error:paymentError}=await admin.from("commercial_payment_transactions").select("*")
       .eq("organisation_id",run.organisation_id).eq("provider_account_id",run.provider_account_id)
       .eq("currency",run.currency).gte("initiated_at",run.period_start).lt("initiated_at",run.period_end);
