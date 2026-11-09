@@ -311,6 +311,7 @@ CREATE TABLE IF NOT EXISTS public.commercial_reconciliation_statement_imports (
   source_ref text NOT NULL,
   row_count integer NOT NULL CHECK (row_count >= 0),
   finding_count integer NOT NULL CHECK (finding_count >= 0),
+  statement_fingerprint text NOT NULL CHECK (length(statement_fingerprint)=32),
   imported_by uuid REFERENCES auth.users(id) ON DELETE RESTRICT,
   imported_at timestamptz NOT NULL DEFAULT now()
 );
@@ -336,7 +337,7 @@ AS $function$
 DECLARE v_role text := current_setting('request.jwt.claim.role', true);
   v_run public.commercial_reconciliation_runs%ROWTYPE;
   v_existing public.commercial_reconciliation_statement_imports%ROWTYPE;
-  v_row record; v_finding_count integer := 0; v_id uuid;
+  v_row record; v_finding_count integer := 0; v_id uuid; v_fingerprint text;
 BEGIN
   IF v_role IS DISTINCT FROM 'service_role' THEN
     RAISE EXCEPTION 'Service role required' USING ERRCODE = '42501';
@@ -349,9 +350,13 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Reconciliation run was not found' USING ERRCODE = 'P0002';
   END IF;
+  v_fingerprint := md5(_rows::text);
   SELECT * INTO v_existing FROM public.commercial_reconciliation_statement_imports
     WHERE run_id=_run_id;
   IF FOUND THEN
+    IF v_existing.statement_fingerprint IS DISTINCT FROM v_fingerprint THEN
+      RAISE EXCEPTION 'A different provider statement payload was already imported for this run' USING ERRCODE='23505';
+    END IF;
     RETURN jsonb_build_object('runId',_run_id,'rowCount',v_existing.row_count,
       'findingCount',v_existing.finding_count,'replayed',true);
   END IF;
@@ -376,8 +381,8 @@ BEGIN
     v_finding_count := v_finding_count + 1;
   END LOOP;
   INSERT INTO public.commercial_reconciliation_statement_imports(
-    run_id,source_ref,row_count,finding_count,imported_by
-  ) VALUES (_run_id,v_run.source_ref,jsonb_array_length(_rows),v_finding_count,_actor_user_id);
+    run_id,source_ref,row_count,finding_count,statement_fingerprint,imported_by
+  ) VALUES (_run_id,v_run.source_ref,jsonb_array_length(_rows),v_finding_count,v_fingerprint,_actor_user_id);
   INSERT INTO public.commercial_financial_audit_events(
     request_id,actor_user_id,actor_organisation_id,actor_role,action,
     resource_type,resource_ref,outcome,metadata
