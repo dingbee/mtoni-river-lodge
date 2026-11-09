@@ -38,7 +38,7 @@ CREATE TRIGGER commercial_account_contact_guard
   FOR EACH ROW EXECUTE FUNCTION public.guard_commercial_account_contact_mutation();
 
 CREATE OR REPLACE FUNCTION public.commercial_is_founder_admin_service(_principal_id uuid)
-RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 BEGIN
   IF coalesce(auth.role(),'') <> 'service_role' OR _principal_id IS NULL THEN RETURN false; END IF;
   RETURN EXISTS (
@@ -53,7 +53,7 @@ BEGIN
         AND pm.user_id=_principal_id AND pm.status='active'
     )
   );
-END $;
+END $$;
 REVOKE ALL ON FUNCTION public.commercial_is_founder_admin_service(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.commercial_is_founder_admin_service(uuid) TO service_role;
 
