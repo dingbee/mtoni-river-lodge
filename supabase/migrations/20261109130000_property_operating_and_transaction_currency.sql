@@ -122,4 +122,28 @@ $new$;
 END;
 $legacy_currency$;
 
+DO $room_override_currency$
+DECLARE
+  v_signature regprocedure;
+  v_definition text;
+  v_updated text;
+BEGIN
+  v_signature:=to_regprocedure('public.apply_staynas_room_date_rate_override(uuid,uuid,date,numeric,text)');
+  IF v_signature IS NULL THEN
+    RAISE EXCEPTION 'Room/date override function is missing';
+  END IF;
+  v_definition:=pg_get_functiondef(v_signature);
+  v_updated:=replace(
+    v_definition,
+    'SELECT upper(currency) INTO v_currency FROM public.staynas_properties WHERE id=_property_id;',
+    'SELECT upper(currency) INTO v_currency FROM public.rooms WHERE id=_room_id AND property_id=_property_id;'
+  );
+  IF v_updated=v_definition
+     OR position('FROM public.rooms WHERE id=_room_id AND property_id=_property_id' in v_updated)=0 THEN
+    RAISE EXCEPTION 'Room/date override currency source did not migrate to the room transaction currency';
+  END IF;
+  EXECUTE v_updated;
+END;
+$room_override_currency$;
+
 COMMIT;
