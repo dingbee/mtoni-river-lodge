@@ -148,6 +148,7 @@ const STAYNAS_MODULE_ALIASES: Record<string, StayNasModuleId> = {
   "ai.executive": "ai.executive",
   system: "system",
   "system.health": "system",
+  "system.integrations": "system",
   "system.information": "system",
   "system.users": "system",
   "system.roles": "system",
