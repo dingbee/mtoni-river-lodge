@@ -247,7 +247,7 @@ BEGIN
   SELECT * INTO result FROM public.staynas_create_concierge_escalation(
     '11111111-1111-4111-8111-111111111111',
     '11111111-1111-4111-8111-111111111112',
-    NULL, 'web', 'human_requested', 'Guest asked for a staff member.', 0.9, 2,
+    NULL, 'web', 'human_requested', 'Guest asked for a staff member.', 0.9, 2::smallint,
     repeat('a',64)
   );
   IF NOT result.created OR result.escalation_id IS NULL OR result.task_id IS NULL THEN
@@ -257,7 +257,7 @@ BEGIN
   SELECT * INTO result FROM public.staynas_create_concierge_escalation(
     '11111111-1111-4111-8111-111111111111',
     '11111111-1111-4111-8111-111111111112',
-    NULL, 'web', 'human_requested', 'Guest asked for a staff member.', 0.9, 2,
+    NULL, 'web', 'human_requested', 'Guest asked for a staff member.', 0.9, 2::smallint,
     repeat('a',64)
   );
   IF result.created OR result.escalation_id IS NULL THEN
@@ -267,7 +267,7 @@ BEGIN
   SELECT * INTO result FROM public.staynas_create_concierge_escalation(
     '22222222-2222-4222-8222-222222222222',
     '22222222-2222-4222-8222-222222222223',
-    NULL, 'web', 'human_requested', 'Property B guest requested assistance.', 0.9, 2,
+    NULL, 'web', 'human_requested', 'Property B guest requested assistance.', 0.9, 2::smallint,
     repeat('f',64)
   );
   IF NOT result.created OR result.escalation_id IS NULL THEN
@@ -285,7 +285,7 @@ BEGIN
     PERFORM * FROM public.staynas_create_concierge_escalation(
       '11111111-1111-4111-8111-111111111111',
       '22222222-2222-4222-8222-222222222223',
-      NULL, 'web', 'other', 'Cross-property attempt.', 0.5, 3,
+      NULL, 'web', 'other', 'Cross-property attempt.', 0.5, 3::smallint,
       repeat('c',64)
     );
     RAISE EXCEPTION 'cross-property session reference was accepted';
@@ -307,7 +307,7 @@ BEGIN
   SELECT * INTO result FROM public.staynas_create_concierge_escalation(
     '11111111-1111-4111-8111-111111111111',
     '11111111-1111-4111-8111-111111111112',
-    NULL, 'web', 'complaint', 'Guest reported a complaint.', 0.4, 1,
+    NULL, 'web', 'complaint', 'Guest reported a complaint.', 0.4, 1::smallint,
     repeat('d',64)
   );
   IF NOT result.created THEN RAISE EXCEPTION 'authorized staff escalation should be created'; END IF;
@@ -350,7 +350,7 @@ BEGIN
     PERFORM * FROM public.staynas_create_concierge_escalation(
       '22222222-2222-4222-8222-222222222222',
       '22222222-2222-4222-8222-222222222223',
-      NULL, 'other', 'human_requested', 'Unauthorized property attempt.', 0.5, 3,
+      NULL, 'web', 'human_requested', 'Unauthorized property attempt.', 0.5, 3::smallint,
       repeat('e',64)
     );
     RAISE EXCEPTION 'cross-tenant staff escalation was accepted';
