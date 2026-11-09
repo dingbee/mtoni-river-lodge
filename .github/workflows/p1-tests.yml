@@ -250,6 +250,15 @@ jobs:
             request jsonb NOT NULL DEFAULT '{}'::jsonb,
             quote_snapshot jsonb NOT NULL DEFAULT '{}'::jsonb
           );
+          CREATE TABLE public.staynas_rate_plans (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+            currency text NOT NULL,
+            parent_rate_plan_id uuid,
+            code text,
+            name text,
+            status text NOT NULL DEFAULT 'draft'
+          );
           CREATE TABLE public.staynas_property_tax_rules (
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
             property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
