@@ -82,11 +82,6 @@ const prettyDate = (value: string) => value
       .toLocaleUpperCase("en-GB")
   : "Select date";
 
-const roomVisuals = [
-  "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=1100&q=82",
-  "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1100&q=82",
-  "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1100&q=82",
-];
 
 function PublicPropertyBookingPage() {
   const { propertySlug } = Route.useParams();
@@ -274,7 +269,7 @@ function PublicPropertyBookingPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {rooms.map((room: any, index: number) => {
+          {rooms.map((room: any) => {
             const live = availableRooms.find((item) => item.slug === room.slug);
             const isSelected = selectedRoom?.slug === room.slug;
             const planOptions: RatePlanOption[] = live?.rate_plan_options ?? [];
@@ -283,7 +278,7 @@ function PublicPropertyBookingPage() {
             const notReturned = hasSearched && !live;
             return <article key={room.id} className={`group overflow-hidden rounded-[1.4rem] border bg-white transition duration-200 ${isSelected ? "border-[#68816f] ring-2 ring-[#dce7dd]" : "border-[#e8e7df] hover:-translate-y-0.5 hover:shadow-[0_14px_35px_rgba(33,43,36,0.08)]"}`}>
               <div className="relative aspect-[16/10] overflow-hidden bg-[#e9e9e1]">
-                <img src={room.image_url || room.gallery_urls?.[0] || roomVisuals[index % roomVisuals.length]} alt={`${room.name} at ${property.name}`} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]"/>
+                {(room.image_url || room.gallery_urls?.[0]) ? <img src={room.image_url || room.gallery_urls?.[0]} alt={`${room.name} at ${property.name}`} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]"/> : <div className="flex h-full w-full items-center justify-center bg-[#e9e9e1] text-xs text-[#7a857d]">Room image not provided</div>}
                 <span className="absolute left-3 top-3 rounded-full border border-white/40 bg-white/90 px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#35483b] backdrop-blur-sm">{room.category?.name || property.name}</span>
                 {isSelected && <span className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#244331] text-white"><Check className="h-4 w-4"/></span>}
               </div>
@@ -334,7 +329,7 @@ function PublicPropertyBookingPage() {
           </div>
           {bookingMutation.isError && <p role="alert" className="mt-4 text-xs text-red-700">{(bookingMutation.error as Error).message}</p>}
           <button type="submit" disabled={bookingMutation.isPending || quoteLoading || !bookingQuote?.quote_id} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#1e352a] px-5 text-xs font-semibold text-white transition hover:bg-[#294536] disabled:opacity-50">{bookingMutation.isPending ? "Submitting reservation…" : "Request this reservation"}<ArrowRight className="h-4 w-4"/></button>
-          <p className="mt-3 text-center text-[10px] text-[#899188]">UAT demonstration · No payment is collected.</p>
+          <p className="mt-3 text-center text-[10px] text-[#899188]">Your reservation request will be sent to the property for confirmation.</p>
         </form>}
 
         {confirmation && <section id="booking-confirmation" className="mt-7 scroll-mt-6 rounded-[1.5rem] border border-[#cbdccf] bg-[#edf4ed] p-6 sm:p-8">
