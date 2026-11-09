@@ -38,6 +38,11 @@ const contentSchema = z.object({
     description: z.string().trim().max(320).default(""),
     imageUrl: z.string().url().max(2000).optional(),
   }).default({}),
+  social: z.object({
+    title: z.string().trim().max(160).default(""),
+    description: z.string().trim().max(320).default(""),
+    imageUrl: z.string().url().max(2000).optional(),
+  }).default({}),
 });
 
 type ServerContext = { supabase: unknown; userId: string };
