@@ -101,8 +101,9 @@ export function resolvePersistedAdapterExecution(
     throw new Error("Persisted distribution account and grant scope do not match.");
   }
 
-  if (account.lifecycle !== "connected") {
-    throw new Error("Distribution external account is not connected.");
+  if (account.lifecycle !== "connected" &&
+      !(account.lifecycle === "pending_validation" && input.capability === "connection.health")) {
+    throw new Error("Distribution external account is not available for this capability.");
   }
 
   if (grant.grant_status !== "active" || !grant.granted_capabilities.includes(input.capability)) {
