@@ -346,6 +346,7 @@ DECLARE
   v_final_sub uuid;
   v_new_invoice uuid := '97000000-0000-4000-8000-000000000008';
   v_writeoff_invoice uuid := '97000000-0000-4000-8000-000000000010';
+  v_mismatch_invoice uuid := '97000000-0000-4000-8000-000000000013';
   v_customer_provider uuid;
   v_payment uuid := '97000000-0000-4000-8000-000000000011';
   v_allocated_payment uuid := '97000000-0000-4000-8000-000000000012';
@@ -715,6 +716,28 @@ BEGIN
     OR (SELECT arr_minor FROM public.commercial_subscription_recurring_value_facts WHERE subscription_id=v_usd_sub)<>'3000000'
     OR (SELECT currency FROM public.commercial_subscription_recurring_value_facts WHERE subscription_id=v_usd_sub)<>'USD' THEN
     RAISE EXCEPTION 'TZS/USD MRR/ARR facts were mixed, annualized incorrectly or converted';
+  END IF;
+
+  INSERT INTO public.commercial_invoices(
+    id,organisation_id,account_id,subscription_id,invoice_number,idempotency_key,
+    billing_period_start,billing_period_end,currency,billing_term,status,issued_at,due_at,
+    subtotal_minor,tax_minor,discount_minor,total_minor,amount_paid_minor,pricing_snapshot,tax_snapshot
+  )
+  SELECT v_mismatch_invoice,v_customer_org,v_account,v_tzs_new_sub,'CC07-MISMATCH-INV',
+    'cc07-mismatch-invoice',current_period_starts_at,current_period_ends_at,
+    'USD','annual','issued',now(),current_period_ends_at,1000,0,0,1000,0,
+    '{"test":true}'::jsonb,'{"test":true}'::jsonb
+  FROM public.commercial_subscriptions WHERE id=v_tzs_new_sub;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.commercial_subscription_invoice_consistency_facts
+    WHERE subscription_id=v_tzs_new_sub AND exception_type='invoice_currency_mismatch'
+      AND (evidence->>'invoiceId')::uuid=v_mismatch_invoice
+  ) OR NOT EXISTS (
+    SELECT 1 FROM public.commercial_subscription_invoice_consistency_facts
+    WHERE subscription_id=v_tzs_new_sub AND exception_type='invoice_billing_term_mismatch'
+      AND (evidence->>'invoiceId')::uuid=v_mismatch_invoice
+  ) THEN
+    RAISE EXCEPTION 'Invoice currency/billing-term drift was not detected against its subscription';
   END IF;
 
   INSERT INTO public.commercial_entitlement_assignments(
