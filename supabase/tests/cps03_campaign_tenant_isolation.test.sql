@@ -220,6 +220,21 @@ $test$;
 
 RESET ROLE;
 SET LOCAL ROLE service_role;
+UPDATE public.staynas_properties SET status='inactive'
+WHERE id='20000000-0000-4000-8000-000000000001';
+RESET ROLE;
+SET LOCAL ROLE anon;
+DO $test$
+BEGIN
+  IF (SELECT count(*) FROM public.booking_campaigns WHERE id='60000000-0000-4000-8000-000000000001') <> 0 THEN
+    RAISE EXCEPTION 'Published campaign remained publicly visible after property deactivation';
+  END IF;
+END
+$test$;
+RESET ROLE;
+SET LOCAL ROLE service_role;
+UPDATE public.staynas_properties SET status='active'
+WHERE id='20000000-0000-4000-8000-000000000001';
 INSERT INTO public.campaign_attribution(campaign_id,property_id,session_key,event_type,event_key,utm_campaign)
 VALUES ('60000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','session-key-cps03-0001','page_view','session-key-cps03-0001:page_view','resident-escape')
 ON CONFLICT (property_id,event_key) DO NOTHING;
@@ -246,6 +261,24 @@ DO $test$
 BEGIN
   IF (SELECT count(*) FROM public.booking_campaigns WHERE id='60000000-0000-4000-8000-000000000001') <> 0 THEN
     RAISE EXCEPTION 'Paused campaign remained publicly visible';
+  END IF;
+END
+$test$;
+RESET ROLE;
+SET LOCAL ROLE service_role;
+SELECT public.cps03_transition_booking_campaign(
+  '60000000-0000-4000-8000-000000000001',
+  '20000000-0000-4000-8000-000000000001',
+  '10000000-0000-4000-8000-000000000001',
+  '40000000-0000-4000-8000-000000000001',
+  'archive'
+);
+RESET ROLE;
+SET LOCAL ROLE anon;
+DO $test$
+BEGIN
+  IF (SELECT count(*) FROM public.booking_campaigns WHERE id='60000000-0000-4000-8000-000000000001') <> 0 THEN
+    RAISE EXCEPTION 'Archived campaign remained publicly visible';
   END IF;
 END
 $test$;
