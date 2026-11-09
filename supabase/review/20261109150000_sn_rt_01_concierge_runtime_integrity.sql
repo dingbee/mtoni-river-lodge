@@ -90,20 +90,13 @@ CREATE INDEX IF NOT EXISTS ai_escalations_property_status_priority_idx
   ON public.ai_escalations(property_id, status, priority, created_at DESC);
 
 -- RLS does not constrain TRUNCATE. Anonymous callers receive no table
--- privileges; staff retain only the reads/lead updates used by the application.
+-- privileges; staff retain only the reads and lead updates used by the app.
 REVOKE ALL ON TABLE
   public.ai_concierge_sessions,
   public.ai_concierge_messages,
   public.ai_concierge_leads,
   public.ai_escalations
-FROM anon;
-REVOKE TRUNCATE, REFERENCES, TRIGGER ON TABLE
-  public.ai_concierge_sessions,
-  public.ai_concierge_messages,
-  public.ai_concierge_leads,
-  public.ai_escalations
-FROM authenticated;
-REVOKE INSERT, UPDATE, DELETE ON TABLE public.ai_escalations FROM authenticated;
+FROM anon, authenticated;
 GRANT SELECT ON TABLE
   public.ai_concierge_sessions,
   public.ai_concierge_messages,
