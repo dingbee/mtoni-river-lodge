@@ -167,8 +167,35 @@ function CampaignStudioPage() {
     onError: (error: Error) => toast.error(error.message),
   });
   const loadPreview = useMutation({
-    mutationFn: () => previewFn({ data: { campaignId: selectedId } }),
-    onSuccess: (result) => setPreview(result),
+    mutationFn: (campaignId: string) => previewFn({ data: { campaignId } }),
+    onSuccess: (result) => {
+      setSelectedId(result.campaign.id);
+      setPreview(result);
+      const saved = result.content?.content ?? {};
+      setHeadline(saved.headline ?? result.campaign.name);
+      setSubheadline(saved.subheadline ?? "");
+      setDescription(saved.description ?? "");
+      setHighlights((saved.highlights ?? []).join("\\n"));
+      setInclusionsText((saved.inclusions ?? []).join("\\n"));
+      setTermsText((saved.terms ?? []).join("\\n"));
+      setFaqsText((saved.faqs ?? []).map((item: { question: string; answer: string }) => `${item.question} | ${item.answer}`).join("\\n"));
+      setCtaLabel(saved.ctaLabel ?? "Book this offer");
+      setContactEmail(saved.contact?.email ?? "");
+      setContactPhone(saved.contact?.phone ?? "");
+      setContactWhatsApp(saved.contact?.whatsapp ?? "");
+      setSeoTitle(saved.seo?.title ?? "");
+      setSeoDescription(saved.seo?.description ?? "");
+      setSeoImageUrl(saved.seo?.imageUrl ?? "");
+      setSocialTitle(saved.social?.title ?? "");
+      setSocialDescription(saved.social?.description ?? "");
+      setSocialImageUrl(saved.social?.imageUrl ?? "");
+      setRoomIds((result.rooms ?? []).map((item: any) => item.room_id));
+      const firstOffer = result.offers?.[0];
+      setPublicationId(firstOffer?.rate_plan_publication_id ?? "");
+      setOfferCode(firstOffer?.offer_code ?? "resident-rate");
+      setOfferTitle(firstOffer?.title ?? "Resident Rate");
+      setOfferDescription(firstOffer?.description ?? "");
+    },
     onError: (error: Error) => toast.error(error.message),
   });
 
@@ -189,7 +216,7 @@ function CampaignStudioPage() {
               {campaigns.isLoading && <p className="text-sm text-muted-foreground">Loading campaigns…</p>}
               {campaigns.isError && <p className="text-sm text-destructive">Campaigns could not be loaded.</p>}
               {!campaigns.isLoading && !campaigns.data?.length && <p className="text-sm text-muted-foreground">No campaigns have been created for this property.</p>}
-              {campaigns.data?.map((campaign) => <button key={campaign.id} type="button" onClick={() => { setSelectedId(campaign.id); setHeadline(campaign.name); setDescription(""); setHighlights(""); setSubheadline(""); setInclusionsText(""); setTermsText(""); setFaqsText(""); setStartsAtDate(dateInPropertyTimezone(campaign.starts_at, resources.data?.timezone ?? "UTC")); setEndsAtDate(dateInPropertyTimezone(campaign.ends_at, resources.data?.timezone ?? "UTC")); setPreview(null); }} className={`flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left ${selectedId === campaign.id ? "border-primary bg-primary/5" : "hover:bg-muted/50"}`}>
+              {campaigns.data?.map((campaign) => <button key={campaign.id} type="button" onClick={() => { setSelectedId(campaign.id); setStartsAtDate(dateInPropertyTimezone(campaign.starts_at, resources.data?.timezone ?? "UTC")); setEndsAtDate(dateInPropertyTimezone(campaign.ends_at, resources.data?.timezone ?? "UTC")); setPreview(null); loadPreview.mutate(campaign.id); }} className={`flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left ${selectedId === campaign.id ? "border-primary bg-primary/5" : "hover:bg-muted/50"}`}>
                 <span className="min-w-0"><span className="block truncate text-sm font-medium">{campaign.name}</span><span className="block truncate text-xs text-muted-foreground">/{campaign.slug}</span></span>
                 <Badge variant={campaign.status === "published" ? "default" : "secondary"}>{campaign.status}</Badge>
               </button>)}
@@ -245,7 +272,7 @@ function CampaignStudioPage() {
               <Button variant="outline" onClick={() => configure.mutate()} disabled={configure.isPending || !publicationId || roomIds.length === 0}><Settings2 className="mr-2 h-4 w-4" /> Save room and offer configuration</Button>
             </div>
             <div className="flex flex-wrap gap-2 border-t pt-4">
-              <Button variant="outline" onClick={() => loadPreview.mutate()} disabled={loadPreview.isPending}><Eye className="mr-2 h-4 w-4" /> Preview</Button>
+              <Button variant="outline" onClick={() => loadPreview.mutate(selectedId)} disabled={loadPreview.isPending}><Eye className="mr-2 h-4 w-4" /> Preview</Button>
               {selected.status !== "published" && selected.status !== "archived" && <Button onClick={() => publish.mutate()} disabled={publish.isPending}><Send className="mr-2 h-4 w-4" /> Publish campaign</Button>}
               {selected.status === "published" && selected.ends_at && Date.parse(selected.ends_at) <= Date.now()
                 ? <Button variant="outline" onClick={() => transition.mutate("expire")} disabled={transition.isPending}>Mark expired</Button>
