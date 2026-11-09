@@ -54,6 +54,7 @@ jobs:
           src/domains/finance/rate-plan-restrictions.test.ts
           src/domains/finance/rate-plan-publication.test.ts
           src/lib/pesapal-currency.test.ts
+          src/lib/pesapal-property-account.test.ts
           src/domains/commercial/catalogue.test.ts
           src/domains/commercial/pricing-engine.test.ts
           src/domains/commercial/package-composition.test.ts
@@ -69,6 +70,23 @@ jobs:
           src/domains/commercial/commercial-payment-adapters.test.ts
           src/domains/commercial/commercial-reconciliation-engine.test.ts
           src/domains/payments/provider-adapter.contract.test.ts
+          src/domains/payments/payment-provider-management.functions.ts
+          src/lib/pesapal.server.ts
+          src/lib/pesapal-property-account.test.ts
+          src/lib/property-pesapal-account.server.ts
+          src/lib/public-booking-channel.server.ts
+          src/lib/booking.functions.ts
+          src/lib/availability.functions.ts
+          src/lib/payments.functions.ts
+          src/lib/public-booking.functions.ts
+          src/routes/api/public/pesapal.ipn.ts
+          src/routes/api/public/rooms.catalog.ts
+          src/routes/api/public/rooms.status.ts
+          src/routes/api/public/availability.search.ts
+          src/routes/book.tsx
+          src/routes/$propertySlug.tsx
+          src/domains/finance/rate-plans.functions.ts
+          src/domains/finance/rate-overrides.functions.ts
           src/domains/marketing/demo-requests.test.ts
       # TanStack Start generates routeTree.gen.ts during the Vite build.
       - name: Generate routes and verify production build
