@@ -20,7 +20,7 @@ const campaignBookingContextSchema = z.object({
   propertySlug: z.string().trim().min(3).max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
   campaignSlug: z.string().trim().min(2).max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
   offerId: z.string().uuid().optional(),
-  sessionKey: z.string().trim().min(16).max(160).optional(),
+  sessionKey: z.string().trim().min(16).max(140).optional(),
   utmSource: z.string().trim().max(200).optional(),
   utmMedium: z.string().trim().max(200).optional(),
   utmCampaign: z.string().trim().max(200).optional(),
@@ -330,7 +330,7 @@ export const getBookingQuote = createServerFn({ method: "POST" })
       const { error: attributionError } = await sb.from("campaign_attribution").upsert({
         campaign_id: campaignContext.campaignId, property_id: propertyId,
         session_key: campaignContext.sessionKey, event_type: "booking_started",
-        event_key: `${campaignContext.sessionKey}:booking_started`,
+        event_key: `${campaignContext.campaignId}:${campaignContext.sessionKey}:booking_started`,
         source: campaignContext.attribution.source, medium: campaignContext.attribution.medium,
         utm_campaign: campaignContext.attribution.utm_campaign, utm_content: campaignContext.attribution.utm_content,
         utm_term: campaignContext.attribution.utm_term, referrer: campaignContext.attribution.referrer,
@@ -383,7 +383,7 @@ export const createBooking = createServerFn({ method: "POST" })
       const { error: attributionError } = await sb.from("campaign_attribution").upsert({
         campaign_id: campaignContext.campaignId, property_id: propertyId, booking_id: row.booking_id,
         session_key: campaignContext.sessionKey, event_type: "booking_completed",
-        event_key: `${campaignContext.sessionKey}:booking_completed`,
+        event_key: `${campaignContext.campaignId}:${row.booking_id}:booking_completed`,
         source: campaignContext.attribution.source, medium: campaignContext.attribution.medium,
         utm_campaign: campaignContext.attribution.utm_campaign, utm_content: campaignContext.attribution.utm_content,
         utm_term: campaignContext.attribution.utm_term, referrer: campaignContext.attribution.referrer,
