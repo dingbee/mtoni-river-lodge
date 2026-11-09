@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Json } from "@/integrations/supabase/types";
-import { getPesapalTransactionStatus, classifyStatus } from "./pesapal.server";
+import { getPesapalPropertyAccountTransactionStatus, classifyStatus } from "./pesapal.server";
+import { getPropertyPesapalAccountForSettlement, readPropertyPesapalCredentials } from "./property-pesapal-account.server";
 import { resolvePesapalSettlementCurrency } from "./pesapal-currency";
 
 
@@ -68,16 +69,31 @@ export async function verifyAndFinalizePayment(opts: {
 }): Promise<{ outcome: FinalizeOutcome; paymentMethod: string | null }> {
   const { data: booking, error: bookingError } = await supabaseAdmin
     .from("bookings")
-    .select("id, reference, payment_status, status, deposit_amount, total, paid_amount, currency, invoice_number, pesapal_order_tracking_id")
+    .select("id, reference, payment_status, status, deposit_amount, total, paid_amount, currency, invoice_number, pesapal_order_tracking_id, payment_provider_account_id, property_id")
     .eq("id", opts.bookingId)
     .eq("pesapal_order_tracking_id", opts.orderTrackingId)
     .maybeSingle();
   if (bookingError) throw new Error(`Unable to load booking for Pesapal finalization: ${bookingError.message}`);
   if (!booking) return { outcome: "pending", paymentMethod: null };
 
-  // Always re-query Pesapal. A completed settlement can later be reversed;
-  // booking payment_status must never suppress provider status verification.
-  const status = await getPesapalTransactionStatus(opts.orderTrackingId);
+  if (!booking.payment_provider_account_id) {
+    throw new Error("Booking has no property-scoped Pesapal account. Platform credentials are not used as a fallback.");
+  }
+  const providerAccount = await getPropertyPesapalAccountForSettlement(
+    supabaseAdmin,
+    booking.payment_provider_account_id,
+    booking.property_id,
+    booking.currency,
+  );
+  const providerCredentials = await readPropertyPesapalCredentials(supabaseAdmin, providerAccount.credential_secret_ref);
+
+  // Always re-query the exact property account that initiated this order. A completed
+  // settlement can later be reversed; never substitute platform/global credentials.
+  const status = await getPesapalPropertyAccountTransactionStatus(
+    opts.orderTrackingId,
+    providerCredentials,
+    providerAccount.environment,
+  );
   const outcome = classifyStatus(status.status_code);
   const paymentMethod = status.payment_method ?? null;
   const raw = JSON.parse(JSON.stringify(status)) as Json;
@@ -92,6 +108,7 @@ export async function verifyAndFinalizePayment(opts: {
       const nowIso = new Date().toISOString();
       const { error: eventError } = await supabaseAdmin.from("payment_events").insert({
         booking_id: booking.id,
+        provider_account_id: providerAccount.id,
         provider: "pesapal",
         event_type: `${opts.source}:completed`,
         order_tracking_id: opts.orderTrackingId,
@@ -172,6 +189,7 @@ export async function verifyAndFinalizePayment(opts: {
 
   const { error: eventError } = await supabaseAdmin.from("payment_events").insert({
     booking_id: booking.id,
+    provider_account_id: providerAccount.id,
     provider: "pesapal",
     event_type: `${opts.source}:${outcome}`,
     order_tracking_id: opts.orderTrackingId,
