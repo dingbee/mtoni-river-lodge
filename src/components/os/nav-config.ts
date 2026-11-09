@@ -51,7 +51,7 @@ export type NavEntry =
 export const NAV: NavEntry[] = [
   {
     kind: "item",
-    item: { id: "overview", label: "Overview", href: "/admin", icon: LayoutDashboard },
+    item: { id: "overview", label: "Overview", href: "/admin/operations", icon: LayoutDashboard },
   },
   {
     kind: "group",
@@ -127,7 +127,7 @@ export const NAV: NavEntry[] = [
         { id: "system.roles", label: "Roles", href: "/admin/staff/roles", icon: ShieldCheck },
         { id: "system.entitlements", label: "Module Entitlements", href: "/admin/staff/entitlements", icon: ShieldCheck },
         { id: "system.activity", label: "Activity Log", href: "/admin/staff/activity", icon: History },
-        { id: "system.settings", label: "Settings", href: "/admin/settings", icon: Settings },
+        { id: "system.settings", label: "Settings", href: "/settings", icon: Settings },
         { id: "commercial", label: "Commercial Policies", href: "/admin/commercial", icon: BadgeDollarSign },
       ],
     },
