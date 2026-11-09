@@ -1,6 +1,7 @@
 -- CC-03.06 privilege hardening regression test.
 BEGIN;
-
+SELECT plan(1);
+SELECT lives_ok($body$
 DO $test$
 DECLARE
   v_table text;
@@ -36,5 +37,6 @@ BEGIN
   END IF;
 END;
 $test$;
-
+$body$, 'CC-03 privilege hardening regression executes without exceptions');
+SELECT * FROM finish();
 ROLLBACK;

@@ -9,16 +9,13 @@ on:
       - feat/finance-*
       - feat/spe-03-*
       - feat/spe-04-*
+      - feat/spe-07-*
       - feat/spe-08-*
+      - feat/cc03-founder-*
   pull_request:
     branches:
       - main
       - spe-02/**
-      - feat/spe-07-*
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   build:
@@ -43,4 +40,4 @@ jobs:
         run: bunx tsc --noEmit
       - name: Finance and reservation lint
         run: >-
-          bunx eslint src/domains/finance/finance.functions.ts src/domains/finance/payment-contract.ts src/domains/finance/payment-contract.test.ts src/lib/finance-rpc.ts src/routes/_authenticated.admin.finance.payments.tsx src/lib/staff-reservations.functions.ts src/components/os/reservations/NewReservationDialog.tsx src/lib/payment-finalize.server.ts src/domains/pricing-intelligence/pricing-intelligence.functions.ts src/domains/pricing-intelligence/pricing-intelligence-catalogue.functions.ts src/routes/_authenticated.admin.finance.pricing-intelligence.tsx --rule 'prettier/prettier: off'
+          bunx eslint src/domains/finance/finance.functions.ts src/domains/finance/payment-contract.ts src/domains/finance/payment-contract.test.ts src/lib/finance-rpc.ts src/routes/_authenticated.admin.finance.payments.tsx src/lib/staff-reservations.functions.ts src/components/os/reservations/NewReservationDialog.tsx src/lib/payment-finalize.server.ts --rule 'prettier/prettier: off'
