@@ -85,17 +85,20 @@ jobs:
           DECLARE v_room record; v_property_currency text; v_plan record; v_publication record; v_rate jsonb;
           BEGIN
             IF upper(COALESCE(v_room.currency,''))<>v_property_currency THEN
-              RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH','message','Room currency does not match property currency');
+              RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH',
+                'message','Room currency does not match property currency');
             END IF;
             IF upper(v_plan.currency)<>v_property_currency
                OR upper(v_publication.currency)<>v_property_currency THEN
-              RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH','message','Published plan currency does not match property currency');
+              RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH',
+                'message','Published plan currency does not match property currency');
             END IF;
             IF v_rate->>'currency' IS DISTINCT FROM v_property_currency THEN
               RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH');
             END IF;
-            RETURN jsonb_build_object('pricing',public.calculate_staynas_room_pricing(
-              _property_id,_room_id,_check_in,_check_out,_adults,_children_below_6,_children_7_plus));
+            RETURN jsonb_build_object(
+              'pricing',public.calculate_staynas_room_pricing(
+                _property_id,_room_id,_check_in,_check_out,_adults,_children_below_6,_children_7_plus));
           END;
           $function$;
           CREATE FUNCTION public.calculate_staynas_room_pricing_legacy(
