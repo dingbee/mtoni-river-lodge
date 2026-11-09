@@ -77,7 +77,8 @@ jobs:
             slug text NOT NULL,
             code text NOT NULL,
             name text NOT NULL,
-            status text NOT NULL
+            status text NOT NULL,
+            currency text NOT NULL
           );
           CREATE TABLE public.staynas_property_members (
             property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
