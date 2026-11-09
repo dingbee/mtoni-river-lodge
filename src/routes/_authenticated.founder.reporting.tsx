@@ -1,4 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useState } from "react";
 import { getFounderCommercialReporting } from "@/domains/commercial/founder-commercial-reporting.functions";
 
 type Currency = "TZS" | "USD";
@@ -6,6 +7,8 @@ type Money = { TZS: string; USD: string };
 type Report = {
   periodStart: string;
   periodEnd: string;
+  currencyScope: string;
+  tenantOptions: Array<{id:string;name:string}>;
   totals: { grossInvoiced: Money; invoiced: Money; oneTime: Money; credits: Money; debits: Money; writeOffs: Money; collected: Money; reversed: Money; outstanding: Money; unallocated: Money; mrr: Money; arr: Money; arpt: Money; newMrr: Money; expansionMrr: Money; contractionMrr: Money; churnedMrr: Money; netNewMrr: Money };
   receivablesAging: { current: Money; days1To30: Money; days31To60: Money; days61To90: Money; over90: Money };
   counts: { invoices: number; collections: number; activeSubscriptions: number; overdueInvoices: number };
@@ -60,8 +63,35 @@ function ReportCard({ title, value, description }: { title: string; value: Money
 }
 
 function FounderCommercialReporting() {
-  const report = Route.useLoaderData() as Report;
+  const initialReport = Route.useLoaderData() as Report;
+  const [report, setReport] = useState(initialReport);
+  const [periodStart, setPeriodStart] = useState(initialReport.periodStart.slice(0,10));
+  const [periodEnd, setPeriodEnd] = useState(new Date(Date.parse(initialReport.periodEnd)-86400000).toISOString().slice(0,10));
+  const [currency, setCurrency] = useState(initialReport.currencyScope);
+  const [organisationId, setOrganisationId] = useState("");
+  const [filterBusy, setFilterBusy] = useState(false);
+  const [filterMessage, setFilterMessage] = useState("");
   const dateLabel = (value: string) => new Date(value).toLocaleDateString();
+  const applyFilters = async () => {
+    setFilterBusy(true); setFilterMessage("");
+    try {
+      const start = new Date(`${periodStart}T00:00:00.000Z`);
+      const endExclusive = new Date(`${periodEnd}T00:00:00.000Z`);
+      endExclusive.setUTCDate(endExclusive.getUTCDate()+1);
+      if (!Number.isFinite(start.getTime()) || !Number.isFinite(endExclusive.getTime()) || endExclusive <= start) {
+        throw new Error("Select a valid report period.");
+      }
+      const next = await getFounderCommercialReporting({ data: {
+        periodStart: start.toISOString(), periodEnd: endExclusive.toISOString(),
+        ...(currency === "all" ? {} : { currency: currency as "TZS" | "USD" }),
+        ...(organisationId ? { organisationId } : {}),
+      } }) as Report;
+      setReport(next);
+      setFilterMessage("Report refreshed from the selected scope.");
+    } catch (error) {
+      setFilterMessage(error instanceof Error ? error.message : "Report filters could not be applied.");
+    } finally { setFilterBusy(false); }
+  };
   const aging = [
     ["Current", report.receivablesAging.current],
     ["1–30 days", report.receivablesAging.days1To30],
@@ -100,6 +130,30 @@ function FounderCommercialReporting() {
           <a href="/founder" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Back to Control Centre</a>
         </div>
       </header>
+
+      <section className="rounded-xl border p-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <label className="space-y-1 text-xs text-muted-foreground">Period start
+            <input type="date" value={periodStart} onChange={(event)=>setPeriodStart(event.target.value)} className="h-10 w-full rounded-md border bg-background px-2 text-sm text-foreground"/>
+          </label>
+          <label className="space-y-1 text-xs text-muted-foreground">Period end
+            <input type="date" value={periodEnd} onChange={(event)=>setPeriodEnd(event.target.value)} className="h-10 w-full rounded-md border bg-background px-2 text-sm text-foreground"/>
+          </label>
+          <label className="space-y-1 text-xs text-muted-foreground">Currency scope
+            <select value={currency} onChange={(event)=>setCurrency(event.target.value)} className="h-10 w-full rounded-md border bg-background px-2 text-sm text-foreground">
+              <option value="all">TZS + USD separately</option><option value="TZS">TZS only</option><option value="USD">USD only</option>
+            </select>
+          </label>
+          <label className="space-y-1 text-xs text-muted-foreground">Customer tenant
+            <select value={organisationId} onChange={(event)=>setOrganisationId(event.target.value)} className="h-10 w-full rounded-md border bg-background px-2 text-sm text-foreground">
+              <option value="">All customer tenants</option>
+              {initialReport.tenantOptions.map((tenant)=><option key={tenant.id} value={tenant.id}>{tenant.name}</option>)}
+            </select>
+          </label>
+          <div className="flex items-end"><button type="button" disabled={filterBusy} onClick={()=>void applyFilters()} className="h-10 w-full rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-50">{filterBusy ? "Refreshing…" : "Apply filters"}</button></div>
+        </div>
+        {filterMessage && <p role="status" className="mt-3 text-xs text-muted-foreground">{filterMessage}</p>}
+      </section>
 
       <section className="space-y-3">
         <h2 className="font-semibold">Financial performance</h2>
