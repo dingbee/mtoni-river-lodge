@@ -103,10 +103,10 @@ export const getFounderCommercialReporting = createServerFn({ method: "GET" })
         (query) => periodFilter(query).order("organisation_id").order("period_month").order("payment_id")),
       readAll(admin, "commercial_founder_revenue_unallocated_facts",
         "organisation_id,account_id,period_month,currency,unallocated_minor",
-        (query) => periodFilter(query).order("organisation_id").order("period_month").order("account_id")),
+        (query) => periodFilter(query).order("organisation_id").order("period_month").order("account_id").order("currency")),
       readAll(admin, "commercial_founder_revenue_reversal_facts",
         "organisation_id,account_id,period_month,currency,reversed_minor,reversal_count",
-        (query) => periodFilter(query).order("organisation_id").order("period_month").order("account_id")),
+        (query) => periodFilter(query).order("organisation_id").order("period_month").order("account_id").order("currency")),
       readAll(admin, "commercial_founder_receivables_aging",
         "invoice_id,organisation_id,currency,outstanding_minor,aging_bucket,status",
         (query) => {
@@ -122,7 +122,7 @@ export const getFounderCommercialReporting = createServerFn({ method: "GET" })
         (query) => {
           let scoped = orgFilter(query).gte("effective_at", data.periodStart).lt("effective_at", data.periodEnd);
           if (data.currency) scoped = scoped.eq("currency", data.currency);
-          return scoped.order("organisation_id").order("effective_at").order("subscription_id");
+          return scoped.order("organisation_id").order("effective_at").order("subscription_id").order("movement_type");
         }),
     ]);
 
