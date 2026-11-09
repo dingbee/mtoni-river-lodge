@@ -11,6 +11,13 @@ ALTER TABLE public.bookings
 ALTER TABLE public.extras
   ALTER COLUMN currency DROP DEFAULT;
 
+-- These two existing StayNas properties are Tanzanian operating properties.
+-- Preserve their existing USD room/rate-plan transaction prices and history.
+UPDATE public.staynas_properties
+SET currency = 'TZS'
+WHERE slug IN ('mtoni-river-lodge','nolmark-cdma-staynas')
+  AND upper(currency) = 'USD';
+
 DO $currency_resolver$
 DECLARE
   v_signature regprocedure;
