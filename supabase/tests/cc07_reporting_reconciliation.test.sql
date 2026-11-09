@@ -96,6 +96,7 @@ DECLARE
   v_run_payload jsonb;
   v_replayed_id uuid;
   v_discrepancy_run uuid;
+  v_discrepancy_item uuid;
   v_discrepancy_result jsonb;
   v_import jsonb;
   v_item_count integer;
@@ -197,6 +198,15 @@ BEGIN
     SELECT 1 FROM public.commercial_reconciliation_runs WHERE id=v_discrepancy_run AND status='discrepancy'
   ) THEN
     RAISE EXCEPTION 'Unresolved reconciliation exception did not block clean run closure';
+  END IF;
+  SELECT id INTO v_discrepancy_item FROM public.commercial_reconciliation_items
+    WHERE run_id=v_discrepancy_run AND item_type='amount_mismatch';
+  PERFORM public.commercial_resolve_reconciliation_item(v_discrepancy_item,'cc07-final-resolution',NULL);
+  v_discrepancy_result := public.commercial_complete_reconciliation_run(v_discrepancy_run,NULL);
+  IF v_discrepancy_result->>'status' <> 'completed' OR NOT EXISTS (
+    SELECT 1 FROM public.commercial_reconciliation_runs WHERE id=v_discrepancy_run AND status='completed'
+  ) THEN
+    RAISE EXCEPTION 'Discrepancy run did not close after exception resolution';
   END IF;
 END
 $data_test$;
