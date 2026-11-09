@@ -49,14 +49,17 @@ export const initiatePayment = createServerFn({ method: "POST" })
       reference: data.reference,
       baseUrl,
     });
+    const expectedIpnUrl = `${baseUrl}/api/public/pesapal/ipn`;
     const storedIpnId = typeof account.public_configuration?.ipn_id === "string"
+      && account.public_configuration?.ipn_environment === account.environment
+      && account.public_configuration?.ipn_url === expectedIpnUrl
       ? account.public_configuration.ipn_id
       : null;
     const ipn = await ensurePesapalPropertyAccountIpn(baseUrl, credentials, account.environment, storedIpnId);
     if (account.public_configuration?.ipn_id !== ipn.ipnId || account.public_configuration?.ipn_url !== ipn.ipnUrl) {
       const { error: ipnConfigError } = await supabaseAdmin
         .from("staynas_guest_payment_provider_accounts")
-        .update({ public_configuration: { ...account.public_configuration, ipn_id: ipn.ipnId, ipn_url: ipn.ipnUrl } })
+        .update({ public_configuration: { ...account.public_configuration, ipn_id: ipn.ipnId, ipn_url: ipn.ipnUrl, ipn_environment: account.environment } })
         .eq("id", account.id).eq("property_id", propertyId).eq("organisation_id", channel.organisationId);
       if (ipnConfigError) throw new Error("Property Pesapal IPN registration could not be persisted.");
     }
