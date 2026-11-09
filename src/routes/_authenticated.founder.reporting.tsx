@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
-import { getFounderCommercialReporting } from "@/domains/commercial/founder-commercial-reporting.functions";
+import { getFounderCommercialReporting, recordFounderCommercialReportExport } from "@/domains/commercial/founder-commercial-reporting.functions";
 
 type Currency = "TZS" | "USD";
 type Money = { TZS: string; USD: string };
@@ -8,6 +8,7 @@ type Report = {
   periodStart: string;
   periodEnd: string;
   currencyScope: string;
+  organisationId: string | null;
   tenantOptions: Array<{id:string;name:string}>;
   totals: { grossInvoiced: Money; invoiced: Money; oneTime: Money; credits: Money; debits: Money; writeOffs: Money; collected: Money; reversed: Money; outstanding: Money; unallocated: Money; mrr: Money; arr: Money; arpt: Money; newMrr: Money; expansionMrr: Money; contractionMrr: Money; churnedMrr: Money; netNewMrr: Money };
   receivablesAging: { current: Money; days1To30: Money; days31To60: Money; days61To90: Money; over90: Money };
@@ -99,7 +100,17 @@ function FounderCommercialReporting() {
     ["61–90 days", report.receivablesAging.days61To90],
     [">90 days", report.receivablesAging.over90],
   ] as const;
-  const downloadCsv = () => {
+  const downloadCsv = async () => {
+    try {
+      await recordFounderCommercialReportExport({ data: {
+        format: "csv", periodStart: report.periodStart, periodEnd: report.periodEnd,
+        ...(report.currencyScope === "all" ? {} : { currency: report.currencyScope as "TZS" | "USD" }),
+        ...(report.organisationId ? { organisationId: report.organisationId } : {}),
+      } });
+    } catch (error) {
+      setFilterMessage(error instanceof Error ? error.message : "Report export could not be audited.");
+      return;
+    }
     const lines: string[][] = [["metric", "unit", "value"]];
     for (const metric of ["grossInvoiced", "invoiced", "oneTime", "credits", "debits", "writeOffs", "collected", "reversed", "outstanding", "unallocated", "mrr", "arr", "arpt", "newMrr", "expansionMrr", "contractionMrr", "churnedMrr", "netNewMrr"] as const) {
       for (const currency of ["TZS", "USD"] as const) lines.push([metric, currency, report.totals[metric][currency]]);
@@ -124,6 +135,19 @@ function FounderCommercialReporting() {
     anchor.click();
     URL.revokeObjectURL(url);
   };
+  const printReport = async () => {
+    try {
+      await recordFounderCommercialReportExport({ data: {
+        format: "pdf", periodStart: report.periodStart, periodEnd: report.periodEnd,
+        ...(report.currencyScope === "all" ? {} : { currency: report.currencyScope as "TZS" | "USD" }),
+        ...(report.organisationId ? { organisationId: report.organisationId } : {}),
+      } });
+      window.print();
+    } catch (error) {
+      setFilterMessage(error instanceof Error ? error.message : "PDF export could not be audited.");
+    }
+  };
+
   return <main className="min-h-screen bg-background px-4 py-7 text-foreground sm:px-7 lg:px-10">
     <div className="mx-auto max-w-6xl space-y-7">
       <header className="flex flex-wrap items-end justify-between gap-4 border-b pb-5">
@@ -134,8 +158,8 @@ function FounderCommercialReporting() {
           <p className="mt-1 text-xs text-muted-foreground">Reporting window: {dateLabel(report.periodStart)} – {dateLabel(new Date(Date.parse(report.periodEnd)-86400000).toISOString())}</p>
         </div>
         <div className="flex gap-2 print:hidden">
-          <button type="button" onClick={downloadCsv} className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Export CSV</button>
-          <button type="button" onClick={() => window.print()} className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Print / Save PDF</button>
+          <button type="button" onClick={() => void downloadCsv()} className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Export CSV</button>
+          <button type="button" onClick={() => void printReport()} className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Print / Save PDF</button>
           <a href="/founder" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Back to Control Centre</a>
         </div>
       </header>
