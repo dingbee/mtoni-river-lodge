@@ -125,7 +125,7 @@ export const generatePreArrivalRecommendations = createServerFn({ method: "POST"
           slug: "romantic-turndown",
           type: "special_occasion",
           title: "Suggest romantic turndown + private dining",
-          reasoning: "Guest mentioned honeymoon/anniversary/romantic occasion."
+          reasoning: "Guest mentioned honeymoon/anniversary/romantic occasion.",
           confidence: 0.82,
           evidence: { source: "special_requests", excerpt: b.special_requests },
         });
