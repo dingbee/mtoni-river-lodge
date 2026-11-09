@@ -85,6 +85,12 @@ BEGIN
        NOT LIKE '%upper(v_plan.currency)%' THEN
     RAISE EXCEPTION 'Published pricing must use the selected rate-plan transaction currency and legacy prices must remain non-recursive';
   END IF;
+  IF pg_get_functiondef('public.apply_staynas_room_date_rate_override(uuid,uuid,date,numeric,text)'::regprocedure)
+       NOT LIKE '%FROM public.rooms WHERE id=_room_id AND property_id=_property_id%'
+     OR pg_get_functiondef('public.apply_staynas_room_date_rate_override(uuid,uuid,date,numeric,text)'::regprocedure)
+       LIKE '%FROM public.staynas_properties WHERE id=_property_id%' THEN
+    RAISE EXCEPTION 'Room/date overrides must retain the room transaction currency, not the property operating currency';
+  END IF;
   IF pg_get_functiondef('public.calculate_staynas_room_pricing_legacy(uuid,uuid,date,date,integer,integer,integer)'::regprocedure)
        NOT LIKE '%upper(v_room.currency)%'
      OR pg_get_functiondef('public.calculate_staynas_room_pricing_legacy(uuid,uuid,date,date,integer,integer,integer)'::regprocedure)
