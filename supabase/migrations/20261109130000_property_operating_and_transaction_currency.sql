@@ -275,32 +275,22 @@ DECLARE
   v_signature regprocedure;
   v_definition text;
   v_updated text;
-  v_old text;
-  v_new text;
 BEGIN
   v_signature:=to_regprocedure('public.validate_staynas_rate_plan_base_and_occupancy_data()');
   IF v_signature IS NULL THEN RAISE EXCEPTION 'Rate-plan base and occupancy validator is missing'; END IF;
   v_definition:=pg_get_functiondef(v_signature);
-  v_updated:=v_definition;
-
-  v_old:=$old$  SELECT upper(p.currency)
-    INTO v_currency
-  FROM public.staynas_properties p
-  WHERE p.id=NEW.property_id AND p.status='active';$old$;
-  v_new:=$new$  v_currency := upper(COALESCE(NEW.currency,''));
-  IF v_currency !~ '^[A-Z]{3}$' THEN
-    RAISE EXCEPTION USING ERRCODE='22023', MESSAGE='CURRENCY_MISMATCH',
-      DETAIL='Rate plan must have an explicit valid transaction currency';
-  END IF;$new$;
-  v_updated:=replace(v_updated,v_old,v_new);
-  v_updated:=replace(v_updated,'v_rate->>''currency'' IS DISTINCT FROM v_currency','upper(v_rate->>''currency'') IS DISTINCT FROM v_currency');
+  v_updated:=regexp_replace(
+    v_definition,
+    $pattern$SELECT upper\(p\.currency\)\s+INTO v_currency\s+FROM public\.staynas_properties p\s+WHERE p\.id=NEW\.property_id AND p\.status='active';$pattern$,
+    $replacement$v_currency := upper(COALESCE(NEW.currency,''));$replacement$
+  );
   v_updated:=replace(v_updated,'v_rate->>''currency'' IS DISTINCT FROM v_currency','upper(v_rate->>''currency'') IS DISTINCT FROM v_currency');
   v_updated:=replace(v_updated,'Base rate and rate-plan currency must match the property currency','Base rate and rate-plan currency must match the selected rate-plan currency');
   v_updated:=replace(v_updated,'Occupancy rate currency must match the property currency','Occupancy rate currency must match the selected rate-plan currency');
   IF v_updated=v_definition
      OR position('v_currency := upper(COALESCE(NEW.currency' in v_updated)=0
-     OR position('match the selected rate-plan currency' in v_updated)=0
-     OR position('FROM public.staynas_properties p' in v_updated)>0 THEN
+     OR position('SELECT upper(p.currency)' in v_updated)>0
+     OR position('match the selected rate-plan currency' in v_updated)=0 THEN
     RAISE EXCEPTION 'Rate-plan base and occupancy validation did not migrate to transaction currency';
   END IF;
   EXECUTE v_updated;
