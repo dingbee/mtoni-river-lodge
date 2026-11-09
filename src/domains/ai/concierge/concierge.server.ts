@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import type {
   ConciergeCitation,
   ConciergeChatInput,
@@ -272,6 +272,36 @@ export async function handleConciergeChat(
   }).select("id, created_at").single();
 
   const assistantMessageId = assistantRow?.id ?? null;
+
+  if (shouldEscalate) {
+    const reason = /complaint|unhappy|refund|unsafe|medical|emergency/i.test(message)
+      ? "complaint"
+      : /human|person|staff|team|speak to/i.test(message)
+        ? "human_requested"
+        : confidence < LOW_CONFIDENCE
+          ? "low_confidence"
+          : "complex_request";
+    const priority = reason === "complaint" ? 1 : reason === "human_requested" ? 2 : 3;
+    const dedupeKey = createHash("sha256")
+      .update([propertyId, sessionId, message.trim().toLowerCase(), reason].join("|"))
+      .digest("hex");
+    const { error: escalationError } = await supabaseAdmin.rpc("staynas_create_concierge_escalation", {
+      p_property_id: propertyId,
+      p_session_id: sessionId,
+      p_guest_id: memoryCtx.guestId ?? existingGuestId ?? null,
+      p_reason: reason,
+      p_summary: message.slice(0, 2000),
+      p_ai_confidence: confidence,
+      p_priority: priority,
+      p_dedupe_key: dedupeKey,
+    });
+    if (escalationError) {
+      console.error("[concierge] durable escalation failed", {
+        propertyId, sessionId, code: escalationError.code ?? "unknown",
+      });
+      throw new Error("The property team handoff is temporarily unavailable.");
+    }
+  }
   try {
     await supabaseAdmin.from("ai_concierge_intents").insert({
       session_id: sessionId, message_id: assistantMessageId, intent_level: intent.level,
@@ -288,7 +318,7 @@ export async function handleConciergeChat(
 
   await supabaseAdmin.from("ai_concierge_sessions").update({
     message_count: history.length + 2, last_active_at: new Date().toISOString(),
-    escalated: shouldEscalate, escalation_channel: shouldEscalate ? "whatsapp" : null,
+    escalated: shouldEscalate, escalation_channel: shouldEscalate ? "staff" : null,
     guest_id: memoryCtx.guestId ?? existingGuestId ?? null,
   }).eq("id", sessionId).eq("property_id", propertyId);
 
