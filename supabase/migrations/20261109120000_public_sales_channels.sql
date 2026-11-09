@@ -3,6 +3,21 @@
 -- Does not activate Mtoni or publish its channel.
 BEGIN;
 
+-- Older installations may have property-domain records managed outside the
+-- migration chain. Define the minimal registry contract when bootstrapping a
+-- fresh database; existing production tables are left untouched.
+CREATE TABLE IF NOT EXISTS public.staynas_property_domains (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id uuid NOT NULL REFERENCES public.staynas_properties(id) ON DELETE RESTRICT,
+  hostname text NOT NULL UNIQUE,
+  verification_status text NOT NULL DEFAULT 'pending'
+    CHECK (verification_status IN ('pending','verified','failed')),
+  verified_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(id,property_id)
+);
+
 CREATE TABLE IF NOT EXISTS public.staynas_public_booking_channels (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   property_id uuid NOT NULL REFERENCES public.staynas_properties(id) ON DELETE RESTRICT,
