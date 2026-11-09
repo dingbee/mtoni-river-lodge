@@ -49,7 +49,7 @@ function CampaignStudioPage() {
   const transitionFn = useServerFn(transitionMyBookingCampaign);
   const previewFn = useServerFn(previewMyBookingCampaign);
   const campaigns = useQuery({ queryKey: ["booking-campaigns", "selected-property"], queryFn: () => listFn() as Promise<Campaign[]> });
-  const resources = useQuery({ queryKey: ["booking-campaign-resources", "selected-property"], queryFn: () => resourcesFn() as Promise<StudioResources[]>[number] });
+  const resources = useQuery({ queryKey: ["booking-campaign-resources", "selected-property"], queryFn: () => resourcesFn() as Promise<StudioResources> });
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [selectedId, setSelectedId] = useState("");
