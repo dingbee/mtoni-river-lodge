@@ -72,8 +72,9 @@ begin
   end if;
   select * into v_property from public.staynas_properties
   where id = _property_id and organisation_id = _organisation_id and status = 'active';
-  if not found or nullif(trim(v_property.timezone),'') is null then
-    raise exception 'Active property with a configured IANA timezone is required';
+  if not found or nullif(trim(v_property.timezone),'') is null
+    or not exists (select 1 from pg_catalog.pg_timezone_names tz where tz.name = v_property.timezone) then
+    raise exception 'Active property with a valid configured IANA timezone is required';
   end if;
   if _starts_on is not null and _ends_on is not null and _ends_on < _starts_on then
     raise exception 'Campaign end date must not precede its start date';
