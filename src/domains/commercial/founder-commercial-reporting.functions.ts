@@ -78,6 +78,7 @@ export const getFounderCommercialReporting = createServerFn({ method: "GET" })
       return {
         generatedAt: new Date().toISOString(), periodStart: data.periodStart, periodEnd: data.periodEnd,
         currencyScope: data.currency ?? "all",
+        organisationId: data.organisationId ?? null,
         tenantOptions: organisations.map((item) => ({ id: String(item.id), name: String(item.name ?? "Customer tenant") })),
         totals: {
           grossInvoiced: zero, invoiced: zero, oneTime: zero, credits: zero, debits: zero,
@@ -198,6 +199,7 @@ export const getFounderCommercialReporting = createServerFn({ method: "GET" })
     return {
       generatedAt: new Date().toISOString(), periodStart: data.periodStart, periodEnd: data.periodEnd,
       currencyScope: data.currency ?? "all",
+        organisationId: data.organisationId ?? null,
       tenantOptions: organisations.map((item) => ({ id: String(item.id), name: String(item.name ?? "Customer tenant") })),
       totals: {
         grossInvoiced: asMoney(grossInvoiced), invoiced: asMoney(invoiced), oneTime: asMoney(oneTime),
