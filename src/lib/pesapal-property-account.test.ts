@@ -140,8 +140,8 @@ describe("property-scoped Pesapal adapter", () => {
       }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
-    const one = await getPesapalPropertyAccountToken(credentials("one"), "sandbox");
-    const two = await getPesapalPropertyAccountToken(credentials("two"), "sandbox");
+    const one = await getPesapalPropertyAccountToken({ consumer_key: "shared-key", consumer_secret: "secret-one" }, "sandbox");
+    const two = await getPesapalPropertyAccountToken({ consumer_key: "shared-key", consumer_secret: "secret-two" }, "sandbox");
 
     expect(one).toBe("token-one");
     expect(two).toBe("token-two");
