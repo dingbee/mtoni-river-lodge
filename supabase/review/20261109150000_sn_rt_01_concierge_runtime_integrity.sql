@@ -89,6 +89,28 @@ CREATE UNIQUE INDEX IF NOT EXISTS ai_escalations_property_dedupe_uidx
 CREATE INDEX IF NOT EXISTS ai_escalations_property_status_priority_idx
   ON public.ai_escalations(property_id, status, priority, created_at DESC);
 
+-- RLS does not constrain TRUNCATE. Anonymous callers receive no table
+-- privileges; staff retain only the reads/lead updates used by the application.
+REVOKE ALL ON TABLE
+  public.ai_concierge_sessions,
+  public.ai_concierge_messages,
+  public.ai_concierge_leads,
+  public.ai_escalations
+FROM anon;
+REVOKE TRUNCATE, REFERENCES, TRIGGER ON TABLE
+  public.ai_concierge_sessions,
+  public.ai_concierge_messages,
+  public.ai_concierge_leads,
+  public.ai_escalations
+FROM authenticated;
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.ai_escalations FROM authenticated;
+GRANT SELECT ON TABLE
+  public.ai_concierge_sessions,
+  public.ai_concierge_messages,
+  public.ai_escalations
+TO authenticated;
+GRANT SELECT, UPDATE ON TABLE public.ai_concierge_leads TO authenticated;
+
 DROP POLICY IF EXISTS "Escalations read in active property" ON public.ai_escalations;
 DROP POLICY IF EXISTS "Escalations manage in active property" ON public.ai_escalations;
 CREATE POLICY "Escalations read in active property"
