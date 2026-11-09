@@ -90,10 +90,9 @@ function FounderReconciliationWorkspace() {
           || !["successful", "failed", "cancelled", "reversed"].includes(status ?? "")) {
           throw new Error(`Invalid statement row ${index + 2}. Expected providerRef,amountMinor,currency,status.`);
         }
-        return { providerRef, amountMinor: Number(amountMinor), currency: rowCurrency as "TZS" | "USD", status: status as "successful" | "failed" | "cancelled" | "reversed" };
+        return { providerRef, amountMinor, currency: rowCurrency as "TZS" | "USD", status: status as "successful" | "failed" | "cancelled" | "reversed" };
       });
       if (!providerRows.length) throw new Error("The statement contains no data rows.");
-      if (providerRows.some((row) => !Number.isSafeInteger(row.amountMinor))) throw new Error("Statement amount exceeds safe transport precision; use manual exception handling.");
       const result = await reconcileCommercialProviderStatementRun({ data: { runId: selectedRun, providerRows } });
       setMessage(`Statement reconciled. ${result.findingCount} reconciliation findings persisted${result.replayed ? " (already imported)" : ""}.`);
       await refresh();
@@ -176,7 +175,7 @@ function FounderReconciliationWorkspace() {
 
       <section className="rounded-xl border p-4">
         <h2 className="font-semibold">Import provider statement</h2>
-        <p className="mt-1 text-xs text-muted-foreground">CSV columns: providerRef,amountMinor,currency,status. Status values: successful, failed, cancelled, reversed. Amounts must be integer minor units. TZS/USD mismatches are recorded as exceptions; no conversion is applied.</p>
+        <p className="mt-1 text-xs text-muted-foreground">CSV columns: providerRef,amountMinor,currency,status. Status values: successful, failed, cancelled, reversed. Amounts must be non-negative integer minor-unit strings (up to 20 digits). TZS/USD mismatches are recorded as exceptions; no conversion is applied.</p>
         <form onSubmit={importStatement} className="mt-3 space-y-3">
           <select required value={selectedRun} onChange={(e) => setSelectedRun(e.target.value)} className="h-10 w-full rounded-md border bg-background px-2 text-sm">
             <option value="">Select an open reconciliation run</option>
