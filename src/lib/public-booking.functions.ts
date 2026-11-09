@@ -4,7 +4,7 @@ import { z } from "zod";
 
 // First controlled Public Booking Network demo. Keep the UAT property allowlist
 // explicit until StayNas has a property-level publication/visibility setting.
-const PUBLIC_DEMO_PROPERTY_SLUGS = new Set(["nolmark-cdma-staynas"]);
+const PUBLIC_DEMO_PROPERTY_SLUGS = new Set(["nolmark-cdma-staynas", "mtoni-river-lodge"]);
 
 async function resolvePublicDemoProperty(propertySlug: string) {
   if (!PUBLIC_DEMO_PROPERTY_SLUGS.has(propertySlug)) {
