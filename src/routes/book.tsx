@@ -928,7 +928,7 @@ function GuestStep(props: {
   submitting: boolean;
   onBack: () => void; onSubmit: () => void;
 }) {
-  const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: props.room.currency, maximumFractionDigits: 0 }).format(n);
+  const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: props.breakdown?.currency ?? props.room.currency, maximumFractionDigits: 0 }).format(n);
   const deposit = Number(props.breakdown?.deposit_amount ?? Math.round(props.grandTotal * 0.5));
   const balance = Number(props.breakdown?.balance_due ?? (props.grandTotal - deposit));
   const toggleExtra = (slug: string) => {
