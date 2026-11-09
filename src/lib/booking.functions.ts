@@ -351,6 +351,19 @@ export const createBooking = createServerFn({ method: "POST" })
       ...data, sessionKey: data.sessionKey ?? (data.sessionId && data.sessionId.length >= 16 ? data.sessionId : data.quoteId),
     });
     await assertCampaignRoomSelection(sb, propertyId, data.roomSlug, campaignContext);
+    if (campaignContext) {
+      const { data: quoteRecord, error: quoteRecordError } = await sb.from("staynas_reservation_quotes")
+        .select("property_id,request,expires_at,consumed_at")
+        .eq("id", data.quoteId).eq("property_id", propertyId).maybeSingle();
+      const request = quoteRecord?.request ?? {};
+      if (quoteRecordError || !quoteRecord || quoteRecord.consumed_at
+        || Date.parse(quoteRecord.expires_at) <= Date.now()
+        || request.room_slug !== data.roomSlug
+        || request.rate_plan_id !== data.ratePlanId
+        || request.check_in !== data.checkIn || request.check_out !== data.checkOut) {
+        throw new Error("Reservation quote does not match the validated campaign offer, room, dates and property.");
+      }
+    }
     const { data: result, error } = await sb.rpc("staynas_create_reservation_from_quote", {
       _quote_id: data.quoteId,
       _property_id: propertyId,
