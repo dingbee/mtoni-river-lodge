@@ -163,8 +163,7 @@ BEGIN
 
   v_old:=$old$  SELECT upper(currency) INTO v_currency
   FROM public.staynas_properties WHERE id=NEW.property_id;
-  IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}
- THEN
+  IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}' THEN
     RAISE EXCEPTION 'Rate override property must have an explicit currency';
   END IF;
   IF upper(NEW.currency) <> v_currency THEN
@@ -191,8 +190,7 @@ $old$;
   ELSE
     RAISE EXCEPTION 'Rate override requires an explicit room or rate-plan pricing source';
   END IF;
-  IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}
- THEN
+  IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}' THEN
     RAISE EXCEPTION 'Rate override pricing source must have an explicit transaction currency';
   END IF;
   IF upper(NEW.currency) <> v_currency THEN
