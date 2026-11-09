@@ -19,11 +19,11 @@ Status: IN PROGRESS — UAT/review only; no production promotion.
 - `commercial_reconciliation_items` accepts `status_mismatch`.
 - Append-only `commercial_reconciliation_item_events` records opening, review, evidence, resolution, reopening and escalation events.
 - Service-role RPCs atomically create an exception with its opening event, resolve it with its resolution event, create provider-period runs idempotently, and close runs under a row lock.
-- Provider statement reconciliation rejects mixed TZS/USD rows and nets allocation reversals before comparing allocation state.
+- Provider statement reconciliation rejects mixed TZS/USD rows, nets allocation reversals before comparison, and imports a provider statement once per run in one atomic, idempotent transaction.
 - Receivables aging view exposes current, 1–30, 31–60, 61–90 and >90-day buckets.
 - Revenue fact views separate issued invoice facts, allocated net collections and unallocated collections.
-- Founder reporting query uses bounded 500-row pagination and BigInt minor-unit arithmetic; the founder reporting page presents currency-separated MRR/ARR, invoiced, collected, outstanding, unallocated and aging totals.
-- Founder reconciliation workspace provides run creation, CSV statement ingestion, review/escalate/resolve actions and lifecycle evidence display.
+- Founder reporting query uses stable bounded 500-row pagination and BigInt minor-unit arithmetic; the founder reporting page presents currency-separated MRR/ARR, ARPT, invoiced, collected, outstanding, unallocated and aging totals.
+- Founder reconciliation workspace provides idempotent run creation, CSV statement ingestion, review/escalate/resolve actions, exception history and evidence display. Run completion is serialized with exception writes and can be retried after discrepancies are resolved.
 - Summary CSV export and print-to-PDF are available behind founder authorization.
 
 ## Required regression matrix (33 categories)
