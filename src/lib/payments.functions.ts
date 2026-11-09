@@ -1,19 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getRequestHeader } from "@tanstack/react-start/server";
-import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
+import { resolvePublicDirectBookingChannel } from "@/lib/public-booking-channel.server";
 import { assertSameProperty } from "@/lib/booking-property";
 
-function deriveBaseUrl(): string {
-  const envUrl = process.env.PUBLIC_BASE_URL;
-  if (envUrl) return envUrl.replace(/\/$/, "");
-  const proto = getRequestHeader("x-forwarded-proto") ?? "https";
-  const host = getRequestHeader("host") ?? "";
-  if (!host) {
-    console.warn("[pesapal] deriveBaseUrl: no host header and no PUBLIC_BASE_URL set");
-  }
-  return `${proto}://${host}`;
-}
 
 export const initiatePayment = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
@@ -26,16 +15,20 @@ export const initiatePayment = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { ensureIpn, submitPesapalOrder } = await import("./pesapal.server");
 
-    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+    const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
+    const propertyId = channel.propertyId;
     const { data: booking, error } = await (supabaseAdmin as any)
       .from("bookings")
-      .select("id, reference, guest_name, guest_email, guest_phone, country, deposit_amount, total, currency, payment_status, pesapal_order_tracking_id, property_id")
+      .select("id, reference, guest_name, guest_email, guest_phone, country, deposit_amount, total, currency, payment_status, pesapal_order_tracking_id, property_id, sales_channel_id")
       .eq("reference", data.reference)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!booking) throw new Error("Booking not found");
     // Never initiate payment for a booking outside the configured property.
     assertSameProperty(booking.property_id, propertyId, "Booking");
+    if (booking.sales_channel_id !== channel.channelId) throw new Error("Booking does not belong to this direct-booking channel");
+    if (booking.sales_channel_id !== channel.channelId) throw new Error("Booking does not belong to this direct-booking channel");
+    if (booking.currency !== channel.currency) throw new Error("Booking currency does not match the published direct-booking channel");
     if (booking.guest_email.toLowerCase() !== data.email.toLowerCase()) {
       throw new Error("Email does not match booking");
     }
@@ -43,7 +36,7 @@ export const initiatePayment = createServerFn({ method: "POST" })
       throw new Error("Booking is already paid");
     }
 
-    const baseUrl = deriveBaseUrl();
+    const baseUrl = `https://${channel.hostname}`;
     console.info("[pesapal] initiatePayment", {
       reference: data.reference,
       baseUrl,
@@ -111,10 +104,11 @@ export const getPaymentStatusByReference = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+    const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
+    const propertyId = channel.propertyId;
     const { data: booking, error } = await (supabaseAdmin as any)
       .from("bookings")
-      .select("id, reference, guest_email, payment_status, status, deposit_amount, balance_amount, total, currency, pesapal_order_tracking_id, payment_method, property_id")
+      .select("id, reference, guest_email, payment_status, status, deposit_amount, balance_amount, total, currency, pesapal_order_tracking_id, payment_method, property_id, sales_channel_id")
       .eq("reference", data.reference)
       .maybeSingle();
     if (error) throw new Error(error.message);
