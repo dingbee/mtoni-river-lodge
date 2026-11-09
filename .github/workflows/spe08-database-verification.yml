@@ -1,0 +1,96 @@
+name: SPE-08 Pricing Intelligence database verification
+
+on:
+  push:
+    branches:
+      - feat/spe-08-*
+  pull_request:
+    branches:
+      - feat/spe-07-*
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  spe08-database:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: spe08_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d spe08_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: spe08_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Bootstrap isolated Supabase authorization and property schema
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE anon NOLOGIN;
+          CREATE ROLE authenticated NOLOGIN;
+          CREATE ROLE service_role NOLOGIN BYPASSRLS;
+          CREATE SCHEMA auth;
+          CREATE TABLE auth.users (id uuid PRIMARY KEY);
+          CREATE FUNCTION auth.uid() RETURNS uuid
+          LANGUAGE sql STABLE AS $function$
+            SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
+          $function$;
+          CREATE TYPE public.app_role AS ENUM ('admin','reservations','user','owner','manager','finance','reception','marketing');
+          CREATE TABLE public.staynas_properties (
+            id uuid PRIMARY KEY,
+            status text NOT NULL DEFAULT 'active'
+          );
+          CREATE TABLE public.rooms (
+            id uuid PRIMARY KEY,
+            property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+            status text NOT NULL DEFAULT 'active',
+            UNIQUE(id, property_id)
+          );
+          CREATE TABLE public.staynas_property_members (
+            property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+            user_id uuid NOT NULL REFERENCES auth.users(id),
+            status text NOT NULL DEFAULT 'active',
+            PRIMARY KEY (property_id, user_id)
+          );
+          CREATE TABLE public.user_roles (
+            user_id uuid NOT NULL REFERENCES auth.users(id),
+            role public.app_role NOT NULL,
+            PRIMARY KEY (user_id, role)
+          );
+          CREATE FUNCTION public.staynas_user_has_property_access(_uid uuid,_property_id uuid)
+          RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $function$
+            SELECT EXISTS (
+              SELECT 1 FROM public.staynas_property_members m
+              WHERE m.property_id=_property_id AND m.user_id=_uid AND m.status='active'
+            )
+          $function$;
+          CREATE FUNCTION public.has_any_role(_uid uuid,_roles public.app_role[])
+          RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $function$
+            SELECT EXISTS (
+              SELECT 1 FROM public.user_roles r
+              WHERE r.user_id=_uid AND r.role=ANY(_roles)
+            )
+          $function$;
+          SQL
+      - name: Apply SPE-08 additive migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261108140000_spe08_pricing_intelligence_foundation.sql
+      - name: Verify property isolation, audit immutability and governance contracts
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/spe08_pricing_intelligence.test.sql

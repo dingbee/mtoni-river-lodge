@@ -64,6 +64,7 @@ function RevenueDashboard() {
           <div className="flex gap-2">
             <Link to="/admin/finance/rate-plans" className="text-sm text-primary hover:underline">Rate Plans</Link>
             <Link to="/admin/finance/rate-overrides" className="text-sm text-primary hover:underline">Rate Overrides</Link>
+            <Link to="/admin/finance/pricing-intelligence" className="text-sm text-primary hover:underline">Pricing Intelligence</Link>
             <Link to="/admin/finance/payments" className="text-sm text-primary hover:underline">
               Payments
             </Link>
