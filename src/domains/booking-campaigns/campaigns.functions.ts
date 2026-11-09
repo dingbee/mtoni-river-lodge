@@ -152,7 +152,9 @@ export const listMyCampaignStudioResources = createServerFn({ method: "GET" })
       sb.from("staynas_rate_plan_publications").select("id,rate_plan_id,publication_number,rate_plan_version,code,name,currency,effective_from,effective_to,snapshot_hash,published_at").eq("property_id", actor.propertyId).order("published_at", { ascending: false }),
       sb.from("staynas_rate_plans").select("id,code,name,currency,publication_status,active").eq("property_id", actor.propertyId).eq("publication_status", "published").eq("active", true).order("name"),
     ]);
-    if (propertyError || !property || !/^[A-Z]{3}$/.test(property.currency ?? "")) throw new Error("The selected property has no valid configured currency.");
+    if (propertyError || !property || !/^[A-Z]{3}$/.test(property.currency ?? "") || !property.timezone) {
+      throw new Error("The selected property requires a valid configured currency and timezone.");
+    }
     if (roomsError || publicationsError || plansError) throw new Error("Campaign resources could not be loaded.");
     const activePlanIds = new Set((plans ?? []).map((plan: any) => plan.id));
     const latestPublicationNumber = new Map<string, number>();
