@@ -135,7 +135,7 @@ BEGIN
 
   v_import := public.commercial_import_reconciliation_statement(
     v_replayed_id,
-    '[{"itemType":"matched","internalPaymentId":null,"providerRef":"cc07-statement-row-1","expectedAmountMinor":10000,"observedAmountMinor":10000,"expectedCurrency":"TZS","observedCurrency":"TZS","evidence":{"test":true},"resolutionStatus":"resolved","resolutionRef":"exact_match"}]'::jsonb,
+    '[{"item_type":"matched","internal_payment_id":null,"provider_ref":"cc07-statement-row-1","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"TZS","evidence":{"test":true},"resolution_status":"resolved","resolution_ref":"exact_match"}]'::jsonb,
     NULL
   );
   IF (v_import->>'findingCount')::integer <> 1 OR (v_import->>'replayed')::boolean IS DISTINCT FROM false THEN
@@ -143,7 +143,7 @@ BEGIN
   END IF;
   v_import := public.commercial_import_reconciliation_statement(
     v_replayed_id,
-    '[{"itemType":"matched","internalPaymentId":null,"providerRef":"cc07-statement-row-1","expectedAmountMinor":10000,"observedAmountMinor":10000,"expectedCurrency":"TZS","observedCurrency":"TZS","evidence":{"test":true},"resolutionStatus":"resolved","resolutionRef":"exact_match"}]'::jsonb,
+    '[{"item_type":"matched","internal_payment_id":null,"provider_ref":"cc07-statement-row-1","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"TZS","evidence":{"test":true},"resolution_status":"resolved","resolution_ref":"exact_match"}]'::jsonb,
     NULL
   );
   SELECT count(*) INTO v_item_count FROM public.commercial_reconciliation_items WHERE run_id=v_replayed_id;
@@ -190,7 +190,7 @@ BEGIN
   v_discrepancy_run := (v_discrepancy_result->>'id')::uuid;
   PERFORM public.commercial_import_reconciliation_statement(
     v_discrepancy_run,
-    '[{"itemType":"amount_mismatch","internalPaymentId":null,"providerRef":"cc07-mismatch-row","expectedAmountMinor":10000,"observedAmountMinor":9000,"expectedCurrency":"TZS","observedCurrency":"TZS","evidence":{"test":true},"resolutionStatus":"unresolved","resolutionRef":null}]'::jsonb,
+    '[{"item_type":"amount_mismatch","internal_payment_id":null,"provider_ref":"cc07-mismatch-row","expected_amount_minor":10000,"observed_amount_minor":9000,"expected_currency":"TZS","observed_currency":"TZS","evidence":{"test":true},"resolution_status":"unresolved","resolution_ref":null}]'::jsonb,
     NULL
   );
   v_discrepancy_result := public.commercial_complete_reconciliation_run(v_discrepancy_run,NULL);
