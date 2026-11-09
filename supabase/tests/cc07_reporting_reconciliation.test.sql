@@ -377,6 +377,29 @@ BEGIN
     v_invoice,'CC07-DEBIT-001','debit_note',50000,'TZS',
     'approved_plan_expansion','CC07-APPROVAL-001',v_user
   );
+  INSERT INTO public.commercial_provider_accounts(
+    organisation_id,provider,provider_account_ref,supported_currencies,status
+  ) VALUES (v_customer_org,'manual','cc07-revenue-manual-provider',ARRAY['TZS'],'active')
+  RETURNING id INTO v_customer_provider;
+  INSERT INTO public.commercial_payment_transactions(
+    id,organisation_id,account_id,invoice_id,provider_account_id,provider,
+    provider_transaction_ref,idempotency_key,amount_minor,currency,payment_method,
+    status,confirmed_at,provider_verified_at,verification_source,created_by
+  ) VALUES (
+    v_payment,v_customer_org,v_account,v_invoice,v_customer_provider,'manual',
+    'cc07-revenue-payment-ref','cc07-revenue-payment-key',100000,'TZS','bank_transfer',
+    'successful',now(),now(),'authorized_manual_verification',v_user
+  );
+  v_reversal := public.commercial_record_payment_reversal(
+    v_payment,'cc07-revenue-reversal-ref',20000,'TZS','provider_partial_reversal',
+    'cc07-revenue-reversal-key',now(),v_user
+  );
+  IF NOT EXISTS (
+    SELECT 1 FROM public.commercial_founder_revenue_reversal_facts
+    WHERE account_id=v_account AND currency='TZS' AND reversed_minor='20000' AND reversal_count=1
+  ) THEN
+    RAISE EXCEPTION 'Verified payment reversal was not classified separately in revenue reporting';
+  END IF;
   IF NOT EXISTS (
     SELECT 1 FROM public.commercial_founder_revenue_invoice_facts
     WHERE invoice_id=v_invoice AND gross_invoiced_minor='100000'
