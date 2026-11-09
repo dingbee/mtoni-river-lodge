@@ -379,7 +379,7 @@ BEGIN
   SELECT * INTO v_run FROM public.commercial_reconciliation_runs
     WHERE id=_run_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Reconciliation run not found' USING ERRCODE = 'P0002'; END IF;
-  IF v_run.status <> 'open' THEN
+  IF v_run.status = 'completed' THEN
     RETURN jsonb_build_object('runId',v_run.id,'status',v_run.status,'replayed',true);
   END IF;
   SELECT count(*) INTO v_unresolved
@@ -387,7 +387,7 @@ BEGIN
   WHERE run_id=_run_id AND resolution_status <> 'resolved';
   v_status := CASE WHEN v_unresolved > 0 THEN 'discrepancy' ELSE 'completed' END;
   UPDATE public.commercial_reconciliation_runs
-    SET status=v_status,completed_at=now()
+    SET status=v_status,completed_at=CASE WHEN v_status='completed' THEN now() ELSE NULL END
     WHERE id=_run_id;
   INSERT INTO public.commercial_financial_audit_events(
     request_id,actor_user_id,actor_organisation_id,actor_role,action,
