@@ -116,7 +116,7 @@ describe("persisted adapter execution resolution", () => {
   it("rejects a disconnected external account", () => {
     const input = base();
     input.externalAccount.lifecycle = "suspended";
-    expect(() => resolvePersistedAdapterExecution(input)).toThrow(/not connected/);
+    expect(() => resolvePersistedAdapterExecution(input)).toThrow(/not available/);
   });
 
   it("rejects an environment mismatch", () => {
@@ -129,5 +129,20 @@ describe("persisted adapter execution resolution", () => {
     const input = base();
     input.connection.id = "not-a-uuid";
     expect(() => resolvePersistedAdapterExecution(input)).toThrow();
+  });
+
+  it("allows a pending-validation account only for connection health", () => {
+    const input = base();
+    input.connection.lifecycle = "pending_validation";
+    input.externalAccount.lifecycle = "pending_validation";
+    input.manifest = {
+      ...manifest,
+      capabilities: ["connection.health"],
+      supportsHealthCheck: true,
+    };
+    input.accountGrant.granted_capabilities = ["connection.health"];
+    input.capability = "connection.health";
+    input.operation = "connection.health";
+    expect(resolvePersistedAdapterExecution(input).capability).toBe("connection.health");
   });
 });
