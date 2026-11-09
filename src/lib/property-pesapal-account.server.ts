@@ -70,7 +70,6 @@ export async function getPropertyPesapalAccountForSettlement(
   sb: SupabaseClient<any>,
   accountId: string,
   propertyId: string,
-  currency: string,
 ) {
   const { data, error } = await (sb as any)
     .from("staynas_guest_payment_provider_accounts")
@@ -82,9 +81,6 @@ export async function getPropertyPesapalAccountForSettlement(
   if (error) throw new Error("Booking's property Pesapal account could not be loaded.");
   if (!data || !data.credential_secret_ref) {
     throw new Error("The booking has no valid property-scoped Pesapal account. Platform credentials are not used as a fallback.");
-  }
-  if (!(data.supported_currencies ?? []).includes(currency)) {
-    throw new Error("The booking currency is no longer supported by its original property Pesapal account.");
   }
   return data as PropertyPesapalAccount;
 }
