@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS public.staynas_property_domains (
   verified_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(id,property_id)
+  CONSTRAINT staynas_property_domains_id_property_uidx UNIQUE(id,property_id)
 );
 
 CREATE TABLE IF NOT EXISTS public.staynas_public_booking_channels (
