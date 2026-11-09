@@ -390,6 +390,34 @@ export async function handleConciergeChat(
   return reply;
 }
 
+export async function loadConciergeGuestUpdates(token: string, propertyId: string): Promise<ConciergeMessage[] | null> {
+  if (!propertyId || !/^cnc_[A-Za-z0-9_-]{43}$/.test(token)) return null;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: session, error: sessionError } = await (supabaseAdmin as any)
+    .from("ai_concierge_sessions")
+    .select("id")
+    .eq("session_token", token)
+    .eq("property_id", propertyId)
+    .maybeSingle();
+  if (sessionError || !session) return null;
+  const { data: rows, error } = await (supabaseAdmin as any)
+    .from("ai_concierge_messages")
+    .select("id, role, content, confidence, escalated, created_at")
+    .eq("session_id", session.id)
+    .eq("model", "staynas-concierge-handoff")
+    .order("created_at", { ascending: true })
+    .limit(20);
+  if (error) throw new Error("Conversation updates are temporarily unavailable.");
+  return (rows ?? []).map((row: any) => ({
+    id: row.id,
+    role: row.role as ConciergeMessage["role"],
+    content: row.content,
+    confidence: row.confidence ?? undefined,
+    escalated: row.escalated ?? false,
+    created_at: row.created_at,
+  }));
+}
+
 export async function loadConciergeSession(token: string, propertyId: string): Promise<{ token: string; messages: ConciergeMessage[] } | null> {
   if (!propertyId || !/^cnc_[A-Za-z0-9_-]{43}$/.test(token)) return null;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
