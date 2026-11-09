@@ -65,8 +65,8 @@ function ReportCard({ title, value, description }: { title: string; value: Money
 function FounderCommercialReporting() {
   const initialReport = Route.useLoaderData() as Report;
   const [report, setReport] = useState(initialReport);
-  const [periodStart, setPeriodStart] = useState(initialReport.periodStart.slice(0,10));
-  const [periodEnd, setPeriodEnd] = useState(new Date(Date.parse(initialReport.periodEnd)-86400000).toISOString().slice(0,10));
+  const [periodStart, setPeriodStart] = useState(initialReport.periodStart.slice(0,7));
+  const [periodEnd, setPeriodEnd] = useState(new Date(Date.parse(initialReport.periodEnd)-86400000).toISOString().slice(0,7));
   const [currency, setCurrency] = useState(initialReport.currencyScope);
   const [organisationId, setOrganisationId] = useState("");
   const [filterBusy, setFilterBusy] = useState(false);
@@ -75,9 +75,9 @@ function FounderCommercialReporting() {
   const applyFilters = async () => {
     setFilterBusy(true); setFilterMessage("");
     try {
-      const start = new Date(`${periodStart}T00:00:00.000Z`);
-      const endExclusive = new Date(`${periodEnd}T00:00:00.000Z`);
-      endExclusive.setUTCDate(endExclusive.getUTCDate()+1);
+      const start = new Date(`${periodStart}-01T00:00:00.000Z`);
+      const endExclusive = new Date(`${periodEnd}-01T00:00:00.000Z`);
+      endExclusive.setUTCMonth(endExclusive.getUTCMonth()+1);
       if (!Number.isFinite(start.getTime()) || !Number.isFinite(endExclusive.getTime()) || endExclusive <= start) {
         throw new Error("Select a valid report period.");
       }
@@ -143,10 +143,10 @@ function FounderCommercialReporting() {
       <section className="rounded-xl border p-4">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <label className="space-y-1 text-xs text-muted-foreground">Period start
-            <input type="date" value={periodStart} onChange={(event)=>setPeriodStart(event.target.value)} className="h-10 w-full rounded-md border bg-background px-2 text-sm text-foreground"/>
+            <input type="month" value={periodStart} onChange={(event)=>setPeriodStart(event.target.value)} className="h-10 w-full rounded-md border bg-background px-2 text-sm text-foreground"/>
           </label>
           <label className="space-y-1 text-xs text-muted-foreground">Period end
-            <input type="date" value={periodEnd} onChange={(event)=>setPeriodEnd(event.target.value)} className="h-10 w-full rounded-md border bg-background px-2 text-sm text-foreground"/>
+            <input type="month" value={periodEnd} onChange={(event)=>setPeriodEnd(event.target.value)} className="h-10 w-full rounded-md border bg-background px-2 text-sm text-foreground"/>
           </label>
           <label className="space-y-1 text-xs text-muted-foreground">Currency scope
             <select value={currency} onChange={(event)=>setCurrency(event.target.value)} className="h-10 w-full rounded-md border bg-background px-2 text-sm text-foreground">
