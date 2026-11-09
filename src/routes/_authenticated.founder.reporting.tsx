@@ -107,6 +107,13 @@ function FounderCommercialReporting() {
     for (const [bucket, values] of aging) {
       for (const currency of ["TZS", "USD"] as const) lines.push([`aging_${bucket.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`, currency, values[currency]]);
     }
+    lines.push(["count_invoices", "count", String(report.counts.invoices)]);
+    lines.push(["count_collections", "count", String(report.counts.collections)]);
+    lines.push(["count_active_subscriptions", "count", String(report.counts.activeSubscriptions)]);
+    lines.push(["count_overdue_invoices", "count", String(report.counts.overdueInvoices)]);
+    lines.push(["period_start", "date", report.periodStart]);
+    lines.push(["period_end_exclusive", "date", report.periodEnd]);
+    lines.push(["generated_at", "timestamp", new Date().toISOString()]);
     const csv = lines.map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\r\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const anchor = document.createElement("a");
