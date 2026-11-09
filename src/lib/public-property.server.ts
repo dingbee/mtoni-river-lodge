@@ -21,11 +21,11 @@ export function normalizePublicHostname(input: string | null | undefined): strin
  * a verified domain ownership record. The browser never supplies a property ID.
  * Platform-owned hostnames use the same founder-managed domain registry.
  */
-export async function resolvePublicPropertyFromHostname(hostHeader: string | null | undefined): Promise<string> {
+export async function resolvePublicPropertyFromHostname(hostHeader: string | null | undefined, client: any = supabaseAdmin): Promise<string> {
   const hostname = normalizePublicHostname(hostHeader);
   if (!hostname) throw new PublicPropertyResolutionError();
 
-  const { data: domains, error: domainError } = await (supabaseAdmin as any)
+  const { data: domains, error: domainError } = await (client as any)
     .from("staynas_property_domains")
     .select("property_id")
     .eq("hostname", hostname)
@@ -37,7 +37,7 @@ export async function resolvePublicPropertyFromHostname(hostHeader: string | nul
     throw new PublicPropertyResolutionError();
   }
 
-  const { data: property, error: propertyError } = await (supabaseAdmin as any)
+  const { data: property, error: propertyError } = await (client as any)
     .from("staynas_properties")
     .select("id")
     .eq("id", domains[0].property_id)
