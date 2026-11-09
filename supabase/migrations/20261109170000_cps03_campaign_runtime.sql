@@ -60,7 +60,7 @@ begin
   end if;
 
   select pub.id, pub.rate_plan_id, pub.currency, pub.effective_from, pub.effective_to,
-         pub.publication_number, pub.rate_plan_version, pub.snapshot_hash,
+         pub.publication_number, pub.rate_plan_version, pub.snapshot_hash, pub.room_type_assignments,
          p.active, p.publication_status, p.currency as plan_currency
   into v_publication
   from public.staynas_rate_plan_publications pub
@@ -74,6 +74,16 @@ begin
       where latest.property_id = pub.property_id and latest.rate_plan_id = pub.rate_plan_id
     )
     and (pub.effective_from is null or pub.effective_from <= v_campaign_start)
+    and not exists (
+      select 1
+      from unnest(_room_ids) selected(room_id)
+      join public.rooms selected_room on selected_room.id = selected.room_id
+        and selected_room.property_id = _property_id
+      where not exists (
+        select 1 from jsonb_array_elements(pub.room_type_assignments) assigned
+        where assigned->>'room_type_id' = selected_room.catalogue_type_id::text
+      )
+    )
     and (
       (v_campaign_end is null and pub.effective_to is null)
       or (v_campaign_end is not null and (pub.effective_to is null or pub.effective_to >= v_campaign_end))
@@ -192,6 +202,17 @@ begin
       where latest.property_id = pub.property_id and latest.rate_plan_id = pub.rate_plan_id
     )
     and (pub.effective_from is null or pub.effective_from <= v_campaign_start)
+    and not exists (
+      select 1
+      from public.campaign_room_selections selected
+      join public.rooms selected_room on selected_room.id = selected.room_id
+        and selected_room.property_id = selected.property_id
+      where selected.campaign_id = _campaign_id and selected.property_id = _property_id
+        and not exists (
+          select 1 from jsonb_array_elements(pub.room_type_assignments) assigned
+          where assigned->>'room_type_id' = selected_room.catalogue_type_id::text
+        )
+    )
     and (
       (v_campaign_end is null and pub.effective_to is null)
       or (v_campaign_end is not null and (pub.effective_to is null or pub.effective_to >= v_campaign_end))
