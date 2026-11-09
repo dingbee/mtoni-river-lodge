@@ -6,31 +6,48 @@ import { z } from "zod";
 // explicit until StayNas has a property-level publication/visibility setting.
 const PUBLIC_DEMO_PROPERTY_SLUGS = new Set(["nolmark-cdma-staynas"]);
 
-async function resolvePublicDemoProperty(propertySlug: string) {
-  if (!PUBLIC_DEMO_PROPERTY_SLUGS.has(propertySlug)) {
-    throw new Error("This property booking page is not published.");
-  }
-
+async function resolvePublicDemoProperty(propertySlug: string, campaignSlug?: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await (supabaseAdmin as any)
-    .from("staynas_properties")
+  const sb: any = supabaseAdmin;
+  const { data, error } = await sb.from("staynas_properties")
     .select("id, slug, name, currency, timezone, status")
-    .eq("slug", propertySlug)
-    .maybeSingle();
-
+    .eq("slug", propertySlug).maybeSingle();
   if (error) throw new Error("Unable to load this property.");
   if (!data || data.status !== "active") throw new Error("This property is not available for online reservations.");
+  if (!/^[A-Z]{3}$/.test(data.currency ?? "")) throw new Error("This property has no valid configured currency.");
 
-  return { property: data, supabaseAdmin };
+  if (!PUBLIC_DEMO_PROPERTY_SLUGS.has(propertySlug)) {
+    if (campaignSlug) {
+      const { data: campaign, error: campaignError } = await sb.from("booking_campaigns")
+        .select("id,status,starts_at,ends_at").eq("property_id", data.id)
+        .eq("slug", campaignSlug).eq("status", "published").maybeSingle();
+      const now = Date.now();
+      if (campaignError || !campaign || (campaign.starts_at && Date.parse(campaign.starts_at) > now)
+        || (campaign.ends_at && Date.parse(campaign.ends_at) <= now)) {
+        throw new Error("The campaign booking context is not currently valid.");
+      }
+    } else {
+      const { data: page, error: pageError } = await sb.from("booking_pages")
+        .select("id").eq("property_id", data.id).eq("status", "published").maybeSingle();
+      if (pageError || !page) throw new Error("This property's permanent direct booking page is not published.");
+    }
+  }
+  return { property: data, supabaseAdmin, demo: PUBLIC_DEMO_PROPERTY_SLUGS.has(propertySlug) };
 }
 
 const propertySlugSchema = z.string().min(3).max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+const campaignSlugSchema = z.string().min(2).max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+const campaignContextSchema = z.object({
+  campaignSlug: campaignSlugSchema.optional(),
+  offerId: z.string().uuid().optional(),
+  sessionKey: z.string().min(16).max(200).optional(),
+});
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 export const getPublicDemoProperty = createServerFn({ method: "GET" })
-  .inputValidator((value: unknown) => z.object({ propertySlug: propertySlugSchema }).parse(value))
+  .inputValidator((value: unknown) => z.object({ propertySlug: propertySlugSchema, campaignSlug: campaignSlugSchema.optional() }).parse(value))
   .handler(async ({ data }) => {
-    const { property, supabaseAdmin } = await resolvePublicDemoProperty(data.propertySlug);
+    const { property, supabaseAdmin, demo } = await resolvePublicDemoProperty(data.propertySlug, data.campaignSlug);
     const { data: rooms, error } = await (supabaseAdmin as any)
       .from("rooms")
       .select("id, slug, name, short_description, bed_label, bathroom_label, amenities, max_occupancy, total_units, base_price, currency, included_guests, extra_guest_fee")
@@ -89,7 +106,7 @@ export const getPublicDemoProperty = createServerFn({ method: "GET" })
         base_price: Number(room.base_price),
         extra_guest_fee: Number(room.extra_guest_fee ?? 0),
       })),
-      demo: true,
+      demo,
       paymentEnabled: false,
     };
   });
@@ -100,13 +117,32 @@ const availabilitySchema = z.object({
   checkOut: dateSchema,
   guests: z.number().int().min(1).max(8),
   ratePlanId: z.string().uuid().optional(),
-});
+}).merge(campaignContextSchema);
 
 export const searchPublicDemoAvailability = createServerFn({ method: "POST" })
   .inputValidator((value: unknown) => availabilitySchema.parse(value))
   .handler(async ({ data }) => {
     if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in.");
-    const { property, supabaseAdmin } = await resolvePublicDemoProperty(data.propertySlug);
+    const { property, supabaseAdmin } = await resolvePublicDemoProperty(data.propertySlug, data.campaignSlug);
+    const sb: any = supabaseAdmin;
+    let allowedRoomIds: Set<string> | null = null;
+    if (data.campaignSlug) {
+      const { data: campaign } = await sb.from("booking_campaigns").select("id")
+        .eq("property_id", property.id).eq("slug", data.campaignSlug).eq("status", "published").maybeSingle();
+      if (!campaign || !data.offerId || !data.ratePlanId) throw new Error("Campaign offer context is required.");
+      const { data: offer } = await sb.from("campaign_offers").select("id,rate_plan_publication_id")
+        .eq("id", data.offerId).eq("campaign_id", campaign.id).eq("property_id", property.id).eq("active", true).maybeSingle();
+      if (!offer) throw new Error("The selected campaign offer is no longer available.");
+      const { data: publication } = await sb.from("staynas_rate_plan_publications").select("rate_plan_id,currency")
+        .eq("id", offer.rate_plan_publication_id).eq("property_id", property.id).maybeSingle();
+      if (!publication || publication.rate_plan_id !== data.ratePlanId || publication.currency !== property.currency) {
+        throw new Error("The selected offer does not match the property's current published pricing evidence.");
+      }
+      const { data: selections } = await sb.from("campaign_room_selections").select("room_id")
+        .eq("campaign_id", campaign.id).eq("property_id", property.id);
+      allowedRoomIds = new Set((selections ?? []).map((item: any) => item.room_id));
+      if (!allowedRoomIds.size) throw new Error("The campaign has no currently selected room types.");
+    }
     const { data: rows, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced_with_rate_plan", {
       _check_in: data.checkIn,
       _check_out: data.checkOut,
@@ -140,6 +176,7 @@ export const searchPublicDemoAvailability = createServerFn({ method: "POST" })
     }
 
     return (rows ?? [])
+      .filter((room: any) => !allowedRoomIds || allowedRoomIds.has(room.room_id))
       .filter((room: any) => {
         const errorCode = room.pricing_quote?.error_code;
         if (errorCode === "NO_ELIGIBLE_RATE_PLAN") return false;
@@ -168,13 +205,33 @@ const publicQuoteSchema = z.object({
   adults: z.number().int().min(1).max(8),
   ratePlanId: z.string().uuid(),
   guestEmail: z.string().trim().email().max(255),
-});
+}).merge(campaignContextSchema);
 
 export const getPublicDemoQuote = createServerFn({ method: "POST" })
   .inputValidator((value: unknown) => publicQuoteSchema.parse(value))
   .handler(async ({ data }) => {
     if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in.");
-    const { property, supabaseAdmin } = await resolvePublicDemoProperty(data.propertySlug);
+    const { property, supabaseAdmin } = await resolvePublicDemoProperty(data.propertySlug, data.campaignSlug);
+    if (data.campaignSlug) {
+      const sb: any = supabaseAdmin;
+      const { data: campaign } = await sb.from("booking_campaigns").select("id")
+        .eq("property_id", property.id).eq("slug", data.campaignSlug).eq("status", "published").maybeSingle();
+      const { data: offer } = await sb.from("campaign_offers").select("id,rate_plan_publication_id")
+        .eq("id", data.offerId).eq("campaign_id", campaign?.id).eq("property_id", property.id).eq("active", true).maybeSingle();
+      const { data: publication } = offer ? await sb.from("staynas_rate_plan_publications").select("rate_plan_id,currency")
+        .eq("id", offer.rate_plan_publication_id).eq("property_id", property.id).maybeSingle() : { data: null };
+      if (!campaign || !offer || !publication || publication.rate_plan_id !== data.ratePlanId || publication.currency !== property.currency) {
+        throw new Error("The selected campaign offer failed pricing evidence validation.");
+      }
+      if (data.sessionKey) {
+        const { error: attributionError } = await sb.from("campaign_attribution").upsert({
+          campaign_id: campaign.id, property_id: property.id, session_key: data.sessionKey,
+          event_type: "booking_started", event_key: `${data.sessionKey}:booking_started`,
+          metadata: { offerId: data.offerId }, occurred_at: new Date().toISOString(),
+        }, { onConflict: "property_id,event_key", ignoreDuplicates: true });
+        if (attributionError) throw new Error("Campaign booking attribution could not be recorded.");
+      }
+    }
     const { data: quote, error } = await (supabaseAdmin as any).rpc("staynas_create_reservation_quote", {
       _property_id: property.id,
       _room_slug: data.roomSlug,
@@ -208,13 +265,27 @@ const createBookingSchema = z.object({
   country: z.string().trim().max(100).optional().or(z.literal("")),
   specialRequests: z.string().trim().max(1000).optional().or(z.literal("")),
   ratePlanId: z.string().uuid().optional(),
-});
+}).merge(campaignContextSchema);
 
 export const createPublicDemoBooking = createServerFn({ method: "POST" })
   .inputValidator((value: unknown) => createBookingSchema.parse(value))
   .handler(async ({ data }) => {
     if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in.");
-    const { property, supabaseAdmin } = await resolvePublicDemoProperty(data.propertySlug);
+    const { property, supabaseAdmin } = await resolvePublicDemoProperty(data.propertySlug, data.campaignSlug);
+    let campaignId: string | null = null;
+    if (data.campaignSlug) {
+      const sb: any = supabaseAdmin;
+      const { data: campaign } = await sb.from("booking_campaigns").select("id")
+        .eq("property_id", property.id).eq("slug", data.campaignSlug).eq("status", "published").maybeSingle();
+      const { data: offer } = await sb.from("campaign_offers").select("id,rate_plan_publication_id")
+        .eq("id", data.offerId).eq("campaign_id", campaign?.id).eq("property_id", property.id).eq("active", true).maybeSingle();
+      const { data: publication } = offer ? await sb.from("staynas_rate_plan_publications").select("rate_plan_id,currency")
+        .eq("id", offer.rate_plan_publication_id).eq("property_id", property.id).maybeSingle() : { data: null };
+      if (!campaign || !offer || !publication || publication.rate_plan_id !== data.ratePlanId || publication.currency !== property.currency) {
+        throw new Error("The campaign offer does not match the submitted booking pricing context.");
+      }
+      campaignId = campaign.id;
+    }
 
     // The guest submits the exact server-issued quote. The database rechecks
     // its expiry, pricing evidence, inventory and idempotency in one transaction.
@@ -241,6 +312,16 @@ export const createPublicDemoBooking = createServerFn({ method: "POST" })
       throw new Error(`Reservation rejected [${result.error_code ?? "RESERVATION_REJECTED"}]: ${result.message ?? "The reservation could not be created"}`);
     }
     if (!result?.booking_id) throw new Error("The reservation could not be created.");
+    if (campaignId && data.sessionKey) {
+      const { error: attributionError } = await (supabaseAdmin as any).from("campaign_attribution").upsert({
+        campaign_id: campaignId, property_id: property.id, booking_id: result.booking_id,
+        session_key: data.sessionKey, event_type: "booking_completed",
+        event_key: `${data.sessionKey}:booking_completed`,
+        metadata: data.offerId ? { offerId: data.offerId } : {},
+        occurred_at: new Date().toISOString(),
+      }, { onConflict: "property_id,event_key", ignoreDuplicates: true });
+      if (attributionError) console.error("[StayNas campaign attribution] Booking created but attribution failed", { code: attributionError.code, propertyId: property.id });
+    }
 
     return {
       bookingId: result.booking_id,
