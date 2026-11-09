@@ -391,6 +391,7 @@ BEGIN
         trial_started_at = '2026-11-07T10:00:00Z',
         trial_ends_at = '2026-11-21T10:00:00Z'
     WHERE id = v_subscription4;
+    SET CONSTRAINTS commercial_subscription_trial_claim_required IMMEDIATE;
       RAISE EXCEPTION 'Trial activation without a durable claim unexpectedly succeeded';
   EXCEPTION WHEN SQLSTATE '23514' THEN
     NULL;
@@ -412,6 +413,5 @@ BEGIN
   SET CONSTRAINTS commercial_subscription_trial_claim_required IMMEDIATE;
 END;
 $test$;
-SET CONSTRAINTS commercial_subscription_trial_claim_required IMMEDIATE;
 
 ROLLBACK;
