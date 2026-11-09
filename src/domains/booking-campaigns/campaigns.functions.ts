@@ -378,3 +378,24 @@ export const recordPublicBookingCampaignEvent = createServerFn({ method: "POST" 
     if (error) throw new Error("Campaign attribution could not be persisted.");
     return { recorded: true };
   });
+
+
+/** Resolve a short campaign slug on the property selected by the current booking-domain configuration. */
+export const resolveConfiguredPropertyCampaignSlug = createServerFn({ method: "GET" })
+  .inputValidator((input: unknown) => z.object({ campaignSlug }).parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const sb = supabaseAdmin as any;
+    const { data: propertyId, error: resolverError } = await sb.rpc("staynas_booking_property_id");
+    if (resolverError || !propertyId) return null;
+    const { data: property, error: propertyError } = await sb.from("staynas_properties")
+      .select("id,slug,status").eq("id", propertyId).maybeSingle();
+    if (propertyError || !property || property.status !== "active") return null;
+    const { data: campaign, error: campaignError } = await sb.from("booking_campaigns")
+      .select("id,starts_at,ends_at").eq("property_id", property.id)
+      .eq("slug", data.campaignSlug).eq("status", "published").maybeSingle();
+    const now = Date.now();
+    if (campaignError || !campaign || (campaign.starts_at && Date.parse(campaign.starts_at) > now)
+      || (campaign.ends_at && Date.parse(campaign.ends_at) <= now)) return null;
+    return { propertySlug: property.slug, campaignSlug: data.campaignSlug };
+  });
