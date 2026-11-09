@@ -283,26 +283,15 @@ export const validatePropertyDistributionConnection = createServerFn({ method: "
       return { ok: false, code: result.error.code, message: result.error.safeMessage };
     }
 
-    const now = checkedAt;
-    const [{ error: accountUpdateError }, { error: connectionUpdateError }, { error: auditError }] = await Promise.all([
-      admin.from("staynas_distribution_external_accounts").update({ lifecycle: "connected", updated_by: context.userId, updated_at: now }).eq("id", account.id),
-      admin.from("staynas_distribution_connections").update({ lifecycle: "connected", updated_by: context.userId, updated_at: now }).eq("id", connection.id),
-      admin.from("staynas_distribution_audit_events").insert({
-        organisation_id: property.organisation_id,
-        property_id: property.id,
-        account_grant_id: grant.id,
-        connection_id: connection.id,
-        event_type: "connection.lifecycle_changed",
-        from_state: connection.lifecycle,
-        to_state: "connected",
-        actor_type: "user",
-        actor_user_id: context.userId,
-        reason: "Channex sandbox connection health check passed.",
-        correlation_id: executionContext.correlationId,
-      }),
-    ]);
-    if (accountUpdateError || connectionUpdateError || auditError) {
+    const { error: finalizeError } = await admin.rpc("staynas_finalize_distribution_connection", {
+      _connection_id: connection.id,
+      _organisation_id: property.organisation_id,
+      _property_id: property.id,
+      _actor_user_id: context.userId,
+      _correlation_id: executionContext.correlationId,
+    });
+    if (finalizeError) {
       throw new Error("Provider health check passed, but the connection state could not be durably finalized.");
     }
-    return { ok: true, state: "connected", checkedAt: now, latencyMs: result.value.latencyMs };
+    return { ok: true, state: "connected", checkedAt, latencyMs: result.value.latencyMs };
   });
