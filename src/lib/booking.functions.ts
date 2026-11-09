@@ -27,11 +27,6 @@ const campaignBookingContextSchema = z.object({
   utmContent: z.string().trim().max(200).optional(),
   utmTerm: z.string().trim().max(200).optional(),
   referrer: z.string().url().max(2000).optional(),
-}).superRefine((value, ctx) => {
-  const supplied = [value.propertySlug, value.campaignSlug, value.offerId, value.sessionKey].filter(Boolean).length;
-  if (supplied !== 0 && supplied !== 4) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Campaign booking context must include property, campaign, offer and session identifiers." });
-  }
 });
 
 async function resolveCampaignBookingContext(
