@@ -148,9 +148,17 @@ export const listMyCampaignStudioResources = createServerFn({ method: "GET" })
     if (propertyError || !property || !/^[A-Z]{3}$/.test(property.currency ?? "")) throw new Error("The selected property has no valid configured currency.");
     if (roomsError || publicationsError || plansError) throw new Error("Campaign resources could not be loaded.");
     const activePlanIds = new Set((plans ?? []).map((plan: any) => plan.id));
+    const latestPublicationNumber = new Map<string, number>();
+    for (const publication of publications ?? []) {
+      latestPublicationNumber.set(publication.rate_plan_id, Math.max(
+        latestPublicationNumber.get(publication.rate_plan_id) ?? 0,
+        Number(publication.publication_number),
+      ));
+    }
     const today = new Date().toISOString().slice(0, 10);
     const validPublications = (publications ?? []).filter((publication: any) =>
       activePlanIds.has(publication.rate_plan_id)
+      && Number(publication.publication_number) === latestPublicationNumber.get(publication.rate_plan_id)
       && publication.currency === property.currency
       && (!publication.effective_from || publication.effective_from <= today)
       && (!publication.effective_to || publication.effective_to >= today));
@@ -296,13 +304,30 @@ export const getPublicBookingCampaign = createServerFn({ method: "GET" })
       .select("id,active,publication_status,currency").eq("property_id", property.id).in("id", planIds);
     if (plansError) throw new Error("Campaign rate-plan status could not be verified.");
     const validPlans = new Set((plans ?? []).filter((plan: any) => plan.active && plan.publication_status === "published" && plan.currency === property.currency).map((plan: any) => plan.id));
+    const { data: latestPublications, error: latestError } = await sb.from("staynas_rate_plan_publications")
+      .select("id,rate_plan_id,publication_number").eq("property_id", property.id).in("rate_plan_id", planIds)
+      .order("publication_number", { ascending: false });
+    if (latestError) throw new Error("Latest published pricing snapshots could not be verified.");
+    const latestPublicationIds = new Set<string>();
+    const latestSeen = new Set<string>();
+    for (const latest of latestPublications ?? []) {
+      if (!latestSeen.has(latest.rate_plan_id)) {
+        latestSeen.add(latest.rate_plan_id);
+        latestPublicationIds.add(latest.id);
+      }
+    }
     const validOffers = offers.flatMap((offer: any) => {
       const publication: any = publicationById.get(offer.rate_plan_publication_id);
       const today = new Date().toISOString().slice(0, 10);
-      if (!publication || publication.currency !== property.currency || !validPlans.has(publication.rate_plan_id)
+      if (!publication || !latestPublicationIds.has(publication.id)
+        || publication.currency !== property.currency || !validPlans.has(publication.rate_plan_id)
         || (publication.effective_from && publication.effective_from > today)
         || (publication.effective_to && publication.effective_to < today)) return [];
-      return [{ ...offer, ratePlanId: publication.rate_plan_id, publicationId: publication.id, publicationNumber: publication.publication_number, currency: publication.currency }];
+      return [{
+        ...offer, ratePlanId: publication.rate_plan_id, publicationId: publication.id,
+        publicationNumber: publication.publication_number, ratePlanVersion: publication.rate_plan_version,
+        snapshotHash: publication.snapshot_hash, currency: publication.currency,
+      }];
     });
     if (!validOffers.length) throw new Error("No active campaign offer has a valid published rate snapshot in the property's configured currency.");
     return {
