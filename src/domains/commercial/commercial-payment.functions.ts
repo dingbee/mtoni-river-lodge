@@ -961,7 +961,7 @@ export const issueCommercialInvoiceDraft=createServerFn({method:"POST"})
 
 const providerStatementRow=z.object({
   providerRef:z.string().trim().min(1).max(200),
-  amountMinor:z.number().int().nonnegative().safe(),
+  amountMinor:z.string().regex(/^(0|[1-9]\\d{0,19})$/),
   currency:z.enum(["TZS","USD"]),
   status:z.enum(["successful","failed","cancelled","reversed"]),
 });
@@ -1003,13 +1003,10 @@ export const reconcileCommercialProviderStatementRun=createServerFn({method:"POS
     const internal=(payments??[]).map((payment:{id:string;provider_transaction_ref:string|null;provider_order_ref:string|null;amount_minor:number|string;currency:"TZS"|"USD";status:"pending"|"successful"|"failed"|"cancelled"|"partially_reversed"|"reversed"})=>{
       const amountMinor=BigInt(payment.amount_minor);
       const allocatedMinor=allocatedByPayment.get(payment.id)??0n;
-      if(amountMinor>BigInt(Number.MAX_SAFE_INTEGER)||allocatedMinor>BigInt(Number.MAX_SAFE_INTEGER)) {
-        throw new Error("Payment exceeds safe provider statement comparison precision; manual reconciliation is required.");
-      }
       return {
         id:payment.id,providerTransactionRef:payment.provider_transaction_ref,providerOrderRef:payment.provider_order_ref,
-        amountMinor:Number(amountMinor),currency:payment.currency,status:payment.status,
-        allocatedMinor:Number(allocatedMinor),
+        amountMinor:amountMinor.toString(),currency:payment.currency,status:payment.status,
+        allocatedMinor:allocatedMinor.toString(),
       };
     });
     const {reconcileCommercialProviderStatement}=await import("./commercial-reconciliation-engine");
