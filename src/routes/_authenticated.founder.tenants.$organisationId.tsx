@@ -13,6 +13,19 @@ export const Route = createFileRoute("/_authenticated/founder/tenants/$organisat
   component: TenantCommercialProfile,
 });
 
+type TenantProfileData = {
+  organisation: Record<string, unknown>;
+  account: Record<string, unknown> | null;
+  properties: Array<Record<string, unknown>>;
+  subscriptions: Array<Record<string, unknown>>;
+  subscriptionEvents: Array<Record<string, unknown>>;
+  invoices: Array<Record<string, unknown>>;
+  payments: Array<Record<string, unknown>>;
+  assignments: Array<Record<string, unknown>>;
+  decisions: Array<Record<string, unknown>>;
+  notifications: Array<Record<string, unknown>>;
+  auditEvents: Array<Record<string, unknown>>;
+};
 const money = (minor: unknown, currency: unknown) => {
   const code = currency === "USD" ? "USD" : "TZS";
   const value = Number(minor ?? 0);
@@ -22,7 +35,7 @@ const date = (value: unknown) => value ? new Date(String(value)).toLocaleString(
 const label = (value: unknown) => String(value ?? "—").replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 function TenantCommercialProfile() {
-  const profile = Route.useLoaderData();
+  const profile = Route.useLoaderData() as TenantProfileData;
   const current = profile.subscriptions[0] ?? null;
   return <main className="min-h-screen bg-background px-4 py-7 text-foreground sm:px-7 lg:px-10">
     <div className="mx-auto max-w-7xl space-y-7">

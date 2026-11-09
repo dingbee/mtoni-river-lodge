@@ -107,7 +107,7 @@ export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
       if (subscription.billing_term === "monthly") { recurringByCurrency[currency].mrrMinor += total; recurringByCurrency[currency].arrMinor += total * 12; }
       else if (subscription.billing_term === "annual") { recurringByCurrency[currency].mrrMinor += total / 12; recurringByCurrency[currency].arrMinor += total; }
     }
-    const recentEvents = [
+    const recentEvents: Row[] = [
       ...rows(eventsResult.data).map((event) => ({ ...event, eventSource: "commercial" })),
       ...rows(financialEventsResult.data).map((event) => ({ ...event, eventSource: "financial" })),
     ].sort((a, b) => Date.parse(String(b.occurred_at ?? "")) - Date.parse(String(a.occurred_at ?? ""))).slice(0, 20);
@@ -173,7 +173,7 @@ export const getFounderTenantCommercialProfile = createServerFn({ method: "GET" 
     ]);
     if (accountResult.error || propertiesResult.error) throw new Error("Tenant identity and property records could not be loaded.");
     const account = accountResult.data as Row | null;
-    if (!account) return { organisation, account: null, properties: rows(propertiesResult.data), subscriptions: [], subscriptionEvents: [], invoices: [], payments: [], assignments: [], decisions: [], notifications: [] };
+    if (!account) return JSON.parse(JSON.stringify({ organisation, account: null, properties: rows(propertiesResult.data), subscriptions: [], subscriptionEvents: [], invoices: [], payments: [], assignments: [], decisions: [], notifications: [] }));
     const [subscriptionsResult, invoicesResult, paymentsResult, assignmentsResult, decisionsResult, notificationsResult] = await Promise.all([
       admin.from("commercial_subscriptions").select("*").eq("account_id", account.id).order("created_at", { ascending: false }),
       admin.from("commercial_invoice_receivables").select("*").eq("organisation_id", data.organisationId).order("issued_at", { ascending: false }),
@@ -201,7 +201,7 @@ export const getFounderTenantCommercialProfile = createServerFn({ method: "GET" 
       ...rows(commercialAuditResult.data).filter((event) => auditIds.has(String(event.resource_ref))),
       ...rows(financialAuditResult.data).filter((event) => auditIds.has(String(event.resource_ref))),
     ].sort((a, b) => Date.parse(String(b.occurred_at ?? "")) - Date.parse(String(a.occurred_at ?? "")));
-    return {
+    return JSON.parse(JSON.stringify({
       organisation,
       account,
       properties: rows(propertiesResult.data),
@@ -213,5 +213,5 @@ export const getFounderTenantCommercialProfile = createServerFn({ method: "GET" 
       decisions: rows(decisionsResult.data),
       notifications: rows(notificationsResult.data),
       auditEvents,
-    };
+    }));
   });
