@@ -6,7 +6,7 @@ type Money = { TZS: string; USD: string };
 type Report = {
   periodStart: string;
   periodEnd: string;
-  totals: { invoiced: Money; collected: Money; outstanding: Money; unallocated: Money; mrr: Money; arr: Money; arpt: Money };
+  totals: { grossInvoiced: Money; invoiced: Money; oneTime: Money; credits: Money; debits: Money; writeOffs: Money; collected: Money; reversed: Money; outstanding: Money; unallocated: Money; mrr: Money; arr: Money; arpt: Money; newMrr: Money; expansionMrr: Money; contractionMrr: Money; churnedMrr: Money; netNewMrr: Money };
   receivablesAging: { current: Money; days1To30: Money; days31To60: Money; days61To90: Money; over90: Money };
   counts: { invoices: number; collections: number; activeSubscriptions: number; overdueInvoices: number };
 };
@@ -71,7 +71,7 @@ function FounderCommercialReporting() {
   ] as const;
   const downloadCsv = () => {
     const lines: string[][] = [["metric", "currency", "amount_minor"]];
-    for (const metric of ["invoiced", "collected", "outstanding", "unallocated", "mrr", "arr", "arpt"] as const) {
+    for (const metric of ["grossInvoiced", "invoiced", "oneTime", "credits", "debits", "writeOffs", "collected", "reversed", "outstanding", "unallocated", "mrr", "arr", "arpt", "newMrr", "expansionMrr", "contractionMrr", "churnedMrr", "netNewMrr"] as const) {
       for (const currency of ["TZS", "USD"] as const) lines.push([metric, currency, report.totals[metric][currency]]);
     }
     for (const [bucket, values] of aging) {
@@ -104,13 +104,24 @@ function FounderCommercialReporting() {
       <section className="space-y-3">
         <h2 className="font-semibold">Financial performance</h2>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <ReportCard title="Gross invoiced" value={report.totals.grossInvoiced} description="Issued invoice totals before posted adjustments" />
           <ReportCard title="Net invoiced" value={report.totals.invoiced} description="Issued invoices net of posted credits, debit notes and write-offs" />
+          <ReportCard title="One-time charges" value={report.totals.oneTime} description="Invoice lines explicitly classified as one-time adjustments or charges" />
+          <ReportCard title="Credits" value={report.totals.credits} description="Posted credit notes; write-offs are shown separately" />
+          <ReportCard title="Debit notes" value={report.totals.debits} description="Posted debit adjustments" />
+          <ReportCard title="Write-offs" value={report.totals.writeOffs} description="Posted receivable write-offs" />
           <ReportCard title="Net collected" value={report.totals.collected} description="Allocated collections net of allocation reversals" />
+          <ReportCard title="Payment reversals" value={report.totals.reversed} description="Verified provider/payment reversals, shown separately from allocated net collections" />
           <ReportCard title="Outstanding receivables" value={report.totals.outstanding} description="Open balances across all customer invoices" />
           <ReportCard title="Unallocated collections" value={report.totals.unallocated} description="Cash received but not allocated; excluded from collected revenue" />
           <ReportCard title="Monthly recurring revenue" value={report.totals.mrr} description="Active paid subscriptions from accepted price snapshots" />
           <ReportCard title="Annual recurring revenue" value={report.totals.arr} description="Annualized recurring contract value from accepted snapshots" />
-          <ReportCard title="Average revenue per tenant" value={report.totals.arpt} description="Net allocated collections divided by paying customer accounts in the reporting period" />
+          <ReportCard title="Average revenue per tenant" value={report.totals.arpt} description="Current MRR divided by active paid commercial accounts, separately by currency" />
+          <ReportCard title="New MRR" value={report.totals.newMrr} description="Paid subscription activations; trials and quote-only contracts are excluded" />
+          <ReportCard title="Expansion MRR" value={report.totals.expansionMrr} description="Positive recurring value changes on accepted replacement contracts" />
+          <ReportCard title="Contraction MRR" value={report.totals.contractionMrr} description="Absolute value of negative recurring contract changes" />
+          <ReportCard title="Churned MRR" value={report.totals.churnedMrr} description="Paid recurring value lost on cancellation or expiry, excluding replaced contracts" />
+          <ReportCard title="Net-new MRR" value={report.totals.netNewMrr} description="New + expansion − contraction − churned MRR" />
         </div>
       </section>
 
@@ -130,7 +141,7 @@ function FounderCommercialReporting() {
         <article className="rounded-xl border p-4"><p className="text-sm text-muted-foreground">Active subscriptions</p><p className="mt-2 text-2xl font-semibold tabular-nums">{report.counts.activeSubscriptions}</p></article>
         <article className="rounded-xl border p-4"><p className="text-sm text-muted-foreground">Overdue invoices</p><p className="mt-2 text-2xl font-semibold tabular-nums">{report.counts.overdueInvoices}</p></article>
       </section>
-      <p className="text-xs text-muted-foreground">All amounts are reported in their original currency and exact integer minor units. MRR/ARR are not blended across TZS and USD.</p>
+      <p className="text-xs text-muted-foreground">All amounts are reported in their original currency and exact integer minor units. MRR/ARR and revenue movements are not blended across TZS and USD. Expansion and contraction require an accepted replacement subscription and a separately referenced financial adjustment; the reporting engine does not create credits, refunds or FX conversions.</p>
     </div>
   </main>;
 }
