@@ -156,7 +156,7 @@ function RateOverrides() {
           </label>
         </div>
         <div className="mt-4 flex items-center gap-3">
-          <Button disabled={!validTarget || !rate || Number(rate) <= 0 || reason.trim().length < 5 || create.isPending} onClick={() => create.mutate()}>
+          <Button disabled={!validTarget || !selectedCurrency || !rate || Number(rate) <= 0 || reason.trim().length < 5 || create.isPending} onClick={() => create.mutate()}>
             {create.isPending ? "Saving…" : "Create pending proposal"}
           </Button>
           <span className="text-xs text-muted-foreground">Currency follows the selected room or rate plan transaction contract. Rate changes do not change room availability or block state.</span>
