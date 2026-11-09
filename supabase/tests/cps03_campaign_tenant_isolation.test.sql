@@ -141,10 +141,42 @@ RESET ROLE;
 SET LOCAL ROLE service_role;
 UPDATE public.booking_pages SET status='published', published_at=now()
 WHERE property_id='20000000-0000-4000-8000-000000000001';
-UPDATE public.booking_campaigns SET status='published', published_at=now()
-WHERE id='60000000-0000-4000-8000-000000000001';
-UPDATE public.campaign_page_content SET status='published', published_at=now()
-WHERE campaign_id='60000000-0000-4000-8000-000000000001';
+DO $test$
+BEGIN
+  PERFORM public.cps03_publish_booking_campaign(
+    '60000000-0000-4000-8000-000000000001',
+    '20000000-0000-4000-8000-000000000001',
+    '10000000-0000-4000-8000-000000000001',
+    '40000000-0000-4000-8000-000000000001',
+    1
+  );
+END
+$test$;
+
+INSERT INTO public.booking_campaigns(id,organisation_id,property_id,slug,name,status)
+VALUES ('60000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','second-campaign','Second Campaign','draft');
+INSERT INTO public.campaign_page_content(campaign_id,property_id,version,status,content)
+VALUES ('60000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001',1,'draft','{"headline":"Second Campaign"}');
+INSERT INTO public.campaign_room_selections(campaign_id,property_id,room_id)
+VALUES ('60000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001');
+INSERT INTO public.campaign_offers(campaign_id,property_id,offer_code,title,rate_plan_publication_id)
+VALUES ('60000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001','second-rate','Second Rate','50000000-0000-4000-8000-000000000001');
+DO $test$
+BEGIN
+  BEGIN
+    PERFORM public.cps03_publish_booking_campaign(
+      '60000000-0000-4000-8000-000000000002',
+      '20000000-0000-4000-8000-000000000001',
+      '10000000-0000-4000-8000-000000000001',
+      '40000000-0000-4000-8000-000000000001',
+      1
+    );
+    RAISE EXCEPTION 'Campaign publication exceeded the configured active-campaign quota';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM NOT LIKE '%quota has been reached%' THEN RAISE; END IF;
+  END;
+END
+$test$;
 RESET ROLE;
 SET LOCAL ROLE anon;
 
@@ -164,6 +196,9 @@ BEGIN
   END IF;
   IF (SELECT count(*) FROM public.campaign_offers WHERE campaign_id='60000000-0000-4000-8000-000000000001') <> 1 THEN
     RAISE EXCEPTION 'Published campaign offer is not publicly readable';
+  END IF;
+  IF (SELECT count(*) FROM public.booking_campaigns WHERE id='60000000-0000-4000-8000-000000000002') <> 0 THEN
+    RAISE EXCEPTION 'Draft campaign became publicly visible after quota rejection';
   END IF;
 END
 $test$;
