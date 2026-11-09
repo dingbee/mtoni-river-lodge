@@ -559,21 +559,14 @@ export const completeCommercialReconciliationRun=createServerFn({method:"POST"})
   .handler(async({data,context})=>{
     const actor=await resolveVerifiedFounderActor(context);
     const admin=await getAdmin();
-    const {data:run,error}=await admin.from("commercial_reconciliation_runs").select("id,organisation_id,status")
-      .eq("id",data.runId).maybeSingle();
-    if(error||!run||run.status==="completed") throw new Error("Open reconciliation run was not found.");
-    const {count,error:countError}=await admin.from("commercial_reconciliation_items")
-      .select("id",{count:"exact",head:true}).eq("run_id",data.runId).neq("resolution_status","resolved");
-    if(countError) throw new Error("Unresolved reconciliation items could not be counted.");
-    const status=(count??0)>0?"discrepancy":"completed";
-    const {error:updateError}=await admin.from("commercial_reconciliation_runs").update({
-      status,completed_at:new Date().toISOString(),
-    }).eq("id",data.runId);
-    if(updateError) throw new Error("Reconciliation run could not be completed.");
-    await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
-      organisationId:run.organisation_id,actorRole:"founder_admin",action:"reconciliation.completed",
-      resourceType:"reconciliation_run",resourceRef:data.runId,metadata:{status,unresolvedItems:count??0}});
-    return {runId:data.runId,status};
+    const { data: run, error: runError } = await admin.from("commercial_reconciliation_runs")
+      .select("id,organisation_id").eq("id",data.runId).maybeSingle();
+    if (runError || !run) throw new Error("Reconciliation run was not found.");
+    const { data: result, error } = await admin.rpc("commercial_complete_reconciliation_run", {
+      _run_id: data.runId, _actor_user_id: actor.userId,
+    });
+    if (error || !result) throw new Error("Reconciliation run could not be completed atomically.");
+    return result;
   });
 
 export const setCommercialProviderAccountStatus=createServerFn({method:"POST"})
