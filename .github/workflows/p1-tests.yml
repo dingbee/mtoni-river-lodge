@@ -64,6 +64,7 @@ jobs:
           src/domains/commercial/subscription-lifecycle-contract.test.ts
           src/domains/commercial/subscription.authorization.test.ts
           src/domains/commercial/founder-policy.functions.test.ts
+          src/domains/commercial/entitlement-engine.test.ts
           src/domains/marketing/demo-requests.test.ts
           src/domains/integrations/lb01.contracts.test.ts
       # TanStack Start generates routeTree.gen.ts during the Vite build.
@@ -140,6 +141,24 @@ jobs:
           src/routes/pricing.tsx
           src/routes/robots[.]txt.ts
           src/routes/sitemap[.]xml.ts
+          src/domains/commercial/entitlement.functions.ts
+          src/domains/commercial/entitlement-engine.ts
+          src/domains/commercial/entitlement-engine.test.ts
+          src/domains/commercial/settlement-contract.ts
+          src/domains/commercial/settlement-contract.test.ts
+          src/domains/commercial/commercial-billing-engine.ts
+          src/domains/commercial/commercial-billing-engine.test.ts
+          src/domains/commercial/commercial-payment-adapters.ts
+          src/domains/commercial/commercial-payment-adapters.test.ts
+          src/domains/commercial/commercial-reconciliation-engine.ts
+          src/domains/commercial/commercial-reconciliation-engine.test.ts
+          src/domains/commercial/commercial-payment.functions.ts
+          src/domains/payments/payment-provider-management.functions.ts
+          src/domains/payments/provider-adapter.contract.ts
+          src/domains/payments/provider-adapter.contract.test.ts
+          src/routes/_authenticated.admin.settings.payment-providers.tsx
+          src/domains/commercial/commercial-pesapal.server.ts
+          src/routes/api/public/commercial-pesapal.ipn.ts
           src/domains/integrations/lb01.contracts.ts
           src/domains/integrations/lb01.contracts.test.ts
           --rule 'prettier/prettier: off'
