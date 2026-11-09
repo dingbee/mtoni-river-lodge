@@ -57,7 +57,7 @@ async function resolveCampaignBookingContext(
   ]);
   const now = Date.now();
   if (propertyError || !property || property.status !== "active" || property.slug !== input.propertySlug
-    || !/^[A-Z]{3}$/.test(property.currency ?? "") || !property.timezone) {
+    || !/^[A-Z]{3}$/.test(property.currency ?? "") || property.currency === "USD" || !property.timezone) {
     throw new Error("Campaign property does not match the active booking property or has no configured currency.");
   }
   if (campaignError || !campaign || (campaign.starts_at && Date.parse(campaign.starts_at) > now)
