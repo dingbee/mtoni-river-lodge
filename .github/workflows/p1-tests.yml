@@ -67,6 +67,8 @@ jobs:
           src/domains/commercial/entitlement-engine.test.ts
           src/domains/marketing/demo-requests.test.ts
           src/domains/integrations/lb01.contracts.test.ts
+          src/domains/integrations/lb01.service-auth.test.ts
+          src/domains/integrations/lb01.sender.server.test.ts
       # TanStack Start generates routeTree.gen.ts during the Vite build.
       - name: Generate routes and verify production build
         run: bun run build
@@ -161,4 +163,10 @@ jobs:
           src/routes/api/public/commercial-pesapal.ipn.ts
           src/domains/integrations/lb01.contracts.ts
           src/domains/integrations/lb01.contracts.test.ts
+          src/domains/integrations/lb01.service-auth.ts
+          src/domains/integrations/lb01.service-auth.test.ts
+          src/domains/integrations/lb01.credentials.server.ts
+          src/domains/integrations/lb01.sender.server.ts
+          src/domains/integrations/lb01.sender.server.test.ts
+          src/routes/api/integrations.lb01.approval.ts
           --rule 'prettier/prettier: off'
