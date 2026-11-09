@@ -3,6 +3,7 @@ name: P1 build verification
 on:
   push:
     branches:
+      - fix/mtoni-currency-fail-closed-etm-integration-prep
       - p1-hos-boundary
       - fix/ci-*
       - main
