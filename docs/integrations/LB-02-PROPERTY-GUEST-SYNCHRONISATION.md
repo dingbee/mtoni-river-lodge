@@ -16,3 +16,16 @@ Open contract checks before LB-02.01 acceptance:
 - Verify RLS, grants and authorization for LB-01 RPCs and service adapters on the latest branch heads.
 
 No migration or runtime implementation is authorized by this schema note.
+
+
+## 11. Booking lifecycle source semantics — verification finding
+
+The canonical StayNas `booking_status` enum includes `pending`, `confirmed`, `cancelled`, `completed` and `no_show`. The current lifecycle control migration additionally uses `checked_in`; the guarded transition graph is:
+
+- `pending → confirmed` or `cancelled`
+- `confirmed → checked_in`, `cancelled` or `no_show`
+- `checked_in → completed`
+
+For LB-02 projection design, `confirmed` is the candidate source for an expected stay, `checked_in` for in-house, `completed` for checked-out, and the corresponding terminal statuses for cancellation/no-show. This is a projection mapping, not a change to StayNas's source enum.
+
+The existing source model does not define a distinct `departed_early` status. Do not fabricate that event from an assumed field or infer it solely from a booking status. Early departure requires a separately verified timestamp/operational event and explicit source-of-truth rule before it can be included in the contract. Stale or out-of-order events must be rejected by monotonic version/transition checks.
