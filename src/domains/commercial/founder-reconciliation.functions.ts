@@ -2,12 +2,22 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { resolveVerifiedFounderActor } from "./subscription.functions";
 
-type Row = Record<string, unknown>;
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+type Row = { [key: string]: JsonValue };
+type FounderReconciliationWorkspace = {
+  generatedAt: string;
+  runs: Array<Row & { tenantName: string; provider: Row | null }>;
+  items: Row[];
+  events: Row[];
+  providers: Row[];
+  organisations: Row[];
+  integrityExceptions: Array<Row & { domain: string; tenantName: string }>;
+};
 const rows = (value: unknown): Row[] => Array.isArray(value) ? value as Row[] : [];
 
 export const getFounderReconciliationWorkspace = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .handler(async ({ context }): Promise<FounderReconciliationWorkspace> => {
     await resolveVerifiedFounderActor(context as { supabase: unknown; userId: string });
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -20,7 +30,10 @@ export const getFounderReconciliationWorkspace = createServerFn({ method: "GET" 
     if (orgError) throw new Error("Customer tenant registry could not be loaded.");
     const orgRows = rows(organisations);
     const orgIds = orgRows.map((item) => String(item.id));
-    if (!orgIds.length) return { runs: [], items: [], events: [], providers: [], organisations: [], integrityExceptions: [] };
+    if (!orgIds.length) return {
+      generatedAt: new Date().toISOString(),
+      runs: [], items: [], events: [], providers: [], organisations: [], integrityExceptions: [],
+    };
     const [runsResult, providersResult, invoiceConsistencyResult, entitlementConsistencyResult] = await Promise.all([
       admin.from("commercial_reconciliation_runs").select("*")
         .in("organisation_id", orgIds).order("created_at", { ascending: false }).order("id", { ascending: false }).limit(100),
