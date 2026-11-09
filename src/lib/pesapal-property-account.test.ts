@@ -31,7 +31,7 @@ describe("property-scoped Pesapal adapter", () => {
 
     expect(result).toEqual({ ok: true, provider: "pesapal", environment: "sandbox" });
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0][0]).toContain("cybqa.pesapal.com");
+    expect(String(fetchMock.mock.calls[0][0])).toContain("cybqa.pesapal.com");
     expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({
       consumer_key: "camel-key",
       consumer_secret: "camel-secret",
@@ -58,7 +58,7 @@ describe("property-scoped Pesapal adapter", () => {
       ipnUrl: "https://mtoni.example/api/public/pesapal/ipn",
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[1][0]).toContain("/api/URLSetup/RegisterIPN");
+    expect(String(fetchMock.mock.calls[1][0])).toContain("/api/URLSetup/RegisterIPN");
   });
 
   it("reuses only the IPN ID explicitly stored on the same property account", async () => {
@@ -102,7 +102,7 @@ describe("property-scoped Pesapal adapter", () => {
     }, credentials("order"), "live");
 
     expect(result.order_tracking_id).toBe("track-123");
-    expect(fetchMock.mock.calls[1][0]).toContain("pay.pesapal.com");
+    expect(String(fetchMock.mock.calls[1][0])).toContain("pay.pesapal.com");
     const body = JSON.parse(String(fetchMock.mock.calls[1][1]?.body));
     expect(body).toMatchObject({ id: "MR-123", amount: 260, currency: "USD", notification_id: "ipn-mtoni" });
   });
@@ -125,7 +125,7 @@ describe("property-scoped Pesapal adapter", () => {
     );
 
     expect(status.status_code).toBe(1);
-    expect(fetchMock.mock.calls[1][0]).toContain("orderTrackingId=track%2Fwith%20spaces");
+    expect(String(fetchMock.mock.calls[1][0])).toContain("orderTrackingId=track%2Fwith%20spaces");
   });
 
   it("caches tokens by property credential identity rather than sharing a global token", async () => {
