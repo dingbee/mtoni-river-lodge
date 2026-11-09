@@ -320,6 +320,7 @@ DECLARE
   v_period_end timestamptz;
   v_churn_result jsonb;
   v_movement public.commercial_subscription_revenue_movements%ROWTYPE;
+  v_movement_immutable boolean := false;
   v_old_snapshot jsonb := '{"currency":"TZS","planCode":"essential","planVersion":1,"billingTerm":"monthly","propertyCount":1,"priceCode":"test-essential-monthly","quoteRequired":false,"total":100000,"lineItems":[{"kind":"plan_base","code":"essential","quantity":1,"unitAmountMinor":100000,"amountMinor":100000}],"addonCodes":[]}'::jsonb;
   v_new_snapshot jsonb := '{"currency":"TZS","planCode":"professional","planVersion":1,"billingTerm":"monthly","propertyCount":1,"priceCode":"test-professional-monthly","quoteRequired":false,"total":150000,"lineItems":[{"kind":"plan_base","code":"professional","quantity":1,"unitAmountMinor":150000,"amountMinor":150000}],"addonCodes":[]}'::jsonb;
 BEGIN
@@ -399,6 +400,24 @@ BEGIN
   IF v_movement.previous_mrr_minor<>100000 OR v_movement.new_mrr_minor<>150000
     OR v_movement.delta_mrr_minor<>50000 OR v_movement.currency<>'TZS' THEN
     RAISE EXCEPTION 'Stored subscription MRR movement values are inconsistent';
+  END IF;
+  BEGIN
+    UPDATE public.commercial_subscription_revenue_movements
+      SET evidence='{"tampered":true}'::jsonb WHERE id=v_movement.id;
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    v_movement_immutable := true;
+  END;
+  IF NOT v_movement_immutable THEN
+    RAISE EXCEPTION 'Historical subscription MRR movement evidence was mutable';
+  END IF;
+  v_movement_immutable := false;
+  BEGIN
+    DELETE FROM public.commercial_subscription_revenue_movements WHERE id=v_movement.id;
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    v_movement_immutable := true;
+  END;
+  IF NOT v_movement_immutable THEN
+    RAISE EXCEPTION 'Historical subscription MRR movement evidence was deletable';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.commercial_subscriptions WHERE id=v_old_sub AND status='cancelled')
     OR NOT EXISTS (SELECT 1 FROM public.commercial_subscriptions WHERE id=(v_result->>'subscriptionId')::uuid AND status='active') THEN
