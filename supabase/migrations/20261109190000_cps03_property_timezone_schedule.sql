@@ -21,7 +21,7 @@ declare
   v_campaign public.booking_campaigns%rowtype;
 begin
   select * into v_property from public.staynas_properties
-  where id = _property_id and organisation_id = _organisation_id and status = 'active';
+  where id = _property_id and organisation_id = _organisation_id and status in ('setup','active');
   if not found or nullif(trim(v_property.timezone),'') is null
     or not exists (select 1 from pg_catalog.pg_timezone_names tz where tz.name = v_property.timezone) then
     raise exception 'Active property with a valid configured IANA timezone is required';
@@ -71,7 +71,7 @@ begin
     raise exception 'Pause the campaign before changing its schedule';
   end if;
   select * into v_property from public.staynas_properties
-  where id = _property_id and organisation_id = _organisation_id and status = 'active';
+  where id = _property_id and organisation_id = _organisation_id and status in ('setup','active');
   if not found or nullif(trim(v_property.timezone),'') is null
     or not exists (select 1 from pg_catalog.pg_timezone_names tz where tz.name = v_property.timezone) then
     raise exception 'Active property with a valid configured IANA timezone is required';
