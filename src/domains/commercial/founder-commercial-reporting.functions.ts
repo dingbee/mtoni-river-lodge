@@ -252,7 +252,7 @@ export const recordFounderCommercialReportExport = createServerFn({ method: "POS
       actor_user_id: actor.userId,
       actor_organisation_id: actor.organisationId,
       actor_role: "founder_admin",
-      action: `commercial_report.exported.${data.format}`,
+      action: `commercial_report.export_requested.${data.format}`,
       resource_type: "commercial_report",
       resource_ref: `${data.periodStart}/${data.periodEnd}`,
       outcome: "succeeded",
