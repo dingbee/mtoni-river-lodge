@@ -1,6 +1,6 @@
 export type ReconciliationProviderRow = {
   providerRef: string;
-  amountMinor: number;
+  amountMinor: string;
   currency: "TZS" | "USD";
   status: "successful" | "failed" | "cancelled" | "reversed";
 };
@@ -8,10 +8,10 @@ export type ReconciliationInternalPayment = {
   id: string;
   providerTransactionRef: string | null;
   providerOrderRef: string | null;
-  amountMinor: number;
+  amountMinor: string;
   currency: "TZS" | "USD";
   status: "pending" | "successful" | "failed" | "cancelled" | "partially_reversed" | "reversed";
-  allocatedMinor: number;
+  allocatedMinor: string;
 };
 export type ReconciliationJsonValue = string | number | boolean | null | ReconciliationJsonValue[] | { [key: string]: ReconciliationJsonValue };
 
@@ -19,8 +19,8 @@ export type CommercialReconciliationResult = {
   itemType: "matched" | "missing_internal" | "missing_provider" | "duplicate" | "amount_mismatch" | "currency_mismatch" | "status_mismatch" | "unallocated" | "reversed";
   internalPaymentId: string | null;
   providerRef: string | null;
-  expectedAmountMinor: number | null;
-  observedAmountMinor: number | null;
+  expectedAmountMinor: string | null;
+  observedAmountMinor: string | null;
   expectedCurrency: "TZS" | "USD" | null;
   observedCurrency: "TZS" | "USD" | null;
   evidence: Record<string, ReconciliationJsonValue>;
@@ -28,23 +28,27 @@ export type CommercialReconciliationResult = {
   resolutionRef: string | null;
 };
 
-/** Reconciles a provider statement against internal payment evidence without changing the ledger. */
+function toMinor(value: string): bigint {
+  if (!/^(0|[1-9]\d{0,19})$/.test(value)) {
+    throw new Error("Reconciliation amount must be a non-negative integer minor-unit string.");
+  }
+  return BigInt(value);
+}
+
+/** Reconciles provider statements using exact integer arithmetic; it never mutates the ledger. */
 export function reconcileCommercialProviderStatement(
   internal: readonly ReconciliationInternalPayment[],
   providerRows: readonly ReconciliationProviderRow[],
 ): CommercialReconciliationResult[] {
   const results: CommercialReconciliationResult[] = [];
   for (const payment of internal) {
-    if (!Number.isSafeInteger(payment.amountMinor) || payment.amountMinor < 0
-      || !Number.isSafeInteger(payment.allocatedMinor) || payment.allocatedMinor < 0) {
-      throw new Error("Internal payment amount is outside safe integer precision.");
-    }
+    toMinor(payment.amountMinor);
+    toMinor(payment.allocatedMinor);
   }
   const providerByRef = new Map<string, ReconciliationProviderRow[]>();
   for (const row of providerRows) {
-    if (!row.providerRef.trim() || !Number.isSafeInteger(row.amountMinor) || row.amountMinor < 0) {
-      throw new Error("Provider statement row is invalid.");
-    }
+    if (!row.providerRef.trim()) throw new Error("Provider statement row is invalid.");
+    toMinor(row.amountMinor);
     const group = providerByRef.get(row.providerRef) ?? [];
     group.push(row);
     providerByRef.set(row.providerRef, group);
@@ -88,7 +92,7 @@ export function reconcileCommercialProviderStatement(
       });
       continue;
     }
-    if (payment.amountMinor !== observed.amountMinor) {
+    if (toMinor(payment.amountMinor) !== toMinor(observed.amountMinor)) {
       results.push({
         itemType: "amount_mismatch", internalPaymentId: payment.id, providerRef,
         expectedAmountMinor: payment.amountMinor, observedAmountMinor: observed.amountMinor,
@@ -118,7 +122,7 @@ export function reconcileCommercialProviderStatement(
       });
       continue;
     }
-    if (payment.status === "successful" && payment.allocatedMinor === 0) {
+    if (payment.status === "successful" && toMinor(payment.allocatedMinor) === 0n) {
       results.push({
         itemType: "unallocated", internalPaymentId: payment.id, providerRef,
         expectedAmountMinor: payment.amountMinor, observedAmountMinor: observed.amountMinor,
