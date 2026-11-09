@@ -478,19 +478,16 @@ export const addCommercialReconciliationItem=createServerFn({method:"POST"})
     const {data:run,error:runError}=await admin.from("commercial_reconciliation_runs")
       .select("id,organisation_id,status").eq("id",data.runId).maybeSingle();
     if(runError||!run||run.status!=="open") throw new Error("Open reconciliation run was not found.");
-    const {data:item,error}=await admin.from("commercial_reconciliation_items").insert({
-      run_id:data.runId,item_type:data.itemType,internal_payment_id:data.internalPaymentId??null,
-      provider_ref:data.providerRef??null,expected_amount_minor:data.expectedAmountMinor??null,
-      observed_amount_minor:data.observedAmountMinor??null,expected_currency:data.expectedCurrency??null,
-      observed_currency:data.observedCurrency??null,evidence:data.evidence,
-    }).select("id,item_type,resolution_status").single();
-    if(error||!item) throw new Error("Reconciliation evidence could not be recorded.");
-    const { error: lifecycleError } = await admin.rpc("commercial_record_reconciliation_item_event", {
-      _item_id: item.id, _event_type: "opened", _actor_user_id: actor.userId,
-      _actor_role: "founder_admin", _reason_code: "reconciliation_exception_opened",
-      _note: null, _evidence: data.evidence, _resolution_ref: null,
+    const { data: itemId, error } = await admin.rpc("commercial_create_reconciliation_item", {
+      _run_id: data.runId, _item_type: data.itemType,
+      _internal_payment_id: data.internalPaymentId ?? null, _provider_ref: data.providerRef ?? null,
+      _expected_amount_minor: data.expectedAmountMinor ?? null,
+      _observed_amount_minor: data.observedAmountMinor ?? null,
+      _expected_currency: data.expectedCurrency ?? null, _observed_currency: data.observedCurrency ?? null,
+      _evidence: data.evidence, _actor_user_id: actor.userId,
     });
-    if (lifecycleError) throw new Error("Reconciliation exception lifecycle evidence could not be recorded.");
+    if (error || !itemId) throw new Error("Reconciliation item and opening evidence could not be recorded atomically.");
+    const item = { id: itemId, item_type: data.itemType, resolution_status: "unresolved" };
     await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
       organisationId:run.organisation_id,actorRole:"founder_admin",action:"reconciliation.item_recorded",
       resourceType:"reconciliation_item",resourceRef:item.id,metadata:{itemType:item.item_type}});
@@ -503,20 +500,16 @@ export const resolveCommercialReconciliationItem=createServerFn({method:"POST"})
   .handler(async({data,context})=>{
     const actor=await resolveVerifiedFounderActor(context);
     const admin=await getAdmin();
-    const {data:item,error}=await admin.from("commercial_reconciliation_items").select("id,run_id,resolution_status").eq("id",data.itemId).maybeSingle();
-    if(error||!item) throw new Error("Reconciliation item not found.");
-    const {data:run}=await admin.from("commercial_reconciliation_runs").select("organisation_id,status").eq("id",item.run_id).maybeSingle();
-    if(!run||run.status==="completed") throw new Error("Completed reconciliation evidence cannot be changed.");
-    const {error:updateError}=await admin.from("commercial_reconciliation_items").update({
-      resolution_status:"resolved",resolution_ref:data.resolutionRef,
-    }).eq("id",data.itemId);
-    if(updateError) throw new Error("Reconciliation resolution could not be recorded.");
-    const { error: lifecycleError } = await admin.rpc("commercial_record_reconciliation_item_event", {
-      _item_id: data.itemId, _event_type: "resolved", _actor_user_id: actor.userId,
-      _actor_role: "founder_admin", _reason_code: "reconciliation_exception_resolved",
-      _note: null, _evidence: { resolutionRef: data.resolutionRef }, _resolution_ref: data.resolutionRef,
+    const { data: item, error: itemError } = await admin.from("commercial_reconciliation_items")
+      .select("id,run_id").eq("id", data.itemId).maybeSingle();
+    if (itemError || !item) throw new Error("Reconciliation item not found.");
+    const { data: run, error: runError } = await admin.from("commercial_reconciliation_runs")
+      .select("organisation_id").eq("id", item.run_id).maybeSingle();
+    if (runError || !run) throw new Error("Reconciliation run was not found.");
+    const { data: eventId, error: resolutionError } = await admin.rpc("commercial_resolve_reconciliation_item", {
+      _item_id: data.itemId, _resolution_ref: data.resolutionRef, _actor_user_id: actor.userId,
     });
-    if (lifecycleError) throw new Error("Reconciliation resolution evidence could not be appended.");
+    if (resolutionError || !eventId) throw new Error("Reconciliation resolution and evidence could not be committed atomically.");
     await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
       organisationId:run?.organisation_id??actor.organisationId,actorRole:"founder_admin",
       action:"reconciliation.item_resolved",resourceType:"reconciliation_item",resourceRef:data.itemId,
