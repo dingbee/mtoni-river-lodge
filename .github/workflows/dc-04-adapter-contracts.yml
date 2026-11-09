@@ -1,19 +1,21 @@
-name: StayNas DC-04 and DC-07A adapter contracts
+name: StayNas DC-04 and DC-07 distribution contracts
 
 on:
   pull_request:
-    branches: [main, feat/dc06-05-cross-domain-reconciliation]
+    branches: [main, feat/dc06-05-cross-domain-reconciliation, feat/dc06-07a-channex-adapter-foundation]
     paths:
       - "src/domains/distribution/**"
       - "src/routes/_authenticated.admin.settings.distribution.tsx"
       - "src/routes/_authenticated.admin.settings.index.tsx"
       - "supabase/migrations/*dc07a*"
+      - "supabase/migrations/*dc07b*"
       - "docs/dc-04-adapter-runtime-contract.md"
       - ".github/workflows/dc-04-adapter-contracts.yml"
   push:
     branches:
       - feat/dc-04-*
       - feat/dc06-*
+      - feat/dc07-*
       - main
 
 jobs:
