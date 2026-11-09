@@ -1,7 +1,8 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Activity, AlertCircle, Building2, CalendarClock, CheckCircle2, CircleDollarSign, CreditCard, FileText, RefreshCw, Search, ShieldCheck, Users } from "lucide-react";
 import { getFounderCommercialWorkspace } from "@/domains/commercial/founder-control-centre.functions";
+import { administerCommercialSubscription } from "@/domains/commercial/subscription-administration.functions";
 
 export const Route = createFileRoute("/_authenticated/founder")({
   head: () => ({ meta: [{ title: "Founder Commercial Control Centre — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
@@ -35,6 +36,48 @@ function CurrencyMetric({ title, values }: { title: string; values: { TZS: numbe
       <div><p className="text-xs text-muted-foreground">USD</p><p className="font-semibold tabular-nums">{money(values.USD, "USD")}</p></div>
     </div>
   </article>;
+}
+
+function SubscriptionAction({ subscription }: { subscription: Record<string, unknown> }) {
+  const router = useRouter();
+  const status = String(subscription.status);
+  const commands = status === "suspended" ? ["reinstate"] : status === "pending_activation" ? ["activate_paid"] : ["suspend", "cancel_immediately", "renewal_authorized"];
+  const [command, setCommand] = useState(commands[0]);
+  const [reasonCode, setReasonCode] = useState("");
+  const [acceptanceRef, setAcceptanceRef] = useState("");
+  const [periodEnd, setPeriodEnd] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const needsReason = command === "suspend" || command === "cancel_immediately";
+  const needsAcceptance = command === "activate_paid" || command === "renewal_authorized";
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setBusy(true); setMessage("");
+    try {
+      await administerCommercialSubscription({ data: {
+        subscriptionId: String(subscription.id),
+        command: command as "activate_paid" | "suspend" | "reinstate" | "cancel_immediately" | "renewal_authorized",
+        idempotencyKey: crypto.randomUUID(),
+        ...(needsReason ? { reasonCode } : {}),
+        ...(needsAcceptance ? { commercialAcceptanceRef: acceptanceRef } : {}),
+        ...(command === "activate_paid" ? { periodEndsAt: new Date(periodEnd).toISOString() } : {}),
+      }});
+      setMessage("Command accepted and persisted.");
+      await router.invalidate();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Subscription command failed.");
+    } finally { setBusy(false); }
+  };
+  return <form onSubmit={submit} className="min-w-[220px] space-y-2">
+    <select aria-label="Subscription action" value={command} onChange={(event) => setCommand(event.target.value)} className="h-8 w-full rounded-md border bg-background px-2 text-xs">
+      {commands.map((item) => <option key={item} value={item}>{label(item)}</option>)}
+    </select>
+    {needsReason && <input required value={reasonCode} onChange={(event) => setReasonCode(event.target.value)} placeholder="Reason code" className="h-8 w-full rounded-md border bg-background px-2 text-xs" />}
+    {needsAcceptance && <input required value={acceptanceRef} onChange={(event) => setAcceptanceRef(event.target.value)} placeholder="Commercial acceptance reference" className="h-8 w-full rounded-md border bg-background px-2 text-xs" />}
+    {command === "activate_paid" && <input required type="datetime-local" value={periodEnd} onChange={(event) => setPeriodEnd(event.target.value)} className="h-8 w-full rounded-md border bg-background px-2 text-xs" />}
+    <button type="submit" disabled={busy} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50">{busy ? "Processing…" : "Apply lifecycle command"}</button>
+    {message && <p role="status" className="max-w-[260px] text-xs text-muted-foreground">{message}</p>}
+  </form>;
 }
 
 function FounderWorkspace() {
@@ -125,12 +168,12 @@ function FounderWorkspace() {
         <div><h2 className="font-semibold">Subscription register</h2><p className="text-sm text-muted-foreground">Persisted subscription lifecycle records. Mutations remain routed through the CC-03 lifecycle service.</p></div>
         <div className="overflow-x-auto rounded-xl border">
           <table className="w-full min-w-[900px] text-left text-sm">
-            <thead className="bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="px-4 py-3">Tenant</th><th className="px-4 py-3">Plan / version</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Term / currency</th><th className="px-4 py-3">Property allowance</th><th className="px-4 py-3">Trial ends</th><th className="px-4 py-3">Current period ends</th></tr></thead>
+            <thead className="bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="px-4 py-3">Tenant</th><th className="px-4 py-3">Plan / version</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Term / currency</th><th className="px-4 py-3">Property allowance</th><th className="px-4 py-3">Trial ends</th><th className="px-4 py-3">Current period ends</th><th className="px-4 py-3">Founder action</th></tr></thead>
             <tbody className="divide-y">{data.subscriptions.map((subscription) => <tr key={String(subscription.id)}>
               <td className="px-4 py-3 font-medium">{String(subscription.tenant_name)}</td><td className="px-4 py-3">{label(String(subscription.plan_code))} · v{String(subscription.plan_version)}</td>
               <td className="px-4 py-3">{label(String(subscription.status))}</td><td className="px-4 py-3">{String(subscription.billing_term)} · {String(subscription.currency)}</td>
-              <td className="px-4 py-3 tabular-nums">{String(subscription.property_count)}</td><td className="px-4 py-3">{date(subscription.trial_ends_at)}</td><td className="px-4 py-3">{date(subscription.current_period_ends_at)}</td>
-            </tr>)}{data.subscriptions.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No subscription records have been provisioned.</td></tr>}</tbody>
+              <td className="px-4 py-3 tabular-nums">{String(subscription.property_count)}</td><td className="px-4 py-3">{date(subscription.trial_ends_at)}</td><td className="px-4 py-3">{date(subscription.current_period_ends_at)}</td><td className="px-4 py-3"><SubscriptionAction subscription={subscription} /></td>
+            </tr>)}{data.subscriptions.length === 0 && <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">No subscription records have been provisioned.</td></tr>}</tbody>
           </table>
         </div>
       </section>
