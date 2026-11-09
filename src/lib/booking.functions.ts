@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { assertSameProperty } from "@/lib/booking-property";
 import { resolvePublicDirectBookingChannel } from "@/lib/public-booking-channel.server";
+import { getActivePropertyPesapalAccount } from "@/lib/property-pesapal-account.server";
 
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date");
@@ -230,6 +231,7 @@ export const createBooking = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const sb: any = supabaseAdmin;
     const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
+    await getActivePropertyPesapalAccount(supabaseAdmin, channel.organisationId, channel.propertyId, channel.currency);
     const { data: result, error } = await sb.rpc("staynas_create_public_channel_reservation", {
       _sales_channel_id: channel.channelId,
       _quote_id: data.quoteId,
