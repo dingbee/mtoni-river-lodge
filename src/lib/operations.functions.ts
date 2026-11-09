@@ -92,11 +92,14 @@ export const getRoomBoard = createServerFn({ method: "GET" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const [statesRes, roomsRes, bookingsRes] = await Promise.all([
-      sb.from("room_states").select("id, room_id, unit_label, state, state_note, booking_id, updated_at").order("unit_label"),
-      sb.from("rooms").select("id, slug, name").order("sort_order"),
+      sb.from("room_states").select("id, room_id, unit_label, state, state_note, booking_id, updated_at").eq("property_id", propertyId).order("unit_label"),
+      sb.from("rooms").select("id, slug, name").eq("property_id", propertyId).eq("status", "active").order("sort_order"),
       sb.from("bookings")
         .select("id, reference, guest_name, check_in, check_out, status, room_id")
+        .eq("property_id", propertyId)
         .in("status", ["confirmed", "checked_in"])
         .lte("check_in", new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10)),
     ]);
@@ -124,14 +127,16 @@ export const updateRoomState = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const housekeepingStates = new Set(["vacant_dirty", "inspection", "vacant_clean", "maintenance", "out_of_service"]);
     if (housekeepingStates.has(data.state)) {
       throw new Error("Housekeeping room-readiness states must be changed through the governed Housekeeping workflow.");
     }
-    const { data: prev } = await sb.from("room_states").select("state, unit_label").eq("id", data.id).maybeSingle();
+    const { data: prev } = await sb.from("room_states").select("state, unit_label").eq("id", data.id).eq("property_id", propertyId).maybeSingle();
     const { error } = await sb.from("room_states")
       .update({ state: data.state, state_note: data.note ?? null, updated_by: context.userId })
-      .eq("id", data.id);
+      .eq("id", data.id).eq("property_id", propertyId);
     if (error) throw new Error(error.message);
     await logOpsEvent(sb, context.userId, context.claims, {
       type: "room.state_changed",

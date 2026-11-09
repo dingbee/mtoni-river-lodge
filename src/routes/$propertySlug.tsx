@@ -27,19 +27,16 @@ export const Route = createFileRoute("/$propertySlug")({
     }
   },
   head: ({ params }) => {
-    const isNolmark = params.propertySlug === "nolmark-cdma-staynas";
-    const title = isNolmark ? "Nolmark CDMA — Direct Booking" : `${params.propertySlug} — StayNas Direct`;
-    const description = isNolmark
-      ? "Check availability and request a reservation at Nolmark CDMA. Direct reservations powered by StayNas."
-      : "A direct booking page powered by StayNas.";
+    const title = `${params.propertySlug} — Direct Booking | StayNas`;
+    const description = "Check availability and book directly with this property, powered by StayNas.";
     return {
       meta: [
         { title },
         { name: "description", content: description },
         { property: "og:title", content: title },
         { property: "og:description", content: description },
-        { property: "og:site_name", content: isNolmark ? "Nolmark CDMA" : "StayNas Direct" },
-        { name: "theme-color", content: isNolmark ? "#000000" : "#1e352a" },
+        { property: "og:site_name", content: "StayNas" },
+        { name: "theme-color", content: "#1e352a" },
         { name: "robots", content: "noindex,nofollow" },
       ],
     };
@@ -85,11 +82,6 @@ const prettyDate = (value: string) => value
       .toLocaleUpperCase("en-GB")
   : "Select date";
 
-const roomVisuals = [
-  "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=1100&q=82",
-  "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1100&q=82",
-  "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1100&q=82",
-];
 
 function PublicPropertyBookingPage() {
   const { propertySlug } = Route.useParams();
@@ -199,7 +191,7 @@ function PublicPropertyBookingPage() {
   }
 
   const { property, rooms, branding } = propertyData;
-  const currency = property.currency || "USD";
+  const currency = property.currency;
   const brandStyle = {
     "--direct-primary": branding.primaryColor,
     "--direct-secondary": branding.secondaryColor,
@@ -231,7 +223,7 @@ function PublicPropertyBookingPage() {
             <p className="mt-3 max-w-md text-sm leading-6 text-white/85 sm:mt-4 sm:text-base">{branding.description || "Find your dates. Choose your room. Book directly."}</p>
             <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/15 px-3 py-1.5 text-[10px] font-medium tracking-wide text-white/90 backdrop-blur-sm"><Globe2 className="h-3.5 w-3.5"/> DIRECT RESERVATIONS · POWERED BY STAYNAS</div>
           </div>
-          <div className="absolute right-5 top-5 hidden rounded-full border border-white/25 bg-black/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white backdrop-blur-sm sm:block">Nolmark UAT experience</div>
+          
         </div>
 
         <section id="availability" className="relative z-10 mx-auto -mt-5 max-w-5xl rounded-[1.4rem] border border-[#e6e4dc] bg-white p-4 shadow-[0_18px_55px_rgba(33,43,36,0.10)] sm:-mt-8 sm:rounded-[1.7rem] sm:p-6">
@@ -277,7 +269,7 @@ function PublicPropertyBookingPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {rooms.map((room: any, index: number) => {
+          {rooms.map((room: any) => {
             const live = availableRooms.find((item) => item.slug === room.slug);
             const isSelected = selectedRoom?.slug === room.slug;
             const planOptions: RatePlanOption[] = live?.rate_plan_options ?? [];
@@ -286,18 +278,18 @@ function PublicPropertyBookingPage() {
             const notReturned = hasSearched && !live;
             return <article key={room.id} className={`group overflow-hidden rounded-[1.4rem] border bg-white transition duration-200 ${isSelected ? "border-[#68816f] ring-2 ring-[#dce7dd]" : "border-[#e8e7df] hover:-translate-y-0.5 hover:shadow-[0_14px_35px_rgba(33,43,36,0.08)]"}`}>
               <div className="relative aspect-[16/10] overflow-hidden bg-[#e9e9e1]">
-                <img src={roomVisuals[index % roomVisuals.length]} alt={`${room.name} illustrative room interior`} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]"/>
-                <span className="absolute left-3 top-3 rounded-full border border-white/40 bg-white/90 px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#35483b] backdrop-blur-sm">StayNas selection</span>
+                {(room.image_url || room.gallery_urls?.[0]) ? <img src={room.image_url || room.gallery_urls?.[0]} alt={`${room.name} at ${property.name}`} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]"/> : <div className="flex h-full w-full items-center justify-center bg-[#e9e9e1] text-xs text-[#7a857d]">Room image not provided</div>}
+                <span className="absolute left-3 top-3 rounded-full border border-white/40 bg-white/90 px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#35483b] backdrop-blur-sm">{room.category?.name || property.name}</span>
                 {isSelected && <span className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#244331] text-white"><Check className="h-4 w-4"/></span>}
               </div>
               <div className="p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0"><h3 className="text-[17px] font-semibold tracking-[-0.035em] text-[#253229]">{room.name}</h3><p className="mt-1 line-clamp-2 text-xs leading-5 text-[#7a857d]">{room.short_description || "A considered space for a comfortable stay."}</p></div>
+                  <div className="min-w-0"><h3 className="text-[17px] font-semibold tracking-[-0.035em] text-[#253229]">{room.name}</h3><p className="mt-1 line-clamp-2 text-xs leading-5 text-[#7a857d]">{room.short_description || room.hero_line || room.description?.[0] || "A comfortable space for your stay."}</p></div>
                   <div className="shrink-0 text-right"><p className="text-[17px] font-semibold tracking-tight text-[#253229]">{hasSearched && live && needsPlanChoice && !selectedPlanForRoom ? "Choose a plan" : hasSearched && live && selectedPlanForRoom ? money(Number(selectedPlanForRoom.total), selectedPlanForRoom.currency) : money(room.base_price, room.currency || currency)}</p><p className="text-[10px] text-[#899188]">{hasSearched && live && selectedPlanForRoom ? "accommodation subtotal" : hasSearched && live && needsPlanChoice ? "to view pricing" : "per night · indicative"}</p></div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-x-3 gap-y-2 border-t border-[#f0f0eb] pt-3 text-[10px] text-[#758078]">
                   <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5"/>{room.max_occupancy} guests max</span>
-                  {room.bed_label && <span className="inline-flex items-center gap-1"><BedDouble className="h-3.5 w-3.5"/>{room.bed_label}</span>}
+                  {room.bed_label && <span className="inline-flex items-center gap-1"><BedDouble className="h-3.5 w-3.5"/>{room.bed_label}</span>}{room.size_label && <span>{room.size_label}</span>}{room.view_label && <span>{room.view_label}</span>}
                 </div>
                 {live ? <div className="mt-4 border-t border-[#f0f0eb] pt-3">
                   <div className="flex items-center justify-between gap-2"><span className="text-[10px] font-medium text-[#4d7059]">{live.min_available} available</span><span className="text-xs font-semibold text-[#26382d]">{needsPlanChoice && planOptions.length === 0 ? "Rates unavailable" : needsPlanChoice && planOptions.length > 1 && !selectedPlanForRoom ? "Choose a rate plan" : money(Number(selectedPlanForRoom?.total ?? live.nightly_total ?? 0), selectedPlanForRoom?.currency ?? live.currency)} <span className="font-normal text-[#899188]">accommodation subtotal</span></span></div>
@@ -337,17 +329,17 @@ function PublicPropertyBookingPage() {
           </div>
           {bookingMutation.isError && <p role="alert" className="mt-4 text-xs text-red-700">{(bookingMutation.error as Error).message}</p>}
           <button type="submit" disabled={bookingMutation.isPending || quoteLoading || !bookingQuote?.quote_id} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#1e352a] px-5 text-xs font-semibold text-white transition hover:bg-[#294536] disabled:opacity-50">{bookingMutation.isPending ? "Submitting reservation…" : "Request this reservation"}<ArrowRight className="h-4 w-4"/></button>
-          <p className="mt-3 text-center text-[10px] text-[#899188]">UAT demonstration · No payment is collected.</p>
+          <p className="mt-3 text-center text-[10px] text-[#899188]">Your reservation request will be sent to the property for confirmation.</p>
         </form>}
 
         {confirmation && <section id="booking-confirmation" className="mt-7 scroll-mt-6 rounded-[1.5rem] border border-[#cbdccf] bg-[#edf4ed] p-6 sm:p-8">
-          <CheckCircle2 className="h-9 w-9 text-[#3d7650]"/><h2 className="mt-3 text-2xl font-medium tracking-tight text-[#21392a]">Your reservation is recorded</h2><p className="mt-2 text-sm text-[#536b59]">The reservation has been saved to the Nolmark UAT property.</p>
+          <CheckCircle2 className="h-9 w-9 text-[#3d7650]"/><h2 className="mt-3 text-2xl font-medium tracking-tight text-[#21392a]">Your reservation is recorded</h2><p className="mt-2 text-sm text-[#536b59]">The reservation has been saved to {confirmation.propertyName}.</p>
           <div className="mt-5 grid gap-4 rounded-xl bg-white/80 p-4 text-sm sm:grid-cols-2"><div><p className="text-[10px] text-[#7e8a80]">BOOKING REFERENCE</p><p className="mt-1 font-semibold">{confirmation.reference}</p></div><div><p className="text-[10px] text-[#7e8a80]">RESERVATION TOTAL</p><p className="mt-1 font-semibold">{money(confirmation.total, confirmation.currency)}</p></div><div><p className="text-[10px] text-[#7e8a80]">PAYMENT STATUS</p><p className="mt-1 font-semibold">Unpaid · No payment gateway</p></div><div><p className="text-[10px] text-[#7e8a80]">PROPERTY</p><p className="mt-1 font-semibold">{confirmation.propertyName}</p></div></div>
-          <button type="button" onClick={() => { setConfirmation(null); setSelectedRoom(null); setGuestName(""); setGuestEmail(""); setGuestPhone(""); setCountry(""); setSpecialRequests(""); setAvailableRooms([]); setHasSearched(false); }} className="mt-5 rounded-full border border-[#78917e] px-5 py-2.5 text-xs font-semibold text-[#31523b]">Start another demo booking</button>
+          <button type="button" onClick={() => { setConfirmation(null); setSelectedRoom(null); setGuestName(""); setGuestEmail(""); setGuestPhone(""); setCountry(""); setSpecialRequests(""); setAvailableRooms([]); setHasSearched(false); }} className="mt-5 rounded-full border border-[#78917e] px-5 py-2.5 text-xs font-semibold text-[#31523b]">Make another reservation</button>
         </section>}
       </section>
 
-      <footer className="border-t border-[#e7e5dd] bg-[#eeeee7] px-5 py-7 text-center">{branding.logoUrl ? <img src={branding.logoUrl} alt={property.name} className="mx-auto h-8 max-w-32 object-contain"/> : <p className="text-sm font-semibold tracking-tight text-[#314338]">{property.name}</p>}{branding.showStayNasAttribution && <p className="mt-2 text-[10px] text-[#879188]">Property-owned reservations · Powered by StayNas</p>}<p className="mt-1 text-[9px] text-[#9aa198]">Nolmark UAT demonstration — sample inventory and rates.</p></footer>
+      <footer className="border-t border-[#e7e5dd] bg-[#eeeee7] px-5 py-7 text-center">{branding.logoUrl ? <img src={branding.logoUrl} alt={property.name} className="mx-auto h-8 max-w-32 object-contain"/> : <p className="text-sm font-semibold tracking-tight text-[#314338]">{property.name}</p>}{branding.showStayNasAttribution && <p className="mt-2 text-[10px] text-[#879188]">Property-owned reservations · Powered by StayNas</p>}</footer>
 
       {!confirmation && <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#e6e4dc] bg-[#fafaf7]/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-lg sm:hidden">
         <div className="mx-auto flex max-w-lg items-center gap-3">

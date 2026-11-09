@@ -43,6 +43,10 @@ const roomSchema = z.object({
   capacityAdults: z.number().int().min(1).max(20),
   capacityChildren: z.number().int().min(0).max(20),
   maxOccupancy: z.number().int().min(1).max(30),
+  totalUnits: z.number().int().min(0).max(10000).default(1),
+  basePrice: z.number().min(0).max(1000000000).default(0),
+  includedGuests: z.number().int().min(1).max(30).default(2),
+  extraGuestFee: z.number().min(0).max(1000000000).default(0),
   sortOrder: z.number().int().min(0).max(9999).default(0),
   status: z.enum(["active", "archived"]).default("active"),
 });
@@ -100,9 +104,9 @@ export const savePlatformRoomType = createServerFn({ method: "POST" })
       gallery_urls:data.galleryUrls, size_label:data.sizeLabel || null, view_label:data.viewLabel || null,
       bed_label:data.bedLabel || null, bathroom_label:data.bathroomLabel || null, amenities:data.amenities,
       status:data.status === "archived" ? "inactive" : "active", sort_order:data.sortOrder,
-      total_units:existing?.total_units ?? 1, base_price:existing?.base_price ?? 0,
-      currency:existing?.currency ?? property.currency, included_guests:existing?.included_guests ?? data.capacityAdults,
-      extra_guest_fee:existing?.extra_guest_fee ?? 0,
+      total_units:data.totalUnits, base_price:data.basePrice,
+      currency:existing?.currency ?? property.currency, included_guests:data.includedGuests,
+      extra_guest_fee:data.extraGuestFee,
     };
     const q = data.id ? sb.from("rooms").update(payload).eq("id",data.id).eq("property_id",propertyId).select("id").single() : sb.from("rooms").insert(payload).select("id").single();
     const { data: row, error } = await q;
