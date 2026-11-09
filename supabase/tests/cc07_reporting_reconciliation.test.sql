@@ -78,7 +78,9 @@ BEGIN
     OR to_regclass('public.commercial_founder_revenue_invoice_facts') IS NULL
     OR to_regclass('public.commercial_founder_revenue_collection_facts') IS NULL
     OR to_regclass('public.commercial_founder_revenue_reversal_facts') IS NULL
-    OR to_regclass('public.commercial_founder_receivables_aging') IS NULL THEN
+    OR to_regclass('public.commercial_founder_receivables_aging') IS NULL
+    OR to_regclass('public.commercial_subscription_invoice_consistency_facts') IS NULL
+    OR to_regclass('public.commercial_subscription_entitlement_consistency_facts') IS NULL THEN
     RAISE EXCEPTION 'CC-07 recurring revenue, movement or precision-safe reporting views are incomplete';
   END IF;
   IF NOT EXISTS (
@@ -362,6 +364,27 @@ BEGIN
   IF (SELECT mrr_minor FROM public.commercial_subscription_recurring_value_facts
       WHERE subscription_id=(v_result->>'subscriptionId')::uuid)<>'150000' THEN
     RAISE EXCEPTION 'Current recurring contract value view returned incorrect MRR';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.commercial_subscription_invoice_consistency_facts
+    WHERE subscription_id=(v_result->>'subscriptionId')::uuid
+      AND exception_type='missing_current_period_invoice'
+  ) THEN
+    RAISE EXCEPTION 'Missing current-period invoice was not detected for the new paid subscription';
+  END IF;
+  INSERT INTO public.commercial_entitlement_assignments(
+    organisation_id,account_id,subscription_id,feature_code,source_type,source_ref,
+    status,effective_from,context_snapshot
+  ) VALUES (
+    v_customer_org,v_account,v_old_sub,'reservations','plan','cc07-test-plan',
+    'active',now()-interval '1 day','{"test":true}'::jsonb
+  );
+  IF NOT EXISTS (
+    SELECT 1 FROM public.commercial_subscription_entitlement_consistency_facts
+    WHERE subscription_id=v_old_sub AND exception_type='active_entitlement_on_inactive_subscription'
+  ) THEN
+    RAISE EXCEPTION 'Active entitlement attached to cancelled subscription was not detected';
   END IF;
   IF (SELECT data_type FROM information_schema.columns
       WHERE table_schema='public' AND table_name='commercial_founder_subscription_movement_facts'
