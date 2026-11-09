@@ -72,7 +72,7 @@ export const initiatePayment = createServerFn({ method: "POST" })
 
     const merchantRef = `${booking.reference}-D${Date.now().toString(36).slice(-4).toUpperCase()}`;
     const { error: accountBindingError } = await (supabaseAdmin as any).from("bookings")
-      .update({ payment_provider: "pesapal", payment_provider_account_id: account.id, pesapal_merchant_reference: merchantRef })
+      .update({ payment_provider: "pesapal", payment_provider_account_id: account.id, payment_provider_credential_secret_ref: account.credential_secret_ref, payment_provider_environment: account.environment, pesapal_merchant_reference: merchantRef })
       .eq("id", booking.id).eq("property_id", propertyId).eq("sales_channel_id", channel.channelId);
     if (accountBindingError) throw new Error("Booking could not be bound to its property Pesapal account.");
     const callbackUrl = `${baseUrl}/booking/return?ref=${encodeURIComponent(booking.reference)}`;
