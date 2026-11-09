@@ -111,7 +111,7 @@ function FounderCommercialReporting() {
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `staynas-commercial-report-${report.periodStart.slice(0, 10)}.csv`;
+    anchor.download = `staynas-commercial-report-${report.periodStart.slice(0, 10)}-to-${new Date(Date.parse(report.periodEnd)-86400000).toISOString().slice(0,10)}.csv`;
     anchor.click();
     URL.revokeObjectURL(url);
   };
@@ -122,7 +122,7 @@ function FounderCommercialReporting() {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Nolmark CDMA · Founder workspace</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Commercial Reporting</h1>
           <p className="mt-2 text-sm text-muted-foreground">Currency-separated commercial performance and receivables. No currency conversion is applied.</p>
-          <p className="mt-1 text-xs text-muted-foreground">Reporting window: {dateLabel(report.periodStart)} – {dateLabel(report.periodEnd)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Reporting window: {dateLabel(report.periodStart)} – {dateLabel(new Date(Date.parse(report.periodEnd)-86400000).toISOString())}</p>
         </div>
         <div className="flex gap-2 print:hidden">
           <button type="button" onClick={downloadCsv} className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Export CSV</button>
