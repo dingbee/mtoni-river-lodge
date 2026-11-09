@@ -60,11 +60,6 @@ export const initiatePayment = createServerFn({ method: "POST" })
         .eq("id", account.id).eq("property_id", propertyId).eq("organisation_id", channel.organisationId);
       if (ipnConfigError) throw new Error("Property Pesapal IPN registration could not be persisted.");
     }
-    const { error: accountBindingError } = await (supabaseAdmin as any).from("bookings")
-      .update({ payment_provider: "pesapal", payment_provider_account_id: account.id })
-      .eq("id", booking.id).eq("property_id", propertyId).eq("sales_channel_id", channel.channelId);
-    if (accountBindingError) throw new Error("Booking could not be bound to its property Pesapal account.");
-
     if (booking.currency !== "TZS" && booking.currency !== "USD") {
       throw new Error("Booking currency is missing or unsupported. Payment cannot be initiated.");
     }
@@ -73,6 +68,10 @@ export const initiatePayment = createServerFn({ method: "POST" })
     if (!deposit || deposit <= 0) throw new Error("Invalid deposit amount");
 
     const merchantRef = `${booking.reference}-D${Date.now().toString(36).slice(-4).toUpperCase()}`;
+    const { error: accountBindingError } = await (supabaseAdmin as any).from("bookings")
+      .update({ payment_provider: "pesapal", payment_provider_account_id: account.id, pesapal_merchant_reference: merchantRef })
+      .eq("id", booking.id).eq("property_id", propertyId).eq("sales_channel_id", channel.channelId);
+    if (accountBindingError) throw new Error("Booking could not be bound to its property Pesapal account.");
     const callbackUrl = `${baseUrl}/booking/return?ref=${encodeURIComponent(booking.reference)}`;
 
     const [firstName, ...rest] = (booking.guest_name ?? "").trim().split(/\s+/);
@@ -91,16 +90,15 @@ export const initiatePayment = createServerFn({ method: "POST" })
       lastName,
     });
 
-    await (supabaseAdmin as any)
+    const { error: orderBindingError } = await (supabaseAdmin as any)
       .from("bookings")
       .update({
-        payment_provider: "pesapal",
-        payment_provider_account_id: account.id,
         pesapal_order_tracking_id: order.order_tracking_id,
-        pesapal_merchant_reference: order.merchant_reference,
         payment_initiated_at: new Date().toISOString(),
       })
-      .eq("id", booking.id);
+      .eq("id", booking.id).eq("payment_provider_account_id", account.id)
+      .eq("pesapal_merchant_reference", merchantRef);
+    if (orderBindingError) throw new Error("Pesapal order tracking reference could not be bound to the booking.");
 
     await (supabaseAdmin as any).from("payment_events").insert({
       booking_id: booking.id,
