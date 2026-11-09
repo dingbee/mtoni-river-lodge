@@ -50,6 +50,7 @@ function FounderSubscriptions(){
   const selectedAddonPrices=setup?.addonPrices.filter(p=>addonCodes.includes(p.addonCode)&&p.currency===currency&&p.billingTerm===billingTerm)??[];
   const preview=useMemo(()=>{
     if(!selectedPrice)return null;
+    if(addonCodes.some(code=>!selectedComposition?.addonCodes.includes(code)&&!selectedAddonPrices.some(p=>p.addonCode===code)))return null;
     if(selectedPrice.priceMode==="quote_required")return {quoteRequired:true,total:null as number|null};
     if(selectedPrice.baseAmountMinor===null||selectedPrice.additionalPropertyAmountMinor===null||selectedPrice.includedProperties===null)return null;
     let total=selectedPrice.baseAmountMinor+Math.max(0,propertyCount-selectedPrice.includedProperties)*selectedPrice.additionalPropertyAmountMinor;

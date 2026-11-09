@@ -210,6 +210,20 @@ function FounderWorkspace() {
           <div className="flex items-center gap-3 sm:col-span-2"><button type="submit" disabled={registrationBusy||!registerOrganisationId} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">{registrationBusy?"Registering…":"Register commercial account"}</button><p className="text-xs text-muted-foreground">Creates only the commercial account and contact record. Does not create users, memberships or properties.</p></div>
         </form>}
         {registrationMessage&&<p role="status" className="text-sm text-muted-foreground">{registrationMessage}</p>}
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground">{unregisteredTenants.length} organisation(s) without a commercial account.</p>
+          <button type="button" disabled={unregisteredTenants.length===0} onClick={()=>setRegisterOpen(!registerOpen)} className="rounded-md border px-3 py-2 text-sm disabled:opacity-50">{registerOpen?"Close registration":"Register commercial customer"}</button>
+        </div>
+        {registerOpen&&<form onSubmit={registerAccount} className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2">
+          <label className="text-xs font-medium sm:col-span-2">Existing customer organisation<select required value={registerOrganisationId} onChange={e=>setRegisterOrganisationId(e.target.value)} className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm">{unregisteredTenants.map(tenant=><option key={tenant.id} value={tenant.id}>{tenant.name} · {tenant.slug}</option>)}</select></label>
+          <label className="text-xs font-medium">Primary contact name<input required minLength={2} maxLength={120} value={contactName} onChange={e=>setContactName(e.target.value)} className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm" /></label>
+          <label className="text-xs font-medium">Primary contact email<input required type="email" value={contactEmail} onChange={e=>setContactEmail(e.target.value)} className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm" /></label>
+          <label className="text-xs font-medium">Contact phone<input value={contactPhone} onChange={e=>setContactPhone(e.target.value)} className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm" /></label>
+          <label className="text-xs font-medium">Contact responsibility<select value={contactRole} onChange={e=>setContactRole(e.target.value as typeof contactRole)} className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm"><option value="primary">Primary</option><option value="billing">Billing</option><option value="technical">Technical</option><option value="finance">Finance</option></select></label>
+          <label className="text-xs font-medium sm:col-span-2">Commercial registration reason<input required minLength={2} maxLength={200} value={registrationReason} onChange={e=>setRegistrationReason(e.target.value)} placeholder="Approved customer onboarding reference" className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm" /></label>
+          <div className="flex items-center gap-3 sm:col-span-2"><button type="submit" disabled={registrationBusy||!registerOrganisationId} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">{registrationBusy?"Registering…":"Register commercial account"}</button><p className="text-xs text-muted-foreground">Creates only the commercial account and contact record. Does not create users, memberships or properties.</p></div>
+        </form>}
+        {registrationMessage&&<p role="status" className="text-sm text-muted-foreground">{registrationMessage}</p>}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div><h2 className="font-semibold">Tenant commercial registry</h2><p className="text-sm text-muted-foreground">Search and inspect customer commercial status.</p></div>
           <div className="flex flex-col gap-2 sm:flex-row">

@@ -37,6 +37,26 @@ CREATE TRIGGER commercial_account_contact_guard
   BEFORE UPDATE OR DELETE ON public.commercial_account_contacts
   FOR EACH ROW EXECUTE FUNCTION public.guard_commercial_account_contact_mutation();
 
+CREATE OR REPLACE FUNCTION public.commercial_is_founder_admin_service(_principal_id uuid)
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $
+BEGIN
+  IF coalesce(auth.role(),'') <> 'service_role' OR _principal_id IS NULL THEN RETURN false; END IF;
+  RETURN EXISTS (
+    SELECT 1 FROM public.commercial_founder_tenant_config cfg
+    JOIN public.commercial_founder_admin_memberships fam
+      ON fam.organisation_id=cfg.founder_organisation_id AND fam.principal_id=_principal_id AND fam.status='active'
+    WHERE cfg.singleton=true AND EXISTS (
+      SELECT 1 FROM public.staynas_properties p
+      JOIN public.staynas_organisations o ON o.id=p.organisation_id
+      JOIN public.staynas_property_members pm ON pm.property_id=p.id
+      WHERE p.organisation_id=cfg.founder_organisation_id AND o.status='active' AND p.status='active'
+        AND pm.user_id=_principal_id AND pm.status='active'
+    )
+  );
+END $;
+REVOKE ALL ON FUNCTION public.commercial_is_founder_admin_service(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.commercial_is_founder_admin_service(uuid) TO service_role;
+
 CREATE OR REPLACE FUNCTION public.commercial_register_account(
   _organisation_id uuid,_contact_name text,_contact_email text,_contact_phone text,
   _contact_role text,_reason_code text,_idempotency_key text,_actor_user_id uuid,_actor_organisation_id uuid
@@ -53,7 +73,9 @@ BEGIN
     OR _contact_role NOT IN ('primary','billing','technical','finance')
     OR _reason_code IS NULL OR length(btrim(_reason_code)) NOT BETWEEN 2 AND 200
     OR _idempotency_key IS NULL OR length(btrim(_idempotency_key)) NOT BETWEEN 8 AND 200
-    OR NOT public.commercial_is_founder_admin(_actor_user_id) THEN
+    OR NOT public.commercial_is_founder_admin_service(_actor_user_id)
+    OR NOT EXISTS (SELECT 1 FROM public.commercial_founder_tenant_config cfg WHERE cfg.singleton=true AND cfg.founder_organisation_id=_actor_organisation_id)
+    OR _organisation_id=_actor_organisation_id THEN
     RAISE EXCEPTION 'Founder authority and complete commercial registration evidence are required' USING ERRCODE='42501';
   END IF;
   PERFORM pg_advisory_xact_lock(hashtextextended(_idempotency_key,0));

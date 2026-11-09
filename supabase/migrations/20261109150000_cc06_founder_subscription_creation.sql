@@ -30,7 +30,8 @@ BEGIN
     RAISE EXCEPTION 'Subscription registration requires a trusted server principal' USING ERRCODE='42501';
   END IF;
   IF _actor_user_id IS NULL OR _actor_organisation_id IS NULL
-    OR NOT public.commercial_is_founder_admin(_actor_user_id)
+    OR NOT public.commercial_is_founder_admin_service(_actor_user_id)
+    OR NOT EXISTS (SELECT 1 FROM public.commercial_founder_tenant_config cfg WHERE cfg.singleton=true AND cfg.founder_organisation_id=_actor_organisation_id)
     OR _account_id IS NULL
     OR _plan_code NOT IN ('essential','professional','enterprise')
     OR _plan_version IS NULL OR _plan_version < 1
@@ -55,7 +56,7 @@ BEGIN
   END IF;
   PERFORM pg_advisory_xact_lock(hashtextextended(_idempotency_key,0));
   SELECT * INTO v_account FROM public.commercial_accounts WHERE id=_account_id FOR UPDATE;
-  IF NOT FOUND OR v_account.status <> 'active' THEN
+  IF NOT FOUND OR v_account.status <> 'active' OR v_account.organisation_id=_actor_organisation_id THEN
     RAISE EXCEPTION 'An active commercial account is required' USING ERRCODE='P0002';
   END IF;
   SELECT * INTO v_existing FROM public.commercial_subscription_events

@@ -21,8 +21,9 @@ export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const admin = supabaseAdmin as any;
-    const [organisationsResult, accountsResult, contactsResult, subscriptionsResult, propertiesResult, invoicesResult, paymentsResult, assignmentsResult, eventsResult, financialEventsResult, policyVersionsResult, policyCurrentResult, notificationsResult, decisionsResult, providerAccountsResult, unallocatedResult, reconciliationRunsResult, grantRulesResult] = await Promise.all([
+    const [organisationsResult, founderConfigResult, accountsResult, contactsResult, subscriptionsResult, propertiesResult, invoicesResult, paymentsResult, assignmentsResult, eventsResult, financialEventsResult, policyVersionsResult, policyCurrentResult, notificationsResult, decisionsResult, providerAccountsResult, unallocatedResult, reconciliationRunsResult, grantRulesResult] = await Promise.all([
       admin.from("staynas_organisations").select("id,slug,name,status,created_at").order("created_at", { ascending: false }),
+      admin.from("commercial_founder_tenant_config").select("founder_organisation_id").eq("singleton",true).maybeSingle(),
       admin.from("commercial_accounts").select("id,organisation_id,status,created_at,updated_at"),
       admin.from("commercial_account_contacts").select("account_id,contact_name,contact_email,contact_phone,contact_role,created_at,updated_at"),
       admin.from("commercial_subscriptions").select("id,account_id,plan_code,plan_version,currency,billing_term,status,property_count,addon_codes,trial_started_at,trial_ends_at,current_period_starts_at,current_period_ends_at,cancel_at_period_end,accepted_price_snapshot,quote_required,created_at"),
@@ -41,17 +42,22 @@ export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
       admin.from("commercial_reconciliation_runs").select("id,organisation_id,provider_account_id,currency,period_start,period_end,status,source_ref,completed_at,created_at").order("created_at", { ascending: false }).limit(100),
       admin.from("commercial_entitlement_grant_rules").select("id,grant_type,organisation_id,addon_code,feature_code,effect,effective_from,effective_to,reason,created_by,created_at").order("created_at", { ascending: false }),
     ]);
-    const errors = [organisationsResult, accountsResult, contactsResult, subscriptionsResult, propertiesResult, invoicesResult, paymentsResult, assignmentsResult, eventsResult, financialEventsResult, policyVersionsResult, policyCurrentResult, notificationsResult, decisionsResult, providerAccountsResult, unallocatedResult, reconciliationRunsResult, grantRulesResult].filter((result) => result.error);
+    const errors = [organisationsResult, founderConfigResult, accountsResult, contactsResult, subscriptionsResult, propertiesResult, invoicesResult, paymentsResult, assignmentsResult, eventsResult, financialEventsResult, policyVersionsResult, policyCurrentResult, notificationsResult, decisionsResult, providerAccountsResult, unallocatedResult, reconciliationRunsResult, grantRulesResult].filter((result) => result.error);
     if (errors.length) throw new Error("Founder commercial workspace data could not be loaded from authoritative records.");
-    const organisations = rows(organisationsResult.data);
-    const accounts = rows(accountsResult.data);
-    const contacts = rows(contactsResult.data);
+    const founderOrganisationId = String((founderConfigResult.data as {founder_organisation_id?:string}|null)?.founder_organisation_id ?? "");
+    if (!founderOrganisationId) throw new Error("Founder tenant boundary configuration is missing.");
+    // The founder organisation is the platform owner, not a customer tenant.
+    const organisations = rows(organisationsResult.data).filter((organisation)=>String(organisation.id)!==founderOrganisationId);
+    const customerOrganisationIds = new Set(organisations.map((organisation)=>String(organisation.id)));
+    const accounts = rows(accountsResult.data).filter((account)=>customerOrganisationIds.has(String(account.organisation_id)));
+    const customerAccountIds = new Set(accounts.map((account)=>String(account.id)));
+    const contacts = rows(contactsResult.data).filter((contact)=>customerAccountIds.has(String(contact.account_id)));
     const contactByAccount = new Map(contacts.map((contact) => [String(contact.account_id), contact]));
-    const subscriptions = rows(subscriptionsResult.data);
-    const properties = rows(propertiesResult.data);
-    const invoices = rows(invoicesResult.data);
-    const payments = rows(paymentsResult.data);
-    const assignments = rows(assignmentsResult.data);
+    const subscriptions = rows(subscriptionsResult.data).filter((subscription)=>customerAccountIds.has(String(subscription.account_id)));
+    const properties = rows(propertiesResult.data).filter((property)=>customerOrganisationIds.has(String(property.organisation_id)));
+    const invoices = rows(invoicesResult.data).filter((invoice)=>customerOrganisationIds.has(String(invoice.organisation_id)));
+    const payments = rows(paymentsResult.data).filter((payment)=>customerOrganisationIds.has(String(payment.organisation_id)));
+    const assignments = rows(assignmentsResult.data).filter((assignment)=>customerOrganisationIds.has(String(assignment.organisation_id)));
     const now = Date.now();
     const soon = now + 30 * 24 * 60 * 60 * 1000;
     const accountByOrg = new Map(accounts.map((item) => [String(item.organisation_id), item]));
@@ -146,17 +152,17 @@ export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
         return { ...payment, tenant_name: organisation?.name ?? "Unknown tenant" };
       }),
       entitlementAssignments: assignments,
-      entitlementDecisions: rows(decisionsResult.data),
+      entitlementDecisions: rows(decisionsResult.data).filter((decision)=>customerOrganisationIds.has(String(decision.organisation_id))),
       policyVersions: rows(policyVersionsResult.data),
       policyCurrent: rows(policyCurrentResult.data),
-      notifications: rows(notificationsResult.data),
-      providerAccounts: rows(providerAccountsResult.data).map((provider) => ({
+      notifications: rows(notificationsResult.data).filter((notification)=>customerOrganisationIds.has(String(notification.organisation_id))),
+      providerAccounts: rows(providerAccountsResult.data).filter((provider)=>customerOrganisationIds.has(String(provider.organisation_id))).map((provider) => ({
         ...provider, tenant_name: organisations.find((organisation) => organisation.id === provider.organisation_id)?.name ?? "Unknown tenant",
       })),
-      unallocatedCollections: rows(unallocatedResult.data).map((collection) => ({
+      unallocatedCollections: rows(unallocatedResult.data).filter((collection)=>customerOrganisationIds.has(String(collection.organisation_id))).map((collection) => ({
         ...collection, tenant_name: organisations.find((organisation) => organisation.id === collection.organisation_id)?.name ?? "Unknown tenant",
       })),
-      reconciliationRuns: rows(reconciliationRunsResult.data).map((run) => ({
+      reconciliationRuns: rows(reconciliationRunsResult.data).filter((run)=>customerOrganisationIds.has(String(run.organisation_id))).map((run) => ({
         ...run, tenant_name: organisations.find((organisation) => organisation.id === run.organisation_id)?.name ?? "Unknown tenant",
       })),
       entitlementGrantRules: rows(grantRulesResult.data),
@@ -173,9 +179,11 @@ export const getFounderTenantCommercialProfile = createServerFn({ method: "GET" 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const admin = supabaseAdmin as any;
-    const { data: organisation, error: organisationError } = await admin.from("staynas_organisations")
-      .select("id,slug,name,status,created_at,updated_at").eq("id", data.organisationId).maybeSingle();
-    if (organisationError || !organisation) throw new Error("Tenant commercial profile was not found.");
+    const [{ data: organisation, error: organisationError }, { data: founderConfig, error: founderConfigError }] = await Promise.all([
+      admin.from("staynas_organisations").select("id,slug,name,status,created_at,updated_at").eq("id", data.organisationId).maybeSingle(),
+      admin.from("commercial_founder_tenant_config").select("founder_organisation_id").eq("singleton",true).maybeSingle(),
+    ]);
+    if (organisationError || founderConfigError || !organisation || organisation.id===founderConfig?.founder_organisation_id) throw new Error("Customer tenant commercial profile was not found.");
     const [accountResult, propertiesResult] = await Promise.all([
       admin.from("commercial_accounts").select("id,organisation_id,status,created_at,updated_at").eq("organisation_id", data.organisationId).maybeSingle(),
       admin.from("staynas_properties").select("id,name,slug,code,status,currency,timezone,created_at").eq("organisation_id", data.organisationId).order("created_at", { ascending: true }),
@@ -256,8 +264,9 @@ export const syncFounderCommercialNotifications = createServerFn({ method: "POST
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const admin = supabaseAdmin as any;
-    const [organisationsResult, accountsResult, subscriptionsResult, invoicesResult, paymentsResult, reconciliationResult, decisionsResult] = await Promise.all([
+    const [organisationsResult, founderConfigResult, accountsResult, subscriptionsResult, invoicesResult, paymentsResult, reconciliationResult, decisionsResult] = await Promise.all([
       admin.from("staynas_organisations").select("id,name"),
+      admin.from("commercial_founder_tenant_config").select("founder_organisation_id").eq("singleton",true).maybeSingle(),
       admin.from("commercial_accounts").select("id,organisation_id"),
       admin.from("commercial_subscriptions").select("id,account_id,plan_code,status,trial_ends_at,current_period_ends_at,currency"),
       admin.from("commercial_invoice_receivables").select("id,organisation_id,invoice_number,currency,outstanding_minor,due_at,is_overdue,status").limit(200),
@@ -265,10 +274,13 @@ export const syncFounderCommercialNotifications = createServerFn({ method: "POST
       admin.from("commercial_reconciliation_runs").select("id,organisation_id,currency,status,source_ref").eq("status","discrepancy").order("created_at",{ascending:false}).limit(100),
       admin.from("commercial_entitlement_decisions").select("id,organisation_id,feature_code,outcome,reason,decided_at").eq("allowed",false).eq("outcome","commercial_review_required").order("decided_at",{ascending:false}).limit(100),
     ]);
-    const errors=[organisationsResult,accountsResult,subscriptionsResult,invoicesResult,paymentsResult,reconciliationResult,decisionsResult].filter((result)=>result.error);
+    const errors=[organisationsResult,founderConfigResult,accountsResult,subscriptionsResult,invoicesResult,paymentsResult,reconciliationResult,decisionsResult].filter((result)=>result.error);
     if(errors.length) throw new Error("Commercial alert source records could not be evaluated.");
-    const organisations=rows(organisationsResult.data);
-    const accounts=rows(accountsResult.data);
+    const founderOrganisationId=String((founderConfigResult.data as {founder_organisation_id?:string}|null)?.founder_organisation_id??"");
+    if(!founderOrganisationId) throw new Error("Founder tenant boundary configuration is missing.");
+    const organisations=rows(organisationsResult.data).filter((organisation)=>String(organisation.id)!==founderOrganisationId);
+    const customerOrganisationIds=new Set(organisations.map((organisation)=>String(organisation.id)));
+    const accounts=rows(accountsResult.data).filter((account)=>customerOrganisationIds.has(String(account.organisation_id)));
     const subscriptions=rows(subscriptionsResult.data);
     const now=Date.now();
     const sevenDays=now+7*24*60*60*1000;
@@ -291,16 +303,16 @@ export const syncFounderCommercialNotifications = createServerFn({ method: "POST
         }
       }
     }
-    for(const invoice of rows(invoicesResult.data).filter((item)=>item.is_overdue===true&&numeric(item.outstanding_minor)>0)){
+    for(const invoice of rows(invoicesResult.data).filter((item)=>customerOrganisationIds.has(String(item.organisation_id))&&item.is_overdue===true&&numeric(item.outstanding_minor)>0)){
       alerts.push({dedupe_key:`invoice-overdue:${invoice.id}`,organisation_id:invoice.organisation_id,alert_type:"invoice_overdue",severity:"critical",title:"Invoice overdue",detail:`${tenantName(invoice.organisation_id)} invoice ${invoice.invoice_number} has ${invoice.currency} ${invoice.outstanding_minor} outstanding.`,resource_type:"invoice",resource_ref:String(invoice.id),href:"/founder/billing",metadata:{invoiceNumber:invoice.invoice_number,currency:invoice.currency,outstandingMinor:String(invoice.outstanding_minor),dueAt:invoice.due_at}});
     }
-    for(const payment of rows(paymentsResult.data)){
+    for(const payment of rows(paymentsResult.data).filter((item)=>customerOrganisationIds.has(String(item.organisation_id)))){
       alerts.push({dedupe_key:`payment-failed:${payment.id}`,organisation_id:payment.organisation_id,alert_type:"payment_failed",severity:"warning",title:"Payment failed",detail:`${tenantName(payment.organisation_id)} payment attempt through ${payment.provider} failed.`,resource_type:"payment",resource_ref:String(payment.id),href:"/founder/billing",metadata:{currency:payment.currency,amountMinor:String(payment.amount_minor),createdAt:payment.created_at}});
     }
-    for(const run of rows(reconciliationResult.data)){
+    for(const run of rows(reconciliationResult.data).filter((item)=>customerOrganisationIds.has(String(item.organisation_id)))){
       alerts.push({dedupe_key:`reconciliation-exception:${run.id}`,organisation_id:run.organisation_id,alert_type:"reconciliation_exception",severity:"critical",title:"Payment reconciliation exception",detail:`${tenantName(run.organisation_id)} has an unresolved ${run.currency} reconciliation discrepancy (${run.source_ref}).`,resource_type:"reconciliation_run",resource_ref:String(run.id),href:"/founder/billing",metadata:{currency:run.currency,sourceRef:run.source_ref}});
     }
-    for(const decision of rows(decisionsResult.data)){
+    for(const decision of rows(decisionsResult.data).filter((item)=>customerOrganisationIds.has(String(item.organisation_id)))){
       alerts.push({dedupe_key:`entitlement-exception:${decision.id}`,organisation_id:decision.organisation_id,alert_type:"entitlement_exception",severity:"warning",title:"Entitlement requires commercial review",detail:`${tenantName(decision.organisation_id)} feature ${decision.feature_code} requires founder review: ${decision.reason}.`,resource_type:"entitlement_decision",resource_ref:String(decision.id),href:"/founder/entitlements",metadata:{featureCode:decision.feature_code,outcome:decision.outcome,decidedAt:decision.decided_at}});
     }
     let insertedCount=0;

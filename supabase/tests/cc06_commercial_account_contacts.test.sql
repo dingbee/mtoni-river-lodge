@@ -1,4 +1,4 @@
--- CC-06 commercial account contact privacy and integrity contracts.
+-- CC-06 commercial account contact privacy and founder RPC authorization contracts.
 BEGIN;
 DO $$
 BEGIN
@@ -17,6 +17,11 @@ BEGIN
     OR NOT has_table_privilege('service_role','public.commercial_account_contacts','UPDATE')
     OR has_table_privilege('service_role','public.commercial_account_contacts','DELETE') THEN
     RAISE EXCEPTION 'Commercial account contact service privileges violate least privilege';
+  END IF;
+  IF has_function_privilege('anon','public.commercial_is_founder_admin_service(uuid)','EXECUTE')
+    OR has_function_privilege('authenticated','public.commercial_is_founder_admin_service(uuid)','EXECUTE')
+    OR NOT has_function_privilege('service_role','public.commercial_is_founder_admin_service(uuid)','EXECUTE') THEN
+    RAISE EXCEPTION 'Service-principal founder verification helper grants violate least privilege';
   END IF;
   IF has_function_privilege('anon','public.commercial_register_account(uuid,text,text,text,text,text,text,uuid,uuid)','EXECUTE')
     OR has_function_privilege('authenticated','public.commercial_register_account(uuid,text,text,text,text,text,text,uuid,uuid)','EXECUTE')
