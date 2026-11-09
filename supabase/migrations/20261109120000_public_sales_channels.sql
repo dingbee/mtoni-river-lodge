@@ -17,6 +17,9 @@ CREATE TABLE IF NOT EXISTS public.staynas_property_domains (
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT staynas_property_domains_id_property_uidx UNIQUE(id,property_id)
 );
+ALTER TABLE public.staynas_property_domains ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.staynas_property_domains FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.staynas_property_domains TO service_role;
 
 CREATE TABLE IF NOT EXISTS public.staynas_public_booking_channels (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
