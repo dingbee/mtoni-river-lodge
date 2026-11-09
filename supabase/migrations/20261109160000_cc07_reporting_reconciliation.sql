@@ -259,7 +259,7 @@ BEGIN
     RAISE EXCEPTION 'Resolution reference is required' USING ERRCODE = '22023';
   END IF;
   SELECT * INTO v_item FROM public.commercial_reconciliation_items
-    WHERE id=_item_id FOR UPDATE;
+    WHERE id=_item_id;
   IF NOT FOUND THEN RAISE EXCEPTION 'Reconciliation item not found' USING ERRCODE = 'P0002'; END IF;
   IF v_item.resolution_status='resolved' THEN
     IF v_item.resolution_ref IS DISTINCT FROM _resolution_ref THEN
@@ -274,6 +274,17 @@ BEGIN
     WHERE id=v_item.run_id FOR UPDATE;
   IF NOT FOUND OR v_run.status='completed' THEN
     RAISE EXCEPTION 'Completed reconciliation evidence cannot be changed' USING ERRCODE = '55000';
+  END IF;
+  SELECT * INTO v_item FROM public.commercial_reconciliation_items
+    WHERE id=_item_id FOR UPDATE;
+  IF v_item.resolution_status='resolved' THEN
+    IF v_item.resolution_ref IS DISTINCT FROM _resolution_ref THEN
+      RAISE EXCEPTION 'Conflicting reconciliation resolution replay' USING ERRCODE = '23505';
+    END IF;
+    SELECT id INTO v_event_id FROM public.commercial_reconciliation_item_events
+      WHERE item_id=_item_id AND event_type='resolved' AND resolution_ref=_resolution_ref
+      ORDER BY occurred_at DESC LIMIT 1;
+    RETURN v_event_id;
   END IF;
   UPDATE public.commercial_reconciliation_items
     SET resolution_status='resolved',resolution_ref=_resolution_ref
