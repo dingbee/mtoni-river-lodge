@@ -332,7 +332,7 @@ export async function handleConciergeChat(
     });
     if (escalationError) {
       console.error("[concierge] durable escalation failed", {
-        propertyId, sessionId, code: escalationError.code ?? "unknown",
+        code: escalationError.code ?? "unknown",
       });
       throw new Error("The property team handoff is temporarily unavailable.");
     }
