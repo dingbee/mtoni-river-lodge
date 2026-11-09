@@ -1,5 +1,5 @@
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Activity, AlertCircle, Building2, CalendarClock, CheckCircle2, CircleDollarSign, CreditCard, FileText, RefreshCw, Search, ShieldCheck, Users } from "lucide-react";
 import { getFounderCommercialWorkspace } from "@/domains/commercial/founder-control-centre.functions";
 import { administerCommercialSubscription } from "@/domains/commercial/subscription-administration.functions";
@@ -68,7 +68,7 @@ function CurrencyMetric({ title, values }: { title: string; values: { TZS: numbe
 function SubscriptionAction({ subscription }: { subscription: Record<string, unknown> }) {
   const router = useRouter();
   const status = String(subscription.status);
-  const commands = status === "suspended" ? ["reinstate"] : status === "pending_activation" ? ["activate_paid"] : ["suspend", "cancel_immediately", "renewal_authorized"];
+  const commands = status === "suspended" ? ["reinstate", "request_cancellation"] : status === "pending_activation" ? ["activate_paid"] : ["suspend", "request_cancellation", "cancel_immediately", "renewal_authorized"];
   const [command, setCommand] = useState(commands[0]);
   const [reasonCode, setReasonCode] = useState("");
   const [acceptanceRef, setAcceptanceRef] = useState("");
@@ -76,7 +76,8 @@ function SubscriptionAction({ subscription }: { subscription: Record<string, unk
   const [busy, setBusy] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [message, setMessage] = useState("");
-  const needsReason = command === "suspend" || command === "cancel_immediately";
+  useEffect(() => { setCommand(commands[0]); setConfirmed(false); setReasonCode(""); setAcceptanceRef(""); setPeriodEnd(""); setMessage(""); }, [status]);
+  const needsReason = command === "suspend" || command === "request_cancellation" || command === "cancel_immediately";
   const needsConfirmation = needsReason;
   const needsAcceptance = command === "activate_paid" || command === "renewal_authorized";
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -86,7 +87,7 @@ function SubscriptionAction({ subscription }: { subscription: Record<string, unk
     try {
       await administerCommercialSubscription({ data: {
         subscriptionId: String(subscription.id),
-        command: command as "activate_paid" | "suspend" | "reinstate" | "cancel_immediately" | "renewal_authorized",
+        command: command as "activate_paid" | "suspend" | "reinstate" | "request_cancellation" | "cancel_immediately" | "renewal_authorized",
         idempotencyKey: crypto.randomUUID(),
         ...(needsReason ? { reasonCode } : {}),
         ...(needsAcceptance ? { commercialAcceptanceRef: acceptanceRef } : {}),
