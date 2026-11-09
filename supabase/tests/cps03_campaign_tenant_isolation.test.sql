@@ -73,8 +73,8 @@ SET LOCAL ROLE authenticated;
 INSERT INTO public.booking_pages(organisation_id,property_id,slug,title)
 VALUES ('10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','book','Book Direct');
 
-INSERT INTO public.booking_campaigns(id,organisation_id,property_id,slug,name,status)
-VALUES ('60000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','resident-escape','Resident Escape','draft');
+INSERT INTO public.booking_campaigns(id,organisation_id,property_id,slug,name)
+VALUES ('60000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','resident-escape','Resident Escape');
 
 INSERT INTO public.campaign_page_content(campaign_id,property_id,version,content)
 VALUES ('60000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001',1,'{"headline":"Resident Escape"}');
