@@ -60,7 +60,7 @@ export const initiatePayment = createServerFn({ method: "POST" })
         .eq("id", account.id).eq("property_id", propertyId).eq("organisation_id", channel.organisationId);
       if (ipnConfigError) throw new Error("Property Pesapal IPN registration could not be persisted.");
     }
-    const { error: accountBindingError } = await supabaseAdmin.from("bookings")
+    const { error: accountBindingError } = await (supabaseAdmin as any).from("bookings")
       .update({ payment_provider: "pesapal", payment_provider_account_id: account.id })
       .eq("id", booking.id).eq("property_id", propertyId).eq("sales_channel_id", channel.channelId);
     if (accountBindingError) throw new Error("Booking could not be bound to its property Pesapal account.");
@@ -91,7 +91,7 @@ export const initiatePayment = createServerFn({ method: "POST" })
       lastName,
     });
 
-    await supabaseAdmin
+    await (supabaseAdmin as any)
       .from("bookings")
       .update({
         payment_provider: "pesapal",
@@ -102,7 +102,7 @@ export const initiatePayment = createServerFn({ method: "POST" })
       })
       .eq("id", booking.id);
 
-    await supabaseAdmin.from("payment_events").insert({
+    await (supabaseAdmin as any).from("payment_events").insert({
       booking_id: booking.id,
       provider_account_id: account.id,
       provider: "pesapal",
