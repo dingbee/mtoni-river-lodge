@@ -84,3 +84,11 @@ The currently published campaign page identifies these fixed package totals (not
 - The public booking code is currently an allowlisted UAT/demo flow, not a production Mtoni booking channel. Do not add Mtoni to the allowlist or activate it as a shortcut.
 - The live campaign page is currently enquiry-led (WhatsApp/email) and its page source is not present in this repository. Do not claim the campaign page has been integrated or change its live deployment from this repository.
 - No production database mutation, migration application, property activation, DNS change, merge or deployment is included in this implementation contract.
+
+## Additional blocker found in the existing `/book` route
+
+- `src/routes/book.tsx` calls the public booking wizard functions in `src/lib/booking.functions.ts`.
+- Those functions call `getConfiguredBookingPropertyId()`, which invokes `staynas_booking_property_id()`.
+- The live production function requires `auth.uid()` and active staff membership; anonymous execution is denied. This staff resolver is not a valid public guest property resolver, even when called inside a server function using the service role.
+- Replace this dependency with a server-authoritative public hostname/channel resolver that checks an explicit published channel for the requested verified host and returns its property. Never accept a guest-supplied property ID or fall back to the founder/UAT tenant.
+- The public route currently also initiates Pesapal payment. That flow must be checked against the selected transaction currency and property payment-provider configuration before campaign or direct booking is enabled.
