@@ -109,7 +109,7 @@ function BookPage() {
   // Step + session live in the URL so back/forward is always explicit
   // routing, never a browser-history pop into a different session.
   const {
-    step: stepNum,
+    step: stepNum = 1,
     session: incomingSession,
     room: incomingRoom,
     check_in: incomingCheckIn,
