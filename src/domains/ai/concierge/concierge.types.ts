@@ -40,8 +40,6 @@ export interface ConciergeRoomCatalogItem {
   capacity_adults: number;
   capacity_children: number;
   max_occupancy: number;
-  base_price: number;
-  currency: string;
 }
 
 export interface ConciergeExperienceCatalogItem {
@@ -59,8 +57,6 @@ export interface ConciergeRoomRecommendation {
   name: string;
   reasoning: string[];
   confidence: number;
-  from_price: number;
-  currency: string;
 }
 
 export interface ConciergeExperienceRecommendation {
