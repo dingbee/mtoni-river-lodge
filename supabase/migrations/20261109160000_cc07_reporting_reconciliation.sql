@@ -241,11 +241,6 @@ BEGIN
   SELECT * INTO v_item FROM public.commercial_reconciliation_items
     WHERE id=_item_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Reconciliation item not found' USING ERRCODE = 'P0002'; END IF;
-  SELECT * INTO v_run FROM public.commercial_reconciliation_runs
-    WHERE id=v_item.run_id FOR UPDATE;
-  IF NOT FOUND OR v_run.status='completed' THEN
-    RAISE EXCEPTION 'Completed reconciliation evidence cannot be changed' USING ERRCODE = '55000';
-  END IF;
   IF v_item.resolution_status='resolved' THEN
     IF v_item.resolution_ref IS DISTINCT FROM _resolution_ref THEN
       RAISE EXCEPTION 'Conflicting reconciliation resolution replay' USING ERRCODE = '23505';
@@ -254,6 +249,11 @@ BEGIN
       WHERE item_id=_item_id AND event_type='resolved' AND resolution_ref=_resolution_ref
       ORDER BY occurred_at DESC LIMIT 1;
     RETURN v_event_id;
+  END IF;
+  SELECT * INTO v_run FROM public.commercial_reconciliation_runs
+    WHERE id=v_item.run_id FOR UPDATE;
+  IF NOT FOUND OR v_run.status='completed' THEN
+    RAISE EXCEPTION 'Completed reconciliation evidence cannot be changed' USING ERRCODE = '55000';
   END IF;
   UPDATE public.commercial_reconciliation_items
     SET resolution_status='resolved',resolution_ref=_resolution_ref
@@ -315,14 +315,17 @@ BEGIN
   END IF;
   SELECT * INTO v_run FROM public.commercial_reconciliation_runs
     WHERE id=_run_id FOR UPDATE;
-  IF NOT FOUND OR v_run.status <> 'open' THEN
-    RAISE EXCEPTION 'Open reconciliation run was not found' USING ERRCODE = '55000';
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Reconciliation run was not found' USING ERRCODE = 'P0002';
   END IF;
   SELECT * INTO v_existing FROM public.commercial_reconciliation_statement_imports
     WHERE run_id=_run_id;
   IF FOUND THEN
     RETURN jsonb_build_object('runId',_run_id,'rowCount',v_existing.row_count,
       'findingCount',v_existing.finding_count,'replayed',true);
+  END IF;
+  IF v_run.status <> 'open' THEN
+    RAISE EXCEPTION 'Only an open reconciliation run accepts a statement import' USING ERRCODE = '55000';
   END IF;
   FOR v_row IN
     SELECT * FROM jsonb_to_recordset(_rows) AS x(
@@ -621,12 +624,8 @@ BEGIN
 
   PERFORM pg_advisory_xact_lock(hashtextextended(_idempotency_key,0));
   SELECT * INTO v_old FROM public.commercial_subscriptions WHERE id=_old_subscription_id FOR UPDATE;
-  IF NOT FOUND OR v_old.status<>'active' OR v_old.quote_required
-    OR v_old.current_period_ends_at IS NULL OR v_old.current_period_ends_at<=v_now THEN
-    RAISE EXCEPTION 'Only a current fixed-price paid subscription can be replaced' USING ERRCODE='55000';
-  END IF;
-  IF v_old.currency IS DISTINCT FROM _currency THEN
-    RAISE EXCEPTION 'A subscription replacement cannot change currency; TZS and USD contracts must remain separate' USING ERRCODE='22023';
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Subscription to replace was not found' USING ERRCODE='P0002';
   END IF;
   SELECT * INTO v_account FROM public.commercial_accounts WHERE id=v_old.account_id FOR UPDATE;
   IF NOT FOUND OR v_account.status<>'active' OR v_account.organisation_id=v_founder_org THEN
@@ -638,6 +637,13 @@ BEGIN
     RETURN jsonb_build_object('ok',true,'replayed',true,'movementId',v_existing.id,
       'subscriptionId',v_existing.new_subscription_id,'movementType',v_existing.movement_type,
       'deltaMrrMinor',v_existing.delta_mrr_minor::text);
+  END IF;
+  IF v_old.status<>'active' OR v_old.quote_required
+    OR v_old.current_period_ends_at IS NULL OR v_old.current_period_ends_at<=v_now THEN
+    RAISE EXCEPTION 'Only a current fixed-price paid subscription can be replaced' USING ERRCODE='55000';
+  END IF;
+  IF v_old.currency IS DISTINCT FROM _currency THEN
+    RAISE EXCEPTION 'A subscription replacement cannot change currency; TZS and USD contracts must remain separate' USING ERRCODE='22023';
   END IF;
 
   v_old_total := (v_old.accepted_price_snapshot->>'total')::numeric;
