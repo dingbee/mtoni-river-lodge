@@ -232,23 +232,24 @@ function propertyPesapalBaseUrl(environment: PesapalPropertyEnvironment) {
   return environment === "live" ? LIVE : SANDBOX;
 }
 
-function validatePropertyCredentials(credentials: PesapalPropertyCredentials) {
-  if (
-    !credentials ||
-    typeof credentials.consumer_key !== "string" ||
-    !credentials.consumer_key.trim() ||
-    typeof credentials.consumer_secret !== "string" ||
-    !credentials.consumer_secret.trim()
-  ) {
+export function normalizePesapalPropertyCredentials(
+  credentials: PesapalPropertyCredentials | Record<string, unknown>,
+): PesapalPropertyCredentials {
+  const row = credentials as Record<string, unknown>;
+  const consumerKey = row.consumer_key ?? row.consumerKey;
+  const consumerSecret = row.consumer_secret ?? row.consumerSecret;
+  if (typeof consumerKey !== "string" || !consumerKey.trim()
+    || typeof consumerSecret !== "string" || !consumerSecret.trim()) {
     throw new Error("Property Pesapal credentials are incomplete.");
   }
+  return { consumer_key: consumerKey.trim(), consumer_secret: consumerSecret.trim() };
 }
 
 export async function getPesapalPropertyAccountToken(
-  credentials: PesapalPropertyCredentials,
+  credentialsInput: PesapalPropertyCredentials | Record<string, unknown>,
   environment: PesapalPropertyEnvironment,
 ): Promise<string> {
-  validatePropertyCredentials(credentials);
+  const credentials = normalizePesapalPropertyCredentials(credentialsInput);
   const cacheKey = \`\${environment}:\${credentials.consumer_key}\`;
   const cached = propertyTokenCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now() + 30_000) return cached.token;
@@ -297,7 +298,7 @@ async function propertyPesapalFetch(
 }
 
 export async function testPesapalPropertyAccount(
-  credentials: PesapalPropertyCredentials,
+  credentials: PesapalPropertyCredentials | Record<string, unknown>,
   environment: PesapalPropertyEnvironment,
 ) {
   await getPesapalPropertyAccountToken(credentials, environment);
