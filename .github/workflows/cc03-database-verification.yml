@@ -120,5 +120,9 @@ jobs:
         run: |
           psql -v ON_ERROR_STOP=1 -f supabase/tests/staynas_payment_provider_management.test.sql
           psql -v ON_ERROR_STOP=1 -f supabase/tests/staynas_guest_payment_provider_accounts.test.sql
+      - name: Apply CC-05 durable entitlement engine migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109100000_cc05_durable_entitlement_engine.sql
+      - name: Verify CC-05 entitlement persistence and authorization
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/cc05_entitlement_engine.test.sql
       - name: Verify concurrent one-time trial activation
         run: bash supabase/tests/cc03_concurrent_trial_activation.sh
