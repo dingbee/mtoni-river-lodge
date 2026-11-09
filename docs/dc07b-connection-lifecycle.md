@@ -32,4 +32,4 @@ DC-07B extends the sandbox connection foundation with durable credential rotatio
 
 ## Verification
 
-The DC-04/DC-07 workflow covers distribution tests, TypeScript and production build. The migration is committed for review but is not applied to the shared Supabase project in this increment. No production or preview deployment is part of DC-07B.
+The DC-04/DC-07 workflow covers distribution tests, TypeScript and production build. The migration is applied to the shared Supabase project after schema and Vault signature inspection. Post-apply verification confirmed both RPC signatures exist, execution is denied to `anon` and `authenticated`, and granted only to `service_role`. A negative authorization probe confirmed an actor without selected-property membership is rejected. No property connection, credential, membership, booking or financial row was created or modified by the verification. No production deployment was performed.
