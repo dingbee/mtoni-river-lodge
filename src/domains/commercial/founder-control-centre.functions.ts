@@ -535,3 +535,84 @@ export const createFounderCommercialSubscription = createServerFn({method:"POST"
     if(error||!result?.subscriptionId) throw new Error("Subscription creation was not confirmed by the CC-03 founder registration service.");
     return {subscriptionId:String(result.subscriptionId),replayed:result.replayed===true,quoteRequired:price.quoteRequired,price:acceptedPriceSnapshot};
   });
+
+
+const replaceFounderSubscriptionInput = z.object({
+  subscriptionId:z.string().uuid(),
+  planCode:z.enum(["essential","professional","enterprise"]),
+  planVersion:z.number().int().positive(),
+  billingTerm:z.enum(["monthly","annual"]),
+  propertyCount:z.number().int().positive(),
+  addonCodes:z.array(z.string().trim().min(2).max(60)).max(30).default([]),
+  commercialAcceptanceRef:z.string().trim().min(1).max(300),
+  financialAdjustmentRef:z.string().trim().min(1).max(300),
+  periodEndsAt:z.string().datetime({offset:true}),
+  reasonCode:z.string().trim().min(2).max(200),
+  idempotencyKey:z.string().trim().min(8).max(170),
+});
+
+/**
+ * Founder-authorized replacement of an active fixed-price subscription.
+ * The old immutable snapshot is closed and a new accepted snapshot activated
+ * in one database transaction. The separately posted invoice adjustment is
+ * referenced, never created or modified by this operation.
+ */
+export const replaceFounderCommercialSubscription = createServerFn({method:"POST"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown)=>replaceFounderSubscriptionInput.parse(input))
+  .handler(async({data,context})=>{
+    const actor=await resolveVerifiedFounderActor(context as {supabase:unknown;userId:string});
+    const {supabaseAdmin}=await import("@/integrations/supabase/client.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin=supabaseAdmin as any;
+    const {data:old,error:oldError}=await admin.from("commercial_subscriptions")
+      .select("id,account_id,status,currency,quote_required,current_period_ends_at")
+      .eq("id",data.subscriptionId).maybeSingle();
+    if(oldError||!old||old.status!=="active"||old.quote_required===true) {
+      throw new Error("Only an active fixed-price subscription can be replaced through this workflow.");
+    }
+    const policies=await loadFounderSubscriptionPolicies(admin);
+    const today=new Date().toISOString().slice(0,10);
+    const plan=policies.catalogue.plans.find(p=>p.code===data.planCode&&p.status==="published");
+    const planVersion=policies.catalogue.planVersions.find(v=>v.planCode===data.planCode&&v.version===data.planVersion&&v.status==="published"&&(!v.effectiveFrom||v.effectiveFrom<=today)&&(!v.effectiveTo||v.effectiveTo>=today));
+    const composition=policies.composition.compositions.find(c=>c.planCode===data.planCode&&c.planVersion===data.planVersion&&c.status==="published"&&(!c.effectiveFrom||c.effectiveFrom<=today)&&(!c.effectiveTo||c.effectiveTo>=today));
+    if(!plan||!planVersion||!composition) throw new Error("The selected plan version is not active in the published catalogue and package composition.");
+    const selectedAddons=[...new Set(data.addonCodes)];
+    if(selectedAddons.length!==data.addonCodes.length) throw new Error("An add-on may only be selected once.");
+    const activeAddonCodes=new Set(policies.catalogue.addons.filter(addon=>addon.status==="published").map(addon=>addon.code));
+    if(selectedAddons.some(code=>!activeAddonCodes.has(code))) throw new Error("One or more selected add-ons are not active in the published catalogue.");
+    const effectiveComposition={
+      ...composition,addonCodes:[...new Set([...composition.addonCodes,...selectedAddons])],
+    } as Parameters<typeof validatePackageComposition>[0];
+    const validation=validatePackageComposition(
+      effectiveComposition,policies.composition.compatibilityRules as Parameters<typeof validatePackageComposition>[1],
+    );
+    if(!validation.valid) throw new Error(`Selected add-ons violate the published package composition: ${validation.issues.map(issue=>issue.code).join(", ")}.`);
+    const bundledAddons=new Set(composition.addonCodes);
+    const pricedAddons=selectedAddons.filter(code=>!bundledAddons.has(code));
+    const price=resolveCommercialPrice({
+      planCode:data.planCode,planVersion:data.planVersion,currency:old.currency,billingTerm:data.billingTerm,
+      propertyCount:data.propertyCount,asOf:today,addons:pricedAddons.map(addonCode=>({addonCode})),
+    },policies.pricing.planPrices,policies.pricing.addonPrices);
+    if(price.quoteRequired||price.totalAmountMinor===null) {
+      throw new Error("Revenue movement requires a fixed-price accepted snapshot. Quote-only Enterprise changes require a separately reviewed commercial agreement.");
+    }
+    const acceptedPriceSnapshot={
+      currency:price.currency,planCode:price.planCode,planVersion:price.planVersion,billingTerm:price.billingTerm,
+      propertyCount:price.propertyCount,priceCode:price.planPriceCode,asOf:price.asOf,quoteRequired:false,
+      total:price.totalAmountMinor,lineItems:price.lines,addonCodes:selectedAddons,
+    };
+    const priceResolutionRef=`cc07-${globalThis.crypto.randomUUID()}`;
+    const {data:result,error}=await admin.rpc("commercial_replace_active_subscription_for_founder",{
+      _old_subscription_id:data.subscriptionId,_plan_code:data.planCode,_plan_version:data.planVersion,
+      _currency:old.currency,_billing_term:data.billingTerm,_property_count:data.propertyCount,
+      _addon_codes:selectedAddons,_price_resolution_ref:priceResolutionRef,
+      _accepted_price_snapshot:acceptedPriceSnapshot,
+      _commercial_acceptance_ref:data.commercialAcceptanceRef,
+      _financial_adjustment_ref:data.financialAdjustmentRef,
+      _period_ends_at:data.periodEndsAt,_idempotency_key:data.idempotencyKey,
+      _reason_code:data.reasonCode,_actor_user_id:actor.userId,_actor_organisation_id:actor.organisationId,
+    });
+    if(error||!result?.subscriptionId) throw new Error("Accepted subscription replacement and revenue movement could not be committed.");
+    return {...result,price:acceptedPriceSnapshot};
+  });
