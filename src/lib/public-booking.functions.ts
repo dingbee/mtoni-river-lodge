@@ -33,7 +33,7 @@ export const getPublicDemoProperty = createServerFn({ method: "GET" })
     const { property, supabaseAdmin } = await resolvePublicDemoProperty(data.propertySlug);
     const { data: rooms, error } = await (supabaseAdmin as any)
       .from("rooms")
-      .select("id, slug, name, short_description, bed_label, bathroom_label, amenities, max_occupancy, total_units, base_price, currency, included_guests, extra_guest_fee")
+      .select("id,slug,name,short_name,short_description,description,details,cta_line,hero_line,bed_label,bathroom_label,amenities,max_occupancy,capacity_adults,capacity_children,total_units,base_price,currency,included_guests,extra_guest_fee,image_url,gallery_urls,size_label,view_label,category:room_categories(id,slug,name,description,features,specifications)")
       .eq("property_id", property.id)
       .eq("status", "active")
       .order("sort_order", { ascending: true });
