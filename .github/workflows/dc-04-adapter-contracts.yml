@@ -34,7 +34,7 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: Adapter registry and DC-07A contract tests
         run: bunx vitest run src/domains/distribution
+      - name: Production build (generates TanStack route tree)
+        run: bun run build
       - name: TypeScript verification
         run: bunx tsc --noEmit
-      - name: Production build
-        run: bun run build
