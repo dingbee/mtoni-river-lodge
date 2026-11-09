@@ -132,7 +132,8 @@ begin
   select * into v_property from public.staynas_properties
   where id = _property_id and organisation_id = _organisation_id
     and status = 'active' and currency ~ '^[A-Z]{3}$';
-  if not found or nullif(trim(v_property.timezone),'') is null then
+  if not found or nullif(trim(v_property.timezone),'') is null
+    or not exists (select 1 from pg_catalog.pg_timezone_names tz where tz.name = v_property.timezone) then
     raise exception 'Active property, valid configured currency and timezone are required';
   end if;
   v_property_today := (now() at time zone v_property.timezone)::date;
