@@ -242,6 +242,16 @@ BEGIN
   IF (v_import->>'replayed')::boolean IS DISTINCT FROM true THEN
     RAISE EXCEPTION 'Completed statement import did not return its idempotent replay';
   END IF;
+  BEGIN
+    PERFORM public.commercial_import_reconciliation_statement(
+      v_replayed_id,
+      '[{"item_type":"matched","internal_payment_id":null,"provider_ref":"different-payload","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"TZS","evidence":{"test":true},"resolution_status":"resolved","resolution_ref":"exact_match"}]'::jsonb,
+      NULL
+    );
+    RAISE EXCEPTION 'Conflicting provider statement replay was accepted';
+  EXCEPTION WHEN SQLSTATE '23505' THEN
+    NULL;
+  END;
   PERFORM public.commercial_resolve_reconciliation_item(v_item,'cc07-test-resolution-final',NULL);
 
   v_discrepancy_result := public.commercial_create_reconciliation_run(
