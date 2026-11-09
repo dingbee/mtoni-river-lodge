@@ -276,7 +276,7 @@ function BookPage() {
       void navigate({
         // Preserve session/room so the bootstrap + validation guards keep
         // recognising this as the same booking flow across step changes.
-        search: (prev: Record<string, unknown>) => ({ ...prev, step: STEP_TO_NUM[next] }),
+        search: (prev) => ({ ...prev, step: STEP_TO_NUM[next] }),
         replace: false,
         // Step transitions happen in-place — never scroll to top, the user
         // is mid-form and expects to stay where they are.
@@ -346,7 +346,7 @@ function BookPage() {
 
       if (target && target !== step) {
         void navigate({
-          search: (prev: Record<string, unknown>) => ({ ...prev, step: STEP_TO_NUM[target!] }),
+          search: (prev) => ({ ...prev, step: STEP_TO_NUM[target!] }),
           replace: true,
           resetScroll: false,
         });
@@ -612,7 +612,7 @@ function BookPage() {
                   });
                   // Keep the URL ?room= in sync so refreshes stay consistent.
                   void navigate({
-                    search: (prev: Record<string, unknown>) => ({ ...prev, step: STEP_TO_NUM.guest, session: sessionId, room: r.slug }),
+                    search: (prev) => ({ ...prev, step: STEP_TO_NUM.guest, session: sessionId, room: r.slug }),
                     resetScroll: false,
                   });
                   prevStepRef.current = "guest";
@@ -644,7 +644,7 @@ function BookPage() {
                 });
                 void navigate({
                   to: "/book",
-                  search: (prev: Record<string, unknown>) => ({ ...prev, step: 1, session: fresh, room: r.slug }),
+                  search: (prev) => ({ ...prev, step: 1, session: fresh, room: r.slug }),
                 });
               }}
             />
