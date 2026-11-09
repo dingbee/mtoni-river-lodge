@@ -962,3 +962,73 @@ FROM public.commercial_subscription_revenue_movement_facts;
 ALTER VIEW public.commercial_founder_subscription_movement_facts SET (security_invoker=true);
 REVOKE ALL ON public.commercial_founder_subscription_movement_facts FROM PUBLIC,anon,authenticated;
 GRANT SELECT ON public.commercial_founder_subscription_movement_facts TO service_role;
+
+
+-- CC-07.02/07.03: detect subscription/ledger and entitlement/subscription drift.
+-- These are exception projections only; they never alter invoices or grants.
+CREATE OR REPLACE VIEW public.commercial_subscription_invoice_consistency_facts AS
+SELECT s.id AS subscription_id,a.id AS account_id,a.organisation_id,
+  s.currency,s.status,s.current_period_starts_at,s.current_period_ends_at,
+  'missing_current_period_invoice'::text AS exception_type,
+  jsonb_build_object('billingTerm',s.billing_term,'periodStart',s.current_period_starts_at,
+    'periodEnd',s.current_period_ends_at) AS evidence
+FROM public.commercial_subscriptions s
+JOIN public.commercial_accounts a ON a.id=s.account_id
+WHERE s.status='active' AND s.quote_required=false
+  AND s.current_period_starts_at IS NOT NULL AND s.current_period_ends_at>now()
+  AND NOT EXISTS (
+    SELECT 1 FROM public.commercial_invoices i
+    WHERE i.subscription_id=s.id AND i.account_id=s.account_id
+      AND i.billing_period_start=s.current_period_starts_at
+      AND i.billing_period_end=s.current_period_ends_at
+      AND i.status NOT IN ('draft','void')
+  )
+UNION ALL
+SELECT s.id AS subscription_id,a.id AS account_id,a.organisation_id,
+  s.currency,s.status,i.billing_period_start,i.billing_period_end,
+  'invoice_currency_mismatch'::text AS exception_type,
+  jsonb_build_object('invoiceId',i.id,'invoiceCurrency',i.currency,'subscriptionCurrency',s.currency) AS evidence
+FROM public.commercial_invoices i
+JOIN public.commercial_subscriptions s ON s.id=i.subscription_id AND s.account_id=i.account_id
+JOIN public.commercial_accounts a ON a.id=s.account_id
+WHERE i.status NOT IN ('draft','void') AND i.currency IS DISTINCT FROM s.currency
+UNION ALL
+SELECT s.id AS subscription_id,a.id AS account_id,a.organisation_id,
+  s.currency,s.status,i.billing_period_start,i.billing_period_end,
+  'invoice_billing_term_mismatch'::text AS exception_type,
+  jsonb_build_object('invoiceId',i.id,'invoiceBillingTerm',i.billing_term,'subscriptionBillingTerm',s.billing_term) AS evidence
+FROM public.commercial_invoices i
+JOIN public.commercial_subscriptions s ON s.id=i.subscription_id AND s.account_id=i.account_id
+JOIN public.commercial_accounts a ON a.id=s.account_id
+WHERE i.status NOT IN ('draft','void') AND i.billing_term IS DISTINCT FROM s.billing_term;
+
+ALTER VIEW public.commercial_subscription_invoice_consistency_facts SET (security_invoker=true);
+REVOKE ALL ON public.commercial_subscription_invoice_consistency_facts FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.commercial_subscription_invoice_consistency_facts TO service_role;
+
+CREATE OR REPLACE VIEW public.commercial_subscription_entitlement_consistency_facts AS
+SELECT a.id AS assignment_id,a.organisation_id,a.account_id,a.subscription_id,a.feature_code,
+  CASE
+    WHEN a.organisation_id IS DISTINCT FROM c.organisation_id THEN 'assignment_tenant_mismatch'
+    WHEN a.status='active' AND (a.effective_from>now() OR (a.effective_to IS NOT NULL AND a.effective_to<=now()))
+      THEN 'active_assignment_outside_effective_window'
+    ELSE 'active_entitlement_on_inactive_subscription'
+  END::text AS exception_type,
+  jsonb_build_object('assignmentStatus',a.status,'effectiveFrom',a.effective_from,
+    'effectiveTo',a.effective_to,'subscriptionStatus',s.status,
+    'currentPeriodEndsAt',s.current_period_ends_at,'trialEndsAt',s.trial_ends_at) AS evidence
+FROM public.commercial_entitlement_assignments a
+JOIN public.commercial_subscriptions s ON s.id=a.subscription_id AND s.account_id=a.account_id
+JOIN public.commercial_accounts c ON c.id=a.account_id
+WHERE a.organisation_id IS DISTINCT FROM c.organisation_id
+  OR (a.status='active' AND (
+    a.effective_from>now()
+    OR (a.effective_to IS NOT NULL AND a.effective_to<=now())
+    OR s.status NOT IN ('active','trialing')
+    OR (s.status='active' AND (s.current_period_ends_at IS NULL OR s.current_period_ends_at<=now()))
+    OR (s.status='trialing' AND (s.trial_ends_at IS NULL OR s.trial_ends_at<=now()))
+  ));
+
+ALTER VIEW public.commercial_subscription_entitlement_consistency_facts SET (security_invoker=true);
+REVOKE ALL ON public.commercial_subscription_entitlement_consistency_facts FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.commercial_subscription_entitlement_consistency_facts TO service_role;
