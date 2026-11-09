@@ -71,7 +71,7 @@ export const getConciergeAnalytics = createServerFn({ method: "POST" })
     ] = await Promise.all([
       sessionIds.length ? s.from("ai_concierge_messages").select("id", { count: "exact", head: true }).in("session_id", sessionIds).gte("created_at", since) : Promise.resolve(zero),
       sessionIds.length ? s.from("ai_concierge_sessions").select("id", { count: "exact", head: true }).in("id", sessionIds).eq("escalated", true) : Promise.resolve(zero),
-      s.from("ai_concierge_leads").select("id", { count: "exact", head: true }).eq("property_id", propertyId).gte("created_at", since),
+      (s as any).from("ai_concierge_leads").select("id", { count: "exact", head: true }).eq("property_id", propertyId).gte("created_at", since),
       sessionIds.length ? s.from("ai_concierge_intents").select("id", { count: "exact", head: true }).in("session_id", sessionIds).gte("created_at", since).eq("intent_level", "high") : Promise.resolve(zero),
       sessionIds.length ? s.from("ai_concierge_attributions").select("id", { count: "exact", head: true }).in("session_id", sessionIds).gte("created_at", since).eq("conversion_type", "booking_click") : Promise.resolve(zero),
       sessionIds.length ? s.from("ai_concierge_attributions").select("id", { count: "exact", head: true }).in("session_id", sessionIds).gte("created_at", since).in("conversion_type", ["assisted_booking", "direct_booking"]) : Promise.resolve(zero),
