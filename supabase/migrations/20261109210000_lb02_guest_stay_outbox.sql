@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS public.lb02_guest_reference_registry (
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT lb02_guest_reference_per_property_uq UNIQUE(connection_id, property_id, guest_id),
   CONSTRAINT lb02_guest_reference_id_uq UNIQUE(connection_id, property_id, guest_reference),
+  CONSTRAINT lb02_guest_reference_identity_fk_uq UNIQUE(connection_id, property_id, guest_id, guest_reference),
   CONSTRAINT lb02_guest_reference_revocation_ck CHECK (revoked_at IS NULL OR revoked_at >= issued_at)
 );
 
