@@ -481,68 +481,14 @@ export const updateEscalation = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
-    const { data: existingEscalation, error: existingError } = await context.supabase
-      .from("ai_escalations")
-      .select("id, acknowledged_at, ops_task_id")
-      .eq("id", data.id)
-      .eq("property_id", propertyId)
-      .maybeSingle();
-    if (existingError || !existingEscalation) throw new Error("Escalation not found in the active property.");
-    const patch: Record<string, unknown> = {};
-    if (data.status) {
-      patch.status = data.status;
-      patch.resolved_at = data.status === "resolved" || data.status === "dismissed"
-        ? new Date().toISOString()
-        : null;
-      if (data.status === "assigned" || data.status === "in_progress") {
-        patch.acknowledged_at = existingEscalation.acknowledged_at ?? new Date().toISOString();
-        patch.acknowledged_by = context.userId;
-      }
-    }
-    if (data.assigned_to !== undefined) {
-      if (data.assigned_to !== null) {
-        const { data: assignee, error: assigneeError } = await context.supabase
-          .from("staynas_property_members")
-          .select("user_id")
-          .eq("user_id", data.assigned_to)
-          .eq("property_id", propertyId)
-          .eq("status", "active")
-          .maybeSingle();
-        if (assigneeError || !assignee) throw new Error("Assignee must be an active member of the selected property.");
-      }
-      patch.assigned_to = data.assigned_to;
-    }
-    if (data.resolution_notes !== undefined) patch.resolution_notes = data.resolution_notes;
-    if (Object.keys(patch).length === 0) throw new Error("No escalation changes supplied.");
-    const { data: updated, error } = await context.supabase
-      .from("ai_escalations")
-      .update(patch as never)
-      .eq("id", data.id)
-      .eq("property_id", propertyId)
-      .select("id")
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!updated) throw new Error("Escalation not found in the active property.");
-
-    if (existingEscalation.ops_task_id) {
-      const taskPatch: Record<string, unknown> = {};
-      if (data.assigned_to !== undefined) taskPatch.assigned_to = data.assigned_to;
-      if (data.status === "in_progress") taskPatch.status = "in_progress";
-      if (data.status === "resolved") {
-        taskPatch.status = "completed";
-        taskPatch.completed_at = new Date().toISOString();
-        taskPatch.completed_by = context.userId;
-      }
-      if (data.status === "dismissed") taskPatch.status = "cancelled";
-      if (Object.keys(taskPatch).length > 0) {
-        const { error: taskError } = await context.supabase
-          .from("ops_tasks")
-          .update(taskPatch as never)
-          .eq("id", existingEscalation.ops_task_id)
-          .eq("property_id", propertyId);
-        if (taskError) throw new Error("Escalation task update failed.");
-      }
-    }
+    const { error } = await (context.supabase as any).rpc("staynas_transition_concierge_escalation", {
+      p_escalation_id: data.id,
+      p_property_id: propertyId,
+      p_status: data.status ?? null,
+      p_assigned_to: data.assigned_to ?? null,
+      p_resolution_notes: data.resolution_notes ?? null,
+    });
+    if (error) throw new Error("Could not update the property escalation.");
     return { ok: true };
   });
 
