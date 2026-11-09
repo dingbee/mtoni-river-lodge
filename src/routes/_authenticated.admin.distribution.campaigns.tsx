@@ -20,6 +20,7 @@ import {
   publishMyBookingCampaign,
   transitionMyBookingCampaign,
   previewMyBookingCampaign,
+  getMyBookingCampaignAnalytics,
 } from "@/domains/booking-campaigns/campaigns.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/distribution/campaigns")({
@@ -48,6 +49,8 @@ function CampaignStudioPage() {
   const publishFn = useServerFn(publishMyBookingCampaign);
   const transitionFn = useServerFn(transitionMyBookingCampaign);
   const previewFn = useServerFn(previewMyBookingCampaign);
+  const analyticsFn = useServerFn(getMyBookingCampaignAnalytics);
+  const analytics = useQuery({ queryKey: ["booking-campaign-analytics", "selected-property"], queryFn: () => analyticsFn() });
   const campaigns = useQuery({ queryKey: ["booking-campaigns", "selected-property"], queryFn: () => listFn() as Promise<Campaign[]> });
   const resources = useQuery({ queryKey: ["booking-campaign-resources", "selected-property"], queryFn: () => resourcesFn() as Promise<StudioResources> });
   const [name, setName] = useState("");
@@ -61,12 +64,18 @@ function CampaignStudioPage() {
   const [offerCode, setOfferCode] = useState("resident-rate");
   const [offerTitle, setOfferTitle] = useState("Resident Rate");
   const [offerDescription, setOfferDescription] = useState("");
-  const [preview, setPreview] = useState<unknown>(null);
+  const [preview, setPreview] = useState<{
+    campaign: { name: string; slug: string };
+    content: { version: number; status: string; content: { headline?: string; description?: string; highlights?: string[] } } | null;
+    rooms: Array<{ room_id: string; rooms?: { name?: string } }>;
+    offers: Array<{ id: string; title: string; description?: string }>;
+  } | null>(null);
   const selected = campaigns.data?.find((item) => item.id === selectedId);
 
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ["booking-campaigns"] });
     await queryClient.invalidateQueries({ queryKey: ["booking-campaign-resources"] });
+    await queryClient.invalidateQueries({ queryKey: ["booking-campaign-analytics"] });
   };
   const createCampaign = useMutation({
     mutationFn: () => createFn({ data: { name, slug } }),
@@ -162,10 +171,35 @@ function CampaignStudioPage() {
               {selected.status === "published" && <Button variant="outline" onClick={() => transition.mutate("pause")} disabled={transition.isPending}><Pause className="mr-2 h-4 w-4" /> Pause</Button>}
               {["draft","paused","expired"].includes(selected.status) && <Button variant="outline" onClick={() => transition.mutate("archive")} disabled={transition.isPending}><Archive className="mr-2 h-4 w-4" /> Archive</Button>}
             </div>
-            {preview !== null && <pre className="max-h-72 overflow-auto rounded-lg bg-muted p-3 text-xs">{JSON.stringify(preview, null, 2)}</pre>}
+            {preview !== null && <section className="rounded-xl border bg-muted/30 p-4">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Draft preview · version {preview.content?.version ?? "not saved"}</div>
+              <h3 className="mt-2 text-xl font-semibold">{preview.content?.content?.headline || preview.campaign.name}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{preview.content?.content?.description || "No description has been saved yet."}</p>
+              {!!preview.content?.content?.highlights?.length && <ul className="mt-3 list-disc space-y-1 pl-5 text-sm">{preview.content.content.highlights.map((item, index) => <li key={index}>{item}</li>)}</ul>}
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">{preview.rooms.map((room) => <div key={room.room_id} className="rounded-lg border bg-background p-3 text-sm">{room.rooms?.name || "Selected room"}</div>)}</div>
+              <div className="mt-3 space-y-1">{preview.offers.map((item) => <div key={item.id} className="rounded-lg border bg-background p-3 text-sm"><span className="font-medium">{item.title}</span>{item.description && <span className="ml-2 text-muted-foreground">{item.description}</span>}</div>)}</div>
+            </section>}
           </div> : <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-6 text-center"><Megaphone className="h-8 w-8 text-muted-foreground" /><p className="text-sm text-muted-foreground">Create or select a campaign to edit its content, configure offers and manage its lifecycle.</p></div>}
         </SectionCard>
       </div>
+      <SectionCard title="Campaign performance" description="First-party attribution evidence · rolling 30-day window">
+        {analytics.isLoading && <p className="text-sm text-muted-foreground">Loading campaign performance…</p>}
+        {analytics.isError && <p className="text-sm text-destructive">Campaign performance is unavailable. Confirm campaign analytics entitlement and attribution access.</p>}
+        {analytics.data && <div className="space-y-3">
+          {!analytics.data.advancedAnalyticsEnabled && <p className="text-xs text-muted-foreground">Advanced source breakdown is not enabled. Core campaign funnel metrics remain available.</p>}
+          {analytics.data.campaigns.length === 0 && <p className="text-sm text-muted-foreground">No campaigns or attribution events have been recorded for this property.</p>}
+          {analytics.data.campaigns.map((item) => <div key={item.campaignId} className="rounded-xl border p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-medium">{item.name}</p><p className="text-xs text-muted-foreground">/{item.slug} · {item.status}</p></div><Badge variant="outline">{item.completedBookings} bookings</Badge></div>
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div><p className="text-xs text-muted-foreground">Page views</p><p className="text-lg font-semibold tabular-nums">{item.pageViews}</p></div>
+              <div><p className="text-xs text-muted-foreground">Booking clicks</p><p className="text-lg font-semibold tabular-nums">{item.bookingClicks}</p></div>
+              <div><p className="text-xs text-muted-foreground">Booking starts</p><p className="text-lg font-semibold tabular-nums">{item.bookingStarts}</p></div>
+              <div><p className="text-xs text-muted-foreground">Conversion</p><p className="text-lg font-semibold tabular-nums">{(item.bookingConversionRate * 100).toFixed(1)}%</p></div>
+            </div>
+            {item.sources?.length > 0 && <p className="mt-2 text-xs text-muted-foreground">Top sources: {item.sources.map((source) => `${source.source} (${source.count})`).join(" · ")}</p>}
+          </div>)}
+        </div>}
+      </SectionCard>
       <p className="text-xs text-muted-foreground">Publishing requires a valid commercial entitlement, a configured active-campaign quota, published content, active selected rooms and a published rate snapshot matching the property's currency. The permanent /book journey is not changed by campaign editing.</p>
     </div>
   );
