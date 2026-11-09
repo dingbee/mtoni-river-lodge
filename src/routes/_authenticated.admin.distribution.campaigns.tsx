@@ -113,6 +113,10 @@ function CampaignStudioPage() {
     } }),
     onSuccess: async (created) => {
       setName(""); setSlug(""); setSelectedId(created.id); setHeadline(created.name);
+      setSubheadline(""); setDescription(""); setHighlights(""); setInclusionsText(""); setTermsText(""); setFaqsText("");
+      setCtaLabel("Book this offer"); setContactEmail(""); setContactPhone(""); setContactWhatsApp("");
+      setSeoTitle(""); setSeoDescription(""); setSeoImageUrl(""); setSocialTitle(""); setSocialDescription(""); setSocialImageUrl("");
+      setRoomIds([]); setPublicationId(""); setOfferCode("resident-rate"); setOfferTitle("Resident Rate"); setOfferDescription("");
       setPreview(null); await refresh(); toast.success("Campaign draft created.");
     },
     onError: (error: Error) => toast.error(error.message),
