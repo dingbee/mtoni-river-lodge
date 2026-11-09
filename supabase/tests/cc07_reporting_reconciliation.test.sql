@@ -261,6 +261,7 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'Reconciliation run did not close after all exceptions were resolved';
   END IF;
+  PERFORM public.commercial_complete_reconciliation_run(v_replayed_id,NULL);
   v_import := public.commercial_import_reconciliation_statement(
     v_replayed_id,
     '[{"item_type":"matched","internal_payment_id":null,"provider_ref":"cc07-statement-row-1","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"TZS","evidence":{"test":true},"resolution_status":"resolved","resolution_ref":"exact_match"}]'::jsonb,
