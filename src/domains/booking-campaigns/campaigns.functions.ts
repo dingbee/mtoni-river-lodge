@@ -478,3 +478,38 @@ export const getMyBookingCampaignAnalytics = createServerFn({ method: "GET" })
       })),
     };
   });
+
+
+export const updateMyBookingCampaignSchedule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({
+    campaignId: campaignIdSchema,
+    startsAt: z.string().datetime().nullable(),
+    endsAt: z.string().datetime().nullable(),
+  }).superRefine((value, ctx) => {
+    if (value.startsAt && value.endsAt && Date.parse(value.endsAt) <= Date.parse(value.startsAt)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["endsAt"], message: "Campaign end must follow its start." });
+    }
+  }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { actor, admin } = await resolveCampaignAdmin(context as ServerContext);
+    const entitlement = await assertCommercialEntitlement(context as ServerContext, "campaign_studio");
+    if (!entitlement.allowed) throw new Error(entitlement.reason);
+    const sb = admin as any;
+    const { data: campaign, error: campaignError } = await sb.from("booking_campaigns")
+      .select("id,status").eq("id", data.campaignId).eq("property_id", actor.propertyId)
+      .eq("organisation_id", actor.organisationId).maybeSingle();
+    if (campaignError || !campaign) throw new Error("Campaign not found in the selected property.");
+    if (!["draft","paused","expired"].includes(campaign.status)) {
+      throw new Error("Pause the campaign before changing its schedule.");
+    }
+    const { data: updated, error } = await sb.from("booking_campaigns").update({
+      starts_at: data.startsAt,
+      ends_at: data.endsAt,
+      updated_by: actor.userId,
+      updated_at: new Date().toISOString(),
+    }).eq("id", data.campaignId).eq("property_id", actor.propertyId)
+      .select("id,starts_at,ends_at,status").maybeSingle();
+    if (error || !updated) throw new Error("Campaign schedule could not be saved.");
+    return updated;
+  });
