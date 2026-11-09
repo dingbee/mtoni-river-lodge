@@ -133,6 +133,34 @@ export function ProductSiteHeader() {
         </aside>
       </div>}
     </header>
+    <style>{`
+      .staynas-public-site main article[class*="rounded-2xl"],
+      .staynas-public-site main article[class*="rounded-3xl"] {
+        border: 0 !important;
+        border-bottom: 1px solid #deded4 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+      }
+      .staynas-public-site main article[class*="rounded-2xl"]:last-child,
+      .staynas-public-site main article[class*="rounded-3xl"]:last-child {
+        border-bottom: 0 !important;
+      }
+      .staynas-public-site main .site-editorial-item {
+        border-bottom: 1px solid #deded4;
+        background: transparent;
+        box-shadow: none;
+      }
+      .staynas-public-site main [data-editorial-panel] {
+        border-radius: 0;
+        box-shadow: none;
+      }
+      @media (max-width: 640px) {
+        .staynas-public-site main section { scroll-margin-top: 5rem; }
+        .staynas-public-site main h1 { text-wrap: balance; }
+        .staynas-public-site main h2 { text-wrap: balance; }
+      }
+    `}</style>
   );
 }
 
