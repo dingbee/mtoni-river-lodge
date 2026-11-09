@@ -77,7 +77,7 @@ function FounderCommercialReporting() {
     for (const [bucket, values] of aging) {
       for (const currency of ["TZS", "USD"] as const) lines.push([`aging_${bucket.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`, currency, values[currency]]);
     }
-    const csv = lines.map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\\r\\n");
+    const csv = lines.map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\r\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const anchor = document.createElement("a");
     anchor.href = url;
