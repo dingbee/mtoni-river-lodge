@@ -12,6 +12,8 @@ type Query = PromiseLike<Result> & {
   eq(column: string, value: unknown): Query;
   in(column: string, values: unknown[]): Query;
   or(filters: string): Query;
+  order(column: string, options?: { ascending?: boolean }): Query;
+  limit(count: number): Query;
   maybeSingle(): Promise<Result>;
 };
 type AdminClient = {
@@ -297,12 +299,54 @@ const founderGrantInput = z.object({
   if (!valid) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Grant scope, target and effect are inconsistent." });
 });
 
+/** Founder-only read of append-only entitlement grant rules. */
+export const listFounderEntitlementGrantRules = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await resolveVerifiedFounderActor(context as { supabase: unknown; userId: string });
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const admin = supabaseAdmin as unknown as AdminClient;
+    const { data, error } = await admin.from("commercial_entitlement_grant_rules")
+      .select("id, grant_type, organisation_id, addon_code, feature_code, effect, effective_from, effective_to, reason, created_by, created_at")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw new Error("Unable to load founder entitlement grant rules.");
+    return data ?? [];
+  });
+
 /** Founder-only policy authoring; database independently rechecks founder authority. */
 export const recordFounderEntitlementGrant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => founderGrantInput.parse(input))
   .handler(async ({ data, context }) => {
     await resolveVerifiedFounderActor(context as { supabase: unknown; userId: string });
+
+    if (data.grantType === "addon_feature") {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const admin = supabaseAdmin as unknown as AdminClient;
+      const { data: pointerData, error: pointerError } = await admin.from("commercial_policy_config_current")
+        .select("version_id").eq("policy_type", "catalogue").maybeSingle();
+      const pointer = pointerData as { version_id: string } | null;
+      if (pointerError || !pointer?.version_id) {
+        throw new Error("A published founder commercial catalogue is required before granting an add-on feature.");
+      }
+      const { data: versionData, error: versionError } = await admin.from("commercial_policy_config_versions")
+        .select("policy_type, status, payload").eq("id", pointer.version_id).maybeSingle();
+      const version = versionData as { policy_type?: string; status?: string; payload?: unknown } | null;
+      if (versionError || version?.policy_type !== "catalogue" || version.status !== "published"
+        || !version.payload || typeof version.payload !== "object"
+        || !("addons" in version.payload) || !Array.isArray((version.payload as { addons?: unknown }).addons)) {
+        throw new Error("The current founder commercial catalogue is invalid.");
+      }
+      const addons = (version.payload as { addons: unknown[] }).addons
+        .map((item) => commercialAddonSchema.safeParse(item))
+        .filter((parsed) => parsed.success)
+        .map((parsed) => parsed.data);
+      if (!addons.some((addon) => addon.code === data.addonCode && addon.status === "active")) {
+        throw new Error("The add-on must exist and be active in the published founder catalogue before a feature grant can be issued.");
+      }
+    }
+
     const client = context.supabase as unknown as {
       rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown | null }>;
     };
