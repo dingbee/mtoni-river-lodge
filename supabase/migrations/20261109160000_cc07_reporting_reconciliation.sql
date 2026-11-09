@@ -621,7 +621,8 @@ BEGIN
 
   PERFORM pg_advisory_xact_lock(hashtextextended(_idempotency_key,0));
   SELECT * INTO v_old FROM public.commercial_subscriptions WHERE id=_old_subscription_id FOR UPDATE;
-  IF NOT FOUND OR v_old.status<>'active' OR v_old.quote_required OR v_old.current_period_ends_at<=v_now THEN
+  IF NOT FOUND OR v_old.status<>'active' OR v_old.quote_required
+    OR v_old.current_period_ends_at IS NULL OR v_old.current_period_ends_at<=v_now THEN
     RAISE EXCEPTION 'Only a current fixed-price paid subscription can be replaced' USING ERRCODE='55000';
   END IF;
   IF v_old.currency IS DISTINCT FROM _currency THEN
@@ -645,6 +646,17 @@ BEGIN
   v_new_mrr := CASE WHEN _billing_term='monthly' THEN v_new_total ELSE round(v_new_total/12) END;
   v_delta := v_new_mrr-v_old_mrr;
   v_movement_type := CASE WHEN v_delta>0 THEN 'expansion' WHEN v_delta<0 THEN 'contraction' ELSE 'unchanged' END;
+  IF v_delta<>0 AND NOT EXISTS (
+    SELECT 1
+    FROM public.commercial_invoice_adjustments adj
+    JOIN public.commercial_invoices inv ON inv.id=adj.invoice_id
+    WHERE inv.account_id=v_old.account_id AND inv.subscription_id=v_old.id
+      AND inv.currency=v_old.currency AND adj.adjustment_ref=_financial_adjustment_ref
+      AND adj.status='posted' AND adj.adjustment_type IN ('credit_note','debit_note')
+  ) THEN
+    RAISE EXCEPTION 'A posted credit/debit adjustment on the replaced subscription is required for an MRR change'
+      USING ERRCODE='55000';
+  END IF;
   v_create_key := _idempotency_key || ':create';
 
   v_cancel := public.commercial_apply_subscription_command(
