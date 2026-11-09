@@ -101,6 +101,15 @@ jobs:
                 _property_id,_room_id,_check_in,_check_out,_adults,_children_below_6,_children_7_plus));
           END;
           $function$;
+          CREATE FUNCTION public.apply_staynas_room_date_rate_override(
+            _property_id uuid,_room_id uuid,_stay_date date,_nightly_rate numeric,_reason text
+          ) RETURNS jsonb LANGUAGE plpgsql AS $function$
+          DECLARE v_currency text;
+          BEGIN
+            SELECT upper(currency) INTO v_currency FROM public.staynas_properties WHERE id=_property_id;
+            RETURN jsonb_build_object('currency',v_currency);
+          END;
+          $function$;
           CREATE FUNCTION public.calculate_staynas_room_pricing_legacy(
             _property_id uuid,_room_id uuid,_check_in date,_check_out date,_adults integer,
             _children_below_6 integer DEFAULT 0,_children_7_plus integer DEFAULT 0
