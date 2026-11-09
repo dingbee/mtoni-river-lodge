@@ -12,7 +12,7 @@ Status: IN PROGRESS — UAT/review only; no production promotion.
 | CC-03 Subscription lifecycle | One current subscription per account; immutable accepted-price snapshot; durable lifecycle events; permanent one-time 336-hour trial claim; founder-authorized lifecycle administration. | Reporting must exclude trialing subscriptions from paid MRR/ARR and use active paid accepted snapshots only. Subscription-to-invoice reconciliation remains to be certified. |
 | CC-04 Financial ledger | Issued invoice snapshots, payment attempts, allocations, reversals, adjustments, provider notifications, receivables, reconciliation runs/items and financial audit evidence. | Found a schema/engine mismatch: the TypeScript engine emits `status_mismatch`, while the CC-04 item constraint omitted it. CC-07 adds the missing allowed classification. |
 | CC-05 Entitlements | Founder-authored rules; durable assignments and decisions; RLS/FORCE RLS; append-only rules/decisions; service-role decision persistence. | Reconciliation must compare current subscription state and effective entitlement state without rewriting historical decisions. Full expiry/revocation consistency regression remains pending. |
-| CC-06 Founder workspace | Founder-only commercial portfolio, tenant registry/profiles, subscriptions, billing, policy, entitlements, notifications and audit. | CC-06 merged after nine successful GitHub Actions checks. Existing overview uses JavaScript `Number()` for NUMERIC(20,0) amounts; CC-07 reporting path uses BigInt and string minor units. The legacy overview precision issue remains a remediation item. |
+| CC-06 Founder workspace | Founder-only commercial portfolio, tenant registry/profiles, subscriptions, billing, policy, entitlements, notifications and audit. | CC-06 merged after nine successful GitHub Actions checks. CC-07 replaces the founder workspace invoice/payment and recurring-value projections with text-backed NUMERIC(20,0) views and BigInt aggregation/formatting. |
 
 ## CC-07 implementation currently present
 
@@ -30,7 +30,7 @@ Status: IN PROGRESS — UAT/review only; no production promotion.
 
 | # | Regression category | Current evidence |
 |---:|---|---|
-| 1 | Invoice total reconciliation | Existing CC-04 ledger tests; CC-07 aggregation verification pending |
+| 1 | Invoice total reconciliation | Existing CC-04 ledger tests; CC-07 gross/net invoice facts and posted adjustment classification added; fixture assertions pending |
 | 2 | Partial payment reconciliation | Existing CC-04 ledger tests |
 | 3 | Full payment reconciliation | Existing CC-04 ledger tests |
 | 4 | Multiple payment allocation | Existing CC-04 ledger tests |
@@ -40,23 +40,23 @@ Status: IN PROGRESS — UAT/review only; no production promotion.
 | 8 | Duplicate provider callback detection | Existing CC-04 idempotency tests |
 | 9 | Provider/internal amount mismatch | Existing reconciliation engine tests |
 | 10 | Currency mismatch detection | Existing reconciliation engine tests; CC-07 mixed-currency statement guard added |
-| 11 | Subscription-to-invoice reconciliation | Pending |
-| 12 | MRR calculation | CC-07 founder report implementation; regression pending |
-| 13 | ARR calculation | CC-07 founder report implementation; regression pending |
-| 14 | New MRR | Pending lifecycle-derived movement implementation |
-| 15 | Expansion MRR | Pending lifecycle-derived movement implementation |
-| 16 | Contraction MRR | Pending lifecycle-derived movement implementation |
-| 17 | Churned MRR | Pending lifecycle-derived movement implementation |
-| 18 | Trial exclusion | Report filters to active paid subscriptions; regression pending |
-| 19 | TZS and USD isolation | Separate money ledgers/views; regression pending |
-| 20 | Receivables aging | Aging view and UI added; boundary tests pending |
-| 21 | Entitlement/subscription consistency | Pending |
-| 22 | Reconciliation exception lifecycle | Append-only event stream and atomic RPCs added; full lifecycle tests pending |
-| 23 | Report export authorization | Founder route guards applied; adversarial export tests pending |
-| 24 | Founder-only access | Founder middleware and route guards; adversarial access tests pending |
-| 25 | Cross-tenant isolation | Tenant scoping implemented in reporting/reconciliation reads; adversarial isolation tests pending |
-| 26 | Historical audit integrity | Append-only evidence protections added; cross-ledger integrity tests pending |
-| 27 | Concurrent reconciliation execution | Run row-locking and idempotent provider-period identity added; concurrency test pending |
+| 11 | Subscription-to-invoice reconciliation | Missing current-period invoice, invoice currency and billing-term consistency view added; fixture assertion added for missing invoice |
+| 12 | MRR calculation | Exact text-backed recurring-value view; paid replacement fixture verifies current MRR |
+| 13 | ARR calculation | Exact text-backed recurring-value view; annual-term fixture still pending |
+| 14 | New MRR | Paid activation event projection; initial activation asserted in replacement fixture |
+| 15 | Expansion MRR | Atomic accepted subscription replacement and posted debit-note evidence; fixture asserts +50,000 minor units |
+| 16 | Contraction MRR | Atomic replacement path supports posted credit-note evidence; negative-delta fixture pending |
+| 17 | Churned MRR | Paid cancellation/expiry projection excludes replaced subscriptions; direct churn fixture pending |
+| 18 | Trial exclusion | Movement facts include only activate_paid events and fixed-price contracts; explicit trial fixture pending |
+| 19 | TZS and USD isolation | Currency is retained through every reporting/movement view; mixed-currency statement guard exists; explicit dual-currency fixture pending |
+| 20 | Receivables aging | Current, 1–30, 31–60, 61–90 and >90 view/UI added; exact boundary fixtures pending |
+| 21 | Entitlement/subscription consistency | Drift view and founder workspace exception panel added; cancelled-subscription active-grant fixture added |
+| 22 | Reconciliation exception lifecycle | Append-only review, resolve, reopen and re-resolve fixture assertions added |
+| 23 | Report export authorization | Founder route guard and server middleware; adversarial authorization test pending |
+| 24 | Founder-only access | Server founder actor resolution and route guards; adversarial access test pending |
+| 25 | Cross-tenant isolation | Both founder queries scope customer organisation IDs and exclude founder tenant; adversarial isolation fixture pending |
+| 26 | Historical audit integrity | Append-only reconciliation events and subscription movement rows; mutation guard test covers reconciliation evidence |
+| 27 | Concurrent reconciliation execution | Run locks, unique provider-period identity, atomic statement import and idempotent replay; true concurrent-session test pending |
 | 28 | Existing CC-03 regression | Existing CC-03 workflow required |
 | 29 | Existing CC-04 settlement regression | Existing CC-04 workflow required |
 | 30 | Existing CC-05 entitlement regression | Existing CC-05 workflow required |
@@ -66,9 +66,9 @@ Status: IN PROGRESS — UAT/review only; no production promotion.
 
 ## Remaining acceptance work
 
-1. Add lifecycle-derived new, expansion, contraction, churned and net-new MRR plus ARPT; classify contracted, invoiced, collected, outstanding, one-time, credits and reversals distinctly.
-2. Complete subscription-to-invoice and entitlement/subscription reconciliation.
+1. Revenue movement and financial classifications are implemented. Finish remaining direct fixtures for contraction, churn, annual ARR, trial exclusion, TZS/USD separation, invoice adjustments and aging boundaries.
+2. Subscription-to-invoice and entitlement/subscription drift views and founder exception display are implemented; complete remaining fixture coverage and define the authorized remediation workflow for each exception type.
 3. Add explicit regression assertions for currency isolation, aging boundaries, trial exclusion, export authorization, founder-only access, tenant isolation, historical audit integrity and concurrent run execution.
 4. Run all 33 categories and required CI workflows on one final PR head; remediate all failures.
-5. Review performance/pagination on founder workspace and reconciliation history; resolve the legacy CC-06 numeric precision issue.
+5. Complete performance/pagination review for the founder workspace and reconciliation history. Reporting reads use stable 500-row pagination; reconciliation workspace uses bounded history windows.
 6. Submit for review only. Production migrations, production data writes and deployments remain prohibited until explicit release authorization.
