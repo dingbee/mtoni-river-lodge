@@ -45,6 +45,26 @@ BEGIN
     RAISE EXCEPTION 'Reconciliation event RPC grants violate service-only boundary';
   END IF;
 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_class
+    WHERE oid='public.commercial_reconciliation_statement_imports'::regclass
+      AND relrowsecurity AND relforcerowsecurity
+  ) OR has_table_privilege('anon','public.commercial_reconciliation_statement_imports','SELECT')
+    OR has_table_privilege('authenticated','public.commercial_reconciliation_statement_imports','SELECT')
+    OR has_table_privilege('service_role','public.commercial_reconciliation_statement_imports','UPDATE')
+    OR has_table_privilege('service_role','public.commercial_reconciliation_statement_imports','DELETE')
+    OR NOT has_table_privilege('service_role','public.commercial_reconciliation_statement_imports','INSERT') THEN
+    RAISE EXCEPTION 'Statement import ledger RLS/grants violate least privilege';
+  END IF;
+
+  IF has_function_privilege('anon','public.commercial_create_reconciliation_run(uuid,text,timestamptz,timestamptz,text,uuid)','EXECUTE')
+    OR has_function_privilege('authenticated','public.commercial_import_reconciliation_statement(uuid,jsonb,uuid)','EXECUTE')
+    OR NOT has_function_privilege('service_role','public.commercial_create_reconciliation_run(uuid,text,timestamptz,timestamptz,text,uuid)','EXECUTE')
+    OR NOT has_function_privilege('service_role','public.commercial_import_reconciliation_statement(uuid,jsonb,uuid)','EXECUTE')
+    OR NOT has_function_privilege('service_role','public.commercial_complete_reconciliation_run(uuid,uuid)','EXECUTE') THEN
+    RAISE EXCEPTION 'Reconciliation service RPC grants violate least privilege';
+  END IF;
+
   IF to_regclass('public.commercial_receivables_aging') IS NULL
     OR to_regclass('public.commercial_revenue_invoice_facts') IS NULL
     OR to_regclass('public.commercial_revenue_collection_facts') IS NULL
@@ -75,6 +95,8 @@ DECLARE
   v_provider uuid;
   v_run_payload jsonb;
   v_replayed_id uuid;
+  v_discrepancy_run uuid;
+  v_discrepancy_result jsonb;
   v_import jsonb;
   v_item_count integer;
   v_blocked boolean := false;
@@ -159,6 +181,22 @@ BEGIN
     SELECT 1 FROM public.commercial_reconciliation_runs WHERE id=v_run AND status='completed'
   ) THEN
     RAISE EXCEPTION 'Reconciliation run did not close after all exceptions were resolved';
+  END IF;
+
+  v_discrepancy_result := public.commercial_create_reconciliation_run(
+    v_provider,'TZS',now()-interval '5 days',now()-interval '4 days','cc07-discrepancy-source',NULL
+  );
+  v_discrepancy_run := (v_discrepancy_result->>'id')::uuid;
+  PERFORM public.commercial_import_reconciliation_statement(
+    v_discrepancy_run,
+    '[{"itemType":"amount_mismatch","internalPaymentId":null,"providerRef":"cc07-mismatch-row","expectedAmountMinor":10000,"observedAmountMinor":9000,"expectedCurrency":"TZS","observedCurrency":"TZS","evidence":{"test":true},"resolutionStatus":"unresolved","resolutionRef":null}]'::jsonb,
+    NULL
+  );
+  v_discrepancy_result := public.commercial_complete_reconciliation_run(v_discrepancy_run,NULL);
+  IF v_discrepancy_result->>'status' <> 'discrepancy' OR NOT EXISTS (
+    SELECT 1 FROM public.commercial_reconciliation_runs WHERE id=v_discrepancy_run AND status='discrepancy'
+  ) THEN
+    RAISE EXCEPTION 'Unresolved reconciliation exception did not block clean run closure';
   END IF;
 END
 $data_test$;
