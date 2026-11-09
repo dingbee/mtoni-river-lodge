@@ -459,7 +459,7 @@ GRANT EXECUTE ON FUNCTION public.staynas_transition_concierge_escalation(uuid,uu
 
 -- Durable, server-only rate limiting for anonymous Concierge endpoints.
 CREATE TABLE IF NOT EXISTS public.staynas_public_api_rate_limits (
-  key_hash text PRIMARY KEY CHECK (key_hash ~ '^[a-f0-9]{64}
+  key_hash text PRIMARY KEY CHECK (key_hash ~ '^[a-f0-9]{64}$'),
   window_started_at timestamptz NOT NULL,
   request_count integer NOT NULL CHECK (request_count >= 0),
   updated_at timestamptz NOT NULL DEFAULT now()
@@ -481,7 +481,7 @@ AS $function$
 DECLARE
   v_count integer;
 BEGIN
-  IF p_key_hash IS NULL OR p_key_hash !~ '^[a-f0-9]{64}     OR p_limit < 1 OR p_limit > 1000
+  IF p_key_hash IS NULL OR p_key_hash !~ '^[a-f0-9]{64}$'
      OR p_window_seconds < 1 OR p_window_seconds > 86400 THEN
     RAISE EXCEPTION 'Invalid public rate limit contract' USING ERRCODE = '22023';
   END IF;
@@ -536,7 +536,7 @@ AS $function$
 DECLARE
   v_count integer;
 BEGIN
-  IF p_key_hash IS NULL OR p_key_hash !~ '^[a-f0-9]{64}
+  IF p_key_hash IS NULL OR p_key_hash !~ '^[a-f0-9]{64}$'
      OR p_limit < 1 OR p_limit > 1000
      OR p_window_seconds < 1 OR p_window_seconds > 86400 THEN
     RAISE EXCEPTION 'Invalid public rate limit contract' USING ERRCODE = '22023';
@@ -626,7 +626,7 @@ AS $function$
 DECLARE
   v_count integer;
 BEGIN
-  IF p_key_hash IS NULL OR p_key_hash !~ '^[a-f0-9]{64}
+  IF p_key_hash IS NULL OR p_key_hash !~ '^[a-f0-9]{64}$'
      OR p_limit < 1 OR p_limit > 1000
      OR p_window_seconds < 1 OR p_window_seconds > 86400 THEN
     RAISE EXCEPTION 'Invalid public rate limit contract' USING ERRCODE = '22023';
