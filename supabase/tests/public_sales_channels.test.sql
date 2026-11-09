@@ -48,6 +48,16 @@ BEGIN
      OR pg_get_functiondef(v_booking_signature) NOT LIKE '%FOR UPDATE%' THEN
     RAISE EXCEPTION 'Public reservation wrapper does not bind the accepted quote to its channel';
   END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.staynas_public_booking_channels ch
+    JOIN public.staynas_properties p ON p.id=ch.property_id
+    JOIN public.staynas_property_domains d ON d.id=ch.domain_id
+    WHERE p.slug='mtoni-river-lodge' AND ch.channel_code='direct_web'
+      AND ch.route_path='/book' AND ch.transaction_currency='USD'
+      AND ch.status='draft' AND d.verification_status='pending'
+  ) THEN
+    RAISE EXCEPTION 'Mtoni direct channel must remain draft until domain verification and property activation';
+  END IF;
   IF (SELECT count(*) FROM public.staynas_properties
       WHERE slug IN ('mtoni-river-lodge','nolmark-cdma-staynas') AND currency='TZS')<>2 THEN
     RAISE EXCEPTION 'Existing Tanzanian properties must use TZS operating currency';
