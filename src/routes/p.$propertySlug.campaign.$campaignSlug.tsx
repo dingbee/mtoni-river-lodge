@@ -79,13 +79,19 @@ function PublicCampaignPage() {
         },
       });
       await navigate({
-        to: "/$propertySlug",
-        params: { propertySlug: data.property.slug },
+        to: "/book",
         search: {
+          property: data.property.slug,
           campaign: data.campaign.slug,
           offer: selectedOffer.id,
           ratePlan: selectedOffer.ratePlanId,
           session: sessionKey,
+          utmSource: tracking.source,
+          utmMedium: tracking.medium,
+          utmCampaign: tracking.utmCampaign,
+          utmContent: tracking.utmContent,
+          utmTerm: tracking.utmTerm,
+          referrer: tracking.referrer,
         } as any,
       });
     } catch (error) {
