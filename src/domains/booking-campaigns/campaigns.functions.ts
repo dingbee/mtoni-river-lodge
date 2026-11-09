@@ -222,8 +222,8 @@ export const transitionMyBookingCampaign = createServerFn({ method: "POST" })
   }).parse(input))
   .handler(async ({ data, context }) => {
     const { actor, admin } = await resolveCampaignAdmin(context as ServerContext);
-    const entitlement = await assertCommercialEntitlement(context as ServerContext, "campaign_studio");
-    if (!entitlement.allowed) throw new Error(entitlement.reason);
+    // Lifecycle safety actions (pause/archive/expire) remain available to authorised
+    // property managers even if a subscription lapses; publication stays entitlement-gated.
     const { data: result, error } = await (admin as any).rpc("cps03_transition_booking_campaign", {
       _campaign_id: data.campaignId,
       _property_id: actor.propertyId,
@@ -398,4 +398,53 @@ export const resolveConfiguredPropertyCampaignSlug = createServerFn({ method: "G
     if (campaignError || !campaign || (campaign.starts_at && Date.parse(campaign.starts_at) > now)
       || (campaign.ends_at && Date.parse(campaign.ends_at) <= now)) return null;
     return { propertySlug: property.slug, campaignSlug: data.campaignSlug };
+  });
+
+
+export const getMyBookingCampaignAnalytics = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { actor, admin } = await resolveCampaignAdmin(context as ServerContext);
+    const baseEntitlement = await assertCommercialEntitlement(context as ServerContext, "campaign_studio");
+    if (!baseEntitlement.allowed) throw new Error(baseEntitlement.reason);
+    const advanced = await assertCommercialEntitlement(context as ServerContext, "campaign_analytics_advanced");
+    const sb = admin as any;
+    const since = new Date(Date.now() - 30 * 86400000).toISOString();
+    const [{ data: campaigns, error: campaignsError }, { data: events, error: eventsError }] = await Promise.all([
+      sb.from("booking_campaigns").select("id,name,slug,status").eq("property_id", actor.propertyId).eq("organisation_id", actor.organisationId).order("created_at", { ascending: false }),
+      sb.from("campaign_attribution").select("campaign_id,event_type,booking_id,occurred_at,source,medium,utm_campaign,utm_content,utm_term")
+        .eq("property_id", actor.propertyId).gte("occurred_at", since),
+    ]);
+    if (campaignsError || eventsError) throw new Error("Campaign analytics evidence could not be loaded.");
+    const byCampaign = new Map<string, any>();
+    for (const campaign of campaigns ?? []) byCampaign.set(campaign.id, {
+      campaignId: campaign.id, name: campaign.name, slug: campaign.slug, status: campaign.status,
+      pageViews: 0, bookingClicks: 0, bookingStarts: 0, completedBookings: 0,
+      uniqueBookings: new Set<string>(), sources: new Map<string, number>(),
+    });
+    for (const event of events ?? []) {
+      const item = byCampaign.get(event.campaign_id);
+      if (!item) continue;
+      if (event.event_type === "page_view") item.pageViews += 1;
+      if (event.event_type === "booking_click") item.bookingClicks += 1;
+      if (event.event_type === "booking_started") item.bookingStarts += 1;
+      if (event.event_type === "booking_completed") {
+        item.completedBookings += 1;
+        if (event.booking_id) item.uniqueBookings.add(event.booking_id);
+      }
+      const source = event.source || event.utm_campaign;
+      if (advanced.allowed && source) item.sources.set(source, (item.sources.get(source) ?? 0) + 1);
+    }
+    return {
+      windowDays: 30,
+      advancedAnalyticsEnabled: advanced.allowed,
+      campaigns: Array.from(byCampaign.values()).map((item) => ({
+        campaignId: item.campaignId, name: item.name, slug: item.slug, status: item.status,
+        pageViews: item.pageViews, bookingClicks: item.bookingClicks, bookingStarts: item.bookingStarts,
+        completedBookings: item.completedBookings, uniqueBookings: item.uniqueBookings.size,
+        clickThroughRate: item.pageViews ? item.bookingClicks / item.pageViews : 0,
+        bookingConversionRate: item.bookingClicks ? item.uniqueBookings.size / item.bookingClicks : 0,
+        ...(advanced.allowed ? { sources: Array.from(item.sources.entries()).map(([source, count]) => ({ source, count })) } : {}),
+      })),
+    };
   });
