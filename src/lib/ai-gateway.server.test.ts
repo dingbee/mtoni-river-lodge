@@ -5,6 +5,13 @@ beforeEach(() => {
   vi.stubEnv("STAYNAS_AI_BASE_URL", "");
   vi.stubEnv("STAYNAS_AI_API_KEY", "");
   vi.stubEnv("STAYNAS_AI_MODEL", "");
+  vi.stubEnv("AI_PROVIDER_API_KEY", "");
+  vi.stubEnv("AI_PROVIDER_BASE_URL", "");
+  vi.stubEnv("AI_PROVIDER_MODEL", "");
+  vi.stubEnv("AI_MODEL", "");
+  vi.stubEnv("OPENAI_API_KEY", "");
+  vi.stubEnv("OPENAI_BASE_URL", "");
+  vi.stubEnv("OPENAI_MODEL", "");
   vi.stubEnv("LOVABLE_API_KEY", "");
 });
 
