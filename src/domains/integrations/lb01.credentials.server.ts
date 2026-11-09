@@ -154,7 +154,7 @@ export async function authenticateLb01ServiceRequest(
     .eq("id", credentialRow.connection_id)
     .maybeSingle();
   const connectionRow = connection as Record<string, unknown> | null;
-  if (connectionError || !connectionRow || !["pending", "active"].includes(connectionRow.status)) {
+  if (connectionError || !connectionRow || !["pending", "active"].includes(String(connectionRow.status))) {
     throw new Error("Unauthorized LB-01 service request.");
   }
 
