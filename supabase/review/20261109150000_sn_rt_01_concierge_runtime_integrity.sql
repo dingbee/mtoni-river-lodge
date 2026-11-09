@@ -124,6 +124,16 @@ GRANT INSERT ON TABLE
   public.ai_personalization_events
 TO service_role;
 
+-- Remove destructive object privileges without changing the public room
+-- catalogue's existing SELECT behavior or staff operational write paths.
+REVOKE TRUNCATE, REFERENCES, TRIGGER ON TABLE
+  public.rooms,
+  public.extras,
+  public.ai_concierge_channels,
+  public.ops_tasks,
+  public.notifications
+FROM anon, authenticated;
+
 DROP POLICY IF EXISTS "Escalations read in active property" ON public.ai_escalations;
 DROP POLICY IF EXISTS "Escalations manage in active property" ON public.ai_escalations;
 CREATE POLICY "Escalations read in active property"
