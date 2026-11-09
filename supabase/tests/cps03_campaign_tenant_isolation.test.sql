@@ -189,6 +189,23 @@ BEGIN
   END IF;
 END
 $test$;
+DO $test$
+DECLARE v_created jsonb;
+BEGIN
+  v_created := public.cps03_create_booking_campaign(
+    '10000000-0000-4000-8000-000000000001',
+    '20000000-0000-4000-8000-000000000001',
+    'timezone-created-campaign',
+    'Timezone Created Campaign',
+    current_date,
+    current_date + 2,
+    '40000000-0000-4000-8000-000000000001'
+  );
+  IF ((v_created->>'starts_at')::timestamptz AT TIME ZONE 'Africa/Dar_es_Salaam')::date <> current_date THEN
+    RAISE EXCEPTION 'Campaign creation did not use property-local start date';
+  END IF;
+END
+$test$;
 INSERT INTO public.campaign_page_content(campaign_id,property_id,version,status,content)
 VALUES ('60000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001',1,'draft','{"headline":"Second Campaign"}');
 INSERT INTO public.campaign_room_selections(campaign_id,property_id,room_id)
