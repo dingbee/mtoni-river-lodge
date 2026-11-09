@@ -70,29 +70,27 @@ export const createMyBookingCampaign = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({
     name: campaignName,
     slug: campaignSlug,
-    startsAt: z.string().datetime().nullable().optional(),
-    endsAt: z.string().datetime().nullable().optional(),
+    startsOn: z.string().date().nullable().optional(),
+    endsOn: z.string().date().nullable().optional(),
   }).superRefine((value, ctx) => {
-    if (value.startsAt && value.endsAt && Date.parse(value.endsAt) <= Date.parse(value.startsAt)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["endsAt"], message: "Campaign end must follow its start." });
+    if (value.startsOn && value.endsOn && value.endsOn < value.startsOn) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["endsOn"], message: "Campaign end date must not precede its start date." });
     }
   }).parse(input))
   .handler(async ({ data, context }) => {
     const { actor, admin } = await resolveCampaignAdmin(context as ServerContext);
     const entitlement = await assertCommercialEntitlement(context as ServerContext, "campaign_studio");
     if (!entitlement.allowed) throw new Error(entitlement.reason);
-    const { data: created, error } = await admin.from("booking_campaigns").insert({
-      organisation_id: actor.organisationId,
-      property_id: actor.propertyId,
-      slug: data.slug,
-      name: data.name,
-      status: "draft",
-      starts_at: data.startsAt ?? null,
-      ends_at: data.endsAt ?? null,
-      created_by: actor.userId,
-      updated_by: actor.userId,
-    }).select("id, slug, name, status").maybeSingle();
-    if (error || !created) throw new Error("Campaign draft could not be created. Check the campaign slug and try again.");
+    const { data: created, error } = await (admin as any).rpc("cps03_create_booking_campaign", {
+      _organisation_id: actor.organisationId,
+      _property_id: actor.propertyId,
+      _slug: data.slug,
+      _name: data.name,
+      _starts_on: data.startsOn ?? null,
+      _ends_on: data.endsOn ?? null,
+      _actor_id: actor.userId,
+    });
+    if (error || !created?.id) throw new Error(error?.message ?? "Campaign draft could not be created. Check the campaign slug and property timezone.");
     return created;
   });
 
@@ -140,7 +138,7 @@ export const listMyCampaignStudioResources = createServerFn({ method: "GET" })
     const { actor, admin } = await resolveCampaignAdmin(context as ServerContext);
     const sb = admin as any;
     const [{ data: property, error: propertyError }, { data: rooms, error: roomsError }, { data: publications, error: publicationsError }, { data: plans, error: plansError }] = await Promise.all([
-      sb.from("staynas_properties").select("id,currency").eq("id", actor.propertyId).eq("organisation_id", actor.organisationId).eq("status", "active").maybeSingle(),
+      sb.from("staynas_properties").select("id,currency,timezone").eq("id", actor.propertyId).eq("organisation_id", actor.organisationId).eq("status", "active").maybeSingle(),
       sb.from("rooms").select("id,slug,name,max_occupancy,status").eq("property_id", actor.propertyId).eq("status", "active").order("name"),
       sb.from("staynas_rate_plan_publications").select("id,rate_plan_id,publication_number,rate_plan_version,code,name,currency,effective_from,effective_to,snapshot_hash,published_at").eq("property_id", actor.propertyId).order("published_at", { ascending: false }),
       sb.from("staynas_rate_plans").select("id,code,name,currency,publication_status,active").eq("property_id", actor.propertyId).eq("publication_status", "published").eq("active", true).order("name"),
@@ -162,7 +160,7 @@ export const listMyCampaignStudioResources = createServerFn({ method: "GET" })
       && publication.currency === property.currency
       && (!publication.effective_from || publication.effective_from <= today)
       && (!publication.effective_to || publication.effective_to >= today));
-    return { currency: property.currency, rooms: rooms ?? [], publications: validPublications };
+    return { currency: property.currency, timezone: property.timezone, rooms: rooms ?? [], publications: validPublications };
   });
 
 export const configureMyBookingCampaign = createServerFn({ method: "POST" })
@@ -484,32 +482,25 @@ export const updateMyBookingCampaignSchedule = createServerFn({ method: "POST" }
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({
     campaignId: campaignIdSchema,
-    startsAt: z.string().datetime().nullable(),
-    endsAt: z.string().datetime().nullable(),
+    startsOn: z.string().date().nullable(),
+    endsOn: z.string().date().nullable(),
   }).superRefine((value, ctx) => {
-    if (value.startsAt && value.endsAt && Date.parse(value.endsAt) <= Date.parse(value.startsAt)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["endsAt"], message: "Campaign end must follow its start." });
+    if (value.startsOn && value.endsOn && value.endsOn < value.startsOn) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["endsOn"], message: "Campaign end date must not precede its start date." });
     }
   }).parse(input))
   .handler(async ({ data, context }) => {
     const { actor, admin } = await resolveCampaignAdmin(context as ServerContext);
     const entitlement = await assertCommercialEntitlement(context as ServerContext, "campaign_studio");
     if (!entitlement.allowed) throw new Error(entitlement.reason);
-    const sb = admin as any;
-    const { data: campaign, error: campaignError } = await sb.from("booking_campaigns")
-      .select("id,status").eq("id", data.campaignId).eq("property_id", actor.propertyId)
-      .eq("organisation_id", actor.organisationId).maybeSingle();
-    if (campaignError || !campaign) throw new Error("Campaign not found in the selected property.");
-    if (!["draft","paused","expired"].includes(campaign.status)) {
-      throw new Error("Pause the campaign before changing its schedule.");
-    }
-    const { data: updated, error } = await sb.from("booking_campaigns").update({
-      starts_at: data.startsAt,
-      ends_at: data.endsAt,
-      updated_by: actor.userId,
-      updated_at: new Date().toISOString(),
-    }).eq("id", data.campaignId).eq("property_id", actor.propertyId)
-      .select("id,starts_at,ends_at,status").maybeSingle();
-    if (error || !updated) throw new Error("Campaign schedule could not be saved.");
+    const { data: updated, error } = await (admin as any).rpc("cps03_set_campaign_schedule", {
+      _campaign_id: data.campaignId,
+      _property_id: actor.propertyId,
+      _organisation_id: actor.organisationId,
+      _starts_on: data.startsOn,
+      _ends_on: data.endsOn,
+      _actor_id: actor.userId,
+    });
+    if (error || !updated?.id) throw new Error(error?.message ?? "Campaign schedule could not be saved.");
     return updated;
   });
