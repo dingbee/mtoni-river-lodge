@@ -211,4 +211,93 @@ $new$;
 END;
 $rate_override_currency$;
 
+DO $daily_rate_currency$
+DECLARE
+  v_signature regprocedure;
+  v_definition text;
+  v_updated text;
+BEGIN
+  v_signature:=to_regprocedure('public.validate_staynas_rate_plan_daily_rates()');
+  IF v_signature IS NULL THEN RAISE EXCEPTION 'Daily rate-plan validator is missing'; END IF;
+  v_definition:=pg_get_functiondef(v_signature);
+  v_updated:=replace(
+    v_definition,
+    $old$  SELECT upper(currency), timezone
+    INTO v_currency, v_seasons_timezone
+  FROM public.staynas_properties
+  WHERE id = NEW.property_id;$old$,
+    $new$  v_currency := upper(NEW.currency);
+  SELECT timezone INTO v_seasons_timezone
+  FROM public.staynas_properties
+  WHERE id = NEW.property_id;$new$
+  );
+  v_updated:=replace(v_updated,'Daily pricing requires an explicit property currency','Daily pricing requires an explicit rate-plan transaction currency');
+  IF v_updated=v_definition OR position('upper(NEW.currency)' in v_updated)=0
+     OR position('Daily pricing requires an explicit rate-plan transaction currency' in v_updated)=0 THEN
+    RAISE EXCEPTION 'Daily rate-plan validation did not migrate to transaction currency';
+  END IF;
+  EXECUTE v_updated;
+END;
+$daily_rate_currency$;
+
+DO $seasonal_rate_currency$
+DECLARE
+  v_signature regprocedure;
+  v_definition text;
+  v_updated text;
+BEGIN
+  v_signature:=to_regprocedure('public.validate_staynas_rate_plan_seasonal_rates()');
+  IF v_signature IS NULL THEN RAISE EXCEPTION 'Seasonal rate-plan validator is missing'; END IF;
+  v_definition:=pg_get_functiondef(v_signature);
+  v_updated:=replace(
+    v_definition,
+    $old$  SELECT upper(currency), timezone
+    INTO v_currency, v_timezone
+  FROM public.staynas_properties
+  WHERE id = NEW.property_id;$old$,
+    $new$  v_currency := upper(NEW.currency);
+  SELECT timezone INTO v_timezone
+  FROM public.staynas_properties
+  WHERE id = NEW.property_id;$new$
+  );
+  v_updated:=replace(v_updated,'Seasonal pricing requires an explicit property currency','Seasonal pricing requires an explicit rate-plan transaction currency');
+  IF v_updated=v_definition OR position('upper(NEW.currency)' in v_updated)=0
+     OR position('Seasonal pricing requires an explicit rate-plan transaction currency' in v_updated)=0 THEN
+    RAISE EXCEPTION 'Seasonal rate-plan validation did not migrate to transaction currency';
+  END IF;
+  EXECUTE v_updated;
+END;
+$seasonal_rate_currency$;
+
+DO $base_occupancy_currency$
+DECLARE
+  v_signature regprocedure;
+  v_definition text;
+  v_updated text;
+BEGIN
+  v_signature:=to_regprocedure('public.validate_staynas_rate_plan_base_and_occupancy_data()');
+  IF v_signature IS NULL THEN RAISE EXCEPTION 'Rate-plan base and occupancy validator is missing'; END IF;
+  v_definition:=pg_get_functiondef(v_signature);
+  v_updated:=replace(
+    v_definition,
+    $old$  SELECT upper(p.currency)
+    INTO v_currency
+  FROM public.staynas_properties p
+  WHERE p.id=NEW.property_id AND p.status='active';$old$,
+    $new$  SELECT upper(NEW.currency)
+    INTO v_currency
+  FROM public.staynas_properties p
+  WHERE p.id=NEW.property_id AND p.status='active';$new$
+  );
+  v_updated:=replace(v_updated,'Rate-plan property must have an explicit valid currency','Rate plan must have an explicit valid transaction currency');
+  v_updated:=replace(v_updated,'Base rate and rate-plan currency must match the property currency','Base rate and rate-plan currency must match the selected rate-plan currency');
+  v_updated:=replace(v_updated,'Occupancy rate currency must match the property currency','Occupancy rate currency must match the selected rate-plan currency');
+  IF v_updated=v_definition OR position('SELECT upper(NEW.currency)' in v_updated)=0
+     OR position('match the selected rate-plan currency' in v_updated)=0 THEN
+    RAISE EXCEPTION 'Rate-plan base and occupancy validation did not migrate to transaction currency';
+  END IF;
+  EXECUTE v_updated;
+END;
+$base_occupancy_currency$;
+
 COMMIT;
