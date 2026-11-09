@@ -360,6 +360,14 @@ BEGIN
 
   BEGIN
     INSERT INTO public.ai_concierge_leads(property_id,session_id,name,idempotency_key,consent_at,consent_version)
+    VALUES ('11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222223','Cross-property',repeat('2',64),now(),'concierge-lead-v1');
+    RAISE EXCEPTION 'cross-property lead session reference was accepted';
+  EXCEPTION WHEN foreign_key_violation THEN
+    NULL;
+  END;
+
+  BEGIN
+    INSERT INTO public.ai_concierge_leads(property_id,session_id,name,idempotency_key,consent_at,consent_version)
     VALUES ('11111111-1111-4111-8111-111111111111','11111111-1111-4111-8111-111111111112','Duplicate guest',repeat('1',64),now(),'concierge-lead-v1');
     RAISE EXCEPTION 'duplicate lead idempotency key was accepted';
   EXCEPTION WHEN unique_violation THEN
