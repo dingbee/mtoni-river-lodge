@@ -125,10 +125,9 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, open, busy]);
 
-  // Poll only while a guest handoff is open. Staff status transitions are
-  // delivered through the configured web channel and appended to this session.
+  // Poll durable web-channel handoff updates while the guest widget is open.
   useEffect(() => {
-    if (!open || !token || !escalation) return;
+    if (!open || !token) return;
     let active = true;
     const refresh = async () => {
       try {
@@ -163,7 +162,7 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
       active = false;
       window.clearInterval(timer);
     };
-  }, [open, token, escalation]);
+  }, [open, token]);
 
   async function sendText(raw: string) {
     const text = raw.trim();
