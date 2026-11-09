@@ -1,7 +1,11 @@
 import { randomUUID } from "node:crypto";
 
 export const AI_GATEWAY_DEFAULT_MODEL =
-  process.env.AI_PROVIDER_MODEL || process.env.AI_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini";
+  process.env.STAYNAS_AI_MODEL || process.env.AI_PROVIDER_MODEL || process.env.AI_MODEL ||
+  process.env.OPENAI_MODEL || (process.env.LOVABLE_API_KEY ? "google/gemini-2.5-flash" : "gpt-4.1-mini");
+
+type AiGatewayProvider = "staynas" | "openai-compatible" | "legacy";
+type AiGatewayConfig = { endpoint: string; key: string; model: string; provider: AiGatewayProvider };
 
 export interface AiGatewayTool {
   type: "function";
@@ -31,6 +35,7 @@ export interface AiGatewayResult {
   content: string;
   latencyMs: number;
   model: string;
+  provider: AiGatewayProvider;
   requestId: string;
   toolCalls: AiGatewayToolCall[];
   usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
@@ -41,15 +46,37 @@ const DEFAULT_TIMEOUT_MS = 20_000;
 const MAX_RETRIES = 2;
 const HARD_MAX_OUTPUT_TOKENS = 2_000;
 
-function endpoint(): string {
-  const configured = process.env.AI_PROVIDER_BASE_URL || process.env.OPENAI_BASE_URL ||
-    "https://api.openai.com/v1";
-  const base = configured.replace(/\/+$/, "");
-  return base.endsWith("/chat/completions") ? base : `${base}/chat/completions`;
-}
+function resolveGatewayConfig(): AiGatewayConfig {
+  const staynasUrl = process.env.STAYNAS_AI_BASE_URL;
+  const staynasKey = process.env.STAYNAS_AI_API_KEY;
+  const staynasModel = process.env.STAYNAS_AI_MODEL;
+  if (staynasUrl || staynasKey || staynasModel) {
+    if (!staynasUrl || !staynasKey || !staynasModel) {
+      throw new Error("StayNas AI provider configuration is incomplete. Configure STAYNAS_AI_BASE_URL, STAYNAS_AI_API_KEY and STAYNAS_AI_MODEL together.");
+    }
+    return { endpoint: staynasUrl, key: staynasKey, model: staynasModel, provider: "staynas" };
+  }
 
-function apiKey(): string | null {
-  return process.env.AI_PROVIDER_API_KEY || process.env.OPENAI_API_KEY || null;
+  const providerKey = process.env.AI_PROVIDER_API_KEY || process.env.OPENAI_API_KEY;
+  if (providerKey) {
+    const configuredBase = process.env.AI_PROVIDER_BASE_URL || process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
+    const base = configuredBase.replace(/\\/+$/, "");
+    const endpoint = base.endsWith("/chat/completions") ? base : `${base}/chat/completions`;
+    const model = process.env.AI_PROVIDER_MODEL || process.env.AI_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini";
+    return { endpoint, key: providerKey, model, provider: "openai-compatible" };
+  }
+
+  const legacyKey = process.env.LOVABLE_API_KEY;
+  if (legacyKey) {
+    return {
+      endpoint: "https://ai.gateway.lovable.dev/v1/chat/completions",
+      key: legacyKey,
+      model: "google/gemini-2.5-flash",
+      provider: "legacy",
+    };
+  }
+
+  throw new Error("AI service is not configured.");
 }
 
 function boundedInteger(value: number | undefined, fallback: number, min: number, max: number): number {
@@ -74,10 +101,8 @@ function safeProviderError(status: number): Error {
  * included in logs, responses, or browser-facing errors.
  */
 export async function callAiGateway(opts: AiGatewayCallOptions): Promise<AiGatewayResult> {
-  const key = apiKey();
-  if (!key) throw new Error("AI service is not configured.");
-
-  const model = opts.model?.trim() || AI_GATEWAY_DEFAULT_MODEL;
+  const config = resolveGatewayConfig();
+  const model = opts.model?.trim() || config.model;
   const requestId = randomUUID();
   const timeoutMs = boundedInteger(opts.timeoutMs, DEFAULT_TIMEOUT_MS, 1_000, 60_000);
   const maxRetries = boundedInteger(opts.maxRetries, MAX_RETRIES, 0, 3);
@@ -102,11 +127,11 @@ export async function callAiGateway(opts: AiGatewayCallOptions): Promise<AiGatew
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      response = await fetch(endpoint(), {
+      response = await fetch(config.endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${key}`,
+          Authorization: `Bearer ${config.key}`,
           "X-Request-ID": requestId,
         },
         body: JSON.stringify(body),
@@ -169,6 +194,7 @@ export async function callAiGateway(opts: AiGatewayCallOptions): Promise<AiGatew
     content,
     latencyMs,
     model,
+    provider: config.provider,
     requestId,
     toolCalls: message?.tool_calls ?? [],
     usage: payload.usage,
