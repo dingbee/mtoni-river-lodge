@@ -77,7 +77,7 @@ function PricingAdjustments() {
   const tabs=[["tax","Taxes"],["fee","Fees"],["promo","Promotions"],["preview","Quote preview"],["audit","Audit history"]] as const;
 
   return <div className="space-y-6">
-    <PageHeader title="Taxes, Fees & Promotions" description={data?.property ? data.property.name+" · "+data.property.currency+" · "+data.property.timezone : "Property-scoped pricing adjustments"} />
+    <PageHeader title="Taxes, Fees & Promotions" description={data?.property ? data.property.name+" · Operating currency "+data.property.currency+" · "+data.property.timezone : "Property-scoped pricing adjustments"} />
     <div className="flex flex-wrap gap-2 border-b border-border pb-3">
       {tabs.map(([key,label])=><Button key={key} size="sm" variant={tab===key?"default":"outline"} onClick={()=>setTab(key)}>{label}</Button>)}
     </div>
@@ -90,7 +90,7 @@ function PricingAdjustments() {
           <label className={field}>Tax code<Input value={tax.tax_code} onChange={e=>setTax({...tax,tax_code:e.target.value})}/></label>
           <label className={field}>Calculation<select className={selectCls} value={tax.calculation_type} onChange={e=>setTax({...tax,calculation_type:e.target.value,tax_mode:e.target.value==="inclusive_percent"?"inclusive":"exclusive"})}><option value="exclusive_percent">Exclusive percentage</option><option value="inclusive_percent">Inclusive percentage</option><option value="fixed_per_night">Fixed per night</option><option value="fixed_per_booking">Fixed per booking</option></select></label>
           <label className={field}>Rate / amount<Input required type="number" min="0" step="0.0001" value={tax.rate} onChange={e=>setTax({...tax,rate:e.target.value})}/></label>
-          <label className={field}>Currency (blank = property currency)<Input maxLength={3} value={tax.currency} onChange={e=>setTax({...tax,currency:e.target.value.toUpperCase()})} placeholder={data?.property.currency}/></label>
+          <label className={field}>Transaction currency (blank = operating currency)<Input maxLength={3} value={tax.currency} onChange={e=>setTax({...tax,currency:e.target.value.toUpperCase()})} placeholder={data?.property.currency}/></label>
           <label className={field}>Jurisdiction code<Input value={tax.jurisdiction_code} onChange={e=>setTax({...tax,jurisdiction_code:e.target.value})}/></label>
           <label className={field}>Display label<Input value={tax.display_label} onChange={e=>setTax({...tax,display_label:e.target.value})}/></label>
           <label className={field}>Tax applies to<select className={selectCls} value={tax.applies_to} onChange={e=>{const value=e.target.value;setTax({...tax,applies_to:value,taxable_components:value==="accommodation"?["accommodation"]:value==="extras"?["extras"]:["accommodation","extras"]});}}><option value="accommodation">Accommodation</option><option value="extras">Extras</option><option value="all">All legacy components</option></select></label>
@@ -112,7 +112,7 @@ function PricingAdjustments() {
           <label className={field}>Name<Input required value={fee.name} onChange={e=>setFee({...fee,name:e.target.value})}/></label>
           <label className={field}>Calculation<select className={selectCls} value={fee.calculation_type} onChange={e=>setFee({...fee,calculation_type:e.target.value})}>{["fixed","percentage","per_night","per_guest","per_booking","per_room"].map(v=><option key={v} value={v}>{v.replaceAll("_"," ")}</option>)}</select></label>
           <label className={field}>Amount<Input required type="number" min="0" step="0.0001" value={fee.amount} onChange={e=>setFee({...fee,amount:e.target.value})}/></label>
-          <label className={field}>Currency<Input maxLength={3} value={fee.currency} onChange={e=>setFee({...fee,currency:e.target.value.toUpperCase()})} placeholder={data?.property.currency}/></label>
+          <label className={field}>Transaction currency<Input maxLength={3} value={fee.currency} onChange={e=>setFee({...fee,currency:e.target.value.toUpperCase()})} placeholder={data?.property.currency}/></label>
           <label className={field}>Applies to<select multiple className="min-h-20 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground" value={fee.applies_to} onChange={e=>setFee({...fee,applies_to:Array.from(e.target.selectedOptions).map(o=>o.value)})}><option value="accommodation">Accommodation</option><option value="extras">Extras</option></select></label>
           <label className={field}>Tax rules (empty = all applicable rules)<select multiple className="min-h-20 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground" value={fee.tax_rule_ids??[]} onChange={e=>setFee({...fee,tax_rule_ids:Array.from(e.target.selectedOptions).map(o=>o.value)})}>{(data?.taxes??[]).map((t:any)=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
           <label className={field}>Minimum amount<Input type="number" min="0" step="0.01" value={fee.minimum_amount} onChange={e=>setFee({...fee,minimum_amount:e.target.value})}/></label>
@@ -134,7 +134,7 @@ function PricingAdjustments() {
           <label className={field}>Name<Input required value={promo.name} onChange={e=>setPromo({...promo,name:e.target.value})}/></label>
           <label className={field}>Discount type<select className={selectCls} value={promo.discount_type} onChange={e=>setPromo({...promo,discount_type:e.target.value})}><option value="percentage">Percentage</option><option value="fixed">Fixed amount</option></select></label>
           <label className={field}>Discount value<Input required type="number" min="0.0001" step="0.0001" value={promo.discount_value} onChange={e=>setPromo({...promo,discount_value:e.target.value})}/></label>
-          <label className={field}>Currency<Input maxLength={3} value={promo.currency} onChange={e=>setPromo({...promo,currency:e.target.value.toUpperCase()})} placeholder={data?.property.currency}/></label>
+          <label className={field}>Transaction currency<Input maxLength={3} value={promo.currency} onChange={e=>setPromo({...promo,currency:e.target.value.toUpperCase()})} placeholder={data?.property.currency}/></label>
           <label className={field}>Minimum nights<Input type="number" min="1" value={promo.minimum_nights} onChange={e=>setPromo({...promo,minimum_nights:e.target.value})}/></label>
           <label className={field}>Minimum booking value<Input type="number" min="0" step="0.01" value={promo.minimum_booking_value} onChange={e=>setPromo({...promo,minimum_booking_value:e.target.value})}/></label>
           <label className={field}>Eligible rooms (empty = all rooms)<select multiple className="min-h-20 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground" value={promo.eligible_room_ids??[]} onChange={e=>setPromo({...promo,eligible_room_ids:Array.from(e.target.selectedOptions).map(o=>o.value)})}>{(data?.rooms??[]).map((r:any)=><option key={r.id} value={r.id}>{r.name}</option>)}</select></label>
