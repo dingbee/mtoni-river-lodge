@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Supabase schema types lag the current property-scoped runtime contracts */
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type PropertyPesapalAccount = {
