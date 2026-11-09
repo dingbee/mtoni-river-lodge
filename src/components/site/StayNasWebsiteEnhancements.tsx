@@ -94,16 +94,147 @@ export function StayNasSecurityPage() {
 }
 
 export function StayNasCommercialPage() {
-  const tiers = [
-    { name: "Essential", fit: "For independent properties establishing connected daily operations.", includes: ["Core hospitality operating modules", "Property-level configuration", "Standard onboarding pathway", "Monthly or annual billing"] },
-    { name: "Professional", fit: "For growing properties that need broader operational coordination and management visibility.", includes: ["Expanded operating capabilities", "Additional property options", "Workflow and intelligence options", "Monthly or annual billing"] },
-    { name: "Enterprise", fit: "For groups with multi-property, governance, integration or contractual requirements.", includes: ["Custom enterprise agreement", "Group-level commercial structure", "Advanced integration scope", "Defined onboarding and service arrangements"] },
+  const [showDetails, setShowDetails] = useState(false);
+  const plans = [
+    {
+      name: "Essential",
+      eyebrow: "For independent properties",
+      fit: "A focused operating foundation for a single property or a smaller hospitality business.",
+      price: "Pricing on request",
+      detail: "Base subscription with additional-property pricing where applicable.",
+      action: "Discuss Essential",
+    },
+    {
+      name: "Professional",
+      eyebrow: "For growing operations",
+      fit: "For properties and operators that need broader coordination and room to expand.",
+      price: "Pricing on request",
+      detail: "Hybrid property pricing with independently selected add-ons where compatible.",
+      action: "Discuss Professional",
+      featured: true,
+    },
+    {
+      name: "Enterprise",
+      eyebrow: "For groups and complex operations",
+      fit: "For multi-property groups with tailored governance, integration and service requirements.",
+      price: "Custom quotation",
+      detail: "Quote-required commercial terms based on the agreed group scope.",
+      action: "Talk to Enterprise",
+    },
   ];
-  return <main>
-    <section className="bg-[#0c211b] px-6 py-16 text-white lg:px-10 lg:py-20"><div className="mx-auto max-w-7xl"><p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#d7bd85]">Plans & commercial model</p><h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl">A commercial model that can grow with your property portfolio.</h1><p className="mt-6 max-w-2xl text-base leading-8 text-white/65">StayNas offers three commercial tiers with monthly and annual billing, hybrid property pricing and independently purchasable add-ons.</p></div></section>
-    <section className="mx-auto max-w-7xl px-6 py-16 lg:px-10"><div className="grid gap-5 lg:grid-cols-3">{tiers.map((tier,index) => <article key={tier.name} className={"rounded-2xl border bg-white p-7 " + (index===1 ? "border-[#bda16d] shadow-[0_12px_40px_-28px_rgba(18,40,31,.4)]" : "border-[#deded4]")}><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9a835b]">StayNas {tier.name}</p><h2 className="mt-3 text-2xl font-semibold">{tier.name}</h2><p className="mt-3 min-h-14 text-sm leading-6 text-[#69756e]">{tier.fit}</p><ul className="mt-7 space-y-3">{tier.includes.map(x=><li key={x} className="flex gap-2 text-sm text-[#46554c]"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#53765c]"/>{x}</li>)}</ul><Link to="/request-demo" className="mt-8 inline-flex items-center gap-2 rounded-full border border-[#315744] px-5 py-3 text-sm font-semibold text-[#315744]">Discuss {tier.name} <ArrowRight className="h-4 w-4"/></Link></article>)}</div>
-      <div className="mt-10 grid gap-4 md:grid-cols-2"><article className="rounded-2xl bg-[#e9ede6] p-6"><h3 className="font-semibold">How pricing is structured</h3><p className="mt-2 text-sm leading-7 text-[#69756e]">Hybrid property pricing combines a core subscription with additional property pricing where applicable. Core modules are bundled by tier; selected capabilities can be purchased as add-ons.</p></article><article className="rounded-2xl bg-[#e9ede6] p-6"><h3 className="font-semibold">Commercial flexibility</h3><p className="mt-2 text-sm leading-7 text-[#69756e]">The framework supports a 14-day trial, monthly and annual billing, TZS and USD, and custom enterprise agreements. Final fees depend on the agreed tier, property count, add-ons and contract.</p></article></div>
-      <p className="mt-8 text-xs leading-6 text-[#7a847e]">No public price figures are shown here because the approved commercial baseline defines the pricing structure, while customer-specific fees must be confirmed in a formal quotation.</p>
+
+  const comparison = [
+    {
+      group: "Commercial structure",
+      rows: [
+        { label: "Billing frequency", values: ["Monthly or annual", "Monthly or annual", "Monthly or annual by agreement"] },
+        { label: "Billing currency", values: ["TZS or USD", "TZS or USD", "TZS or USD by agreement"] },
+        { label: "Property pricing", values: ["Base + additional properties", "Base + additional properties", "Defined in enterprise quote"] },
+        { label: "Price publication", values: ["Confirmed quotation", "Confirmed quotation", "Quote required"] },
+      ],
+    },
+    {
+      group: "Platform expansion",
+      rows: [
+        { label: "Independent add-ons", values: ["Available where compatible", "Available where compatible", "Scoped in the agreement"] },
+        { label: "Package composition", values: ["Published plan version", "Published plan version", "Agreed enterprise composition"] },
+        { label: "Property allowance", values: ["Set by published plan", "Set by published plan", "Defined in enterprise quote"] },
+      ],
+    },
+  ];
+
+  return <main className="bg-[#f7f4ec] text-[#17271f]">
+    <section className="px-6 pb-14 pt-16 sm:pb-20 sm:pt-24 lg:px-10">
+      <div className="mx-auto max-w-5xl text-center">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#a16d4d]">StayNas plans & pricing</p>
+        <h1 className="mx-auto mt-5 max-w-4xl text-4xl font-medium leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">The right operating plan for <span className="font-serif italic text-[#b56f50]">every stage.</span></h1>
+        <p className="mx-auto mt-6 max-w-2xl text-sm leading-7 text-[#68756d] sm:text-base">Choose the commercial structure that fits your property today, with room to extend your platform as your operation grows.</p>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-[11px] font-medium text-[#59675e]">
+          <span className="rounded-full border border-[#d9d7cc] bg-white/70 px-4 py-2">TZS and USD</span>
+          <span className="rounded-full border border-[#d9d7cc] bg-white/70 px-4 py-2">Monthly or annual</span>
+          <span className="rounded-full border border-[#d9d7cc] bg-white/70 px-4 py-2">Hybrid property pricing</span>
+          <span className="rounded-full border border-[#d9d7cc] bg-white/70 px-4 py-2">Independent add-ons</span>
+        </div>
+      </div>
+    </section>
+
+    <section className="mx-auto max-w-7xl px-6 pb-16 lg:px-10">
+      <div className="grid gap-4 lg:grid-cols-3">
+        {plans.map((plan) => <article key={plan.name} className={"relative flex h-full flex-col rounded-2xl border p-6 sm:p-7 " + (plan.featured ? "border-[#b88762] bg-[#fffdf7] shadow-[0_18px_50px_-36px_rgba(45,54,39,.45)]" : "border-[#e0ddd2] bg-[#fffdf8]")}>
+          {plan.featured && <span className="absolute right-5 top-5 rounded-full bg-[#f2e7d9] px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#9a6547]">Growing teams</span>}
+          <p className="text-[10px] font-semibold uppercase tracking-[0.19em] text-[#a16d4d]">{plan.eyebrow}</p>
+          <h2 className="mt-4 text-2xl font-semibold tracking-tight">{plan.name}</h2>
+          <p className="mt-3 min-h-[4.5rem] text-sm leading-6 text-[#68756d]">{plan.fit}</p>
+          <div className="mt-7 border-y border-[#e9e5da] py-5">
+            <p className="text-2xl font-serif text-[#b56f50]">{plan.price}</p>
+            <p className="mt-2 text-xs leading-5 text-[#7b857e]">{plan.detail}</p>
+          </div>
+          <Link to="/request-demo" className={"mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-semibold transition " + (plan.featured ? "bg-[#244b38] text-white hover:bg-[#183b2a]" : "border border-[#315744] text-[#315744] hover:bg-[#edf0e8]")}>{plan.action}<ArrowRight className="h-4 w-4"/></Link>
+        </article>)}
+      </div>
+      <p className="mx-auto mt-5 max-w-4xl text-center text-[11px] leading-5 text-[#7b857e]">Final fees and allowances are confirmed against the current published commercial schedule and your selected property footprint. Enterprise pricing is quotation-led.</p>
+    </section>
+
+    <section className="border-y border-[#e4dfd3] bg-[#fbf9f2] px-6 py-16 lg:px-10">
+      <div className="mx-auto max-w-7xl">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.23em] text-[#a16d4d]">Compare the structure</p>
+          <h2 className="mt-4 text-3xl font-medium tracking-tight sm:text-4xl">What each plan is built around.</h2>
+          <p className="mt-4 text-sm leading-7 text-[#68756d]">A clear view of billing, property pricing and how your platform can be extended. Exact module access is governed by the published plan and package version.</p>
+        </div>
+        <div className="mt-10 overflow-hidden rounded-2xl border border-[#e0ddd2] bg-white">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-[#e8e4da] bg-[#f7f4ec]">
+                  <th className="w-[28%] px-5 py-5 text-xs font-semibold text-[#35463b]">Commercial feature</th>
+                  {plans.map((plan) => <th key={plan.name} className="px-5 py-5 text-sm font-semibold text-[#26392e]">{plan.name}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {comparison.map((group) => <React.Fragment key={group.group}>
+                  <tr className="bg-[#f3f0e7]"><th colSpan={4} className="px-5 py-3 text-[9px] font-semibold uppercase tracking-[0.2em] text-[#9a7657]">{group.group}</th></tr>
+                  {group.rows.map((row) => <tr key={row.label} className="border-t border-[#eeebe3]">
+                    <th scope="row" className="px-5 py-4 text-xs font-medium text-[#526057]">{row.label}</th>
+                    {row.values.map((value,index) => <td key={index} className="px-5 py-4 text-xs leading-5 text-[#68756d]">{value}</td>)}
+                  </tr>)}
+                </React.Fragment>)}
+              </tbody>
+            </table>
+          </div>
+          <div className="border-t border-[#e8e4da] px-5 py-4 text-center sm:hidden"><p className="text-[10px] text-[#7b857e]">Swipe horizontally to compare all three plans.</p></div>
+        </div>
+        <div className="mt-6 text-center">
+          <button type="button" aria-expanded={showDetails} onClick={() => setShowDetails((value) => !value)} className="inline-flex items-center gap-2 rounded-full border border-[#9e9b8e] px-6 py-3 text-xs font-medium text-[#39483e] transition hover:bg-[#f0ede4]">{showDetails ? "Show less" : "Show more"} <ChevronRight className={"h-3.5 w-3.5 transition-transform " + (showDetails ? "rotate-[-90deg]" : "rotate-90")}/></button>
+        </div>
+        {showDetails && <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <article className="rounded-xl border border-[#e0ddd2] bg-white p-5"><h3 className="text-sm font-semibold">Property footprint</h3><p className="mt-2 text-xs leading-6 text-[#68756d]">Essential and Professional use a hybrid model: a base subscription plus separately priced additional properties where the allowance is exceeded.</p></article>
+          <article className="rounded-xl border border-[#e0ddd2] bg-white p-5"><h3 className="text-sm font-semibold">Independent add-ons</h3><p className="mt-2 text-xs leading-6 text-[#68756d]">Optional capabilities are priced separately. Availability depends on the published package and its explicit compatibility rules.</p></article>
+          <article className="rounded-xl border border-[#e0ddd2] bg-white p-5"><h3 className="text-sm font-semibold">Currency and term</h3><p className="mt-2 text-xs leading-6 text-[#68756d]">Choose TZS or USD and a monthly or annual term. Each currency is quoted independently; no automatic exchange-rate conversion is applied.</p></article>
+        </div>}
+      </div>
+    </section>
+
+    <section className="bg-[#f0e8dc] px-6 py-16 lg:px-10">
+      <div className="mx-auto max-w-7xl">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.23em] text-[#a16d4d]">Expand your platform</p>
+          <h2 className="mt-4 text-3xl font-medium tracking-tight sm:text-4xl">Add capability as your operation grows.</h2>
+          <p className="mt-4 text-sm leading-7 text-[#68756d]">Keep the core plan aligned to your operation and extend it with separately scoped commercial options.</p>
+        </div>
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          <article className="rounded-2xl border border-white/70 bg-[#fffdf7] p-6"><Building2 className="h-5 w-5 text-[#a16d4d]"/><h3 className="mt-5 text-base font-semibold">Additional properties</h3><p className="mt-2 text-sm leading-6 text-[#68756d]">Extend your property footprint through separately priced property allowances, according to the selected plan version.</p><p className="mt-5 text-xs font-semibold text-[#b56f50]">Property-based pricing</p></article>
+          <article className="rounded-2xl border border-white/70 bg-[#fffdf7] p-6"><Layers3 className="h-5 w-5 text-[#a16d4d]"/><h3 className="mt-5 text-base font-semibold">Independent add-ons</h3><p className="mt-2 text-sm leading-6 text-[#68756d]">Select additional capabilities independently where the published package confirms compatibility.</p><p className="mt-5 text-xs font-semibold text-[#b56f50]">Priced separately</p></article>
+          <article className="rounded-2xl border border-white/70 bg-[#fffdf7] p-6"><Network className="h-5 w-5 text-[#a16d4d]"/><h3 className="mt-5 text-base font-semibold">Integration requirements</h3><p className="mt-2 text-sm leading-6 text-[#68756d]">Discuss your payment, distribution and specialist-system landscape so the integration scope can be assessed accurately.</p><p className="mt-5 text-xs font-semibold text-[#b56f50]">Scoped to your operation</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section className="bg-[#10271f] px-6 py-14 text-white lg:px-10">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+        <div><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#d7bd85]">Build your StayNas package</p><h2 className="mt-3 max-w-2xl text-2xl font-semibold sm:text-3xl">Get a quotation shaped around your property operation.</h2><p className="mt-3 max-w-xl text-sm leading-6 text-white/65">Tell us how many properties you manage, which capabilities matter and which systems you need to connect.</p></div>
+        <Link to="/request-demo" className="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-full bg-[#d7bd85] px-6 py-3.5 text-sm font-semibold text-[#17271f]">Request pricing <ArrowRight className="h-4 w-4"/></Link>
+      </div>
     </section>
   </main>;
 }
