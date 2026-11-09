@@ -249,9 +249,27 @@ export async function handleConciergeChat(
     memoryCtx.contextText,
   ].join("\n") : "";
   const system = buildSystemPrompt(page, propertyFacts, buildRoomsContext(roomCatalog), knowledgeCtx, intentCtx, recsCtx, availabilityCtx) + (memoryPromptSection ? "\n\n" + memoryPromptSection : "");
-  const { raw, latency } = await callModel(system, history, message);
+  let raw = "";
+  let latency = 0;
+  let inferenceFailed = false;
+  try {
+    const result = await callModel(system, history, message);
+    raw = result.raw;
+    latency = result.latency;
+  } catch {
+    inferenceFailed = true;
+    raw = JSON.stringify({
+      answer: "I cannot verify that information right now. Your request has been referred to the property team.",
+      confidence: 0,
+      escalate: true,
+      citations: [],
+    });
+  }
   const parsed = tryJson<{ answer?: string; confidence?: number; escalate?: boolean; citations?: any[] }>(raw) ?? {};
-  const answer = (parsed.answer ?? "I'm sorry, I couldn't put together an answer just now. Please contact the property team using the contact details on this property website.").trim();
+  const malformedModelResponse = typeof parsed.answer !== "string" || !parsed.answer.trim();
+  const answer = !malformedModelResponse
+    ? parsed.answer!.trim().slice(0, 6000)
+    : "I cannot verify that information right now. Please try again or ask the property team for assistance.";
   // Only expose citations explicitly selected by the model and validated against
   // this property's retrieved evidence. Never attach every retrieved row by default.
   const citationKeys = new Set<string>();
@@ -267,9 +285,9 @@ export async function handleConciergeChat(
     citationKeys.add(key);
     return [source];
   });
-  const confidence = typeof parsed.confidence === "number" ? Math.max(0, Math.min(1, parsed.confidence)) : 0.6;
+  const confidence = typeof parsed.confidence === "number" && Number.isFinite(parsed.confidence) ? Math.max(0, Math.min(1, parsed.confidence)) : 0;
   const availabilityFailure = ["property_resolution_failure", "inventory_service_failure", "pricing_service_failure", "temporary_failure"].includes(availabilityOutcome ?? "");
-  const shouldEscalate = Boolean(parsed.escalate) || confidence < LOW_CONFIDENCE || availabilityFailure;
+  const shouldEscalate = parsed.escalate === true || confidence < LOW_CONFIDENCE || availabilityFailure || malformedModelResponse || inferenceFailed;
 
   const { data: assistantRow } = await supabaseAdmin.from("ai_concierge_messages").insert({
     session_id: sessionId, role: "assistant", content: answer, citations: citations as any,
