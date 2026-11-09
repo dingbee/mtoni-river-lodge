@@ -25,7 +25,7 @@ export async function resolvePublicPropertyFromHostname(hostHeader: string | nul
   const hostname = normalizePublicHostname(hostHeader);
   if (!hostname) throw new PublicPropertyResolutionError();
 
-  const { data: domains, error: domainError } = await supabaseAdmin
+  const { data: domains, error: domainError } = await (supabaseAdmin as any)
     .from("staynas_property_domains")
     .select("property_id")
     .eq("hostname", hostname)
@@ -37,7 +37,7 @@ export async function resolvePublicPropertyFromHostname(hostHeader: string | nul
     throw new PublicPropertyResolutionError();
   }
 
-  const { data: property, error: propertyError } = await supabaseAdmin
+  const { data: property, error: propertyError } = await (supabaseAdmin as any)
     .from("staynas_properties")
     .select("id")
     .eq("id", domains[0].property_id)
