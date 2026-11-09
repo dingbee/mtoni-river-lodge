@@ -28,8 +28,10 @@ const FALLBACK_PROPERTY: StayNasProperty = {
   name: "Nolmark CDMA",
   code: "NOLMARK",
   timezone: "Africa/Dar_es_Salaam",
-  currency: "USD",
-  status: "active",
+  // Unresolved shell placeholder only. Pricing and payments must remain unavailable
+  // until the authenticated property service supplies an explicit currency.
+  currency: "",
+  status: "setup",
 };
 
 const STORAGE_KEY = "staynas.active-property";
