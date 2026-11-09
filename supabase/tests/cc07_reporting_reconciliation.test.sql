@@ -213,12 +213,12 @@ BEGIN
     RAISE EXCEPTION 'Repeated statement import created duplicate reconciliation items';
   END IF;
   v_event := public.commercial_record_reconciliation_item_event(
-    v_item,'opened',NULL,'service_principal','provider_status_conflict',
-    'Opened by CC-07 contract test','{"source":"isolated-test"}'::jsonb,NULL
+    v_item,'evidence_added',NULL,'service_principal','provider_status_conflict',
+    'Evidence appended by CC-07 contract test','{"source":"isolated-test"}'::jsonb,NULL
   );
   IF NOT EXISTS (
     SELECT 1 FROM public.commercial_reconciliation_item_events
-    WHERE id=v_event AND item_id=v_item AND event_type='opened'
+    WHERE id=v_event AND item_id=v_item AND event_type='evidence_added'
   ) THEN RAISE EXCEPTION 'Reconciliation lifecycle event was not persisted'; END IF;
 
   BEGIN
@@ -247,7 +247,7 @@ BEGIN
   PERFORM public.commercial_resolve_reconciliation_item(v_item,'cc07-test-resolution-final',NULL);
   IF NOT EXISTS (
     SELECT 1 FROM public.commercial_reconciliation_items
-    WHERE id=v_item AND resolution_status='resolved' AND resolution_ref='cc07-test-resolution'
+    WHERE id=v_item AND resolution_status='resolved' AND resolution_ref='cc07-test-resolution-final'
   ) OR NOT EXISTS (
     SELECT 1 FROM public.commercial_reconciliation_item_events
     WHERE item_id=v_item AND event_type='resolved' AND resolution_ref='cc07-test-resolution-final'
