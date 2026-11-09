@@ -95,15 +95,152 @@ export function StayNasSecurityPage() {
 
 export function StayNasCommercialPage() {
   const tiers = [
-    { name: "Essential", fit: "For independent properties establishing connected daily operations.", includes: ["Core hospitality operating modules", "Property-level configuration", "Standard onboarding pathway", "Monthly or annual billing"] },
-    { name: "Professional", fit: "For growing properties that need broader operational coordination and management visibility.", includes: ["Expanded operating capabilities", "Additional property options", "Workflow and intelligence options", "Monthly or annual billing"] },
-    { name: "Enterprise", fit: "For groups with multi-property, governance, integration or contractual requirements.", includes: ["Custom enterprise agreement", "Group-level commercial structure", "Advanced integration scope", "Defined onboarding and service arrangements"] },
+    {
+      name: "Essential",
+      label: "Complete property operations",
+      fit: "For independent hotels, lodges and hospitality properties that need a complete operating foundation.",
+      allowance: "1 property",
+      groups: [
+        { title: "Core hospitality operations", items: ["Reservations and booking lifecycle", "Rooms, inventory and availability", "Front desk and digital check-in", "Housekeeping, inspections and room readiness", "Guest profiles and stay history", "Finance, folios and payment visibility"] },
+        { title: "Property management", items: ["Basic room rates and pricing rules", "Seasonal and date-specific rate management", "Basic guest marketing and communications", "Operational dashboards and standard reports", "Basic payment-provider connection"] },
+      ],
+    },
+    {
+      name: "Professional",
+      label: "Intelligence and multi-property growth",
+      fit: "For growing operators coordinating multiple properties and seeking stronger commercial and operational intelligence.",
+      allowance: "3 properties included",
+      featured: true,
+      groups: [
+        { title: "Everything in Essential", items: ["Complete core hospitality operations", "Property-level operating controls", "Basic payment-provider connection"] },
+        { title: "Professional capabilities", items: ["Multi-property administration and visibility", "AI Concierge with monthly credit allocation", "Advanced revenue management and pricing intelligence", "Advanced marketing, segmentation and campaigns", "Advanced workflow automation", "Enhanced analytics and management reporting", "Expanded integration capabilities"] },
+      ],
+    },
+    {
+      name: "Enterprise",
+      label: "Portfolio governance and extensibility",
+      fit: "For hospitality groups requiring centralised governance, consolidated intelligence and tailored integration arrangements.",
+      allowance: "Property scope by agreement",
+      groups: [
+        { title: "Everything in Professional", items: ["Multi-property operations", "AI Concierge with negotiated credit allocation", "Advanced revenue and marketing capabilities"] },
+        { title: "Enterprise capabilities", items: ["Group-wide administration and governance", "Consolidated financial and portfolio reporting", "Centralised commercial controls", "Advanced role, access and audit controls", "Custom integrations, APIs and workflows", "Negotiated support and service agreement"] },
+      ],
+    },
   ];
+
+  const addons = [
+    { name: "Website Builder", detail: "A property website and direct-booking experience connected to StayNas property content and reservation workflows.", model: "Separately configured add-on" },
+    { name: "OTA Distribution", detail: "External booking-channel connectivity, with connector-specific setup, availability and operating requirements.", model: "Per-connector commercial arrangement" },
+    { name: "Open API", detail: "Controlled API access for approved external systems, subject to access scope, integration requirements and commercial approval.", model: "Separately scoped" },
+    { name: "LexiBite Integration", detail: "Connect eligible food-and-beverage operations with hospitality workflows through a separately scoped ecosystem integration.", model: "Integration add-on" },
+    { name: "Custom Integrations", detail: "Specialist connectors and bespoke data exchange for systems beyond the standard integration catalogue.", model: "Enterprise / quoted scope" },
+  ];
+
+  const faqs = [
+    { q: "Are subscription prices published on this page?", a: "No monetary figures are published here. The public page explains plan scope and commercial structure. Fees, discounts, billing arrangements and customer-specific terms are confirmed through an authorised quotation." },
+    { q: "Who controls StayNas pricing and plan configuration?", a: "Commercial configuration is controlled by authorised StayNas Founder Administrators. This includes plan composition, pricing, property allowances, add-on terms, AI credit allocations and approved commercial exceptions. Tenant users cannot change platform-wide commercial settings." },
+    { q: "How many properties are included in each plan?", a: "Essential is structured for one property. Professional includes three properties in its base subscription. Enterprise property scope is agreed individually. Additional-property terms are confirmed by Founder Administration." },
+    { q: "Can a property use StayNas without purchasing add-ons?", a: "Yes. Essential is designed to provide complete core hospitality operations for a property. Optional products such as Website Builder and OTA Distribution extend the platform but are not prerequisites for core reservation, room, front-desk or housekeeping workflows." },
+    { q: "Is AI Concierge included in every plan?", a: "AI Concierge is positioned in Professional and Enterprise, using a credit-based consumption model. Credit allocations, top-ups, usage rules and any negotiated arrangements are controlled by Founder Administration and confirmed for the applicable subscription." },
+    { q: "How does OTA Distribution work commercially?", a: "OTA Distribution is an optional connector-based add-on. Connector availability, configuration, third-party requirements and applicable commercial terms are confirmed for each requested channel. Third-party channel fees or commissions, where applicable, are separate from StayNas fees." },
+    { q: "Are payment integrations available on all plans?", a: "All plans are designed to include a basic payment-provider connection. Provider activation remains subject to supported integrations, property or tenant configuration, credentials and provider requirements. Transaction charges are separate where imposed by the provider." },
+    { q: "Can I add Website Builder or other integrations later?", a: "Yes. Eligible add-ons can be discussed as the operation grows. Compatibility, property scope, implementation requirements and commercial terms are confirmed by the StayNas team before activation." },
+    { q: "Does Professional include advanced revenue management and marketing?", a: "Professional is positioned to include advanced revenue management, marketing, segmentation, automation and multi-property visibility. Essential retains basic room pricing rules and basic marketing functionality." },
+    { q: "What support is included with Enterprise?", a: "Enterprise support is not represented as a fixed public entitlement. Support scope, service levels, response commitments and escalation arrangements are negotiated and documented in the individual enterprise agreement." },
+    { q: "Can I change my plan or property count?", a: "Plan changes and property-count adjustments are handled through the authorised commercial process. Effective dates, billing adjustments, eligibility and any resulting changes to access are confirmed by Founder Administration." },
+    { q: "How do we get a proposal for our property?", a: "Submit a demonstration or commercial enquiry with your property count, operating model and integration requirements. The StayNas team will review the scope and coordinate an authorised commercial response." },
+  ];
+
   return <main>
-    <section className="bg-[#0c211b] px-6 py-16 text-white lg:px-10 lg:py-20"><div className="mx-auto max-w-7xl"><p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#d7bd85]">Plans & commercial model</p><h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl">A commercial model that can grow with your property portfolio.</h1><p className="mt-6 max-w-2xl text-base leading-8 text-white/65">StayNas offers three commercial tiers with monthly and annual billing, hybrid property pricing and independently purchasable add-ons.</p></div></section>
-    <section className="mx-auto max-w-7xl px-6 py-16 lg:px-10"><div className="grid gap-5 lg:grid-cols-3">{tiers.map((tier,index) => <article key={tier.name} className={"rounded-2xl border bg-white p-7 " + (index===1 ? "border-[#bda16d] shadow-[0_12px_40px_-28px_rgba(18,40,31,.4)]" : "border-[#deded4]")}><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9a835b]">StayNas {tier.name}</p><h2 className="mt-3 text-2xl font-semibold">{tier.name}</h2><p className="mt-3 min-h-14 text-sm leading-6 text-[#69756e]">{tier.fit}</p><ul className="mt-7 space-y-3">{tier.includes.map(x=><li key={x} className="flex gap-2 text-sm text-[#46554c]"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#53765c]"/>{x}</li>)}</ul><Link to="/request-demo" className="mt-8 inline-flex items-center gap-2 rounded-full border border-[#315744] px-5 py-3 text-sm font-semibold text-[#315744]">Discuss {tier.name} <ArrowRight className="h-4 w-4"/></Link></article>)}</div>
-      <div className="mt-10 grid gap-4 md:grid-cols-2"><article className="rounded-2xl bg-[#e9ede6] p-6"><h3 className="font-semibold">How pricing is structured</h3><p className="mt-2 text-sm leading-7 text-[#69756e]">Hybrid property pricing combines a core subscription with additional property pricing where applicable. Core modules are bundled by tier; selected capabilities can be purchased as add-ons.</p></article><article className="rounded-2xl bg-[#e9ede6] p-6"><h3 className="font-semibold">Commercial flexibility</h3><p className="mt-2 text-sm leading-7 text-[#69756e]">The framework supports a 14-day trial, monthly and annual billing, TZS and USD, and custom enterprise agreements. Final fees depend on the agreed tier, property count, add-ons and contract.</p></article></div>
-      <p className="mt-8 text-xs leading-6 text-[#7a847e]">No public price figures are shown here because the approved commercial baseline defines the pricing structure, while customer-specific fees must be confirmed in a formal quotation.</p>
+    <section className="bg-[#0c211b] px-6 py-16 text-white lg:px-10 lg:py-20">
+      <div className="mx-auto max-w-7xl">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#d7bd85]">Plans & commercial model</p>
+        <h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl">A hospitality operating system that grows with your operation.</h1>
+        <p className="mt-6 max-w-2xl text-base leading-8 text-white/65">Choose a complete property operating foundation, expand into multi-property intelligence or agree an enterprise operating model. Optional capabilities extend the platform as your requirements evolve.</p>
+        <div className="mt-8 flex flex-wrap gap-2 text-[11px] font-medium text-white/75">
+          <span className="rounded-full border border-white/20 px-4 py-2">Monthly or annual arrangements</span>
+          <span className="rounded-full border border-white/20 px-4 py-2">TZS or USD commercial options</span>
+          <span className="rounded-full border border-white/20 px-4 py-2">Founder-administered terms</span>
+          <span className="rounded-full border border-white/20 px-4 py-2">Optional add-ons</span>
+        </div>
+      </div>
+    </section>
+
+    <section className="mx-auto max-w-7xl px-6 py-16 lg:px-10">
+      <div className="mx-auto mb-10 max-w-2xl text-center">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.23em] text-[#9a835b]">Choose your operating model</p>
+        <h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Three plans. A clear path to grow.</h2>
+        <p className="mt-4 text-sm leading-7 text-[#69756e]">Plan capabilities are described below. Monetary fees and final commercial configuration are not published; they are administered by authorised StayNas Founder Administrators.</p>
+      </div>
+      <div className="grid gap-5 lg:grid-cols-3">
+        {tiers.map((tier) => <article key={tier.name} className={"flex flex-col rounded-2xl border bg-white p-6 sm:p-7 " + (tier.featured ? "border-[#bda16d] shadow-[0_12px_40px_-28px_rgba(18,40,31,.4)]" : "border-[#deded4]")}>
+          {tier.featured && <span className="mb-4 self-start rounded-full bg-[#edf1eb] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#315744]">For growing operators</span>}
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9a835b]">StayNas {tier.name}</p>
+          <h3 className="mt-3 text-2xl font-semibold">{tier.name}</h3>
+          <p className="mt-2 text-xs font-semibold text-[#315744]">{tier.label}</p>
+          <p className="mt-3 min-h-14 text-sm leading-6 text-[#69756e]">{tier.fit}</p>
+          <div className="mt-5 rounded-xl bg-[#f0f1e9] px-4 py-3"><p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8a795b]">Property scope</p><p className="mt-1 text-sm font-semibold text-[#26392e]">{tier.allowance}</p></div>
+          <div className="mt-6 flex-1 space-y-5">
+            {tier.groups.map((group) => <div key={group.title}><h4 className="text-xs font-semibold text-[#35463b]">{group.title}</h4><ul className="mt-3 space-y-2.5">{group.items.map((item) => <li key={item} className="flex items-start gap-2 text-xs leading-5 text-[#526057]"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#53765c]"/>{item}</li>)}</ul></div>)}
+          </div>
+          <Link to="/request-demo" className={"mt-7 inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold " + (tier.featured ? "bg-[#244b38] text-white hover:bg-[#183b2a]" : "border border-[#315744] text-[#315744] hover:bg-[#edf0e8]")}>Discuss {tier.name} <ArrowRight className="h-4 w-4"/></Link>
+        </article>)}
+      </div>
+      <p className="mx-auto mt-6 max-w-4xl text-center text-[11px] leading-5 text-[#7a847e]">Published plan descriptions communicate intended capability positioning. Final fees, enabled entitlements, property allowances, credit allocations and effective terms are confirmed through Founder Administration and the applicable customer agreement.</p>
+    </section>
+
+    <section className="border-y border-[#e4dfd3] bg-[#fbf9f2] px-6 py-16 lg:px-10">
+      <div className="mx-auto max-w-7xl">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.23em] text-[#9a835b]">Compare plan capabilities</p>
+          <h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Know what each operating tier is designed to deliver.</h2>
+          <p className="mt-4 text-sm leading-7 text-[#69756e]">This comparison communicates the current commercial direction. The final published entitlement configuration remains under Founder Administration.</p>
+        </div>
+        <div className="mt-10 overflow-hidden rounded-2xl border border-[#e0ddd2] bg-white">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[820px] border-collapse text-left text-sm">
+              <thead><tr className="border-b border-[#e8e4da] bg-[#f7f4ec]"><th className="w-[25%] px-5 py-5 text-xs font-semibold text-[#35463b]">Capability</th>{tiers.map((tier) => <th key={tier.name} className="px-5 py-5 text-sm font-semibold text-[#26392e]">{tier.name}</th>)}</tr></thead>
+              <tbody>
+                {[
+                  ["Core operations", "Reservations, rooms, front desk and housekeeping", "Complete property operations", "Complete multi-property operations", "Group-wide operations"],
+                  ["Guest management", "Profiles, stay history and service context", "Included", "Advanced guest intelligence", "Portfolio-wide guest context"],
+                  ["Finance", "Folios, payment visibility and standard reporting", "Included", "Advanced reporting", "Consolidated finance"],
+                  ["Revenue management", "Basic room rates and pricing rules", "Included", "Advanced revenue management", "Group-wide revenue intelligence"],
+                  ["Marketing", "Basic guest marketing", "Included", "Advanced campaigns and segmentation", "Group-wide marketing"],
+                  ["Automation", "Basic operational workflows", "Basic", "Advanced automation", "Custom enterprise workflows"],
+                  ["AI Concierge", "Not included", "Not included", "Monthly credit allocation", "Negotiated credit allocation"],
+                  ["Multi-property", "Single-property scope", "Not included", "3 properties included", "Negotiated portfolio scope"],
+                  ["Payment connectivity", "Basic provider connection", "Included", "Included", "Included"],
+                  ["Integrations", "Basic payment connectivity", "Included", "Expanded integrations", "Custom integration scope"],
+                  ["Support", "Standard arrangements confirmed commercially", "Standard arrangements confirmed commercially", "Standard arrangements confirmed commercially", "Entirely negotiated agreement"],
+                ].map((row) => <tr key={row[0]} className="border-t border-[#eeebe3]"><th scope="row" className="px-5 py-4 text-xs font-medium text-[#526057]">{row[0]}</th>{row.slice(1).map((value,index) => <td key={index} className="px-5 py-4 text-xs leading-5 text-[#68756d]">{value}</td>)}</tr>)}
+              </tbody>
+            </table>
+          </div>
+          <p className="border-t border-[#e8e4da] px-5 py-3 text-center text-[10px] text-[#7b857e] sm:hidden">Swipe horizontally to compare all three plans.</p>
+        </div>
+      </div>
+    </section>
+
+    <section className="bg-[#f0e8dc] px-6 py-16 lg:px-10">
+      <div className="mx-auto max-w-7xl">
+        <div className="mx-auto max-w-2xl text-center"><p className="text-[10px] font-semibold uppercase tracking-[0.23em] text-[#9a835b]">Extend your platform</p><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Optional capabilities for your operating model.</h2><p className="mt-4 text-sm leading-7 text-[#69756e]">Add-ons are separately scoped. Availability, compatibility, connector setup and commercial terms are confirmed before activation.</p></div>
+        <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {addons.map((addon) => <article key={addon.name} className="rounded-2xl border border-white/70 bg-[#fffdf7] p-6"><div className="flex items-start justify-between gap-3"><h3 className="text-base font-semibold">{addon.name}</h3><Layers3 className="h-5 w-5 shrink-0 text-[#a16d4d]"/></div><p className="mt-3 text-sm leading-6 text-[#68756d]">{addon.detail}</p><p className="mt-5 border-t border-[#e9e5da] pt-4 text-[10px] font-semibold uppercase tracking-[0.13em] text-[#9a7657]">{addon.model}</p></article>)}
+        </div>
+        <p className="mt-6 text-center text-[11px] leading-5 text-[#7a847e]">Basic payment-provider connectivity is part of the plan direction. Provider activation, third-party fees and advanced payment requirements remain subject to configuration and agreement.</p>
+      </div>
+    </section>
+
+    <section className="bg-[#10271f] px-6 py-14 text-white lg:px-10">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#d7bd85]">Build your StayNas operating model</p><h2 className="mt-3 max-w-2xl text-2xl font-semibold sm:text-3xl">Discuss the right plan and capabilities for your property.</h2><p className="mt-3 max-w-xl text-sm leading-6 text-white/65">Share your property footprint, operating priorities and integration requirements. An authorised StayNas representative will coordinate the commercial discussion.</p></div><Link to="/request-demo" className="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-full bg-[#d7bd85] px-6 py-3.5 text-sm font-semibold text-[#17271f]">Discuss your requirements <ArrowRight className="h-4 w-4"/></Link></div>
+    </section>
+
+    <section className="mx-auto max-w-5xl px-6 py-16 lg:px-10">
+      <div className="mx-auto max-w-2xl text-center"><p className="text-[10px] font-semibold uppercase tracking-[0.23em] text-[#9a835b]">Frequently asked questions</p><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Questions about StayNas plans and commercial options.</h2><p className="mt-4 text-sm leading-7 text-[#69756e]">The answers below explain the current plan direction. Final commercial configuration is confirmed by authorised Founder Administration.</p></div>
+      <div className="mt-10 divide-y divide-[#e6e2d8] border-y border-[#e6e2d8]">
+        {faqs.map((faq,index) => <details key={faq.q} className="group py-5"><summary className="flex cursor-pointer list-none items-center justify-between gap-5 text-left text-sm font-semibold text-[#26392e] marker:content-none"><span><span className="mr-3 text-[10px] font-semibold tracking-widest text-[#a1844f]">0{index+1}</span>{faq.q}</span><ChevronRight className="h-4 w-4 shrink-0 text-[#8b958e] transition-transform group-open:rotate-90"/></summary><p className="max-w-4xl pb-1 pl-9 pt-4 text-sm leading-7 text-[#69756e]">{faq.a}</p></details>)}
+      </div>
     </section>
   </main>;
 }
