@@ -181,6 +181,26 @@ END
 $test$;
 UPDATE public.booking_pages SET status='published', published_at=now()
 WHERE property_id='20000000-0000-4000-8000-000000000001';
+UPDATE public.staynas_properties SET currency='USD'
+WHERE id='20000000-0000-4000-8000-000000000001';
+DO $test$
+DECLARE v_rejected boolean := false;
+BEGIN
+  BEGIN
+    PERFORM public.cps03_publish_booking_campaign(
+      '60000000-0000-4000-8000-000000000001',
+      '20000000-0000-4000-8000-000000000001',
+      '10000000-0000-4000-8000-000000000001',
+      '40000000-0000-4000-8000-000000000001',
+      1
+    );
+  EXCEPTION WHEN raise_exception THEN v_rejected := true;
+  END;
+  IF NOT v_rejected THEN RAISE EXCEPTION 'Campaign publication accepted USD property currency'; END IF;
+END
+$test$;
+UPDATE public.staynas_properties SET currency='TZS'
+WHERE id='20000000-0000-4000-8000-000000000001';
 DO $test$
 BEGIN
   PERFORM public.cps03_publish_booking_campaign(
