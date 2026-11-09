@@ -265,11 +265,25 @@ export const validatePropertyDistributionConnection = createServerFn({ method: "
       connectionId: connection.id,
       environment: "sandbox",
     });
+    const checkedAt = new Date().toISOString();
+    const { recordDistributionHealthEvidence } = await import("./adapters/health-evidence.server");
+    await recordDistributionHealthEvidence(
+      executionContext,
+      result.ok
+        ? { state: "healthy", checkedAt, latencyMs: result.value.latencyMs }
+        : {
+            state: result.error.code === "timeout" || result.error.code === "provider_unavailable" ? "unavailable" : "degraded",
+            checkedAt,
+            error: result.error,
+          },
+      `admin:${context.userId}`,
+      result.ok ? "valid" : result.error.code === "authentication" ? "invalid" : "unknown",
+    );
     if (!result.ok) {
       return { ok: false, code: result.error.code, message: result.error.safeMessage };
     }
 
-    const now = new Date().toISOString();
+    const now = checkedAt;
     const [{ error: accountUpdateError }, { error: connectionUpdateError }, { error: auditError }] = await Promise.all([
       admin.from("staynas_distribution_external_accounts").update({ lifecycle: "connected", updated_by: context.userId, updated_at: now }).eq("id", account.id),
       admin.from("staynas_distribution_connections").update({ lifecycle: "connected", updated_by: context.userId, updated_at: now }).eq("id", connection.id),
