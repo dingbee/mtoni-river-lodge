@@ -19,7 +19,7 @@ SELECT public.commercial_create_reconciliation_item(
   10000,9000,'TZS','TZS','{"concurrencyTest":true}'::jsonb,
   'unresolved',NULL,NULL
 );
-\\! touch "$READY_FILE"
+\! touch "$READY_FILE"
 SELECT pg_sleep(2);
 COMMIT;
 SQL
