@@ -3,14 +3,15 @@ import { describe, expect, it } from "vitest";
 import { verifyLb01Request } from "./lb01.service-auth";
 import { sendLb01Approval } from "./lb01.sender.server";
 
-function peerToken() {
-  return `lb01_v1_${randomBytes(12).toString("hex")}_${randomBytes(32).toString("base64url")}`;
+function peerCredential() {
+  const secret = randomBytes(32).toString("base64url");
+  const prefix = randomBytes(12).toString("hex");
+  return { token: `lb01_v1_${prefix}_${secret}`, secret };
 }
 
 describe("LB-01 outbound approval transport", () => {
   it("sends a signed request to the fixed approval route and validates the peer response", async () => {
-    const token = peerToken();
-    const secret = token.split("_").at(-1)!;
+    const { token, secret } = peerCredential();
     let capturedUrl = "";
     let capturedInit: RequestInit | undefined;
     const correlationId = "lb01-correlation-001";
@@ -42,7 +43,7 @@ describe("LB-01 outbound approval transport", () => {
   });
 
   it("rejects insecure endpoints, invalid credentials and unconfirmed responses", async () => {
-    const token = peerToken();
+    const { token } = peerCredential();
     await expect(sendLb01Approval(
       { endpointUrl: "http://lexibite.example/api/integrations/lb01/approval", credentialToken: token },
       "lb01-correlation-001",
@@ -60,7 +61,7 @@ describe("LB-01 outbound approval transport", () => {
 
   it("does not treat a failed HTTP response as an accepted approval", async () => {
     await expect(sendLb01Approval(
-      { endpointUrl: "https://lexibite.example/api/integrations/lb01/approval", credentialToken: peerToken() },
+      { endpointUrl: "https://lexibite.example/api/integrations/lb01/approval", credentialToken: peerCredential().token },
       "lb01-correlation-001",
       async () => new Response(null, { status: 503 }),
     )).rejects.toThrow("HTTP 503");
