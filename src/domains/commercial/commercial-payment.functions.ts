@@ -525,7 +525,7 @@ export const resolveCommercialReconciliationItem=createServerFn({method:"POST"})
 
 const reconciliationLifecycleInput = z.object({
   itemId: z.string().uuid(),
-  eventType: z.enum(["review_started", "evidence_added", "escalated"]),
+  eventType: z.enum(["review_started", "evidence_added", "reopened", "escalated"]),
   reasonCode: z.string().trim().min(2).max(120),
   note: z.string().trim().max(2000).nullable().optional(),
   evidence: z.record(z.string(), z.unknown()).default({}),
