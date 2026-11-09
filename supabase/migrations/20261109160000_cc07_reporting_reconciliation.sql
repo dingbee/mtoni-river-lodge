@@ -109,6 +109,8 @@ CREATE OR REPLACE FUNCTION public.commercial_create_reconciliation_item(
   _expected_currency text,
   _observed_currency text,
   _evidence jsonb,
+  _resolution_status text,
+  _resolution_ref text,
   _actor_user_id uuid
 )
 RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER
@@ -131,27 +133,37 @@ BEGIN
     OR (_expected_currency IS NOT NULL AND _expected_currency NOT IN ('TZS','USD'))
     OR (_observed_currency IS NOT NULL AND _observed_currency NOT IN ('TZS','USD'))
     OR (_expected_amount_minor IS NOT NULL AND _expected_amount_minor < 0)
-    OR (_observed_amount_minor IS NOT NULL AND _observed_amount_minor < 0) THEN
+    OR (_observed_amount_minor IS NOT NULL AND _observed_amount_minor < 0)
+    OR _resolution_status NOT IN ('unresolved','reviewed','resolved')
+    OR (_resolution_status='resolved' AND nullif(btrim(_resolution_ref),'') IS NULL) THEN
     RAISE EXCEPTION 'Invalid reconciliation item' USING ERRCODE = '22023';
   END IF;
   INSERT INTO public.commercial_reconciliation_items(
     run_id,item_type,internal_payment_id,provider_ref,expected_amount_minor,
-    observed_amount_minor,expected_currency,observed_currency,evidence
+    observed_amount_minor,expected_currency,observed_currency,evidence,resolution_status,resolution_ref
   ) VALUES (
     _run_id,_item_type,_internal_payment_id,_provider_ref,_expected_amount_minor,
-    _observed_amount_minor,_expected_currency,_observed_currency,_evidence
+    _observed_amount_minor,_expected_currency,_observed_currency,_evidence,_resolution_status,_resolution_ref
   ) RETURNING id INTO v_item_id;
   INSERT INTO public.commercial_reconciliation_item_events(
     item_id,event_type,actor_user_id,actor_role,reason_code,evidence
   ) VALUES (
     v_item_id,'opened',_actor_user_id,'founder_admin','reconciliation_exception_opened',_evidence
   );
+  IF _resolution_status='resolved' THEN
+    INSERT INTO public.commercial_reconciliation_item_events(
+      item_id,event_type,actor_user_id,actor_role,reason_code,evidence,resolution_ref
+    ) VALUES (
+      v_item_id,'resolved',_actor_user_id,'founder_admin','reconciliation_exact_match',
+      jsonb_build_object('itemType',_item_type),_resolution_ref
+    );
+  END IF;
   RETURN v_item_id;
 END;
 $function$;
-REVOKE ALL ON FUNCTION public.commercial_create_reconciliation_item(uuid,text,uuid,text,numeric,numeric,text,text,jsonb,uuid)
+REVOKE ALL ON FUNCTION public.commercial_create_reconciliation_item(uuid,text,uuid,text,numeric,numeric,text,text,jsonb,text,text,uuid)
   FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.commercial_create_reconciliation_item(uuid,text,uuid,text,numeric,numeric,text,text,jsonb,uuid)
+GRANT EXECUTE ON FUNCTION public.commercial_create_reconciliation_item(uuid,text,uuid,text,numeric,numeric,text,text,jsonb,text,text,uuid)
   TO service_role;
 
 CREATE OR REPLACE FUNCTION public.commercial_resolve_reconciliation_item(
