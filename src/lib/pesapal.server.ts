@@ -251,11 +251,11 @@ export async function getPesapalPropertyAccountToken(
   environment: PesapalPropertyEnvironment,
 ): Promise<string> {
   const credentials = normalizePesapalPropertyCredentials(credentialsInput);
-  const cacheKey = \`\${environment}:\${credentials.consumer_key}\`;
+  const cacheKey = `${environment}:${credentials.consumer_key}`;
   const cached = propertyTokenCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now() + 30_000) return cached.token;
 
-  const response = await fetch(\`\${propertyPesapalBaseUrl(environment)}/api/Auth/RequestToken\`, {
+  const response = await fetch(`${propertyPesapalBaseUrl(environment)}/api/Auth/RequestToken`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({
@@ -265,7 +265,7 @@ export async function getPesapalPropertyAccountToken(
   });
   const json = (await response.json()) as TokenResp;
   if (!response.ok || !json.token) {
-    throw new Error(\`Property Pesapal authentication failed: HTTP \${response.status}\`);
+    throw new Error(`Property Pesapal authentication failed: HTTP ${response.status}`);
   }
   const expiry = new Date(json.expiryDate).getTime();
   const expiresAt = Number.isFinite(expiry) ? expiry : Date.now() + 4 * 60_000;
@@ -282,11 +282,11 @@ async function propertyPesapalFetch(
   const token = await getPesapalPropertyAccountToken(credentials, environment);
   const headers: Record<string, string> = {
     Accept: "application/json",
-    Authorization: \`Bearer \${token}\`,
+    Authorization: `Bearer ${token}`,
     ...(init.headers as Record<string, string> | undefined),
   };
   if (init.json !== undefined) headers["Content-Type"] = "application/json";
-  const response = await fetch(\`\${propertyPesapalBaseUrl(environment)}\${path}\`, {
+  const response = await fetch(`${propertyPesapalBaseUrl(environment)}${path}`, {
     ...init,
     headers,
     body: init.json !== undefined ? JSON.stringify(init.json) : init.body,
@@ -294,7 +294,7 @@ async function propertyPesapalFetch(
   const text = await response.text();
   let json: unknown = null;
   try { json = text ? JSON.parse(text) : null; } catch { json = { raw: text }; }
-  if (!response.ok) throw new Error(\`Property Pesapal request failed: HTTP \${response.status}\`);
+  if (!response.ok) throw new Error(`Property Pesapal request failed: HTTP ${response.status}`);
   return json as Record<string, unknown>;
 }
 
@@ -313,7 +313,7 @@ export async function ensurePesapalPropertyAccountIpn(
   existingIpnId?: string | null,
 ) {
   const origin = new URL(baseUrl).origin;
-  const ipnUrl = \`\${origin}/api/public/pesapal/ipn\`;
+  const ipnUrl = `${origin}/api/public/pesapal/ipn`;
   if (existingIpnId?.trim()) return { ipnId: existingIpnId.trim(), ipnUrl };
   const response = await propertyPesapalFetch(
     "/api/URLSetup/RegisterIPN",
@@ -362,7 +362,7 @@ export async function submitPesapalPropertyAccountOrder(
   };
   if (!parsed.redirect_url || !parsed.order_tracking_id) {
     throw new Error(
-      \`Property Pesapal order rejected: \${parsed.error?.message || parsed.error?.code || parsed.status || "no checkout URL"}\`,
+      `Property Pesapal order rejected: ${parsed.error?.message || parsed.error?.code || parsed.status || "no checkout URL"}`,
     );
   }
   return {
@@ -379,7 +379,7 @@ export async function getPesapalPropertyAccountTransactionStatus(
   environment: PesapalPropertyEnvironment,
 ) {
   return (await propertyPesapalFetch(
-    \`/api/Transactions/GetTransactionStatus?orderTrackingId=\${encodeURIComponent(orderTrackingId)}\`,
+    `/api/Transactions/GetTransactionStatus?orderTrackingId=${encodeURIComponent(orderTrackingId)}`,
     credentials,
     environment,
     { method: "GET" },
