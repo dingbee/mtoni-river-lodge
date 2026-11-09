@@ -6,7 +6,7 @@ type Money = { TZS: string; USD: string };
 type Report = {
   periodStart: string;
   periodEnd: string;
-  totals: { invoiced: Money; collected: Money; outstanding: Money; unallocated: Money; mrr: Money; arr: Money };
+  totals: { invoiced: Money; collected: Money; outstanding: Money; unallocated: Money; mrr: Money; arr: Money; arpt: Money };
   receivablesAging: { current: Money; days1To30: Money; days31To60: Money; days61To90: Money; over90: Money };
   counts: { invoices: number; collections: number; activeSubscriptions: number; overdueInvoices: number };
 };
@@ -71,7 +71,7 @@ function FounderCommercialReporting() {
   ] as const;
   const downloadCsv = () => {
     const lines: string[][] = [["metric", "currency", "amount_minor"]];
-    for (const metric of ["invoiced", "collected", "outstanding", "unallocated", "mrr", "arr"] as const) {
+    for (const metric of ["invoiced", "collected", "outstanding", "unallocated", "mrr", "arr", "arpt"] as const) {
       for (const currency of ["TZS", "USD"] as const) lines.push([metric, currency, report.totals[metric][currency]]);
     }
     for (const [bucket, values] of aging) {
@@ -110,6 +110,7 @@ function FounderCommercialReporting() {
           <ReportCard title="Unallocated collections" value={report.totals.unallocated} description="Cash received but not allocated; excluded from collected revenue" />
           <ReportCard title="Monthly recurring revenue" value={report.totals.mrr} description="Active paid subscriptions from accepted price snapshots" />
           <ReportCard title="Annual recurring revenue" value={report.totals.arr} description="Annualized recurring contract value from accepted snapshots" />
+          <ReportCard title="Average revenue per tenant" value={report.totals.arpt} description="Net allocated collections divided by paying customer accounts in the reporting period" />
         </div>
       </section>
 
