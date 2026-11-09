@@ -15,6 +15,7 @@ async function resolvePublicDemoProperty(propertySlug: string, campaignSlug?: st
   if (error) throw new Error("Unable to load this property.");
   if (!data || data.status !== "active") throw new Error("This property is not available for online reservations.");
   if (!/^[A-Z]{3}$/.test(data.currency ?? "")) throw new Error("This property has no valid configured currency.");
+  if (campaignSlug && data.currency === "USD") throw new Error("Campaign booking requires a non-USD property base currency.");
 
   if (!PUBLIC_DEMO_PROPERTY_SLUGS.has(propertySlug)) {
     if (campaignSlug) {
