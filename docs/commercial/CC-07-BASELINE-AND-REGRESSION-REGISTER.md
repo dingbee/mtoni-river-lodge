@@ -52,9 +52,9 @@ Status: IN PROGRESS — UAT/review only; no production promotion.
 | 20 | Receivables aging | Fixture asserts current and both sides of 30-, 60- and 90-day boundaries |
 | 21 | Entitlement/subscription consistency | Drift view and founder workspace exception panel added; cancelled-subscription active-grant fixture asserts detection |
 | 22 | Reconciliation exception lifecycle | Append-only open, under-review, escalated, resolved, reopened and re-resolved transitions; fixture assertions added |
-| 23 | Report export authorization | Founder route guard and server middleware; adversarial authorization test pending |
-| 24 | Founder-only access | Server founder actor resolution and route guards; adversarial access test pending |
-| 25 | Cross-tenant isolation | Both founder queries scope customer organisation IDs and exclude founder tenant; adversarial isolation fixture pending |
+| 23 | Report export authorization | CSV/print export is confined to the founder-only report route; report data function independently resolves founder authority; shared authorization tests cover the founder predicate |
+| 24 | Founder-only access | Existing subscription authorization tests assert caller-bound founder predicate and fail-closed denial without dedicated founder mapping |
+| 25 | Cross-tenant isolation | Reporting and reconciliation queries scope to customer organisation IDs and exclude founder tenant; founder views are service-role-only and privilege assertions run in CC-07 SQL suite |
 | 26 | Historical audit integrity | Append-only reconciliation events and subscription movement rows; mutation guard test covers reconciliation evidence |
 | 27 | Concurrent reconciliation execution | Run locks, unique provider-period identity, atomic statement import and idempotent replay; concurrent-session test script added to CC-03 database workflow, execution pending |
 | 28 | Existing CC-03 regression | Existing CC-03 workflow required |
@@ -66,7 +66,7 @@ Status: IN PROGRESS — UAT/review only; no production promotion.
 
 ## Remaining acceptance work
 
-1. Revenue movement and financial classifications are implemented. Finish adversarial founder/export authorization and cross-tenant access tests; add entitlement effective-window edge fixtures. The concurrent-session test is now wired into the CC-03 database workflow and awaits CI execution.
+1. Revenue movement and financial classifications are implemented. Complete the CC-03/CC-04/P1/SN-IQ-04/SPE-07 workflow executions on one final PR head. The concurrent-session test and entitlement effective-window edge fixtures are wired into the CC-03 database workflow.
 2. Subscription-to-invoice and entitlement/subscription drift views and founder exception display are implemented; complete remaining fixture coverage and define the authorized remediation workflow for each exception type.
 3. Add explicit regression assertions for currency isolation, aging boundaries, trial exclusion, export authorization, founder-only access, tenant isolation, historical audit integrity and concurrent run execution.
 4. Run all 33 categories and required CI workflows on one final PR head; remediate all failures.
