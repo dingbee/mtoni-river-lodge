@@ -102,7 +102,8 @@ CREATE TABLE public.ops_tasks(
   status public.ops_task_status NOT NULL DEFAULT 'pending',
   category text,
   completed_at timestamptz,
-  completed_by uuid
+  completed_by uuid,
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE public.notifications(
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
