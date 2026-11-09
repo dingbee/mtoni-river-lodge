@@ -168,7 +168,9 @@ function CampaignStudioPage() {
             <div className="flex flex-wrap gap-2 border-t pt-4">
               <Button variant="outline" onClick={() => loadPreview.mutate()} disabled={loadPreview.isPending}><Eye className="mr-2 h-4 w-4" /> Preview</Button>
               {selected.status !== "published" && selected.status !== "archived" && <Button onClick={() => publish.mutate()} disabled={publish.isPending}><Send className="mr-2 h-4 w-4" /> Publish campaign</Button>}
-              {selected.status === "published" && <Button variant="outline" onClick={() => transition.mutate("pause")} disabled={transition.isPending}><Pause className="mr-2 h-4 w-4" /> Pause</Button>}
+              {selected.status === "published" && selected.ends_at && Date.parse(selected.ends_at) <= Date.now()
+                ? <Button variant="outline" onClick={() => transition.mutate("expire")} disabled={transition.isPending}>Mark expired</Button>
+                : selected.status === "published" && <Button variant="outline" onClick={() => transition.mutate("pause")} disabled={transition.isPending}><Pause className="mr-2 h-4 w-4" /> Pause</Button>}
               {["draft","paused","expired"].includes(selected.status) && <Button variant="outline" onClick={() => transition.mutate("archive")} disabled={transition.isPending}><Archive className="mr-2 h-4 w-4" /> Archive</Button>}
             </div>
             {preview !== null && <section className="rounded-xl border bg-muted/30 p-4">
