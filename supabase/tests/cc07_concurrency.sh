@@ -3,7 +3,7 @@ set -euo pipefail
 
 PSQL=(psql -X -v ON_ERROR_STOP=1 -h "${PGHOST:-localhost}" -p "${PGPORT:-5432}" -U "${PGUSER:-postgres}" -d "${PGDATABASE:-postgres}")
 
-ORG_ID="$("${PSQL[@]}" -Atqc "INSERT INTO public.staynas_organisations(slug,name,status) VALUES ('cc07-concurrency-'||gen_random_uuid()::text,'CC07 Concurrency Test','active') RETURNING id")"
+ORG_ID="$("${PSQL[@]}" -Atqc "INSERT INTO public.staynas_organisations(id,slug,name,status) VALUES (gen_random_uuid(),'cc07-concurrency-'||gen_random_uuid()::text,'CC07 Concurrency Test','active') RETURNING id")"
 PROVIDER_ID="$("${PSQL[@]}" -Atqc "INSERT INTO public.commercial_provider_accounts(organisation_id,provider,provider_account_ref,supported_currencies,status) VALUES ('$ORG_ID','manual','cc07-concurrency-'||gen_random_uuid()::text,ARRAY['TZS'],'active') RETURNING id")"
 RUN_ID="$("${PSQL[@]}" -Atqc "SET request.jwt.claim.role='service_role'; SELECT public.commercial_create_reconciliation_run('$PROVIDER_ID','TZS',now()-interval '1 day',now(),'cc07-concurrent-run-'||gen_random_uuid()::text,NULL)->>'id'")"
 
