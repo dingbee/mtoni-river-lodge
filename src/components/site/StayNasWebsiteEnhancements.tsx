@@ -173,7 +173,7 @@ export function StayNasCommercialPage() {
         <p className="mt-4 text-sm leading-7 text-[#69756e]">Plan capabilities are described below. Monetary fees and final commercial configuration are not published; they are administered by authorised StayNas Founder Administrators.</p>
       </div>
       <div className="grid gap-5 lg:grid-cols-3">
-        {tiers.map((tier) => <article key={tier.name} className={"flex flex-col rounded-2xl border bg-white p-6 sm:p-7 " + (tier.featured ? "border-[#bda16d] shadow-[0_12px_40px_-28px_rgba(18,40,31,.4)]" : "border-[#deded4]")}>
+        {tiers.map((tier) => <article key={tier.name} className={"site-editorial-item flex flex-col p-6 sm:p-7 " + (tier.featured ? "border-t-2 border-[#bda16d]" : "")}>
           {tier.featured && <span className="mb-4 self-start rounded-full bg-[#edf1eb] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#315744]">For growing operators</span>}
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9a835b]">StayNas {tier.name}</p>
           <h3 className="mt-3 text-2xl font-semibold">{tier.name}</h3>
@@ -196,7 +196,7 @@ export function StayNasCommercialPage() {
           <h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Know what each operating tier is designed to deliver.</h2>
           <p className="mt-4 text-sm leading-7 text-[#69756e]">This comparison communicates the current commercial direction. The final published entitlement configuration remains under Founder Administration.</p>
         </div>
-        <div className="mt-10 overflow-hidden rounded-2xl border border-[#e0ddd2] bg-white">
+        <div className="mt-10 overflow-hidden border-y border-[#e0ddd2] bg-transparent">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[820px] border-collapse text-left text-sm">
               <thead><tr className="border-b border-[#e8e4da] bg-[#f7f4ec]"><th className="w-[25%] px-5 py-5 text-xs font-semibold text-[#35463b]">Capability</th>{tiers.map((tier) => <th key={tier.name} className="px-5 py-5 text-sm font-semibold text-[#26392e]">{tier.name}</th>)}</tr></thead>
