@@ -199,7 +199,6 @@ function PublicPropertyBookingPage() {
   }
 
   const { property, rooms, branding } = propertyData;
-  const currency = property.currency;
   const brandStyle = {
     "--direct-primary": branding.primaryColor,
     "--direct-secondary": branding.secondaryColor,
@@ -351,7 +350,7 @@ function PublicPropertyBookingPage() {
 
       {!confirmation && <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#e6e4dc] bg-[#fafaf7]/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-lg sm:hidden">
         <div className="mx-auto flex max-w-lg items-center gap-3">
-          <div className="min-w-0 flex-1"><p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[#7d897f]">{selectedRoom ? "Selected room" : "Your stay"}</p><p className="truncate text-xs font-semibold text-[#29372e]">{selectedRoom ? money(selectedTotal, selectedRoom.currency) + " · " + selectedRoom.name : `${nights} nights · ${guests} guests`}</p></div>
+          <div className="min-w-0 flex-1"><p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[#7d897f]">{selectedRoom ? "Selected room" : "Your stay"}</p><p className="truncate text-xs font-semibold text-[#29372e]">{selectedRoom ? money(selectedTotal, selectedPlan?.currency ?? selectedRoom.currency) + " · " + selectedRoom.name : `${nights} nights · ${guests} guests`}</p></div>
           <button type="button" onClick={() => selectedRoom ? document.getElementById("guest-details")?.scrollIntoView({ behavior: "smooth", block: "start" }) : runAvailability()} disabled={availabilityMutation.isPending || (selectedRoom === null && nights < 1)} className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--direct-primary)] px-5 text-xs font-semibold text-white disabled:opacity-50">{selectedRoom ? "Continue" : availabilityMutation.isPending ? "Checking…" : "Find a room"}<ArrowRight className="h-3.5 w-3.5"/></button>
         </div>
       </div>}
