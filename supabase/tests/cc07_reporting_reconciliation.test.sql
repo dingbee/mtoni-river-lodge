@@ -122,6 +122,17 @@ BEGIN
     OR NOT has_table_privilege('service_role','public.commercial_founder_unallocated_collection_workspace_facts','SELECT') THEN
     RAISE EXCEPTION 'Founder financial projections are not restricted to the trusted server role';
   END IF;
+
+  IF has_table_privilege('anon','public.commercial_subscription_invoice_consistency_facts','SELECT')
+    OR has_table_privilege('authenticated','public.commercial_subscription_invoice_consistency_facts','SELECT')
+    OR has_table_privilege('anon','public.commercial_subscription_entitlement_consistency_facts','SELECT')
+    OR has_table_privilege('authenticated','public.commercial_subscription_entitlement_consistency_facts','SELECT')
+    OR has_table_privilege('authenticated','public.commercial_subscription_revenue_movement_facts','SELECT')
+    OR has_table_privilege('authenticated','public.commercial_subscription_recurring_value_facts','SELECT')
+    OR NOT has_table_privilege('service_role','public.commercial_subscription_invoice_consistency_facts','SELECT')
+    OR NOT has_table_privilege('service_role','public.commercial_subscription_entitlement_consistency_facts','SELECT') THEN
+    RAISE EXCEPTION 'Founder cross-domain reporting views are exposed outside the trusted server role';
+  END IF;
   IF has_table_privilege('anon','public.commercial_receivables_aging','SELECT')
     OR has_table_privilege('authenticated','public.commercial_receivables_aging','SELECT')
     OR NOT has_table_privilege('service_role','public.commercial_receivables_aging','SELECT') THEN
