@@ -72,6 +72,9 @@ DECLARE
   v_run uuid;
   v_item uuid;
   v_event uuid;
+  v_provider uuid;
+  v_run_payload jsonb;
+  v_replayed_id uuid;
   v_blocked boolean := false;
 BEGIN
   INSERT INTO public.staynas_organisations(id,slug,name,status)
@@ -87,7 +90,23 @@ BEGIN
     v_run,'status_mismatch','cc07-provider-ref',10000,10000,'TZS','TZS','{"test":true}'::jsonb
   ) RETURNING id INTO v_item;
 
+  INSERT INTO public.commercial_provider_accounts(
+    organisation_id,provider,provider_account_ref,supported_currencies,status
+  ) VALUES (v_org,'manual','cc07-manual-provider','{TZS}','active')
+  RETURNING id INTO v_provider;
   PERFORM set_config('request.jwt.claim.role','service_role',true);
+  v_run_payload := public.commercial_create_reconciliation_run(
+    v_provider,'TZS',now()-interval '3 days',now()-interval '2 days','cc07-idempotent-source',NULL
+  );
+  v_replayed_id := (v_run_payload->>'id')::uuid;
+  IF (public.commercial_create_reconciliation_run(
+    v_provider,'TZS',now()-interval '3 days',now()-interval '2 days','cc07-idempotent-source',NULL
+  )->>'replayed')::boolean IS DISTINCT FROM true
+  OR (public.commercial_create_reconciliation_run(
+    v_provider,'TZS',now()-interval '3 days',now()-interval '2 days','cc07-idempotent-source',NULL
+  )->>'id')::uuid IS DISTINCT FROM v_replayed_id THEN
+    RAISE EXCEPTION 'Provider-period reconciliation run creation was not idempotent';
+  END IF;
   v_event := public.commercial_record_reconciliation_item_event(
     v_item,'opened',NULL,'service_principal','provider_status_conflict',
     'Opened by CC-07 contract test','{"source":"isolated-test"}'::jsonb,NULL
