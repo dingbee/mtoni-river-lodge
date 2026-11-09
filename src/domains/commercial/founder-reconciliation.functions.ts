@@ -20,14 +20,22 @@ export const getFounderReconciliationWorkspace = createServerFn({ method: "GET" 
     if (orgError) throw new Error("Customer tenant registry could not be loaded.");
     const orgRows = rows(organisations);
     const orgIds = orgRows.map((item) => String(item.id));
-    if (!orgIds.length) return { runs: [], items: [], events: [], providers: [], organisations: [] };
-    const [runsResult, providersResult] = await Promise.all([
+    if (!orgIds.length) return { runs: [], items: [], events: [], providers: [], organisations: [], integrityExceptions: [] };
+    const [runsResult, providersResult, invoiceConsistencyResult, entitlementConsistencyResult] = await Promise.all([
       admin.from("commercial_reconciliation_runs").select("*")
         .in("organisation_id", orgIds).order("created_at", { ascending: false }).limit(100),
       admin.from("commercial_provider_accounts").select("id,organisation_id,provider,provider_account_ref,supported_currencies,status")
         .in("organisation_id", orgIds).order("created_at", { ascending: false }),
+      admin.from("commercial_subscription_invoice_consistency_facts")
+        .select("subscription_id,account_id,organisation_id,currency,status,current_period_starts_at,current_period_ends_at,exception_type,evidence")
+        .in("organisation_id", orgIds).order("organisation_id").limit(2000),
+      admin.from("commercial_subscription_entitlement_consistency_facts")
+        .select("assignment_id,organisation_id,account_id,subscription_id,feature_code,exception_type,evidence")
+        .in("organisation_id", orgIds).order("organisation_id").limit(2000),
     ]);
-    if (runsResult.error || providersResult.error) throw new Error("Founder reconciliation records could not be loaded.");
+    if (runsResult.error || providersResult.error || invoiceConsistencyResult.error || entitlementConsistencyResult.error) {
+      throw new Error("Founder reconciliation and cross-ledger consistency records could not be loaded.");
+    }
     const runRows = rows(runsResult.data);
     const runIds = runRows.map((item) => String(item.id));
     const { data: itemData, error: itemError } = runIds.length
@@ -55,5 +63,15 @@ export const getFounderReconciliationWorkspace = createServerFn({ method: "GET" 
       events: rows(eventData),
       providers: rows(providersResult.data),
       organisations: orgRows,
+      integrityExceptions: [
+        ...rows(invoiceConsistencyResult.data).map((item) => ({
+          ...item, domain: "subscription_invoice",
+          tenantName: orgById.get(String(item.organisation_id)) ?? "Unknown tenant",
+        })),
+        ...rows(entitlementConsistencyResult.data).map((item) => ({
+          ...item, domain: "subscription_entitlement",
+          tenantName: orgById.get(String(item.organisation_id)) ?? "Unknown tenant",
+        })),
+      ],
     };
   });
