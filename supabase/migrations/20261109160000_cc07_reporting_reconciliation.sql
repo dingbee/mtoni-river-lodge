@@ -182,7 +182,10 @@ BEGIN
     IF v_item.resolution_ref IS DISTINCT FROM _resolution_ref THEN
       RAISE EXCEPTION 'Conflicting reconciliation resolution replay' USING ERRCODE = '23505';
     END IF;
-    RETURN v_item.id;
+    SELECT id INTO v_event_id FROM public.commercial_reconciliation_item_events
+      WHERE item_id=_item_id AND event_type='resolved' AND resolution_ref=_resolution_ref
+      ORDER BY occurred_at DESC LIMIT 1;
+    RETURN v_event_id;
   END IF;
   UPDATE public.commercial_reconciliation_items
     SET resolution_status='resolved',resolution_ref=_resolution_ref
