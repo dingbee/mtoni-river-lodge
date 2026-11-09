@@ -24,20 +24,21 @@ INSERT INTO public.commercial_founder_notifications(
 ) VALUES (
   'cc06-test-alert-0001','trial_expiring','warning','Test trial expiry','Test-only notification evidence','subscription','cc06-test-subscription','/founder','{}'
 );
-DO $$
+DO $
+DECLARE update_blocked boolean := false; delete_blocked boolean := false;
 BEGIN
   BEGIN
     UPDATE public.commercial_founder_notifications SET title='tampered'
       WHERE dedupe_key='cc06-test-alert-0001';
-    RAISE EXCEPTION 'Notification evidence mutation was not blocked';
-  EXCEPTION WHEN SQLSTATE '55000' THEN
-    IF SQLERRM NOT LIKE 'Founder commercial notification evidence is immutable' THEN RAISE; END IF;
+  EXCEPTION WHEN OTHERS THEN
+    update_blocked := SQLERRM LIKE 'Founder commercial notification evidence is immutable';
   END;
+  IF NOT update_blocked THEN RAISE EXCEPTION 'Notification evidence mutation was not blocked'; END IF;
   BEGIN
     DELETE FROM public.commercial_founder_notifications WHERE dedupe_key='cc06-test-alert-0001';
-    RAISE EXCEPTION 'Notification deletion was not blocked';
-  EXCEPTION WHEN SQLSTATE '55000' THEN
-    IF SQLERRM NOT LIKE 'Founder commercial notification history cannot be deleted' THEN RAISE; END IF;
+  EXCEPTION WHEN OTHERS THEN
+    delete_blocked := SQLERRM LIKE 'Founder commercial notification history cannot be deleted';
   END;
-END $$;
+  IF NOT delete_blocked THEN RAISE EXCEPTION 'Notification deletion was not blocked'; END IF;
+END $;
 ROLLBACK;

@@ -1,4 +1,10 @@
 -- Runs against an isolated PostgreSQL instance in GitHub Actions.
+BEGIN;
+CREATE OR REPLACE FUNCTION public.is_staynas_founder_ai_admin()
+RETURNS boolean LANGUAGE sql STABLE
+AS $function$
+  SELECT COALESCE(current_setting('request.jwt.claim.role', true), '') = 'founder'
+$function$;
 DO $$
 DECLARE
   v_first record;
@@ -136,3 +142,4 @@ BEGIN
   END IF;
 END $$;
 RESET ROLE;
+ROLLBACK;
