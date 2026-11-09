@@ -16,7 +16,7 @@ export async function consumePublicRateLimit(
     .update([scope, hostname, forwarded].join("|"))
     .digest("hex");
 
-  const { data, error } = await supabaseAdmin.rpc("staynas_consume_public_rate_limit", {
+  const { data, error } = await (supabaseAdmin as any).rpc("staynas_consume_public_rate_limit", {
     p_key_hash: keyHash,
     p_limit: limit,
     p_window_seconds: windowSeconds,
