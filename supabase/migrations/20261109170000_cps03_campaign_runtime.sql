@@ -59,6 +59,10 @@ begin
   where pub.id = _publication_id and pub.property_id = _property_id
     and p.active = true and p.publication_status = 'published'
     and pub.currency = v_property.currency and p.currency = v_property.currency
+    and pub.publication_number = (
+      select max(latest.publication_number) from public.staynas_rate_plan_publications latest
+      where latest.property_id = pub.property_id and latest.rate_plan_id = pub.rate_plan_id
+    )
     and (pub.effective_from is null or pub.effective_from <= current_date)
     and (pub.effective_to is null or pub.effective_to >= current_date)
   order by pub.publication_number desc
@@ -154,6 +158,10 @@ begin
   where o.campaign_id = _campaign_id and o.property_id = _property_id and o.active = true
     and p.active = true and p.publication_status = 'published'
     and pub.currency = v_property.currency and p.currency = v_property.currency
+    and pub.publication_number = (
+      select max(latest.publication_number) from public.staynas_rate_plan_publications latest
+      where latest.property_id = pub.property_id and latest.rate_plan_id = pub.rate_plan_id
+    )
     and (pub.effective_to is null or pub.effective_to >= coalesce(v_campaign.starts_at::date,current_date))
     and (pub.effective_from is null or pub.effective_from <= coalesce(v_campaign.ends_at::date,current_date));
   if v_offer_count = 0 then
