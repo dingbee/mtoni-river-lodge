@@ -14,6 +14,10 @@ import {
   saveDistributionProviderConfiguration,
   validatePropertyDistributionConnection,
 } from "@/domains/distribution/provider-settings.functions";
+import {
+  rotatePropertyDistributionCredential,
+  transitionPropertyDistributionConnection,
+} from "@/domains/distribution/connection-lifecycle.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/settings/distribution")({
   head: () => ({ meta: [{ title: "Distribution Connections — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
@@ -36,6 +40,8 @@ function DistributionConnectionsPage() {
   const createFn = useServerFn(createPropertyDistributionConnection);
   const validateFn = useServerFn(validatePropertyDistributionConnection);
   const saveConfigFn = useServerFn(saveDistributionProviderConfiguration);
+  const rotateFn = useServerFn(rotatePropertyDistributionCredential);
+  const transitionFn = useServerFn(transitionPropertyDistributionConnection);
   const queryClient = useQueryClient();
 
   const providers = useQuery({ queryKey: ["distribution.provider-catalogue"], queryFn: () => providersFn() });
@@ -46,6 +52,8 @@ function DistributionConnectionsPage() {
   const [allowedHost, setAllowedHost] = useState("staging.channex.io");
   const [providerLifecycle, setProviderLifecycle] = useState<"active" | "suspended">("active");
   const [validationMessage, setValidationMessage] = useState("");
+  const [rotationKeys, setRotationKeys] = useState<Record<string, string>>({});
+  const [lifecycleReason, setLifecycleReason] = useState("");
 
   const channex = (providers.data?.providers ?? []).find((provider: Provider) => provider.provider_key === "channex") as Provider | undefined;
 
@@ -73,6 +81,24 @@ function DistributionConnectionsPage() {
       setValidationMessage(result.ok
         ? "Channex sandbox connection validated and marked connected."
         : `Connection check failed (${result.code}): ${result.message}`);
+      await queryClient.invalidateQueries({ queryKey: ["distribution.property-connections"] });
+    },
+  });
+
+  const rotate = useMutation({
+    mutationFn: ({ connectionId, apiKey }: { connectionId: string; apiKey: string }) => rotateFn({ data: { connectionId, apiKey } }),
+    onSuccess: async (_result, variables) => {
+      setRotationKeys((current) => ({ ...current, [variables.connectionId]: "" }));
+      setValidationMessage("Credential rotated securely in Vault. Connection returned to pending validation; run a new health check.");
+      await queryClient.invalidateQueries({ queryKey: ["distribution.property-connections"] });
+    },
+  });
+
+  const transition = useMutation({
+    mutationFn: ({ connectionId, action }: { connectionId: string; action: "suspend" | "resume" | "revoke" }) =>
+      transitionFn({ data: { connectionId, action, reason: lifecycleReason.trim() } }),
+    onSuccess: async (result) => {
+      setValidationMessage(`Connection lifecycle updated: ${result.state}.`);
       await queryClient.invalidateQueries({ queryKey: ["distribution.property-connections"] });
     },
   });
@@ -144,14 +170,27 @@ function DistributionConnectionsPage() {
             <div className="text-xs text-muted-foreground">{connection.environment} · Adapter {connection.adapterVersion} · {connection.id}</div>
             <div className="mt-1"><Badge variant={connection.lifecycle === "connected" ? "default" : "secondary"}>{connection.lifecycle}</Badge></div>
           </div>
-          <Button variant="outline" size="sm" disabled={validate.isPending || connection.lifecycle === "revoked" || connection.lifecycle === "suspended"} onClick={() => { setValidationMessage(""); validate.mutate(connection.id); }}>
-            <PlugZap className="mr-2 size-4" /> Test connection
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" disabled={validate.isPending || connection.lifecycle === "revoked" || connection.lifecycle === "suspended"} onClick={() => { setValidationMessage(""); validate.mutate(connection.id); }}>
+              <PlugZap className="mr-2 size-4" /> Test connection
+            </Button>
+            {connection.lifecycle !== "revoked" && <>
+              <input aria-label="Replacement Channex sandbox API key" type="password" autoComplete="new-password" className="w-48 rounded-md border bg-background p-2 text-xs" placeholder="Rotate sandbox API key" value={rotationKeys[connection.id] ?? ""} onChange={(event) => setRotationKeys((current) => ({ ...current, [connection.id]: event.target.value }))} />
+              <Button variant="outline" size="sm" disabled={!rotationKeys[connection.id]?.trim() || rotate.isPending || connection.lifecycle === "suspended"} onClick={() => rotate.mutate({ connectionId: connection.id, apiKey: rotationKeys[connection.id] })}>Rotate key</Button>
+              {connection.lifecycle === "suspended"
+                ? <Button variant="outline" size="sm" disabled={!lifecycleReason.trim() || transition.isPending} onClick={() => transition.mutate({ connectionId: connection.id, action: "resume" })}>Resume</Button>
+                : <Button variant="outline" size="sm" disabled={!lifecycleReason.trim() || transition.isPending} onClick={() => transition.mutate({ connectionId: connection.id, action: "suspend" })}>Suspend</Button>}
+              <Button variant="destructive" size="sm" disabled={!lifecycleReason.trim() || transition.isPending} onClick={() => transition.mutate({ connectionId: connection.id, action: "revoke" })}>Revoke</Button>
+            </>}
+          </div>
         </div>)}
         {connections.isLoading && <p className="text-sm text-muted-foreground">Loading property connections…</p>}
         {connections.isError && <p className="text-sm text-destructive">Unable to load connections for the selected property.</p>}
         {!connections.isLoading && !connections.data?.length && <p className="text-sm text-muted-foreground">No distribution connections configured for this property.</p>}
       </div>
+      <label className="mt-3 block max-w-xl space-y-1 text-sm"><span>Reason for suspend, resume or revoke</span><input className="w-full rounded-md border bg-background p-2" value={lifecycleReason} onChange={(event) => setLifecycleReason(event.target.value)} placeholder="Record the operational reason for this change" /></label>
+      {rotate.isError && <p className="mt-2 text-sm text-destructive">Credential rotation failed.</p>}
+      {transition.isError && <p className="mt-2 text-sm text-destructive">Lifecycle transition failed.</p>}
       {validationMessage && <p className="mt-3 text-sm" role="status">{validationMessage}</p>}
     </SectionCard>
 
