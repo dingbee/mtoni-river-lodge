@@ -20,6 +20,9 @@ async function resolvePublicDemoProperty(propertySlug: string) {
 
   if (error) throw new Error("Unable to load this property.");
   if (!data || data.status !== "active") throw new Error("This property is not available for online reservations.");
+  if (data.currency !== "TZS" && data.currency !== "USD") {
+    throw new Error("This property has no supported configured currency. Online pricing is unavailable.");
+  }
 
   return { property: data, supabaseAdmin };
 }
@@ -61,6 +64,11 @@ export const getPublicDemoProperty = createServerFn({ method: "GET" })
         propertyId: property.id,
       });
       throw new Error("Unable to load room information. Please try again later.");
+    }
+
+    const mismatchedRoomCurrency = (rooms ?? []).find((room: any) => room.currency !== property.currency);
+    if (mismatchedRoomCurrency) {
+      throw new Error("This property has room rates in a different currency from its configured property currency. Online pricing is unavailable.");
     }
 
     return {
