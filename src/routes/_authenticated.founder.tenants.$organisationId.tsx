@@ -16,6 +16,7 @@ export const Route = createFileRoute("/_authenticated/founder/tenants/$organisat
 type TenantProfileData = {
   organisation: Record<string, unknown>;
   account: Record<string, unknown> | null;
+  contact: Record<string, unknown> | null;
   properties: Array<Record<string, unknown>>;
   subscriptions: Array<Record<string, unknown>>;
   subscriptionEvents: Array<Record<string, unknown>>;
@@ -50,6 +51,8 @@ function TenantCommercialProfile() {
         <article className="rounded-xl border bg-card p-4"><p className="text-xs text-muted-foreground">Registered properties</p><p className="mt-2 text-xl font-semibold tabular-nums">{profile.properties.length}</p></article>
         <article className="rounded-xl border bg-card p-4"><p className="text-xs text-muted-foreground">Subscription records</p><p className="mt-2 text-xl font-semibold tabular-nums">{profile.subscriptions.length}</p></article>
       </section>
+
+      <section className="rounded-xl border bg-card p-4"><h2 className="font-semibold">Commercial account contact</h2>{profile.contact?<div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><div><p className="text-xs text-muted-foreground">Contact name</p><p className="mt-1 text-sm font-medium">{String(profile.contact.contact_name)}</p></div><div><p className="text-xs text-muted-foreground">Email</p><p className="mt-1 text-sm">{String(profile.contact.contact_email)}</p></div><div><p className="text-xs text-muted-foreground">Phone</p><p className="mt-1 text-sm">{String(profile.contact.contact_phone??"—")}</p></div><div><p className="text-xs text-muted-foreground">Responsibility</p><p className="mt-1 text-sm">{label(profile.contact.contact_role)}</p></div></div>:<p className="mt-2 text-sm text-muted-foreground">No commercial contact has been registered.</p>}</section>
 
       <section className="space-y-3"><div className="flex items-center gap-2"><Building2 className="size-4" /><h2 className="font-semibold">Identity and properties</h2></div>
         <div className="overflow-x-auto rounded-xl border"><table className="w-full min-w-[650px] text-left text-sm"><thead className="bg-muted/60 text-xs text-muted-foreground"><tr><th className="px-4 py-3">Property</th><th className="px-4 py-3">Code</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Currency</th><th className="px-4 py-3">Timezone</th></tr></thead>

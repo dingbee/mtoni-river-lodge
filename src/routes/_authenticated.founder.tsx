@@ -1,7 +1,7 @@
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Activity, AlertCircle, Building2, CalendarClock, CheckCircle2, CircleDollarSign, CreditCard, FileText, RefreshCw, Search, ShieldCheck, Users } from "lucide-react";
-import { getFounderCommercialWorkspace } from "@/domains/commercial/founder-control-centre.functions";
+import { getFounderCommercialWorkspace, registerFounderCommercialAccount } from "@/domains/commercial/founder-control-centre.functions";
 import { administerCommercialSubscription } from "@/domains/commercial/subscription-administration.functions";
 
 type FounderWorkspaceData = {
@@ -15,7 +15,8 @@ type FounderWorkspaceData = {
     mrrArrByCurrency: { TZS: { mrrMinor: number; arrMinor: number }; USD: { mrrMinor: number; arrMinor: number } };
   };
   tenants: Array<{
-    id: string; slug: string; name: string; status: string; propertyCount: number; subscriptionCount: number;
+    id: string; slug: string; name: string; status: string; accountId: string | null; propertyCount: number; subscriptionCount: number;
+    primaryContact: {contact_name:string;contact_email:string;contact_phone:string|null;contact_role:string}|null;
     subscription: { id: string; planCode: string; status: string; propertyAllowance: number } | null;
     entitlementCount: number; outstandingByCurrency: { TZS: number; USD: number };
     lastPayment: { amountMinor: number; currency: "TZS" | "USD"; confirmedAt: string | null; reference: string | null } | null;
@@ -116,6 +117,30 @@ function FounderWorkspace() {
   const data = Route.useLoaderData() as FounderWorkspaceData;
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+  const [registerOpen,setRegisterOpen]=useState(false);
+  const [registerOrganisationId,setRegisterOrganisationId]=useState(data.tenants.find((tenant)=>!tenant.accountId)?.id??"");
+  const [contactName,setContactName]=useState("");
+  const [contactEmail,setContactEmail]=useState("");
+  const [contactPhone,setContactPhone]=useState("");
+  const [contactRole,setContactRole]=useState<"primary"|"billing"|"technical"|"finance">("billing");
+  const [registrationReason,setRegistrationReason]=useState("");
+  const [registrationBusy,setRegistrationBusy]=useState(false);
+  const [registrationMessage,setRegistrationMessage]=useState("");
+  const router=useRouter();
+  const unregisteredTenants=data.tenants.filter((tenant)=>!tenant.accountId);
+  const registerAccount=async(event:React.FormEvent<HTMLFormElement>)=>{
+    event.preventDefault();setRegistrationBusy(true);setRegistrationMessage("");
+    try{
+      await registerFounderCommercialAccount({data:{
+        organisationId:registerOrganisationId,contactName,contactEmail,contactPhone:contactPhone||null,
+        contactRole,reasonCode:registrationReason,idempotencyKey:crypto.randomUUID(),
+      }});
+      setRegistrationMessage("Commercial account and contact registered. Existing tenant memberships and property records were not changed.");
+      setRegisterOpen(false);setContactName("");setContactEmail("");setContactPhone("");setRegistrationReason("");
+      await router.invalidate();
+    }catch(error){setRegistrationMessage(error instanceof Error?error.message:"Commercial account registration failed.");}
+    finally{setRegistrationBusy(false);}
+  };
   const tenants = useMemo(() => data.tenants.filter((tenant) => {
     const matches = [tenant.name, tenant.slug, tenant.subscription?.planCode ?? ""].join(" ").toLowerCase().includes(search.toLowerCase());
     return matches && (status === "all" || tenant.status === status || tenant.subscription?.status === status);
@@ -136,7 +161,7 @@ function FounderWorkspace() {
           <a href="/founder/notifications" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Alerts</a>
           <a href="/founder/audit" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Audit & governance</a>
           <a href="#notifications" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Notifications</a>
-          <a href="#subscriptions" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Subscriptions</a>
+          <a href="/founder/subscriptions" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Subscriptions</a>
           <a href="/founder/billing" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Billing & collections</a>
           <a href="#entitlements" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Entitlements</a>
           <a href="#activity" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Audit activity</a>
@@ -171,6 +196,20 @@ function FounderWorkspace() {
       </section>
 
       <section id="tenants" className="scroll-mt-6 space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground">{unregisteredTenants.length} organisation(s) without a commercial account.</p>
+          <button type="button" disabled={unregisteredTenants.length===0} onClick={()=>setRegisterOpen(!registerOpen)} className="rounded-md border px-3 py-2 text-sm disabled:opacity-50">{registerOpen?"Close registration":"Register commercial customer"}</button>
+        </div>
+        {registerOpen&&<form onSubmit={registerAccount} className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2">
+          <label className="text-xs font-medium sm:col-span-2">Existing StayNas organisation<select required value={registerOrganisationId} onChange={e=>setRegisterOrganisationId(e.target.value)} className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm">{unregisteredTenants.map(tenant=><option key={tenant.id} value={tenant.id}>{tenant.name} · {tenant.slug}</option>)}</select></label>
+          <label className="text-xs font-medium">Primary contact name<input required minLength={2} maxLength={120} value={contactName} onChange={e=>setContactName(e.target.value)} className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm" /></label>
+          <label className="text-xs font-medium">Primary contact email<input required type="email" value={contactEmail} onChange={e=>setContactEmail(e.target.value)} className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm" /></label>
+          <label className="text-xs font-medium">Contact phone<input value={contactPhone} onChange={e=>setContactPhone(e.target.value)} className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm" /></label>
+          <label className="text-xs font-medium">Contact responsibility<select value={contactRole} onChange={e=>setContactRole(e.target.value as typeof contactRole)} className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm"><option value="primary">Primary</option><option value="billing">Billing</option><option value="technical">Technical</option><option value="finance">Finance</option></select></label>
+          <label className="text-xs font-medium sm:col-span-2">Commercial registration reason<input required minLength={2} maxLength={200} value={registrationReason} onChange={e=>setRegistrationReason(e.target.value)} placeholder="Approved customer onboarding reference" className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm" /></label>
+          <div className="flex items-center gap-3 sm:col-span-2"><button type="submit" disabled={registrationBusy||!registerOrganisationId} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">{registrationBusy?"Registering…":"Register commercial account"}</button><p className="text-xs text-muted-foreground">Creates only the commercial account and contact record. Does not create users, memberships or properties.</p></div>
+        </form>}
+        {registrationMessage&&<p role="status" className="text-sm text-muted-foreground">{registrationMessage}</p>}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div><h2 className="font-semibold">Tenant commercial registry</h2><p className="text-sm text-muted-foreground">Search and inspect customer commercial status.</p></div>
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -180,10 +219,11 @@ function FounderWorkspace() {
         </div>
         <div className="overflow-x-auto rounded-xl border">
           <table className="w-full min-w-[950px] text-left text-sm">
-            <thead className="bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="px-4 py-3">Tenant / account</th><th className="px-4 py-3">Plan</th><th className="px-4 py-3">Subscription</th><th className="px-4 py-3">Properties</th><th className="px-4 py-3">Entitlements</th><th className="px-4 py-3">Outstanding</th><th className="px-4 py-3">Last payment</th><th className="px-4 py-3">Health</th></tr></thead>
+            <thead className="bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="px-4 py-3">Tenant / account</th><th className="px-4 py-3">Primary contact</th><th className="px-4 py-3">Plan</th><th className="px-4 py-3">Subscription</th><th className="px-4 py-3">Properties</th><th className="px-4 py-3">Entitlements</th><th className="px-4 py-3">Outstanding</th><th className="px-4 py-3">Last payment</th><th className="px-4 py-3">Health</th></tr></thead>
             <tbody className="divide-y">
               {tenants.map((tenant) => <tr key={tenant.id} className="hover:bg-muted/30">
                 <td className="px-4 py-3"><a href={`/founder/tenants/${tenant.id}`} className="font-medium hover:underline">{tenant.name}</a><p className="text-xs text-muted-foreground">{tenant.slug}</p></td>
+                <td className="px-4 py-3"><p>{tenant.primaryContact?.contact_name ?? "Not recorded"}</p><p className="text-xs text-muted-foreground">{tenant.primaryContact?.contact_email ?? "No commercial contact"}</p></td>
                 <td className="px-4 py-3">{tenant.subscription ? label(tenant.subscription.planCode) : "Not assigned"}</td>
                 <td className="px-4 py-3"><span className="rounded-full bg-muted px-2 py-1 text-xs">{tenant.subscription ? label(tenant.subscription.status) : "Not provisioned"}</span></td>
                 <td className="px-4 py-3 tabular-nums">{tenant.propertyCount} / {tenant.subscription?.propertyAllowance ?? "—"}</td>
@@ -192,11 +232,11 @@ function FounderWorkspace() {
                 <td className="px-4 py-3 text-xs">{tenant.lastPayment ? <>{tenant.lastPayment.currency} {money(tenant.lastPayment.amountMinor, tenant.lastPayment.currency)}<br />{date(tenant.lastPayment.confirmedAt)}</> : "—"}</td>
                 <td className="px-4 py-3"><span className={tenant.commercialHealth === "healthy" ? "text-emerald-700" : tenant.commercialHealth === "attention_required" ? "text-red-600" : "text-amber-700"}>{label(tenant.commercialHealth)}</span></td>
               </tr>)}
-              {tenants.length === 0 && <tr><td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">No tenants match the selected filters.</td></tr>}
+              {tenants.length === 0 && <tr><td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">No tenants match the selected filters.</td></tr>}
             </tbody>
           </table>
         </div>
-        <p className="text-xs text-muted-foreground">Contact details are not shown because no authoritative commercial contact field has been provisioned. Missing subscriptions and accounts are explicitly identified rather than inferred.</p>
+        <p className="text-xs text-muted-foreground">Commercial contacts are stored separately from tenant membership and operational identity records.</p>
       </section>
 
       <section id="subscriptions" className="scroll-mt-6 space-y-3">

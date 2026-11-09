@@ -24,7 +24,7 @@ INSERT INTO public.commercial_founder_notifications(
 ) VALUES (
   'cc06-test-alert-0001','trial_expiring','warning','Test trial expiry','Test-only notification evidence','subscription','cc06-test-subscription','/founder','{}'
 );
-DO $
+DO $$
 DECLARE update_blocked boolean := false; delete_blocked boolean := false;
 BEGIN
   BEGIN
@@ -40,5 +40,5 @@ BEGIN
     delete_blocked := SQLERRM LIKE 'Founder commercial notification history cannot be deleted';
   END;
   IF NOT delete_blocked THEN RAISE EXCEPTION 'Notification deletion was not blocked'; END IF;
-END $;
+END $$;
 ROLLBACK;

@@ -1,5 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { resolveCommercialPrice } from "./pricing-engine";
+import { validateFounderPolicyPayload } from "./founder-policy.functions";
+import { validatePackageComposition } from "./package-composition-contract";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { resolveVerifiedFounderActor } from "./subscription.functions";
 
@@ -18,9 +21,10 @@ export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const admin = supabaseAdmin as any;
-    const [organisationsResult, accountsResult, subscriptionsResult, propertiesResult, invoicesResult, paymentsResult, assignmentsResult, eventsResult, financialEventsResult, policyVersionsResult, policyCurrentResult, notificationsResult, decisionsResult, providerAccountsResult, unallocatedResult, reconciliationRunsResult, grantRulesResult] = await Promise.all([
+    const [organisationsResult, accountsResult, contactsResult, subscriptionsResult, propertiesResult, invoicesResult, paymentsResult, assignmentsResult, eventsResult, financialEventsResult, policyVersionsResult, policyCurrentResult, notificationsResult, decisionsResult, providerAccountsResult, unallocatedResult, reconciliationRunsResult, grantRulesResult] = await Promise.all([
       admin.from("staynas_organisations").select("id,slug,name,status,created_at").order("created_at", { ascending: false }),
       admin.from("commercial_accounts").select("id,organisation_id,status,created_at,updated_at"),
+      admin.from("commercial_account_contacts").select("account_id,contact_name,contact_email,contact_phone,contact_role,created_at,updated_at"),
       admin.from("commercial_subscriptions").select("id,account_id,plan_code,plan_version,currency,billing_term,status,property_count,addon_codes,trial_started_at,trial_ends_at,current_period_starts_at,current_period_ends_at,cancel_at_period_end,accepted_price_snapshot,quote_required,created_at"),
       admin.from("staynas_properties").select("id,organisation_id,name,status,created_at"),
       admin.from("commercial_invoice_receivables").select("id,organisation_id,account_id,subscription_id,invoice_number,currency,status,issued_at,due_at,total_minor,amount_paid_minor,outstanding_minor,is_overdue"),
@@ -37,10 +41,12 @@ export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
       admin.from("commercial_reconciliation_runs").select("id,organisation_id,provider_account_id,currency,period_start,period_end,status,source_ref,completed_at,created_at").order("created_at", { ascending: false }).limit(100),
       admin.from("commercial_entitlement_grant_rules").select("id,grant_type,organisation_id,addon_code,feature_code,effect,effective_from,effective_to,reason,created_by,created_at").order("created_at", { ascending: false }),
     ]);
-    const errors = [organisationsResult, accountsResult, subscriptionsResult, propertiesResult, invoicesResult, paymentsResult, assignmentsResult, eventsResult, financialEventsResult, policyVersionsResult, policyCurrentResult, notificationsResult, decisionsResult, providerAccountsResult, unallocatedResult, reconciliationRunsResult, grantRulesResult].filter((result) => result.error);
+    const errors = [organisationsResult, accountsResult, contactsResult, subscriptionsResult, propertiesResult, invoicesResult, paymentsResult, assignmentsResult, eventsResult, financialEventsResult, policyVersionsResult, policyCurrentResult, notificationsResult, decisionsResult, providerAccountsResult, unallocatedResult, reconciliationRunsResult, grantRulesResult].filter((result) => result.error);
     if (errors.length) throw new Error("Founder commercial workspace data could not be loaded from authoritative records.");
     const organisations = rows(organisationsResult.data);
     const accounts = rows(accountsResult.data);
+    const contacts = rows(contactsResult.data);
+    const contactByAccount = new Map(contacts.map((contact) => [String(contact.account_id), contact]));
     const subscriptions = rows(subscriptionsResult.data);
     const properties = rows(propertiesResult.data);
     const invoices = rows(invoicesResult.data);
@@ -72,6 +78,7 @@ export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
         id: String(organisation.id), slug: String(organisation.slug ?? ""), name: String(organisation.name ?? "Unnamed organisation"),
         status: String(organisation.status ?? "unknown"), registeredAt: organisation.created_at ?? null,
         accountId: account ? String(account.id) : null, accountStatus: account ? String(account.status) : "not_provisioned",
+        primaryContact: account ? contactByAccount.get(String(account.id)) ?? null : null,
         propertyCount: tenantProperties.length, subscriptionCount: tenantSubscriptions.length,
         subscription: latestSubscription ? {
           id: String(latestSubscription.id), planCode: String(latestSubscription.plan_code), planVersion: numeric(latestSubscription.plan_version),
@@ -102,7 +109,7 @@ export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
       const currency = currencyOf(subscription.currency);
       if (!currency) continue;
       const snapshot = subscription.accepted_price_snapshot as Record<string, unknown> | null;
-      const total = numeric(snapshot?.totalAmountMinor);
+      const total = numeric(snapshot?.total ?? snapshot?.totalAmountMinor);
       if (total <= 0 || subscription.quote_required === true) continue;
       if (subscription.billing_term === "monthly") { recurringByCurrency[currency].mrrMinor += total; recurringByCurrency[currency].arrMinor += total * 12; }
       else if (subscription.billing_term === "annual") { recurringByCurrency[currency].mrrMinor += total / 12; recurringByCurrency[currency].arrMinor += total; }
@@ -175,7 +182,11 @@ export const getFounderTenantCommercialProfile = createServerFn({ method: "GET" 
     ]);
     if (accountResult.error || propertiesResult.error) throw new Error("Tenant identity and property records could not be loaded.");
     const account = accountResult.data as Row | null;
-    if (!account) return JSON.parse(JSON.stringify({ organisation, account: null, properties: rows(propertiesResult.data), subscriptions: [], subscriptionEvents: [], invoices: [], payments: [], assignments: [], decisions: [], notifications: [] }));
+    if (!account) return JSON.parse(JSON.stringify({ organisation, account: null, contact: null, properties: rows(propertiesResult.data), subscriptions: [], subscriptionEvents: [], invoices: [], payments: [], assignments: [], decisions: [], notifications: [] }));
+    const { data: contact, error: contactError } = await admin.from("commercial_account_contacts")
+      .select("account_id,contact_name,contact_email,contact_phone,contact_role,created_at,updated_at")
+      .eq("account_id", account.id).maybeSingle();
+    if (contactError) throw new Error("Tenant commercial contact record could not be loaded.");
     const [subscriptionsResult, invoicesResult, paymentsResult, assignmentsResult, decisionsResult, notificationsResult] = await Promise.all([
       admin.from("commercial_subscriptions").select("*").eq("account_id", account.id).order("created_at", { ascending: false }),
       admin.from("commercial_invoice_receivables").select("*").eq("organisation_id", data.organisationId).order("issued_at", { ascending: false }),
@@ -206,6 +217,7 @@ export const getFounderTenantCommercialProfile = createServerFn({ method: "GET" 
     return JSON.parse(JSON.stringify({
       organisation,
       account,
+      contact,
       properties: rows(propertiesResult.data),
       subscriptions,
       subscriptionEvents: rows(subscriptionEventsResult.data),
@@ -378,4 +390,136 @@ export const listFounderCommercialAudit = createServerFn({ method: "GET" })
     ];
     events.sort((a,b)=>Date.parse(String(b.occurred_at??""))-Date.parse(String(a.occurred_at??"")));
     return JSON.parse(JSON.stringify(events));
+  });
+
+
+const founderAccountRegistrationInput = z.object({
+  organisationId: z.string().uuid(),
+  contactName: z.string().trim().min(2).max(120),
+  contactEmail: z.string().trim().email().max(255),
+  contactPhone: z.string().trim().max(40).nullable().optional(),
+  contactRole: z.enum(["primary","billing","technical","finance"]),
+  reasonCode: z.string().trim().min(2).max(200),
+  idempotencyKey: z.string().trim().min(8).max(200),
+});
+
+export const registerFounderCommercialAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => founderAccountRegistrationInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const actor=await resolveVerifiedFounderActor(context as {supabase:unknown;userId:string});
+    const {supabaseAdmin}=await import("@/integrations/supabase/client.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin=supabaseAdmin as any;
+    const {data:result,error}=await admin.rpc("commercial_register_account",{
+      _organisation_id:data.organisationId,_contact_name:data.contactName,_contact_email:data.contactEmail,
+      _contact_phone:data.contactPhone??null,_contact_role:data.contactRole,_reason_code:data.reasonCode,
+      _idempotency_key:data.idempotencyKey,_actor_user_id:actor.userId,_actor_organisation_id:actor.organisationId,
+    });
+    if(error||!result?.accountId) throw new Error("Commercial account registration was not confirmed by the founder registration service.");
+    return {accountId:String(result.accountId),organisationId:data.organisationId,replayed:result.replayed===true};
+  });
+
+async function loadFounderSubscriptionPolicies(admin: any) {
+  const {data:currentRows,error:currentError}=await admin.from("commercial_policy_config_current")
+    .select("policy_type,version_id").in("policy_type",["catalogue","pricing","composition"]);
+  if(currentError) throw new Error("Published commercial policy pointers could not be loaded.");
+  const current=rows(currentRows);
+  const payloads:Record<string,unknown>={};
+  for(const policyType of ["catalogue","pricing","composition"]){
+    const pointer=current.find((item)=>item.policy_type===policyType);
+    if(!pointer?.version_id) throw new Error(`Published ${policyType} policy is required before assigning a subscription.`);
+    const {data:version,error}=await admin.from("commercial_policy_config_versions").select("id,status,payload,version,effective_from,effective_to")
+      .eq("id",pointer.version_id).maybeSingle();
+    if(error||!version||version.status!=="published") throw new Error(`Published ${policyType} policy version could not be verified.`);
+    payloads[policyType]=validateFounderPolicyPayload(policyType as "catalogue"|"pricing"|"composition",version.payload,"published");
+  }
+  return payloads as {
+    catalogue: {plans:Array<{code:string;name:string;status:string}>;planVersions:Array<{planCode:string;version:number;status:string;effectiveFrom:string|null;effectiveTo:string|null}>;addons:Array<{code:string;name:string;status:string}>};
+    pricing: {planPrices:Array<{priceCode:string;planCode:string;planVersion:number;currency:"TZS"|"USD";billingTerm:"monthly"|"annual";priceMode:"fixed"|"quote_required";baseAmountMinor:number|null;includedProperties:number|null;additionalPropertyAmountMinor:number|null;status:string;effectiveFrom:string|null;effectiveTo:string|null}>;addonPrices:Array<{priceCode:string;addonCode:string;currency:"TZS"|"USD";billingTerm:"monthly"|"annual";chargeModel:"flat"|"per_property";amountMinor:number;status:string;effectiveFrom:string|null;effectiveTo:string|null}>};
+    composition: {compositions:Array<{planCode:string;planVersion:number;status:string;moduleCodes:string[];addonCodes:string[];effectiveFrom:string|null;effectiveTo:string|null}>;compatibilityRules:Array<{addonCode:string;requiresModuleCodes:string[];conflictsWithAddonCodes:string[]}>};
+  };
+}
+
+export const getFounderSubscriptionSetup = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({context})=>{
+    await resolveVerifiedFounderActor(context as {supabase:unknown;userId:string});
+    const {supabaseAdmin}=await import("@/integrations/supabase/client.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin=supabaseAdmin as any;
+    const policies=await loadFounderSubscriptionPolicies(admin);
+    const today=new Date().toISOString().slice(0,10);
+    const planVersions=policies.catalogue.planVersions.filter(v=>v.status==="active"&&(!v.effectiveFrom||v.effectiveFrom<=today)&&(!v.effectiveTo||v.effectiveTo>=today));
+    const plans=policies.catalogue.plans.filter(p=>p.status==="active");
+    const prices=policies.pricing.planPrices.filter(p=>p.status==="active"&&(!p.effectiveFrom||p.effectiveFrom<=today)&&(!p.effectiveTo||p.effectiveTo>=today));
+    const addons=policies.catalogue.addons.filter(addon=>addon.status==="active");
+    const addonPrices=policies.pricing.addonPrices.filter(price=>price.status==="active"&&(!price.effectiveFrom||price.effectiveFrom<=today)&&(!price.effectiveTo||price.effectiveTo>=today));
+    return JSON.parse(JSON.stringify({plans,planVersions,prices,addons,addonPrices,composition:policies.composition.compositions}));
+  });
+
+const createFounderSubscriptionInput=z.object({
+  accountId:z.string().uuid(),
+  planCode:z.enum(["essential","professional","enterprise"]),
+  planVersion:z.number().int().positive(),
+  currency:z.enum(["TZS","USD"]),
+  billingTerm:z.enum(["monthly","annual"]),
+  propertyCount:z.number().int().positive(),
+  addonCodes:z.array(z.string().trim().min(2).max(60)).max(30).default([]),
+  reasonCode:z.string().trim().min(2).max(200),
+  idempotencyKey:z.string().trim().min(8).max(200),
+});
+
+export const createFounderCommercialSubscription = createServerFn({method:"POST"})
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown)=>createFounderSubscriptionInput.parse(input))
+  .handler(async({data,context})=>{
+    const actor=await resolveVerifiedFounderActor(context as {supabase:unknown;userId:string});
+    const {supabaseAdmin}=await import("@/integrations/supabase/client.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin=supabaseAdmin as any;
+    const {data:account,error:accountError}=await admin.from("commercial_accounts").select("id,status").eq("id",data.accountId).maybeSingle();
+    if(accountError||!account||account.status!=="active") throw new Error("An active commercial customer account is required.");
+    const policies=await loadFounderSubscriptionPolicies(admin);
+    const today=new Date().toISOString().slice(0,10);
+    const plan=policies.catalogue.plans.find(p=>p.code===data.planCode&&p.status==="active");
+    const planVersion=policies.catalogue.planVersions.find(v=>v.planCode===data.planCode&&v.version===data.planVersion&&v.status==="active"&&(!v.effectiveFrom||v.effectiveFrom<=today)&&(!v.effectiveTo||v.effectiveTo>=today));
+    const composition=policies.composition.compositions.find(c=>c.planCode===data.planCode&&c.planVersion===data.planVersion&&c.status==="published"&&(!c.effectiveFrom||c.effectiveFrom<=today)&&(!c.effectiveTo||c.effectiveTo>=today));
+    if(!plan||!planVersion||!composition) throw new Error("The selected plan version is not active in the published catalogue and package composition.");
+    const selectedAddons=[...new Set(data.addonCodes)];
+    if(selectedAddons.length!==data.addonCodes.length) throw new Error("An add-on may only be selected once.");
+    const activeAddonCodes=new Set(policies.catalogue.addons.filter(addon=>addon.status==="active").map(addon=>addon.code));
+    if(selectedAddons.some(code=>!activeAddonCodes.has(code))) throw new Error("One or more selected add-ons are not active in the published catalogue.");
+    const effectiveComposition={
+      ...composition,
+      addonCodes:[...new Set([...composition.addonCodes,...selectedAddons])],
+    } as Parameters<typeof validatePackageComposition>[0];
+    const compositionValidation=validatePackageComposition(
+      effectiveComposition,
+      policies.composition.compatibilityRules as Parameters<typeof validatePackageComposition>[1],
+    );
+    if(!compositionValidation.valid) throw new Error(`Selected add-ons violate the published package composition: ${compositionValidation.issues.map(issue=>issue.code).join(", ")}.`);
+    const bundledAddons=new Set(composition.addonCodes);
+    const pricedAddons=selectedAddons.filter(code=>!bundledAddons.has(code));
+    const price=resolveCommercialPrice({
+      planCode:data.planCode,planVersion:data.planVersion,currency:data.currency,billingTerm:data.billingTerm,
+      propertyCount:data.propertyCount,asOf:today,addons:pricedAddons.map(addonCode=>({addonCode})),
+    },policies.pricing.planPrices,policies.pricing.addonPrices);
+    if(!price.quoteRequired && price.totalAmountMinor===null) throw new Error("Fixed-price resolution returned no total.");
+    const acceptedPriceSnapshot={
+      currency:price.currency,planCode:price.planCode,planVersion:price.planVersion,billingTerm:price.billingTerm,
+      propertyCount:price.propertyCount,priceCode:price.planPriceCode,asOf:price.asOf,quoteRequired:price.quoteRequired,
+      ...(price.quoteRequired?{lineItems:[]}:{total:price.totalAmountMinor,lineItems:price.lines}),
+      addonCodes:selectedAddons,
+    };
+    const priceResolutionRef=`cc06-${globalThis.crypto.randomUUID()}`;
+    const {data:result,error}=await admin.rpc("commercial_create_subscription_for_founder",{
+      _account_id:data.accountId,_plan_code:data.planCode,_plan_version:data.planVersion,
+      _currency:data.currency,_billing_term:data.billingTerm,_property_count:data.propertyCount,
+      _addon_codes:selectedAddons,_price_resolution_ref:priceResolutionRef,_accepted_price_snapshot:acceptedPriceSnapshot,
+      _quote_required:price.quoteRequired,_idempotency_key:data.idempotencyKey,_reason_code:data.reasonCode,
+      _actor_user_id:actor.userId,_actor_organisation_id:actor.organisationId,
+    });
+    if(error||!result?.subscriptionId) throw new Error("Subscription creation was not confirmed by the CC-03 founder registration service.");
+    return {subscriptionId:String(result.subscriptionId),replayed:result.replayed===true,quoteRequired:price.quoteRequired,price:acceptedPriceSnapshot};
   });
