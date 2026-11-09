@@ -34,6 +34,7 @@ export const Route = createFileRoute("/$propertySlug")({
         throw redirect({
           to: "/p/$propertySlug/campaign/$campaignSlug",
           params: { propertySlug: campaign.propertySlug, campaignSlug: campaign.campaignSlug },
+          search: Object.fromEntries(query.entries()) as any,
         });
       }
       return {
