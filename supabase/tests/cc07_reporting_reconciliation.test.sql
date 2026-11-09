@@ -371,6 +371,23 @@ BEGIN
   INSERT INTO public.commercial_founder_admin_memberships(
     principal_id,organisation_id,status,verified_at
   ) VALUES (v_user,v_founder_org,'active',now());
+  INSERT INTO public.commercial_financial_audit_events(
+    request_id,actor_user_id,actor_organisation_id,actor_role,action,
+    resource_type,resource_ref,outcome,metadata
+  ) VALUES (
+    'cc07-report-export-audit-test',v_user,v_founder_org,'founder_admin',
+    'commercial_report.export_requested.csv','commercial_report','2026-11','succeeded',
+    '{"currency":"all","organisationId":null}'::jsonb
+  ) RETURNING id INTO v_audit_event;
+  BEGIN
+    UPDATE public.commercial_financial_audit_events
+      SET metadata='{"tampered":true}'::jsonb WHERE id=v_audit_event;
+  EXCEPTION WHEN SQLSTATE '55000' THEN
+    v_audit_immutable := true;
+  END;
+  IF NOT v_audit_immutable THEN
+    RAISE EXCEPTION 'Commercial report export audit evidence was mutable';
+  END IF;
   INSERT INTO public.commercial_accounts(id,organisation_id,status)
     VALUES (v_account,v_customer_org,'active');
   INSERT INTO public.commercial_subscriptions(
