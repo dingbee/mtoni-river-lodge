@@ -6,6 +6,7 @@ import type {
   ConciergeReply,
   ConciergeRecommendation,
   ConciergeAvailabilityRoom,
+  ConciergeAvailabilityOutcome,
   ConciergeBookingPlan,
 } from "./concierge.types";
 import { classifyIntent } from "./concierge.intent";
@@ -226,17 +227,20 @@ export async function handleConciergeChat(
   const recommendations: ConciergeRecommendation[] = intent.level !== "low" ? combinedRecommendations(intent, roomCatalog, experienceCatalog) : [];
 
   let availability: ConciergeAvailabilityRoom[] = [];
+  let availabilityOutcome: ConciergeAvailabilityOutcome | undefined;
   let plan: ConciergeBookingPlan | null = null;
   if (intent.detected.check_in && intent.detected.check_out) {
-    try {
-      availability = await searchAvailability({ propertyId, check_in: intent.detected.check_in, check_out: intent.detected.check_out, adults: intent.detected.adults ?? 2, children: intent.detected.children ?? 0 });
+    const result = await searchAvailability({ propertyId, check_in: intent.detected.check_in, check_out: intent.detected.check_out, adults: intent.detected.adults ?? 2, children: intent.detected.children ?? 0 });
+    availability = result.rooms;
+    availabilityOutcome = result.status;
+    if (result.status === "available" || result.status === "unavailable") {
       plan = buildBookingPlan(intent, availability, recommendations.find((r) => r.type === "room")?.slug, experienceCatalog);
-    } catch {}
+    }
   }
 
   const intentCtx = `level=${intent.level} confidence=${intent.confidence.toFixed(2)}; dates=${intent.detected.check_in ?? "?"} → ${intent.detected.check_out ?? "?"}; party=${intent.detected.adults ?? "?"} adults / ${intent.detected.children ?? 0} children; interests=${(intent.detected.interests ?? []).join(",") || "none"}`;
   const recsCtx = recommendations.map((r) => `- [${r.type}] ${r.name} (slug: ${r.slug}, from ${r.currency} ${r.from_price}${r.type === "experience" ? ` ${r.unit}` : "/night"}, conf ${r.confidence.toFixed(2)}): ${r.reasoning.join(" ")}`).join("\n");
-  const availabilityCtx = availability.map((a) => `- ${a.name} (slug: ${a.slug}) — ${a.is_available ? (a.fits_party ? `available (${a.min_available} left), fits party` : "available but does not fit party") : "not available"} for ${a.nights} night(s), full-stay total ${a.currency} ${a.nightly_total}`).join("\n") + (plan?.booking_url ? `\nbooking_url: ${plan.booking_url}` : "");
+  const availabilityCtx = availabilityOutcome ? `Outcome: ${availabilityOutcome}\n` : "" + availability.map((a) => `- ${a.name} (slug: ${a.slug}) — ${a.is_available ? (a.fits_party ? `available (${a.min_available} left), fits party` : "available but does not fit party") : "not available"} for ${a.nights} night(s), full-stay total ${a.currency} ${a.nightly_total}`).join("\n") + (plan?.booking_url ? `\nbooking_url: ${plan.booking_url}` : "");
 
   const memoryCtx = await loadConciergeMemoryContext({ sessionId: sessionId!, guestId: existingGuestId, propertyId });
   const memoryPromptSection = memoryCtx.contextText ? [
@@ -342,7 +346,7 @@ export async function handleConciergeChat(
       id: assistantRow?.id, role: "assistant", content: answer, citations, confidence,
       escalated: shouldEscalate, intent: intent.level,
       recommendations: recommendations.length > 0 ? recommendations : undefined,
-      availability: availability.length > 0 ? availability : undefined, plan: plan ?? undefined,
+      availability: availability.length > 0 ? availability : undefined, availability_outcome: availabilityOutcome, plan: plan ?? undefined,
       created_at: assistantRow?.created_at,
     },
   };
