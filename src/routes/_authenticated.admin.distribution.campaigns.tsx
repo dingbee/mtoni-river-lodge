@@ -37,8 +37,8 @@ type Campaign = {
 type StudioResources = {
   currency: string;
   timezone: string;
-  rooms: Array<{ id: string; slug: string; name: string; max_occupancy: number }>;
-  publications: Array<{ id: string; code: string; name: string; currency: string; publication_number: number; rate_plan_version: number; effective_from: string | null; effective_to: string | null }>;
+  rooms: Array<{ id: string; slug: string; name: string; max_occupancy: number; catalogue_type_id: string }>;
+  publications: Array<{ id: string; code: string; name: string; currency: string; publication_number: number; rate_plan_version: number; effective_from: string | null; effective_to: string | null; room_type_assignments: Array<{ room_type_id: string }> }>;
 };
 
 function dateInPropertyTimezone(value: string | null, timezone: string) {
@@ -99,6 +99,12 @@ function CampaignStudioPage() {
     offers: Array<{ id: string; title: string; description?: string }>;
   } | null>(null);
   const selected = campaigns.data?.find((item) => item.id === selectedId);
+  const eligiblePublications = (resources.data?.publications ?? []).filter((publication) =>
+    roomIds.length === 0 || roomIds.every((roomId) => {
+      const room = resources.data?.rooms.find((item) => item.id === roomId);
+      return !!room && publication.room_type_assignments?.some((assignment) => assignment.room_type_id === room.catalogue_type_id);
+    })
+  );
 
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ["booking-campaigns"] });
@@ -270,7 +276,7 @@ function CampaignStudioPage() {
                 {resources.data?.rooms.map((room) => <label key={room.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={roomIds.includes(room.id)} onChange={(event) => setRoomIds((current) => event.target.checked ? [...current, room.id] : current.filter((id) => id !== room.id))} />{room.name} <span className="text-xs text-muted-foreground">· max {room.max_occupancy}</span></label>)}
                 {!resources.isLoading && !resources.data?.rooms.length && <p className="text-xs text-muted-foreground">No active rooms available.</p>}
               </div>
-              <div className="mt-3 space-y-1.5"><Label htmlFor="campaign-publication">Published rate plan snapshot</Label><select id="campaign-publication" value={publicationId} onChange={(event) => setPublicationId(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm"><option value="">Select published rate snapshot</option>{resources.data?.publications.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.code} · v{item.rate_plan_version} / pub {item.publication_number} · {item.currency}</option>)}</select></div>
+              <div className="mt-3 space-y-1.5"><Label htmlFor="campaign-publication">Published rate plan snapshot</Label><select id="campaign-publication" value={publicationId} onChange={(event) => setPublicationId(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm"><option value="">Select published rate snapshot</option>{eligiblePublications.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.code} · v{item.rate_plan_version} / pub {item.publication_number} · {item.currency}</option>)}</select></div>
               <div className="mt-3 grid gap-3 sm:grid-cols-2"><div className="space-y-1.5"><Label htmlFor="offer-code">Offer code</Label><Input id="offer-code" value={offerCode} onChange={(event) => setOfferCode(event.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""))} /></div><div className="space-y-1.5"><Label htmlFor="offer-title">Offer title</Label><Input id="offer-title" value={offerTitle} onChange={(event) => setOfferTitle(event.target.value)} /></div></div>
               <div className="mt-3 space-y-1.5"><Label htmlFor="offer-description">Offer description</Label><Textarea id="offer-description" value={offerDescription} onChange={(event) => setOfferDescription(event.target.value)} rows={2} /></div>
               <Button variant="outline" onClick={() => configure.mutate()} disabled={configure.isPending || !publicationId || roomIds.length === 0}><Settings2 className="mr-2 h-4 w-4" /> Save room and offer configuration</Button>
