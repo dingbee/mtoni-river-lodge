@@ -46,9 +46,6 @@ export async function resolvePublicDirectBookingChannel(
     .maybeSingle();
   if (channelError) throw new Error("Public booking channel lookup failed");
   if (!channel) throw new Error("The official direct-booking channel is not published");
-  if (channel.currency && channel.currency !== channel.transaction_currency) {
-    throw new Error("Public booking channel currency configuration is inconsistent");
-  }
   if (!/^[A-Z]{3}$/.test(channel.transaction_currency ?? "")) {
     throw new Error("Public booking channel has no valid transaction currency");
   }
