@@ -217,3 +217,48 @@ export const getFounderCommercialReporting = createServerFn({ method: "GET" })
       },
     };
   });
+
+export const recordFounderCommercialReportExport = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({
+    format: z.enum(["csv", "pdf"]),
+    periodStart: z.string().datetime({ offset: true }),
+    periodEnd: z.string().datetime({ offset: true }),
+    currency: z.enum(["TZS", "USD"]).optional(),
+    organisationId: z.string().uuid().optional(),
+  }).refine((value) => Date.parse(value.periodEnd) > Date.parse(value.periodStart), {
+    message: "Report period end must be after its start.",
+  }).parse(input))
+  .handler(async ({ data, context }) => {
+    const actor = await resolveVerifiedFounderActor(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin = supabaseAdmin as any;
+    const { data: config, error: configError } = await admin.from("commercial_founder_tenant_config")
+      .select("founder_organisation_id").eq("singleton", true).maybeSingle();
+    if (configError || !config?.founder_organisation_id || config.founder_organisation_id !== actor.organisationId) {
+      throw new Error("Founder tenant boundary configuration is unavailable.");
+    }
+    if (data.organisationId) {
+      const { data: customer, error } = await admin.from("staynas_organisations")
+        .select("id").eq("id", data.organisationId)
+        .neq("id", config.founder_organisation_id).maybeSingle();
+      if (error || !customer) throw new Error("Report export tenant is outside the founder customer portfolio.");
+    }
+    const { error } = await admin.from("commercial_financial_audit_events").insert({
+      request_id: globalThis.crypto.randomUUID(),
+      actor_user_id: actor.userId,
+      actor_organisation_id: actor.organisationId,
+      actor_role: "founder_admin",
+      action: `commercial_report.exported.${data.format}`,
+      resource_type: "commercial_report",
+      resource_ref: `${data.periodStart}/${data.periodEnd}`,
+      outcome: "succeeded",
+      metadata: {
+        periodStart: data.periodStart, periodEnd: data.periodEnd,
+        currency: data.currency ?? "all", organisationId: data.organisationId ?? null,
+      },
+    });
+    if (error) throw new Error("Commercial report export could not be recorded in the audit ledger.");
+    return { recorded: true };
+  });
