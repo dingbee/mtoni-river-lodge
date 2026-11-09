@@ -86,6 +86,7 @@ function PublicCampaignPage() {
           offer: selectedOffer.id,
           ratePlan: selectedOffer.ratePlanId,
           session: sessionKey,
+          campaignSession: sessionKey,
           utmSource: tracking.source,
           utmMedium: tracking.medium,
           utmCampaign: tracking.utmCampaign,
