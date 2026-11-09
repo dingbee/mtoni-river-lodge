@@ -2,8 +2,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-// First controlled Public Booking Network demo. Keep the UAT property allowlist
-// explicit until StayNas has a property-level publication/visibility setting.
+// Preserve the original Nolmark UAT demonstration while allowing other properties
+// only through an explicitly published permanent booking page or published campaign.
 const PUBLIC_DEMO_PROPERTY_SLUGS = new Set(["nolmark-cdma-staynas"]);
 
 async function resolvePublicDemoProperty(propertySlug: string, campaignSlug?: string) {
@@ -40,7 +40,7 @@ const campaignSlugSchema = z.string().min(2).max(80).regex(/^[a-z0-9]+(?:-[a-z0-
 const campaignContextSchema = z.object({
   campaignSlug: campaignSlugSchema.optional(),
   offerId: z.string().uuid().optional(),
-  sessionKey: z.string().min(16).max(200).optional(),
+  sessionKey: z.string().min(16).max(160).optional(),
 });
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
