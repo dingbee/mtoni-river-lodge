@@ -1,0 +1,119 @@
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { resolveVerifiedFounderActor } from "./subscription.functions";
+
+type Row = Record<string, unknown>;
+type MoneyByCurrency = { TZS: number; USD: number };
+const emptyMoney = (): MoneyByCurrency => ({ TZS: 0, USD: 0 });
+const numeric = (value: unknown) => { const result = Number(value ?? 0); return Number.isFinite(result) ? result : 0; };
+const currencyOf = (value: unknown): "TZS" | "USD" | null => value === "TZS" || value === "USD" ? value : null;
+const addMoney = (target: MoneyByCurrency, currency: unknown, amount: unknown) => { const key = currencyOf(currency); if (key) target[key] += numeric(amount); };
+const rows = (value: unknown): Row[] => Array.isArray(value) ? value as Row[] : [];
+
+export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await resolveVerifiedFounderActor(context as { supabase: unknown; userId: string });
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin = supabaseAdmin as any;
+    const [organisationsResult, accountsResult, subscriptionsResult, propertiesResult, invoicesResult, paymentsResult, assignmentsResult, eventsResult, financialEventsResult] = await Promise.all([
+      admin.from("staynas_organisations").select("id,slug,name,status,created_at").order("created_at", { ascending: false }),
+      admin.from("commercial_accounts").select("id,organisation_id,status,created_at,updated_at"),
+      admin.from("commercial_subscriptions").select("id,account_id,plan_code,plan_version,currency,billing_term,status,property_count,addon_codes,trial_started_at,trial_ends_at,current_period_starts_at,current_period_ends_at,cancel_at_period_end,accepted_price_snapshot,quote_required,created_at"),
+      admin.from("staynas_properties").select("id,organisation_id,name,status,created_at"),
+      admin.from("commercial_invoice_receivables").select("id,organisation_id,account_id,subscription_id,invoice_number,currency,status,issued_at,due_at,total_minor,amount_paid_minor,outstanding_minor,is_overdue"),
+      admin.from("commercial_payment_transactions").select("id,organisation_id,invoice_id,provider,provider_transaction_ref,amount_minor,currency,payment_method,status,confirmed_at,created_at").order("created_at", { ascending: false }),
+      admin.from("commercial_entitlement_assignments").select("id,organisation_id,feature_code,status,effective_from,effective_to"),
+      admin.from("commercial_audit_events").select("id,actor_user_id,actor_role,action,resource_type,resource_ref,outcome,reason_code,occurred_at,metadata").order("occurred_at", { ascending: false }).limit(30),
+      admin.from("commercial_financial_audit_events").select("id,actor_user_id,actor_role,action,resource_type,resource_ref,outcome,reason_code,occurred_at,metadata").order("occurred_at", { ascending: false }).limit(30),
+    ]);
+    const errors = [organisationsResult, accountsResult, subscriptionsResult, propertiesResult, invoicesResult, paymentsResult, assignmentsResult, eventsResult, financialEventsResult].filter((result) => result.error);
+    if (errors.length) throw new Error("Founder commercial workspace data could not be loaded from authoritative records.");
+    const organisations = rows(organisationsResult.data);
+    const accounts = rows(accountsResult.data);
+    const subscriptions = rows(subscriptionsResult.data);
+    const properties = rows(propertiesResult.data);
+    const invoices = rows(invoicesResult.data);
+    const payments = rows(paymentsResult.data);
+    const assignments = rows(assignmentsResult.data);
+    const now = Date.now();
+    const soon = now + 30 * 24 * 60 * 60 * 1000;
+    const accountByOrg = new Map(accounts.map((item) => [String(item.organisation_id), item]));
+    const subscriptionsByAccount = new Map<string, Row[]>();
+    for (const subscription of subscriptions) {
+      const key = String(subscription.account_id);
+      subscriptionsByAccount.set(key, [...(subscriptionsByAccount.get(key) ?? []), subscription]);
+    }
+    const tenantRows = organisations.map((organisation) => {
+      const account = accountByOrg.get(String(organisation.id));
+      const tenantSubscriptions = account ? subscriptionsByAccount.get(String(account.id)) ?? [] : [];
+      const latestSubscription = [...tenantSubscriptions].sort((a, b) => Date.parse(String(b.created_at ?? "")) - Date.parse(String(a.created_at ?? "")))[0] ?? null;
+      const tenantInvoices = invoices.filter((invoice) => invoice.organisation_id === organisation.id);
+      const tenantPayments = payments.filter((payment) => payment.organisation_id === organisation.id);
+      const tenantProperties = properties.filter((property) => property.organisation_id === organisation.id);
+      const tenantAssignments = assignments.filter((assignment) => assignment.organisation_id === organisation.id && assignment.status === "active");
+      const outstandingByCurrency = emptyMoney();
+      for (const invoice of tenantInvoices) addMoney(outstandingByCurrency, invoice.currency, invoice.outstanding_minor);
+      const lastSuccessfulPayment = tenantPayments.find((payment) => ["successful", "partially_reversed"].includes(String(payment.status)) && currencyOf(payment.currency) !== null) ?? null;
+      const overdue = tenantInvoices.some((invoice) => invoice.is_overdue === true);
+      const renewalAt = latestSubscription?.current_period_ends_at ? Date.parse(String(latestSubscription.current_period_ends_at)) : NaN;
+      const commercialHealth = overdue ? "attention_required" : !latestSubscription ? "not_provisioned" : Number.isFinite(renewalAt) && renewalAt <= soon ? "renewal_approaching" : String(latestSubscription.status) === "active" ? "healthy" : "review";
+      return {
+        id: String(organisation.id), slug: String(organisation.slug ?? ""), name: String(organisation.name ?? "Unnamed organisation"),
+        status: String(organisation.status ?? "unknown"), registeredAt: organisation.created_at ?? null,
+        accountId: account ? String(account.id) : null, accountStatus: account ? String(account.status) : "not_provisioned",
+        propertyCount: tenantProperties.length, subscriptionCount: tenantSubscriptions.length,
+        subscription: latestSubscription ? {
+          id: String(latestSubscription.id), planCode: String(latestSubscription.plan_code), planVersion: numeric(latestSubscription.plan_version),
+          status: String(latestSubscription.status), currency: currencyOf(latestSubscription.currency), billingTerm: String(latestSubscription.billing_term ?? ""),
+          propertyAllowance: numeric(latestSubscription.property_count), trialEndsAt: latestSubscription.trial_ends_at ?? null,
+          renewalAt: latestSubscription.current_period_ends_at ?? null, quoteRequired: latestSubscription.quote_required === true,
+        } : null,
+        entitlementCount: tenantAssignments.length, outstandingByCurrency,
+        overdueInvoiceCount: tenantInvoices.filter((invoice) => invoice.is_overdue === true).length,
+        lastPayment: lastSuccessfulPayment ? {
+          amountMinor: numeric(lastSuccessfulPayment.amount_minor), currency: currencyOf(lastSuccessfulPayment.currency) as "TZS" | "USD",
+          confirmedAt: lastSuccessfulPayment.confirmed_at ?? null, reference: lastSuccessfulPayment.provider_transaction_ref ?? null,
+        } : null,
+        commercialHealth,
+      };
+    });
+    const invoicedByCurrency = emptyMoney();
+    const collectedByCurrency = emptyMoney();
+    const outstandingByCurrency = emptyMoney();
+    for (const invoice of invoices) {
+      addMoney(invoicedByCurrency, invoice.currency, invoice.total_minor);
+      addMoney(collectedByCurrency, invoice.currency, invoice.amount_paid_minor);
+      addMoney(outstandingByCurrency, invoice.currency, invoice.outstanding_minor);
+    }
+    const recurringByCurrency = { TZS: { mrrMinor: 0, arrMinor: 0 }, USD: { mrrMinor: 0, arrMinor: 0 } };
+    for (const subscription of subscriptions) {
+      if (subscription.status !== "active") continue;
+      const currency = currencyOf(subscription.currency);
+      if (!currency) continue;
+      const snapshot = subscription.accepted_price_snapshot as Record<string, unknown> | null;
+      const total = numeric(snapshot?.totalAmountMinor);
+      if (total <= 0 || subscription.quote_required === true) continue;
+      if (subscription.billing_term === "monthly") { recurringByCurrency[currency].mrrMinor += total; recurringByCurrency[currency].arrMinor += total * 12; }
+      else if (subscription.billing_term === "annual") { recurringByCurrency[currency].mrrMinor += total / 12; recurringByCurrency[currency].arrMinor += total; }
+    }
+    const recentEvents = [
+      ...rows(eventsResult.data).map((event) => ({ ...event, eventSource: "commercial" })),
+      ...rows(financialEventsResult.data).map((event) => ({ ...event, eventSource: "financial" })),
+    ].sort((a, b) => Date.parse(String(b.occurred_at ?? "")) - Date.parse(String(a.occurred_at ?? ""))).slice(0, 20);
+    return {
+      generatedAt: new Date().toISOString(),
+      metrics: {
+        totalTenants: organisations.length, activeTenants: organisations.filter((item) => item.status === "active").length,
+        trialTenants: tenantRows.filter((item) => item.subscription?.status === "trialing").length,
+        paidSubscriptions: subscriptions.filter((item) => item.status === "active").length,
+        suspendedTenants: tenantRows.filter((item) => item.subscription?.status === "suspended").length,
+        expiredSubscriptions: subscriptions.filter((item) => item.status === "expired").length,
+        renewalsApproaching: subscriptions.filter((item) => { const d = Date.parse(String(item.current_period_ends_at ?? "")); return Number.isFinite(d) && d >= now && d <= soon; }).length,
+        overdueInvoices: invoices.filter((item) => item.is_overdue === true).length,
+        totalInvoicedByCurrency: invoicedByCurrency, collectedByCurrency, outstandingByCurrency, mrrArrByCurrency: recurringByCurrency,
+      },
+      tenants: tenantRows, recentEvents,
+    };
+  });
