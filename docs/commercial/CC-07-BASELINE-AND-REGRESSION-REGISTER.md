@@ -19,7 +19,7 @@ Status: IN PROGRESS — UAT/review only; no production promotion.
 - `commercial_reconciliation_items` accepts `status_mismatch`; lifecycle transitions now serialize with run closure and support review, evidence, escalation, resolution, reopening and idempotent retries.
 - Append-only `commercial_reconciliation_item_events` records opening, review, evidence, resolution, reopening and escalation events.
 - Service-role RPCs atomically create an exception with its opening event, resolve it with its resolution event, create provider-period runs idempotently, and close runs under a row lock.
-- Provider statement reconciliation rejects mixed TZS/USD rows, nets allocation reversals before comparison, and imports a provider statement once per run in one atomic, idempotent transaction.
+- Provider statement reconciliation records mixed TZS/USD rows as currency-mismatch exceptions, nets allocation reversals before comparison, compares 20-digit NUMERIC(20,0) amounts with BigInt, and imports each statement once per run in one atomic, fingerprinted transaction.
 - Receivables aging view exposes current, 1–30, 31–60, 61–90 and >90-day buckets; founder reporting projections cast every NUMERIC(20,0) amount to text before JavaScript aggregation.
 - Revenue fact views separate gross/net invoicing, one-time charges, credit notes, debit notes, write-offs, allocated net collections, payment reversals and unallocated collections.
 - Founder reporting query uses stable bounded 500-row pagination and BigInt minor-unit arithmetic; the founder reporting page presents currency-separated MRR/ARR, ARPT, new/expansion/contraction/churned/net-new MRR, invoiced, collected, outstanding, one-time, credits, debits, write-offs, reversals, unallocated and aging totals.
@@ -39,7 +39,7 @@ Status: IN PROGRESS — UAT/review only; no production promotion.
 | 7 | Unallocated payment detection | Existing CC-04 ledger tests; precision-safe founder projection and unallocated collection view added |
 | 8 | Duplicate provider callback detection | Existing CC-04 idempotency tests |
 | 9 | Provider/internal amount mismatch | Existing reconciliation engine tests |
-| 10 | Currency mismatch detection | Existing reconciliation engine tests; CC-07 mixed-currency statement guard added |
+| 10 | Currency mismatch detection | Existing reconciliation engine tests; CC-07 mixed-currency exception persistence fixture added |
 | 11 | Subscription-to-invoice reconciliation | Missing current-period invoice, invoice currency and billing-term consistency view added; fixture assertion added for missing invoice |
 | 12 | MRR calculation | Exact text-backed recurring-value view; paid replacement fixture verifies current MRR |
 | 13 | ARR calculation | Exact text-backed recurring-value view; monthly ×12 and annual-term fixture assertions included |
