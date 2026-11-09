@@ -109,6 +109,20 @@ BEGIN
        NOT LIKE '%upper(v_plan.currency)%' THEN
     RAISE EXCEPTION 'Published pricing must use the selected rate-plan transaction currency and legacy prices must remain non-recursive';
   END IF;
+  IF pg_get_functiondef('public.validate_staynas_rate_plan_daily_rates()'::regprocedure)
+       NOT LIKE '%upper(NEW.currency)%'
+     OR pg_get_functiondef('public.validate_staynas_rate_plan_daily_rates()'::regprocedure)
+       LIKE '%Daily pricing requires an explicit property currency%'
+     OR pg_get_functiondef('public.validate_staynas_rate_plan_seasonal_rates()'::regprocedure)
+       NOT LIKE '%upper(NEW.currency)%'
+     OR pg_get_functiondef('public.validate_staynas_rate_plan_seasonal_rates()'::regprocedure)
+       LIKE '%Seasonal pricing requires an explicit property currency%'
+     OR pg_get_functiondef('public.validate_staynas_rate_plan_base_and_occupancy_data()'::regprocedure)
+       NOT LIKE '%SELECT upper(NEW.currency)%'
+     OR pg_get_functiondef('public.validate_staynas_rate_plan_base_and_occupancy_data()'::regprocedure)
+       LIKE '%Base rate and rate-plan currency must match the property currency%' THEN
+    RAISE EXCEPTION 'SPE daily, seasonal, base and occupancy rate validation must use rate-plan transaction currency';
+  END IF;
   IF pg_get_functiondef('public.validate_staynas_rate_override()'::regprocedure)
        NOT LIKE '%FROM public.staynas_rate_plans%'
      OR pg_get_functiondef('public.validate_staynas_rate_override()'::regprocedure)
