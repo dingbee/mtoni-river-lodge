@@ -1,5 +1,4 @@
 import type { ConciergeAvailabilityRoom, ConciergeIntentSignal, ConciergeBookingPlan, ConciergeExperienceCatalogItem } from "./concierge.types";
-import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
 
 function isValidDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -43,6 +42,7 @@ export function mapAvailabilityForParty(
 }
 
 export async function searchAvailability(input: {
+  propertyId: string;
   check_in: string;
   check_out: string;
   adults?: number;
@@ -55,7 +55,7 @@ export async function searchAvailability(input: {
   if (!Number.isInteger(adults) || !Number.isInteger(children) || adults < 1 || children < 0 || adults + children > 20) return [];
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+    if (!input.propertyId) throw new Error("Property context is required.");
     const { data, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced", {
       _check_in: input.check_in,
       _check_out: input.check_out,
