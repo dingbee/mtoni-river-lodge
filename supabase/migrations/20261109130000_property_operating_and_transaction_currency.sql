@@ -116,7 +116,8 @@ $new$;
 
   IF v_updated=v_definition
      OR position('Room currency % does not match property currency %' in v_updated)>0
-     OR position('upper(v_room.currency)' in v_updated)=0 THEN
+     OR position('upper(v_room.currency)' in v_updated)=0
+     OR position('Room transaction currency must be explicitly configured' in v_updated)=0 THEN
     RAISE EXCEPTION 'Legacy pricing currency contract did not update completely';
   END IF;
   EXECUTE v_updated;
