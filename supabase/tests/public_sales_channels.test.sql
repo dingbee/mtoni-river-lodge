@@ -48,6 +48,15 @@ BEGIN
      OR pg_get_functiondef(v_booking_signature) NOT LIKE '%FOR UPDATE%' THEN
     RAISE EXCEPTION 'Public reservation wrapper does not bind the accepted quote to its channel';
   END IF;
+  IF (SELECT count(*) FROM public.staynas_properties
+      WHERE slug IN ('mtoni-river-lodge','nolmark-cdma-staynas') AND currency='TZS')<>2 THEN
+    RAISE EXCEPTION 'Existing Tanzanian properties must use TZS operating currency';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.rooms WHERE currency<>'USD')
+     OR EXISTS (SELECT 1 FROM public.bookings WHERE currency<>'USD')
+     OR EXISTS (SELECT 1 FROM public.extras WHERE currency<>'USD') THEN
+    RAISE EXCEPTION 'Existing transaction currency snapshots must remain unchanged';
+  END IF;
   IF (SELECT is_nullable FROM information_schema.columns WHERE table_schema='public' AND table_name='staynas_properties' AND column_name='currency')<>'NO' THEN
     RAISE EXCEPTION 'Property operating currency must be required';
   END IF;
