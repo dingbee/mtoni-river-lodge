@@ -128,7 +128,7 @@ function RateOverrides() {
             <label className="text-sm">Room type
               <select className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2" value={roomTypeId} onChange={e => setRoomTypeId(e.target.value)}>
                 <option value="">Choose room type</option>
-                {roomTypes.map((item: {id:string;name:string}) => <option key={item.id} value={item.id}>{item.name} · {item.currency}</option>)}
+                {roomTypes.map((item: {id:string;name:string}) => <option key={item.id} value={item.id}>{item.name}</option>)}
               </select>
             </label>
           )}
@@ -136,7 +136,7 @@ function RateOverrides() {
             <label className="text-sm">Room
               <select className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2" value={roomId} onChange={e => setRoomId(e.target.value)}>
                 <option value="">Choose room</option>
-                {rooms.map((item: {id:string;name:string;currency:string}) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                {rooms.map((item: {id:string;name:string;currency:string}) => <option key={item.id} value={item.id}>{item.name} · {item.currency}</option>)}
               </select>
             </label>
           )}
