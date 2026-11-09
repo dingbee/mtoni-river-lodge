@@ -3,6 +3,7 @@
 BEGIN;
 
 ALTER TABLE public.staynas_properties
+  ALTER COLUMN currency DROP DEFAULT,
   ALTER COLUMN currency SET NOT NULL;
 ALTER TABLE public.rooms
   ALTER COLUMN currency DROP DEFAULT;
@@ -15,7 +16,7 @@ ALTER TABLE public.extras
 -- Preserve their existing USD room/rate-plan transaction prices and history.
 UPDATE public.staynas_properties
 SET currency = 'TZS'
-WHERE slug IN ('mtoni-river-lodge','nolmark-cdma-staynas')
+WHERE slug IN ('mtoni-river-lodge','nolmark-cdma-staynas','staynas-demo-property')
   AND upper(currency) = 'USD';
 
 DO $currency_resolver$
