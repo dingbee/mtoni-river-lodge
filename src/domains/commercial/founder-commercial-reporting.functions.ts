@@ -100,13 +100,13 @@ export const getFounderCommercialReporting = createServerFn({ method: "GET" })
       query.gte("period_month", data.periodStart).lt("period_month", data.periodEnd),
     ));
     const [invoiceFacts, collectionFacts, unallocatedFacts, receivables, accountResult] = await Promise.all([
-      readAll(admin, "commercial_revenue_invoice_facts", "organisation_id,account_id,invoice_id,period_month,currency,net_invoiced_minor,outstanding_minor,credit_balance_minor", periodFilter),
-      readAll(admin, "commercial_revenue_collection_facts", "organisation_id,account_id,invoice_id,payment_id,period_month,currency,net_collected_minor", periodFilter),
-      readAll(admin, "commercial_revenue_unallocated_facts", "organisation_id,account_id,period_month,currency,unallocated_minor", periodFilter),
+      readAll(admin, "commercial_revenue_invoice_facts", "organisation_id,account_id,invoice_id,period_month,currency,net_invoiced_minor,outstanding_minor,credit_balance_minor", (query) => periodFilter(query).order("organisation_id").order("period_month").order("invoice_id")),
+      readAll(admin, "commercial_revenue_collection_facts", "organisation_id,account_id,invoice_id,payment_id,period_month,currency,net_collected_minor", (query) => periodFilter(query).order("organisation_id").order("period_month").order("payment_id")),
+      readAll(admin, "commercial_revenue_unallocated_facts", "organisation_id,account_id,period_month,currency,unallocated_minor", (query) => periodFilter(query).order("organisation_id").order("period_month").order("account_id")),
       readAll(admin, "commercial_receivables_aging", "invoice_id,organisation_id,currency,outstanding_minor,aging_bucket,status", (query) => {
         let scoped = orgFilter(query).gt("outstanding_minor", 0);
         if (data.currency) scoped = scoped.eq("currency", data.currency);
-        return scoped;
+        return scoped.order("organisation_id").order("invoice_id");
       }),
       admin.from("commercial_accounts").select("id,organisation_id").in("organisation_id", organisationIds),
     ]);
@@ -114,7 +114,7 @@ export const getFounderCommercialReporting = createServerFn({ method: "GET" })
     const accountIds = rows(accountResult.data).map((item) => String(item.id));
     const subscriptionResult = accountIds.length
       ? await admin.from("commercial_subscriptions")
-        .select("id,account_id,currency,billing_term,status,quote_required,accepted_price_snapshot")
+        .select("id,account_id,currency,billing_term,status,quote_required,accepted_price_snapshot,current_period_ends_at")
         .in("account_id", accountIds)
         .eq("status", "active")
       : { data: [], error: null };
@@ -123,6 +123,7 @@ export const getFounderCommercialReporting = createServerFn({ method: "GET" })
     const invoiced = emptyMoney();
     const collected = emptyMoney();
     const unallocated = emptyMoney();
+    const payingAccounts = { TZS: new Set<string>(), USD: new Set<string>() };
     const aging = {
       current: emptyMoney(), days1To30: emptyMoney(), days31To60: emptyMoney(),
       days61To90: emptyMoney(), over90: emptyMoney(),
@@ -133,7 +134,10 @@ export const getFounderCommercialReporting = createServerFn({ method: "GET" })
     }
     for (const item of collectionFacts) {
       const currency = currencyOf(item.currency);
-      if (currency) collected[currency] += asMinor(item.net_collected_minor);
+      if (currency) {
+        collected[currency] += asMinor(item.net_collected_minor);
+        if (asMinor(item.net_collected_minor) > 0n) payingAccounts[currency].add(String(item.account_id));
+      }
     }
     for (const item of unallocatedFacts) {
       const currency = currencyOf(item.currency);
@@ -157,10 +161,13 @@ export const getFounderCommercialReporting = createServerFn({ method: "GET" })
 
     const mrr = emptyMoney();
     const arr = emptyMoney();
+    const arpt = emptyMoney();
     const activeSubscriptions = rows(subscriptionResult.data);
+    const currentTime = Date.now();
     for (const subscription of activeSubscriptions) {
       const currency = currencyOf(subscription.currency);
-      if (!currency || subscription.quote_required === true) continue;
+      const periodEnd = Date.parse(String(subscription.current_period_ends_at ?? ""));
+      if (!currency || subscription.quote_required === true || !Number.isFinite(periodEnd) || periodEnd <= currentTime) continue;
       const snapshot = subscription.accepted_price_snapshot as Record<string, unknown> | null;
       const total = asMinor(snapshot?.totalAmountMinor ?? snapshot?.total);
       if (total <= 0n) continue;
@@ -171,6 +178,10 @@ export const getFounderCommercialReporting = createServerFn({ method: "GET" })
         mrr[currency] += (total + 6n) / 12n;
         arr[currency] += total;
       }
+    }
+
+    for (const currency of currencies) {
+      if (payingAccounts[currency].size > 0) arpt[currency] = collected[currency] / BigInt(payingAccounts[currency].size);
     }
 
     return {
@@ -185,6 +196,7 @@ export const getFounderCommercialReporting = createServerFn({ method: "GET" })
         unallocated: asMoney(unallocated),
         mrr: asMoney(mrr),
         arr: asMoney(arr),
+        arpt: asMoney(arpt),
       },
       receivablesAging: {
         current: asMoney(aging.current),
@@ -196,7 +208,10 @@ export const getFounderCommercialReporting = createServerFn({ method: "GET" })
       counts: {
         invoices: invoiceFacts.length,
         collections: collectionFacts.length,
-        activeSubscriptions: activeSubscriptions.length,
+        activeSubscriptions: activeSubscriptions.filter((item) => {
+          const end = Date.parse(String(item.current_period_ends_at ?? ""));
+          return Number.isFinite(end) && end > currentTime && item.quote_required !== true;
+        }).length,
         overdueInvoices,
       },
     };
