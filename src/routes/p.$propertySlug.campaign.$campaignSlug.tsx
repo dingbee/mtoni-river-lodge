@@ -6,13 +6,22 @@ import { getPublicBookingCampaign, recordPublicBookingCampaignEvent } from "@/do
 
 export const Route = createFileRoute("/p/$propertySlug/campaign/$campaignSlug")({
   loader: ({ params }) => getPublicBookingCampaign({ data: params }),
-  head: ({ loaderData }) => ({
-    meta: [
-      { title: loaderData ? String((loaderData.content as any)?.seo?.title || loaderData.campaign.name) : "Campaign — StayNas" },
-      { name: "description", content: loaderData ? String((loaderData.content as any)?.seo?.description || (loaderData.content as any)?.description || "Explore this direct booking offer.") : "Explore a direct booking offer." },
+  head: ({ loaderData }) => {
+    const content = loaderData?.content as any;
+    const title = String(content?.seo?.title || loaderData?.campaign.name || "Campaign — StayNas");
+    const description = String(content?.seo?.description || content?.description || "Explore this direct booking offer.");
+    const socialTitle = String(content?.social?.title || title);
+    const socialDescription = String(content?.social?.description || description);
+    const socialImage = String(content?.social?.imageUrl || content?.seo?.imageUrl || loaderData?.branding?.heroImageUrl || "");
+    return { meta: [
+      { title },
+      { name: "description", content: description },
+      { property: "og:title", content: socialTitle },
+      { property: "og:description", content: socialDescription },
+      ...(socialImage ? [{ property: "og:image", content: socialImage }] : []),
       { name: "robots", content: "index,follow" },
-    ],
-  }),
+    ] };
+  },
   component: PublicCampaignPage,
 });
 
@@ -105,6 +114,7 @@ function PublicCampaignPage() {
     highlights?: string[]; inclusions?: string[]; terms?: string[];
     faqs?: Array<{ question: string; answer: string }>;
     ctaLabel?: string; seo?: { imageUrl?: string };
+    contact?: { email?: string; phone?: string; whatsapp?: string };
   };
   const style = {
     "--campaign-primary": data.branding.primaryColor,
@@ -157,7 +167,14 @@ function PublicCampaignPage() {
           </aside>
         </div>
       </section>
-      <footer className="border-t border-black/5 px-5 py-6 text-center text-xs text-muted-foreground">Direct reservations powered by StayNas · {data.property.name}</footer>
+      <footer className="border-t border-black/5 px-5 py-6 text-center text-xs text-muted-foreground">
+        <div>Direct reservations powered by StayNas · {data.property.name}</div>
+        <div className="mt-2 flex flex-wrap justify-center gap-4">
+          {content.contact?.email && <a href={`mailto:${content.contact.email}`} className="underline">{content.contact.email}</a>}
+          {content.contact?.phone && <a href={`tel:${content.contact.phone}`} className="underline">{content.contact.phone}</a>}
+          {content.contact?.whatsapp && <a href={`https://wa.me/${content.contact.whatsapp.replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer" className="underline">WhatsApp</a>}
+        </div>
+      </footer>
     </main>
   );
 }
