@@ -46,19 +46,20 @@ function formatMinor(value: string, currency: Currency) {
   return `${negative ? "-" : ""}${formatted}.${fraction}`;
 }
 
-function MoneyPair({ value }: { value: Money }) {
-  return <div className="grid grid-cols-2 gap-3">
-    {(["TZS", "USD"] as Currency[]).map((currency) => <div key={currency}>
+function MoneyPair({ value, scope = "all" }: { value: Money; scope?: string }) {
+  const currencies = scope === "TZS" ? ["TZS"] as Currency[] : scope === "USD" ? ["USD"] as Currency[] : ["TZS", "USD"] as Currency[];
+  return <div className={currencies.length === 1 ? "grid grid-cols-1 gap-3" : "grid grid-cols-2 gap-3"}>
+    {currencies.map((currency) => <div key={currency}>
       <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{currency}</p>
       <p className="font-semibold tabular-nums">{formatMinor(value[currency], currency)}</p>
     </div>)}
   </div>;
 }
 
-function ReportCard({ title, value, description }: { title: string; value: Money; description: string }) {
+function ReportCard({ title, value, description, scope = "all" }: { title: string; value: Money; description: string; scope?: string }) {
   return <article className="rounded-xl border bg-card p-4">
     <h2 className="text-sm text-muted-foreground">{title}</h2>
-    <div className="mt-3"><MoneyPair value={value} /></div>
+    <div className="mt-3"><MoneyPair value={value} scope={scope} /></div>
     <p className="mt-2 text-xs text-muted-foreground">{description}</p>
   </article>;
 }
@@ -191,24 +192,24 @@ function FounderCommercialReporting() {
       <section className="space-y-3">
         <h2 className="font-semibold">Financial performance</h2>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <ReportCard title="Gross invoiced" value={report.totals.grossInvoiced} description="Issued invoice totals before posted adjustments" />
-          <ReportCard title="Net invoiced" value={report.totals.invoiced} description="Issued invoices net of posted credits, debit notes and write-offs" />
-          <ReportCard title="One-time charges" value={report.totals.oneTime} description="Invoice lines explicitly classified as one-time adjustments or charges" />
-          <ReportCard title="Credits" value={report.totals.credits} description="Posted credit notes; write-offs are shown separately" />
-          <ReportCard title="Debit notes" value={report.totals.debits} description="Posted debit adjustments" />
-          <ReportCard title="Write-offs" value={report.totals.writeOffs} description="Posted receivable write-offs" />
-          <ReportCard title="Net collected" value={report.totals.collected} description="Allocated collections net of allocation reversals" />
-          <ReportCard title="Payment reversals" value={report.totals.reversed} description="Verified provider/payment reversals, shown separately from allocated net collections" />
-          <ReportCard title="Outstanding receivables" value={report.totals.outstanding} description="Open balances across all customer invoices" />
-          <ReportCard title="Unallocated collections" value={report.totals.unallocated} description="Cash received but not allocated; excluded from collected revenue" />
-          <ReportCard title="Current monthly recurring revenue" value={report.totals.mrr} description="Active paid subscriptions from accepted price snapshots" />
-          <ReportCard title="Current annual recurring revenue" value={report.totals.arr} description="Annualized recurring contract value from accepted snapshots" />
-          <ReportCard title="Current ARPT" value={report.totals.arpt} description="Current MRR divided by active paid commercial accounts, separately by currency" />
-          <ReportCard title="New MRR" value={report.totals.newMrr} description="Paid subscription activations; trials and quote-only contracts are excluded" />
-          <ReportCard title="Expansion MRR" value={report.totals.expansionMrr} description="Positive recurring value changes on accepted replacement contracts" />
-          <ReportCard title="Contraction MRR" value={report.totals.contractionMrr} description="Absolute value of negative recurring contract changes" />
-          <ReportCard title="Churned MRR" value={report.totals.churnedMrr} description="Paid recurring value lost on cancellation or expiry, excluding replaced contracts" />
-          <ReportCard title="Net-new MRR" value={report.totals.netNewMrr} description="New + expansion − contraction − churned MRR" />
+          <ReportCard title="Gross invoiced" value={report.totals.grossInvoiced} description="Issued invoice totals before posted adjustments" scope={report.currencyScope} />
+          <ReportCard title="Net invoiced" value={report.totals.invoiced} description="Issued invoices net of posted credits, debit notes and write-offs" scope={report.currencyScope} />
+          <ReportCard title="One-time charges" value={report.totals.oneTime} description="Invoice lines explicitly classified as one-time adjustments or charges" scope={report.currencyScope} />
+          <ReportCard title="Credits" value={report.totals.credits} description="Posted credit notes; write-offs are shown separately" scope={report.currencyScope} />
+          <ReportCard title="Debit notes" value={report.totals.debits} description="Posted debit adjustments" scope={report.currencyScope} />
+          <ReportCard title="Write-offs" value={report.totals.writeOffs} description="Posted receivable write-offs" scope={report.currencyScope} />
+          <ReportCard title="Net collected" value={report.totals.collected} description="Allocated collections net of allocation reversals" scope={report.currencyScope} />
+          <ReportCard title="Payment reversals" value={report.totals.reversed} description="Verified provider/payment reversals, shown separately from allocated net collections" scope={report.currencyScope} />
+          <ReportCard title="Outstanding receivables" value={report.totals.outstanding} description="Open balances across all customer invoices" scope={report.currencyScope} />
+          <ReportCard title="Unallocated collections" value={report.totals.unallocated} description="Cash received but not allocated; excluded from collected revenue" scope={report.currencyScope} />
+          <ReportCard title="Current monthly recurring revenue" value={report.totals.mrr} description="Active paid subscriptions from accepted price snapshots" scope={report.currencyScope} />
+          <ReportCard title="Current annual recurring revenue" value={report.totals.arr} description="Annualized recurring contract value from accepted snapshots" scope={report.currencyScope} />
+          <ReportCard title="Current ARPT" value={report.totals.arpt} description="Current MRR divided by active paid commercial accounts, separately by currency" scope={report.currencyScope} />
+          <ReportCard title="New MRR" value={report.totals.newMrr} description="Paid subscription activations; trials and quote-only contracts are excluded" scope={report.currencyScope} />
+          <ReportCard title="Expansion MRR" value={report.totals.expansionMrr} description="Positive recurring value changes on accepted replacement contracts" scope={report.currencyScope} />
+          <ReportCard title="Contraction MRR" value={report.totals.contractionMrr} description="Absolute value of negative recurring contract changes" scope={report.currencyScope} />
+          <ReportCard title="Churned MRR" value={report.totals.churnedMrr} description="Paid recurring value lost on cancellation or expiry, excluding replaced contracts" scope={report.currencyScope} />
+          <ReportCard title="Net-new MRR" value={report.totals.netNewMrr} description="New + expansion − contraction − churned MRR" scope={report.currencyScope} />
         </div>
       </section>
 
@@ -217,7 +218,7 @@ function FounderCommercialReporting() {
         <div className="overflow-hidden rounded-xl border">
           {aging.map(([label, value]) => <div key={label} className="grid grid-cols-[1fr_2fr] items-center gap-4 border-b p-4 last:border-0">
             <span className="text-sm font-medium">{label}</span>
-            <MoneyPair value={value} />
+            <MoneyPair value={value} scope={report.currencyScope} />
           </div>)}
         </div>
       </section>
