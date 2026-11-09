@@ -6,6 +6,14 @@ import {
   listFounderCommercialPolicyAudit,
   saveFounderCommercialPolicy,
 } from "@/domains/commercial/founder-policy.functions";
+import {
+  listFounderEntitlementGrantRules,
+  recordFounderEntitlementGrant,
+} from "@/domains/commercial/entitlement.functions";
+import {
+  COMMERCIAL_MODULE_CODES,
+  DIRECT_BOOKING_CAMPAIGN_STUDIO_ADDON_CODE,
+} from "@/domains/commercial/catalogue-contract";
 
 type PolicyType = "catalogue" | "pricing" | "composition" | "trial_policy";
 type PolicyRow = {
@@ -211,6 +219,8 @@ function FounderCommercialAdministration() {
         </div>
       </div>
 
+      <FounderEntitlementGrantPanel />
+
       <section className="rounded-xl border border-border bg-card p-4">
         <h2 className="font-semibold">Policy change audit</h2>
         <p className="mt-1 text-sm text-muted-foreground">Latest 100 founder policy configuration events.</p>
@@ -233,5 +243,150 @@ function FounderCommercialAdministration() {
         )}
       </section>
     </div>
+  );
+}
+
+
+type FounderGrantRow = {
+  id: string;
+  grant_type: string;
+  organisation_id: string | null;
+  addon_code: string | null;
+  feature_code: string;
+  effect: string;
+  effective_from: string;
+  effective_to: string | null;
+  reason: string;
+  created_at: string;
+};
+
+function FounderEntitlementGrantPanel() {
+  const listRulesFn = useServerFn(listFounderEntitlementGrantRules);
+  const createRuleFn = useServerFn(recordFounderEntitlementGrant);
+  const [rules, setRules] = useState<FounderGrantRow[]>([]);
+  const [featureCode, setFeatureCode] = useState<(typeof COMMERCIAL_MODULE_CODES)[number]>("direct_booking_pages");
+  const [effectiveFrom, setEffectiveFrom] = useState("");
+  const [effectiveTo, setEffectiveTo] = useState("");
+  const [reason, setReason] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const rows = await listRulesFn();
+      setRules(rows as FounderGrantRow[]);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Founder entitlement rules could not be loaded.");
+    } finally {
+      setLoading(false);
+    }
+  }, [listRulesFn]);
+
+  useEffect(() => { void refresh(); }, [refresh]);
+
+  const createGrant = async () => {
+    setSaving(true);
+    setError(null);
+    setNotice(null);
+    try {
+      if (!effectiveFrom || !reason.trim()) throw new Error("Effective start and reason are required.");
+      const from = new Date(effectiveFrom);
+      const to = effectiveTo ? new Date(effectiveTo) : null;
+      if (!Number.isFinite(from.getTime()) || (to && (!Number.isFinite(to.getTime()) || to <= from))) {
+        throw new Error("The effective date range is invalid.");
+      }
+      const result = await createRuleFn({
+        data: {
+          grantType: "addon_feature",
+          organisationId: null,
+          addonCode: DIRECT_BOOKING_CAMPAIGN_STUDIO_ADDON_CODE,
+          featureCode,
+          effect: "granted",
+          effectiveFrom: from.toISOString(),
+          effectiveTo: to?.toISOString() ?? null,
+          reason: reason.trim(),
+        },
+      });
+      setNotice(`Founder add-on feature grant recorded: ${featureCode} (${result.id}).`);
+      setReason("");
+      setEffectiveFrom("");
+      setEffectiveTo("");
+      await refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "The founder entitlement grant could not be recorded.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="rounded-xl border border-border bg-card p-4 space-y-4">
+      <header>
+        <h2 className="font-semibold">Direct Booking & Campaign Studio — feature grants</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Founder-only, append-only feature grants for the published {DIRECT_BOOKING_CAMPAIGN_STUDIO_ADDON_CODE} add-on. The add-on must already exist and be active in the published catalogue. Subscription assignment remains a separate commercial action.
+        </p>
+      </header>
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="space-y-1">
+          <label className="text-sm font-medium" htmlFor="cps02-feature-code">Capability</label>
+          <select id="cps02-feature-code" value={featureCode} onChange={(event) => setFeatureCode(event.target.value as (typeof COMMERCIAL_MODULE_CODES)[number])} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+            <option value="direct_booking_pages">Permanent booking pages</option>
+            <option value="campaign_studio">Campaign Studio</option>
+            <option value="campaign_analytics_advanced">Advanced campaign analytics</option>
+          </select>
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium" htmlFor="cps02-addon-code">Commercial add-on</label>
+          <input id="cps02-addon-code" readOnly value={DIRECT_BOOKING_CAMPAIGN_STUDIO_ADDON_CODE} className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm" />
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium" htmlFor="cps02-effective-from">Effective from</label>
+          <input id="cps02-effective-from" type="datetime-local" value={effectiveFrom} onChange={(event) => setEffectiveFrom(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium" htmlFor="cps02-effective-to">Effective to (optional)</label>
+          <input id="cps02-effective-to" type="datetime-local" value={effectiveTo} onChange={(event) => setEffectiveTo(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+        </div>
+        <div className="space-y-1 md:col-span-2">
+          <label className="text-sm font-medium" htmlFor="cps02-grant-reason">Reason / approval reference</label>
+          <input id="cps02-grant-reason" value={reason} onChange={(event) => setReason(event.target.value)} maxLength={500} placeholder="Record the commercial approval reference" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="button" disabled={saving || loading || !effectiveFrom || reason.trim().length < 3} onClick={() => void createGrant()} className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">
+          {saving ? "Recording…" : "Record founder grant"}
+        </button>
+        <button type="button" disabled={loading} onClick={() => void refresh()} className="rounded-md border border-border px-4 py-2 text-sm">Refresh grants</button>
+      </div>
+      {error && <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
+      {notice && <p role="status" className="rounded-md border border-border bg-muted/40 p-3 text-sm">{notice}</p>}
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[720px] text-left text-xs">
+          <thead><tr className="border-b border-border text-muted-foreground"><th className="p-2">Capability</th><th className="p-2">Add-on</th><th className="p-2">Effect</th><th className="p-2">Effective window</th><th className="p-2">Reason</th></tr></thead>
+          <tbody>
+            {rules.filter((row) => row.grant_type === "addon_feature" && row.addon_code === DIRECT_BOOKING_CAMPAIGN_STUDIO_ADDON_CODE).map((row) => (
+              <tr key={row.id} className="border-b border-border/70">
+                <td className="p-2 font-medium">{row.feature_code}</td>
+                <td className="p-2 font-mono">{row.addon_code}</td>
+                <td className="p-2">{row.effect}</td>
+                <td className="p-2">{new Date(row.effective_from).toLocaleString()} — {row.effective_to ? new Date(row.effective_to).toLocaleString() : "Open-ended"}</td>
+                <td className="p-2">{row.reason}</td>
+              </tr>
+            ))}
+            {!loading && rules.filter((row) => row.grant_type === "addon_feature" && row.addon_code === DIRECT_BOOKING_CAMPAIGN_STUDIO_ADDON_CODE).length === 0 && (
+              <tr><td colSpan={5} className="p-3 text-muted-foreground">No founder feature grants recorded for this add-on.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Grant rules are immutable. Expiry is defined when a rule is created; suspension and subscription assignment remain governed by existing CC commercial controls.
+      </p>
+    </section>
   );
 }
