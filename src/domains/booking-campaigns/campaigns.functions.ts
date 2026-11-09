@@ -7,6 +7,15 @@ import { assertCommercialEntitlement } from "@/domains/commercial/entitlement.fu
 const campaignSlug = z.string().trim().min(2).max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 const campaignName = z.string().trim().min(2).max(160);
 
+function campaignLocalDate(timezone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(new Date());
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+
 const contentSchema = z.object({
   headline: z.string().trim().min(2).max(160),
   subheadline: z.string().trim().max(240).default(""),
@@ -153,7 +162,7 @@ export const listMyCampaignStudioResources = createServerFn({ method: "GET" })
         Number(publication.publication_number),
       ));
     }
-    const today = new Date().toISOString().slice(0, 10);
+    const today = campaignLocalDate(property.timezone);
     const validPublications = (publications ?? []).filter((publication: any) =>
       activePlanIds.has(publication.rate_plan_id)
       && Number(publication.publication_number) === latestPublicationNumber.get(publication.rate_plan_id)
@@ -267,7 +276,7 @@ export const getPublicBookingCampaign = createServerFn({ method: "GET" })
     const sb = supabaseAdmin as any;
     const { data: property, error: propertyError } = await sb.from("staynas_properties")
       .select("id,slug,name,currency,timezone,status").eq("slug", data.propertySlug).maybeSingle();
-    if (propertyError || !property || property.status !== "active" || !/^[A-Z]{3}$/.test(property.currency ?? "")) {
+    if (propertyError || !property || property.status !== "active" || !/^[A-Z]{3}$/.test(property.currency ?? "") || !property.timezone) {
       throw new Error("This campaign property is unavailable or has no valid configured currency.");
     }
     const { data: campaign, error: campaignError } = await sb.from("booking_campaigns")
@@ -316,7 +325,7 @@ export const getPublicBookingCampaign = createServerFn({ method: "GET" })
     }
     const validOffers = offers.flatMap((offer: any) => {
       const publication: any = publicationById.get(offer.rate_plan_publication_id);
-      const today = new Date().toISOString().slice(0, 10);
+      const today = campaignLocalDate(property.timezone);
       if (!publication || !latestPublicationIds.has(publication.id)
         || publication.currency !== property.currency || !validPlans.has(publication.rate_plan_id)
         || (publication.effective_from && publication.effective_from > today)
