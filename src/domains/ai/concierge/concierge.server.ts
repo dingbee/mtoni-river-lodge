@@ -330,7 +330,7 @@ export async function handleConciergeChat(
     const dedupeKey = createHash("sha256")
       .update([propertyId, sessionId, message.trim().toLowerCase(), reason].join("|"))
       .digest("hex");
-    const { error: escalationError } = await supabaseAdmin.rpc("staynas_create_concierge_escalation", {
+    const { error: escalationError } = await (supabaseAdmin as any).rpc("staynas_create_concierge_escalation", {
       p_property_id: propertyId,
       p_session_id: sessionId,
       p_guest_id: existingGuestId ?? null,
@@ -357,7 +357,7 @@ export async function handleConciergeChat(
       await supabaseAdmin.from("ai_concierge_recommendations").insert(recommendations.map((r) => ({
         session_id: sessionId, message_id: assistantMessageId, recommendation_type: r.type,
         item_slug: r.slug, item_name: r.name, reasoning: r.reasoning.join(" "),
-        confidence: r.confidence, evidence: { from_price: r.from_price, currency: r.currency, ...(r.type === "experience" ? { unit: r.unit } : {}) } as any,
+        confidence: r.confidence, evidence: (r.type === "experience" ? { from_price: r.from_price, currency: r.currency, unit: r.unit } : {}) as any,
       })));
     }
   } catch {}
