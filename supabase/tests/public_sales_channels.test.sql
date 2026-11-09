@@ -49,6 +49,12 @@ BEGIN
     RAISE EXCEPTION 'Public reservation wrapper does not bind the accepted quote to its channel';
   END IF;
   IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes
+    WHERE schemaname='public' AND indexname='staynas_guest_payment_one_active_provider_uidx'
+  ) THEN
+    RAISE EXCEPTION 'A property may not activate multiple Pesapal accounts simultaneously';
+  END IF;
+  IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_schema='public' AND table_name='bookings' AND column_name='payment_provider_account_id'
   ) OR NOT EXISTS (
