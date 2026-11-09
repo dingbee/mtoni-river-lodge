@@ -69,7 +69,7 @@ async function resolveCampaignBookingContext(
     .eq("campaign_id", campaign.id).eq("property_id", propertyId).eq("active", true).maybeSingle();
   if (offerError || !offer) throw new Error("Selected campaign offer is no longer available.");
   const { data: publication, error: publicationError } = await sb.from("staynas_rate_plan_publications")
-    .select("id,rate_plan_id,publication_number,rate_plan_version,snapshot_hash,currency,effective_from,effective_to")
+    .select("id,rate_plan_id,publication_number,rate_plan_version,snapshot_hash,room_type_assignments,currency,effective_from,effective_to")
     .eq("id", offer.rate_plan_publication_id).eq("property_id", propertyId).maybeSingle();
   if (publicationError || !publication || publication.rate_plan_id !== input.ratePlanId
     || publication.currency !== property.currency
@@ -92,6 +92,15 @@ async function resolveCampaignBookingContext(
   const { data: selections, error: selectionsError } = await sb.from("campaign_room_selections")
     .select("room_id").eq("campaign_id", campaign.id).eq("property_id", propertyId);
   if (selectionsError || !selections?.length) throw new Error("Campaign has no active room selection.");
+  const selectedRoomIds = selections.map((item: any) => item.room_id);
+  const { data: selectedRooms, error: selectedRoomsError } = await sb.from("rooms")
+    .select("id,catalogue_type_id").eq("property_id", propertyId).eq("status", "active").in("id", selectedRoomIds);
+  const assignedRoomTypeIds = new Set<string>((publication.room_type_assignments ?? [])
+    .map((item: any) => item.room_type_id));
+  if (selectedRoomsError || !selectedRooms || selectedRooms.length !== selectedRoomIds.length
+    || selectedRooms.some((room: any) => !assignedRoomTypeIds.has(room.catalogue_type_id))) {
+    throw new Error("Campaign selected rooms do not match the published rate-plan room-type assignments.");
+  }
   return {
     campaignId: campaign.id,
     offerId: offer.id,
