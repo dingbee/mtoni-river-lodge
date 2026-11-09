@@ -143,7 +143,7 @@ describe("Concierge availability contract", () => {
   });
 
   it("returns a temporary failure rather than an empty inventory result on transport exceptions", async () => {
-    rpc.mockRejectedValue(new Error("private provider/database diagnostic"));
+    rpc.mockImplementationOnce(() => Promise.reject(new Error("private provider/database diagnostic")));
     const result = await searchAvailability({
       propertyId, check_in: "2026-12-01", check_out: "2026-12-03", adults: 2,
     });
