@@ -156,8 +156,10 @@ INSERT INTO public.staynas_properties(id,status) VALUES
 ('11111111-1111-4111-8111-111111111111','active'),
 ('22222222-2222-4222-8222-222222222222','active');
 INSERT INTO auth.users(id) VALUES ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+INSERT INTO auth.users(id) VALUES ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
 INSERT INTO public.staynas_property_members(property_id,user_id,role,status) VALUES
-('11111111-1111-4111-8111-111111111111','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','owner','active');
+('11111111-1111-4111-8111-111111111111','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','owner','active'),
+('22222222-2222-4222-8222-222222222222','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','owner','active');
 INSERT INTO public.ai_concierge_sessions(id,property_id) VALUES
 ('11111111-1111-4111-8111-111111111112','11111111-1111-4111-8111-111111111111'),
 ('22222222-2222-4222-8222-222222222223','22222222-2222-4222-8222-222222222222');
@@ -262,6 +264,16 @@ BEGIN
     RAISE EXCEPTION 'duplicate escalation must return the original record';
   END IF;
 
+  SELECT * INTO result FROM public.staynas_create_concierge_escalation(
+    '22222222-2222-4222-8222-222222222222',
+    '22222222-2222-4222-8222-222222222223',
+    NULL, 'web', 'human_requested', 'Property B guest requested assistance.', 0.9, 2,
+    repeat('f',64)
+  );
+  IF NOT result.created OR result.escalation_id IS NULL THEN
+    RAISE EXCEPTION 'property B service escalation must be created for isolation tests';
+  END IF;
+
   IF public.staynas_consume_public_rate_limit(repeat('b',64),1,60) IS NOT TRUE THEN
     RAISE EXCEPTION 'first request must pass the rate limit';
   END IF;
@@ -329,8 +341,9 @@ BEGIN
     'Guest issue resolved.'
   );
 
-  IF (SELECT count(*) FROM public.ai_escalations) <> 2 THEN
-    RAISE EXCEPTION 'active property staff can only read their own escalations';
+  IF (SELECT count(*) FROM public.ai_escalations) <> 2
+     OR EXISTS (SELECT 1 FROM public.ai_escalations WHERE property_id <> '11111111-1111-4111-8111-111111111111') THEN
+    RAISE EXCEPTION 'property A staff must only read property A escalations';
   END IF;
 
   BEGIN
@@ -346,6 +359,22 @@ BEGIN
   END;
 END
 $staff_tests$;
+RESET ROLE;
+RESET request.jwt.claim.role;
+RESET request.jwt.claim.sub;
+
+-- A second authenticated property must see only its own escalation records.
+SET request.jwt.claim.role = 'authenticated';
+SET request.jwt.claim.sub = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+SET ROLE authenticated;
+DO $property_b_staff_tests$
+BEGIN
+  IF (SELECT count(*) FROM public.ai_escalations) <> 1
+     OR EXISTS (SELECT 1 FROM public.ai_escalations WHERE property_id <> '22222222-2222-4222-8222-222222222222') THEN
+    RAISE EXCEPTION 'property B staff must only read property B escalations';
+  END IF;
+END
+$property_b_staff_tests$;
 RESET ROLE;
 RESET request.jwt.claim.role;
 RESET request.jwt.claim.sub;
@@ -392,13 +421,13 @@ $lead_tests$;
 
 DO $handoff_tests$
 BEGIN
-  IF (SELECT count(*) FROM public.ai_escalations) <> 2 THEN
-    RAISE EXCEPTION 'expected two unique escalation records';
+  IF (SELECT count(*) FROM public.ai_escalations) <> 3 THEN
+    RAISE EXCEPTION 'expected three unique escalation records across two properties';
   END IF;
-  IF (SELECT count(*) FROM public.ops_tasks) <> 2 THEN
+  IF (SELECT count(*) FROM public.ops_tasks) <> 3 THEN
     RAISE EXCEPTION 'each new escalation must create exactly one operations task';
   END IF;
-  IF (SELECT count(*) FROM public.notifications WHERE kind='concierge_escalation') <> 2 THEN
+  IF (SELECT count(*) FROM public.notifications WHERE kind='concierge_escalation') <> 3 THEN
     RAISE EXCEPTION 'staff notification must be property-assigned and deduplicated';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.ai_escalations WHERE ops_task_id IS NOT NULL AND property_id='11111111-1111-4111-8111-111111111111') THEN
