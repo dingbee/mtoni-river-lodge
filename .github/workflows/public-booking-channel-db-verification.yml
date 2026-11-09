@@ -74,6 +74,9 @@ jobs:
           CREATE TABLE public.staynas_guest_payment_provider_accounts (
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
             property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+            organisation_id uuid,
+            provider text,
+            status text NOT NULL DEFAULT 'inactive',
             UNIQUE(id,property_id)
           );
           CREATE TABLE public.payment_events (
