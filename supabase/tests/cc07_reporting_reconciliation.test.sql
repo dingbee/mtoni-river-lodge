@@ -487,14 +487,16 @@ BEGIN
     (v_tzs_new_sub,v_account,'essential',1,'TZS','monthly',1,ARRAY[]::text[],
       'cc07-tzs-current','{"currency":"TZS","planCode":"essential","planVersion":1,"billingTerm":"monthly","propertyCount":1,"priceCode":"tzs-current","quoteRequired":false,"total":200000,"lineItems":[{"kind":"plan_base","code":"essential","quantity":1,"unitAmountMinor":200000,"amountMinor":200000}],"addonCodes":[]}'::jsonb,
       false,'cc07-tzs-acceptance','active',now(),now(),now()+interval '30 days'),
-    (v_usd_sub,v_usd_account,'essential',1,'USD','monthly',1,ARRAY[]::text[],
-      'cc07-usd-current','{"currency":"USD","planCode":"essential","planVersion":1,"billingTerm":"monthly","propertyCount":1,"priceCode":"usd-current","quoteRequired":false,"total":250000,"lineItems":[{"kind":"plan_base","code":"essential","quantity":1,"unitAmountMinor":250000,"amountMinor":250000}],"addonCodes":[]}'::jsonb,
-      false,'cc07-usd-acceptance','active',now(),now(),now()+interval '30 days');
+    (v_usd_sub,v_usd_account,'essential',1,'USD','annual',1,ARRAY[]::text[],
+      'cc07-usd-current','{"currency":"USD","planCode":"essential","planVersion":1,"billingTerm":"annual","propertyCount":1,"priceCode":"usd-current","quoteRequired":false,"total":3000000,"lineItems":[{"kind":"plan_base","code":"essential","quantity":1,"unitAmountMinor":3000000,"amountMinor":3000000}],"addonCodes":[]}'::jsonb,
+      false,'cc07-usd-acceptance','active',now(),now(),now()+interval '365 days');
   IF (SELECT mrr_minor FROM public.commercial_subscription_recurring_value_facts WHERE subscription_id=v_tzs_new_sub)<>'200000'
+    OR (SELECT arr_minor FROM public.commercial_subscription_recurring_value_facts WHERE subscription_id=v_tzs_new_sub)<>'2400000'
     OR (SELECT currency FROM public.commercial_subscription_recurring_value_facts WHERE subscription_id=v_tzs_new_sub)<>'TZS'
     OR (SELECT mrr_minor FROM public.commercial_subscription_recurring_value_facts WHERE subscription_id=v_usd_sub)<>'250000'
+    OR (SELECT arr_minor FROM public.commercial_subscription_recurring_value_facts WHERE subscription_id=v_usd_sub)<>'3000000'
     OR (SELECT currency FROM public.commercial_subscription_recurring_value_facts WHERE subscription_id=v_usd_sub)<>'USD' THEN
-    RAISE EXCEPTION 'TZS/USD recurring revenue facts were mixed or converted';
+    RAISE EXCEPTION 'TZS/USD MRR/ARR facts were mixed, annualized incorrectly or converted';
   END IF;
 
   -- Trial activations must not appear in paid MRR or new-MRR movement facts.
