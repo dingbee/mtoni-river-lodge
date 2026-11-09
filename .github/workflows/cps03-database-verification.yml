@@ -146,6 +146,8 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109180000_cps03_attribution_idempotency.sql
       - name: Apply CPS-03 property-timezone schedule migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109190000_cps03_property_timezone_schedule.sql
+      - name: Apply CPS-03 published configuration immutability migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109200000_cps03_published_configuration_lock.sql
       - name: Verify tenant boundaries, composite references, publication, quota and public visibility
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/cps03_campaign_tenant_isolation.test.sql
 
