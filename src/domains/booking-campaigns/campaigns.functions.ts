@@ -306,7 +306,7 @@ export const getPublicBookingCampaign = createServerFn({ method: "GET" })
     const roomIds = selections.map((item: any) => item.room_id);
     const publicationIds = offers.map((item: any) => item.rate_plan_publication_id).filter(Boolean);
     const [{ data: rooms, error: roomsError }, { data: publications, error: publicationsError }] = await Promise.all([
-      sb.from("rooms").select("id,slug,name,short_description,bed_label,bathroom_label,amenities,max_occupancy,status").eq("property_id", property.id).eq("status", "active").in("id", roomIds),
+      sb.from("rooms").select("id,slug,name,short_description,bed_label,bathroom_label,amenities,max_occupancy,status,catalogue_type_id").eq("property_id", property.id).eq("status", "active").in("id", roomIds),
       sb.from("staynas_rate_plan_publications").select("id,rate_plan_id,publication_number,rate_plan_version,code,name,currency,effective_from,effective_to,snapshot_hash").eq("property_id", property.id).in("id", publicationIds),
     ]);
     if (roomsError || publicationsError) throw new Error("Campaign booking resources could not be verified.");
@@ -333,10 +333,12 @@ export const getPublicBookingCampaign = createServerFn({ method: "GET" })
     const validOffers = offers.flatMap((offer: any) => {
       const publication: any = publicationById.get(offer.rate_plan_publication_id);
       const today = campaignLocalDate(property.timezone);
+      const assignedRoomTypeIds = new Set<string>((publication?.room_type_assignments ?? []).map((item: any) => item.room_type_id));
       if (!publication || !latestPublicationIds.has(publication.id)
         || publication.currency !== property.currency || !validPlans.has(publication.rate_plan_id)
         || (publication.effective_from && publication.effective_from > today)
-        || (publication.effective_to && publication.effective_to < today)) return [];
+        || (publication.effective_to && publication.effective_to < today)
+        || (rooms ?? []).some((room: any) => !assignedRoomTypeIds.has(room.catalogue_type_id))) return [];
       return [{
         ...offer, ratePlanId: publication.rate_plan_id, publicationId: publication.id,
         publicationNumber: publication.publication_number, ratePlanVersion: publication.rate_plan_version,
