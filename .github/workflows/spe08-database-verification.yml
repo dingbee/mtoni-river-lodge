@@ -56,7 +56,8 @@ jobs:
           CREATE TYPE public.app_role AS ENUM ('admin','reservations','user','owner','manager','finance','reception','marketing');
           CREATE TABLE public.staynas_properties (
             id uuid PRIMARY KEY,
-            status text NOT NULL DEFAULT 'active'
+            status text NOT NULL DEFAULT 'active',
+            currency text NOT NULL
           );
           CREATE TABLE public.rooms (
             id uuid PRIMARY KEY,
