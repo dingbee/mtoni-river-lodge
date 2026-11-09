@@ -351,7 +351,7 @@ BEGIN
     INSERT INTO public.ai_concierge_leads(property_id,session_id,name,idempotency_key)
     VALUES ('11111111-1111-4111-8111-111111111111','11111111-1111-4111-8111-111111111112','No consent',repeat('f',64));
     RAISE EXCEPTION 'lead without consent evidence was accepted';
-  EXCEPTION WHEN check_violation THEN
+  EXCEPTION WHEN not_null_violation OR check_violation THEN
     NULL;
   END;
 
