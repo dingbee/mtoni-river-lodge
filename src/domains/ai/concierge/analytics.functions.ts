@@ -157,8 +157,7 @@ export const getConciergeJourney = createServerFn({ method: "POST" })
       .eq("property_id", propertyId)
       .maybeSingle();
     if (sessionError || !sessionRow) throw new Error("Session not found in the active property.");
-    const [session, messages, intents, lead, attributions, feedback, outcomes] = await Promise.all([
-      Promise.resolve({ data: sessionRow, error: null }),
+    const [messages, intents, lead, attributions, feedback, outcomes] = await Promise.all([
       s.from("ai_concierge_messages").select("id, role, content, confidence, escalated, created_at").eq("session_id", data.session_id).order("created_at", { ascending: true }),
       s.from("ai_concierge_intents").select("id, intent_level, confidence, keywords, created_at").eq("session_id", data.session_id).order("created_at", { ascending: true }),
       s.from("ai_concierge_leads").select("id, name, email, intent_level, created_at").eq("session_id", data.session_id).maybeSingle(),
@@ -166,10 +165,13 @@ export const getConciergeJourney = createServerFn({ method: "POST" })
       s.from("ai_concierge_feedback").select("id, rating, comment, created_at").eq("session_id", data.session_id).order("created_at", { ascending: true }),
       s.from("ai_concierge_outcomes").select("id, outcome_type, confidence, evidence, created_at").eq("session_id", data.session_id).order("created_at", { ascending: true }),
     ]);
+    for (const result of [messages, intents, lead, attributions, feedback, outcomes]) {
+      if (result.error) throw new Error(result.error.message);
+    }
 
     type Event = { at: string; type: string; label: string; detail?: string };
     const events: Event[] = [];
-    if (session.data) events.push({ at: session.data.created_at, type: "opened", label: "Opened Concierge" });
+    events.push({ at: sessionRow.created_at, type: "opened", label: "Opened Concierge" });
     for (const m of messages.data ?? []) {
       events.push({
         at: m.created_at,
@@ -190,7 +192,7 @@ export const getConciergeJourney = createServerFn({ method: "POST" })
     }
     events.sort((a, b) => a.at.localeCompare(b.at));
 
-    return { session: session.data, events, outcomes: outcomes.data ?? [] };
+    return { session: sessionRow, events, outcomes: outcomes.data ?? [] };
   });
 
 /** Classify outcomes for recent sessions (writes to ai_concierge_outcomes). Idempotent by session. */
@@ -220,9 +222,6 @@ export const classifyConciergeOutcomes = createServerFn({ method: "POST" })
       s.from("ai_concierge_attributions").select("session_id, conversion_type").in("session_id", ids),
       s.from("ai_concierge_messages").select("session_id, role, content").in("session_id", ids),
     ]);
-    for (const result of [existing, intents, leads, atts, msgs]) {
-      if (result.error) throw new Error(result.error.message);
-    }
     for (const result of [existing, intents, leads, atts, msgs]) {
       if (result.error) throw new Error(result.error.message);
     }
