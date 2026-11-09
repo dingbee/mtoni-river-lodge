@@ -10,7 +10,30 @@ import {
   verifyLb01Request,
 } from "./lb01.service-auth";
 
-type SupabaseLike = any;
+type CredentialRow = {
+  id: string;
+  connection_id: string;
+  credential_hash: unknown;
+  status: string;
+  expires_at: string;
+};
+
+type SupabaseSelectQuery = {
+  eq(column: string, value: unknown): SupabaseSelectQuery;
+  maybeSingle(): Promise<{ data: unknown; error: unknown }>;
+};
+
+type SupabaseUpdateQuery = {
+  eq(column: string, value: unknown): Promise<{ data: unknown; error: unknown }>;
+};
+
+type SupabaseLike = {
+  rpc(name: string, args: Record<string, unknown>): Promise<{ data: unknown; error: unknown }>;
+  from(table: string): {
+    select(columns: string): SupabaseSelectQuery;
+    update(values: Record<string, unknown>): SupabaseUpdateQuery;
+  };
+};
 
 function hex(bytes: Uint8Array): string {
   return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
@@ -107,22 +130,23 @@ export async function authenticateLb01ServiceRequest(
     .select("id, connection_id, credential_hash, status, expires_at")
     .eq("credential_prefix", parsed.prefix)
     .maybeSingle();
-  if (credentialError || !credential || credential.status !== "active"
-      || new Date(credential.expires_at).getTime() <= Date.now()) {
+  const credentialRow = credential as CredentialRow | null;
+  if (credentialError || !credentialRow || credentialRow.status !== "active"
+      || new Date(credentialRow.expires_at).getTime() <= Date.now()) {
     throw new Error("Unauthorized LB-01 service request.");
   }
 
   const secretBytes = fromBase64Url(parsed.secret);
   if (!secretBytes) throw new Error("Unauthorized LB-01 service request.");
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", toArrayBuffer(secretBytes)));
-  if (!constantTimeHexEqual(hex(digest), credential.credential_hash)) {
+  if (!constantTimeHexEqual(hex(digest), credentialRow.credential_hash)) {
     throw new Error("Unauthorized LB-01 service request.");
   }
 
   const { data: connection, error: connectionError } = await supabaseAdmin
     .from("staynas_product_connections")
     .select("id, integration_tenant_id, integration_property_id, local_organisation_id, local_property_id, remote_tenant_id, remote_property_id, remote_product, status, correlation_id")
-    .eq("id", credential.connection_id)
+    .eq("id", credentialRow.connection_id)
     .maybeSingle();
   if (connectionError || !connection || connection.status !== "active") {
     throw new Error("Unauthorized LB-01 service request.");
@@ -144,14 +168,14 @@ export async function authenticateLb01ServiceRequest(
 
   const nonceExpiry = new Date(Math.min(Number(timestamp) + 300, Math.floor(Date.now() / 1000) + 300) * 1000).toISOString();
   const { data: claimed, error: nonceError } = await supabaseAdmin.rpc("lb01_claim_service_nonce", {
-    _credential_id: credential.id,
+    _credential_id: credentialRow.id,
     _nonce: nonce,
     _expires_at: nonceExpiry,
   });
   if (nonceError || claimed !== true) throw new Error("Replay or invalid LB-01 service nonce.");
 
   void supabaseAdmin.from("product_service_credentials")
-    .update({ last_used_at: new Date().toISOString() }).eq("id", credential.id);
+    .update({ last_used_at: new Date().toISOString() }).eq("id", credentialRow.id);
 
-  return { credentialId: credential.id, connection };
+  return { credentialId: credentialRow.id, connection };
 }
