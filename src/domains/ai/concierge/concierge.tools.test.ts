@@ -5,7 +5,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
 }));
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { buildBookingPlan, mapAvailabilityForParty, searchAvailability } from "./concierge.tools";
+import { buildBookingPlan, buildBookingUrl, mapAvailabilityForParty, searchAvailability } from "./concierge.tools";
 import type { ConciergeIntentSignal } from "./concierge.types";
 
 const propertyId = "11111111-1111-4111-8111-111111111111";
@@ -31,6 +31,29 @@ const intent: ConciergeIntentSignal = {
   keywords: ["stay"],
   detected: { check_in: "2026-12-01", check_out: "2026-12-03", adults: 2, children: 0, nights: 2 },
 };
+
+describe("Concierge booking handoff", () => {
+  it("preserves the exact SPE occupancy buckets in the direct booking URL", () => {
+    const url = new URL(buildBookingUrl({
+      ...intent,
+      detected: {
+        ...intent.detected,
+        children: 2,
+        children_below_6: 1,
+        children_7_plus: 1,
+      },
+    }, "family-suite"), "https://staynas.example");
+
+    expect(url.pathname).toBe("/book");
+    expect(url.searchParams.get("check_in")).toBe("2026-12-01");
+    expect(url.searchParams.get("check_out")).toBe("2026-12-03");
+    expect(url.searchParams.get("adults")).toBe("2");
+    expect(url.searchParams.get("children")).toBe("2");
+    expect(url.searchParams.get("children_below_6")).toBe("1");
+    expect(url.searchParams.get("children_7_plus")).toBe("1");
+    expect(url.searchParams.get("room")).toBe("family-suite");
+  });
+});
 
 describe("Concierge availability contract", () => {
   const rpc = (supabaseAdmin as any).rpc as ReturnType<typeof vi.fn>;
