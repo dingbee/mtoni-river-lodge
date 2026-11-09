@@ -188,7 +188,7 @@ export async function verifyAndFinalizePayment(opts: {
     return { outcome: reversalResult.duplicate ? "already_finalized" : "reversed", paymentMethod };
   }
 
-  const { error: eventError } = await supabaseAdmin.from("payment_events").insert({
+  const { error: eventError } = await (supabaseAdmin as any).from("payment_events").insert({
     booking_id: booking.id,
     provider_account_id: providerAccount.id,
     provider: "pesapal",
