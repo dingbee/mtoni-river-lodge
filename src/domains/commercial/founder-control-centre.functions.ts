@@ -13,6 +13,7 @@ const numeric = (value: unknown) => { const result = Number(value ?? 0); return 
 const currencyOf = (value: unknown): "TZS" | "USD" | null => value === "TZS" || value === "USD" ? value : null;
 const addMoney = (target: MoneyByCurrency, currency: unknown, amount: unknown) => { const key = currencyOf(currency); if (key) target[key] = (BigInt(target[key]) + BigInt(String(amount ?? 0))).toString(); };
 const rows = (value: unknown): Row[] => Array.isArray(value) ? value as Row[] : [];
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function readAllRows(admin: any, table: string, select: string, configure: (query: any) => any) {
   const result: Row[] = [];
   const pageSize = 500;
