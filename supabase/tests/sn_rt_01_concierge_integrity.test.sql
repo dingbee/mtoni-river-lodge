@@ -143,8 +143,11 @@ $$;
 
 ALTER TABLE public.ai_concierge_leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_escalations ENABLE ROW LEVEL SECURITY;
-GRANT ALL ON TABLE public.ai_concierge_sessions, public.ai_concierge_messages, public.ai_concierge_leads, public.ai_escalations TO anon, authenticated;
-GRANT ALL ON TABLE public.rooms, public.extras, public.ai_concierge_channels, public.ops_tasks, public.notifications TO anon, authenticated;
+GRANT TRUNCATE, REFERENCES, TRIGGER ON TABLE public.ai_concierge_sessions, public.ai_concierge_messages, public.ai_concierge_leads, public.ai_escalations TO anon;
+GRANT ALL ON TABLE public.ai_concierge_sessions, public.ai_concierge_messages, public.ai_concierge_leads, public.ai_escalations TO authenticated;
+GRANT SELECT ON TABLE public.rooms TO anon;
+GRANT TRUNCATE, REFERENCES, TRIGGER ON TABLE public.rooms, public.extras, public.ai_concierge_channels, public.ops_tasks, public.notifications TO anon;
+GRANT ALL ON TABLE public.rooms, public.extras, public.ai_concierge_channels, public.ops_tasks, public.notifications TO authenticated;
 GRANT USAGE ON SCHEMA public, auth TO anon, authenticated, service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
 
@@ -175,8 +178,12 @@ BEGIN
   IF has_table_privilege('anon','public.ai_concierge_sessions','TRUNCATE')
      OR has_table_privilege('anon','public.ai_concierge_messages','TRUNCATE')
      OR has_table_privilege('anon','public.ai_concierge_leads','TRUNCATE')
-     OR has_table_privilege('anon','public.ai_escalations','TRUNCATE') THEN
-    RAISE EXCEPTION 'anon must not retain TRUNCATE on Concierge tables';
+     OR has_table_privilege('anon','public.ai_escalations','TRUNCATE')
+     OR has_table_privilege('anon','public.ai_concierge_sessions','SELECT')
+     OR has_table_privilege('anon','public.ai_concierge_messages','SELECT')
+     OR has_table_privilege('anon','public.ai_concierge_leads','SELECT')
+     OR has_table_privilege('anon','public.ai_escalations','SELECT') THEN
+    RAISE EXCEPTION 'anon must not retain privileged access to Concierge records';
   END IF;
   IF has_table_privilege('authenticated','public.ai_escalations','INSERT')
      OR has_table_privilege('authenticated','public.ai_escalations','UPDATE')
