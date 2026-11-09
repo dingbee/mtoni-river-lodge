@@ -98,6 +98,109 @@ REVOKE ALL ON FUNCTION public.commercial_record_reconciliation_item_event(uuid,t
 GRANT EXECUTE ON FUNCTION public.commercial_record_reconciliation_item_event(uuid,text,uuid,text,text,text,jsonb,text)
   TO service_role;
 
+-- Item creation and resolution are atomic with their lifecycle evidence.
+CREATE OR REPLACE FUNCTION public.commercial_create_reconciliation_item(
+  _run_id uuid,
+  _item_type text,
+  _internal_payment_id uuid,
+  _provider_ref text,
+  _expected_amount_minor numeric,
+  _observed_amount_minor numeric,
+  _expected_currency text,
+  _observed_currency text,
+  _evidence jsonb,
+  _actor_user_id uuid
+)
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $function$
+DECLARE v_role text := current_setting('request.jwt.claim.role', true);
+  v_run public.commercial_reconciliation_runs%ROWTYPE; v_item_id uuid;
+BEGIN
+  IF v_role IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'Service role required' USING ERRCODE = '42501';
+  END IF;
+  SELECT * INTO v_run FROM public.commercial_reconciliation_runs
+    WHERE id=_run_id FOR UPDATE;
+  IF NOT FOUND OR v_run.status <> 'open' THEN
+    RAISE EXCEPTION 'Open reconciliation run was not found' USING ERRCODE = '55000';
+  END IF;
+  IF _item_type NOT IN ('matched','missing_internal','missing_provider','duplicate',
+      'amount_mismatch','currency_mismatch','status_mismatch','unallocated','reversed')
+    OR jsonb_typeof(_evidence) IS DISTINCT FROM 'object'
+    OR (_expected_currency IS NOT NULL AND _expected_currency NOT IN ('TZS','USD'))
+    OR (_observed_currency IS NOT NULL AND _observed_currency NOT IN ('TZS','USD'))
+    OR (_expected_amount_minor IS NOT NULL AND _expected_amount_minor < 0)
+    OR (_observed_amount_minor IS NOT NULL AND _observed_amount_minor < 0) THEN
+    RAISE EXCEPTION 'Invalid reconciliation item' USING ERRCODE = '22023';
+  END IF;
+  INSERT INTO public.commercial_reconciliation_items(
+    run_id,item_type,internal_payment_id,provider_ref,expected_amount_minor,
+    observed_amount_minor,expected_currency,observed_currency,evidence
+  ) VALUES (
+    _run_id,_item_type,_internal_payment_id,_provider_ref,_expected_amount_minor,
+    _observed_amount_minor,_expected_currency,_observed_currency,_evidence
+  ) RETURNING id INTO v_item_id;
+  INSERT INTO public.commercial_reconciliation_item_events(
+    item_id,event_type,actor_user_id,actor_role,reason_code,evidence
+  ) VALUES (
+    v_item_id,'opened',_actor_user_id,'founder_admin','reconciliation_exception_opened',_evidence
+  );
+  RETURN v_item_id;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.commercial_create_reconciliation_item(uuid,text,uuid,text,numeric,numeric,text,text,jsonb,uuid)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.commercial_create_reconciliation_item(uuid,text,uuid,text,numeric,numeric,text,text,jsonb,uuid)
+  TO service_role;
+
+CREATE OR REPLACE FUNCTION public.commercial_resolve_reconciliation_item(
+  _item_id uuid, _resolution_ref text, _actor_user_id uuid
+)
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $function$
+DECLARE v_role text := current_setting('request.jwt.claim.role', true);
+  v_item public.commercial_reconciliation_items%ROWTYPE;
+  v_run public.commercial_reconciliation_runs%ROWTYPE; v_event_id uuid;
+BEGIN
+  IF v_role IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'Service role required' USING ERRCODE = '42501';
+  END IF;
+  IF nullif(btrim(_resolution_ref),'') IS NULL THEN
+    RAISE EXCEPTION 'Resolution reference is required' USING ERRCODE = '22023';
+  END IF;
+  SELECT * INTO v_item FROM public.commercial_reconciliation_items
+    WHERE id=_item_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Reconciliation item not found' USING ERRCODE = 'P0002'; END IF;
+  SELECT * INTO v_run FROM public.commercial_reconciliation_runs
+    WHERE id=v_item.run_id FOR UPDATE;
+  IF NOT FOUND OR v_run.status='completed' THEN
+    RAISE EXCEPTION 'Completed reconciliation evidence cannot be changed' USING ERRCODE = '55000';
+  END IF;
+  IF v_item.resolution_status='resolved' THEN
+    IF v_item.resolution_ref IS DISTINCT FROM _resolution_ref THEN
+      RAISE EXCEPTION 'Conflicting reconciliation resolution replay' USING ERRCODE = '23505';
+    END IF;
+    RETURN v_item.id;
+  END IF;
+  UPDATE public.commercial_reconciliation_items
+    SET resolution_status='resolved',resolution_ref=_resolution_ref
+    WHERE id=_item_id;
+  INSERT INTO public.commercial_reconciliation_item_events(
+    item_id,event_type,actor_user_id,actor_role,reason_code,evidence,resolution_ref
+  ) VALUES (
+    _item_id,'resolved',_actor_user_id,'founder_admin','reconciliation_exception_resolved',
+    jsonb_build_object('resolutionRef',_resolution_ref),_resolution_ref
+  ) RETURNING id INTO v_event_id;
+  RETURN v_event_id;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.commercial_resolve_reconciliation_item(uuid,text,uuid)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.commercial_resolve_reconciliation_item(uuid,text,uuid)
+  TO service_role;
+
 -- Aging is calculated from the authoritative receivable view at query time.
 -- Numeric amounts remain NUMERIC(20,0); no JavaScript-number conversion or FX.
 CREATE OR REPLACE VIEW public.commercial_receivables_aging AS
