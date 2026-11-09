@@ -54,7 +54,6 @@ export const getFounderCommercialReporting = createServerFn({ method: "GET" })
     await resolveVerifiedFounderActor(context as { supabase: unknown; userId: string });
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const admin = supabaseAdmin as any;
     const { data: founderConfig, error: founderConfigError } = await admin
       .from("commercial_founder_tenant_config").select("founder_organisation_id")
