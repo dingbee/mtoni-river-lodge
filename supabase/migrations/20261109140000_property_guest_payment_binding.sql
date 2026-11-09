@@ -28,6 +28,13 @@ BEGIN
 END;
 $constraints$;
 
+CREATE UNIQUE INDEX IF NOT EXISTS bookings_pesapal_account_tracking_uidx
+  ON public.bookings(payment_provider_account_id,pesapal_order_tracking_id)
+  WHERE payment_provider_account_id IS NOT NULL AND pesapal_order_tracking_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS bookings_pesapal_account_merchant_uidx
+  ON public.bookings(payment_provider_account_id,pesapal_merchant_reference)
+  WHERE payment_provider_account_id IS NOT NULL AND pesapal_merchant_reference IS NOT NULL;
+
 CREATE INDEX IF NOT EXISTS bookings_payment_provider_account_idx
   ON public.bookings(payment_provider_account_id)
   WHERE payment_provider_account_id IS NOT NULL;
