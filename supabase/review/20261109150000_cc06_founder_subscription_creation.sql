@@ -56,7 +56,8 @@ BEGIN
       OR (_accepted_price_snapshot->>'total')::numeric < 0
       OR jsonb_typeof(_accepted_price_snapshot->'lineItems') <> 'array'
       OR jsonb_array_length(_accepted_price_snapshot->'lineItems') = 0))
-    OR (coalesce(array_length(_addon_codes,1),0) <> (SELECT count(DISTINCT code) FROM unnest(coalesce(_addon_codes,ARRAY[]::text[])) AS code)) THEN
+    OR (coalesce(array_length(_addon_codes,1),0) <> (SELECT count(DISTINCT code) FROM unnest(coalesce(_addon_codes,ARRAY[]::text[])) AS code))
+    OR to_jsonb(coalesce(_addon_codes,ARRAY[]::text[])) IS DISTINCT FROM _accepted_price_snapshot->'addonCodes' THEN
     RAISE EXCEPTION 'Founder subscription registration evidence or resolved price snapshot is invalid' USING ERRCODE='22023';
   END IF;
   PERFORM pg_advisory_xact_lock(hashtextextended(_idempotency_key,0));

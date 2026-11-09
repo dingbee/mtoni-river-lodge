@@ -62,7 +62,7 @@ CREATE OR REPLACE FUNCTION public.commercial_register_account(
   _contact_role text,_reason_code text,_idempotency_key text,_actor_user_id uuid,_actor_organisation_id uuid
 )
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
-DECLARE v_organisation public.staynas_organisations%ROWTYPE; v_account public.commercial_accounts%ROWTYPE; v_existing_ref text;
+DECLARE v_organisation public.staynas_organisations%ROWTYPE; v_account public.commercial_accounts%ROWTYPE; v_existing_ref text; v_existing_organisation_id text;
 BEGIN
   IF coalesce(auth.role(),'') <> 'service_role' THEN
     RAISE EXCEPTION 'Commercial account registration requires a trusted server principal' USING ERRCODE='42501';
@@ -79,9 +79,15 @@ BEGIN
     RAISE EXCEPTION 'Founder authority and complete commercial registration evidence are required' USING ERRCODE='42501';
   END IF;
   PERFORM pg_advisory_xact_lock(hashtextextended(_idempotency_key,0));
-  SELECT resource_ref INTO v_existing_ref FROM public.commercial_audit_events
+  SELECT resource_ref, metadata->>'organisationId' INTO v_existing_ref, v_existing_organisation_id
+    FROM public.commercial_audit_events
     WHERE request_id=_idempotency_key AND action='commercial_account.registered' LIMIT 1;
-  IF FOUND THEN RETURN jsonb_build_object('ok',true,'replayed',true,'accountId',v_existing_ref); END IF;
+  IF FOUND THEN
+    IF v_existing_organisation_id IS DISTINCT FROM _organisation_id::text THEN
+      RAISE EXCEPTION 'Commercial registration idempotency key was already used for another organisation' USING ERRCODE='23505';
+    END IF;
+    RETURN jsonb_build_object('ok',true,'replayed',true,'accountId',v_existing_ref,'organisationId',_organisation_id);
+  END IF;
   SELECT * INTO v_organisation FROM public.staynas_organisations WHERE id=_organisation_id FOR UPDATE;
   IF NOT FOUND OR v_organisation.status <> 'active' THEN
     RAISE EXCEPTION 'Only an active StayNas organisation can be registered commercially' USING ERRCODE='P0002';
