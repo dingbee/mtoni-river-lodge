@@ -92,7 +92,7 @@ describe("provider-independent AI gateway", () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       choices: [{ message: { content: null, tool_calls: [{
         id: "call-1", type: "function",
-        function: { name: "lookup_availability", arguments: "{\\"check_in\\":\\"2026-12-01\\"}" },
+        function: { name: "lookup_availability", arguments: JSON.stringify({ check_in: "2026-12-01" }) },
       }] } }],
     }), { status: 200, headers: { "Content-Type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
