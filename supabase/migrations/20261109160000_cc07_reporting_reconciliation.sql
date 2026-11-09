@@ -98,6 +98,62 @@ REVOKE ALL ON FUNCTION public.commercial_record_reconciliation_item_event(uuid,t
 GRANT EXECUTE ON FUNCTION public.commercial_record_reconciliation_item_event(uuid,text,uuid,text,text,text,jsonb,text)
   TO service_role;
 
+-- Stable provider-period identity prevents duplicate overlapping reconciliation runs.
+CREATE UNIQUE INDEX IF NOT EXISTS commercial_reconciliation_run_source_unique
+  ON public.commercial_reconciliation_runs(
+    provider_account_id,currency,period_start,period_end,source_ref
+  ) WHERE provider_account_id IS NOT NULL;
+
+CREATE OR REPLACE FUNCTION public.commercial_create_reconciliation_run(
+  _provider_account_id uuid,
+  _currency text,
+  _period_start timestamptz,
+  _period_end timestamptz,
+  _source_ref text,
+  _actor_user_id uuid
+)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $function$
+DECLARE v_role text := current_setting('request.jwt.claim.role', true);
+  v_provider public.commercial_provider_accounts%ROWTYPE;
+  v_id uuid; v_status text; v_replayed boolean;
+BEGIN
+  IF v_role IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'Service role required' USING ERRCODE = '42501';
+  END IF;
+  IF _currency NOT IN ('TZS','USD') OR _period_start IS NULL OR _period_end <= _period_start
+    OR length(btrim(coalesce(_source_ref,''))) NOT BETWEEN 3 AND 200 THEN
+    RAISE EXCEPTION 'Invalid reconciliation run period, currency or source reference' USING ERRCODE = '22023';
+  END IF;
+  SELECT * INTO v_provider FROM public.commercial_provider_accounts
+    WHERE id=_provider_account_id AND status='active'
+      AND _currency=ANY(supported_currencies);
+  IF NOT FOUND THEN RAISE EXCEPTION 'Active provider account/currency not found' USING ERRCODE = '55000'; END IF;
+  INSERT INTO public.commercial_reconciliation_runs(
+    organisation_id,provider_account_id,currency,period_start,period_end,source_ref,started_by
+  ) VALUES (
+    v_provider.organisation_id,_provider_account_id,_currency,_period_start,_period_end,_source_ref,_actor_user_id
+  )
+  ON CONFLICT (provider_account_id,currency,period_start,period_end,source_ref)
+    WHERE provider_account_id IS NOT NULL
+  DO NOTHING
+  RETURNING id,status INTO v_id,v_status;
+  v_replayed := v_id IS NULL;
+  IF v_replayed THEN
+    SELECT id,status INTO v_id,v_status
+    FROM public.commercial_reconciliation_runs
+    WHERE provider_account_id=_provider_account_id AND currency=_currency
+      AND period_start=_period_start AND period_end=_period_end AND source_ref=_source_ref;
+  END IF;
+  RETURN jsonb_build_object('id',v_id,'status',v_status,'replayed',v_replayed);
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.commercial_create_reconciliation_run(uuid,text,timestamptz,timestamptz,text,uuid)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.commercial_create_reconciliation_run(uuid,text,timestamptz,timestamptz,text,uuid)
+  TO service_role;
+
 -- Item creation and resolution are atomic with their lifecycle evidence.
 CREATE OR REPLACE FUNCTION public.commercial_create_reconciliation_item(
   _run_id uuid,
