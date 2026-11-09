@@ -42,14 +42,14 @@ Status: IN PROGRESS — UAT/review only; no production promotion.
 | 10 | Currency mismatch detection | Existing reconciliation engine tests; CC-07 mixed-currency statement guard added |
 | 11 | Subscription-to-invoice reconciliation | Missing current-period invoice, invoice currency and billing-term consistency view added; fixture assertion added for missing invoice |
 | 12 | MRR calculation | Exact text-backed recurring-value view; paid replacement fixture verifies current MRR |
-| 13 | ARR calculation | Exact text-backed recurring-value view; annual-term fixture still pending |
+| 13 | ARR calculation | Exact text-backed recurring-value view; monthly ×12 and annual-term fixture assertions included |
 | 14 | New MRR | Paid activation event projection; initial activation asserted in replacement fixture |
 | 15 | Expansion MRR | Atomic accepted subscription replacement and posted debit-note evidence; fixture asserts +50,000 minor units |
 | 16 | Contraction MRR | Replacement fixture verifies -60,000 minor-unit contraction with posted credit-note evidence |
 | 17 | Churned MRR | Paid cancellation fixture verifies 90,000 minor units of churn and excludes replaced subscriptions |
-| 18 | Trial exclusion | Movement facts include only activate_paid events and fixed-price contracts; explicit trial fixture pending |
-| 19 | TZS and USD isolation | Currency is retained through every reporting/movement view; mixed-currency statement guard exists; explicit dual-currency fixture pending |
-| 20 | Receivables aging | Current, 1–30, 31–60, 61–90 and >90 view/UI added; exact boundary fixtures pending |
+| 18 | Trial exclusion | Trialing subscription plus activate_trial event fixture asserts exclusion from MRR and movement facts |
+| 19 | TZS and USD isolation | TZS monthly and USD annual fixture asserts separate MRR/ARR with no conversion; cross-currency replacement rejection asserted |
+| 20 | Receivables aging | Fixture asserts current and both sides of 30-, 60- and 90-day boundaries |
 | 21 | Entitlement/subscription consistency | Drift view and founder workspace exception panel added; cancelled-subscription active-grant fixture asserts detection |
 | 22 | Reconciliation exception lifecycle | Append-only review, resolve, reopen and re-resolve fixture assertions added |
 | 23 | Report export authorization | Founder route guard and server middleware; adversarial authorization test pending |
@@ -66,7 +66,7 @@ Status: IN PROGRESS — UAT/review only; no production promotion.
 
 ## Remaining acceptance work
 
-1. Revenue movement and financial classifications are implemented. Finish remaining direct fixtures for annual ARR, trial exclusion, TZS/USD separation, invoice adjustment categories and aging boundaries.
+1. Revenue movement and financial classifications are implemented. Finish remaining direct fixtures for invoice credit/debit/write-off aggregation, entitlement effective-window edge cases, cross-tenant authorization, report export authorization and concurrent database sessions.
 2. Subscription-to-invoice and entitlement/subscription drift views and founder exception display are implemented; complete remaining fixture coverage and define the authorized remediation workflow for each exception type.
 3. Add explicit regression assertions for currency isolation, aging boundaries, trial exclusion, export authorization, founder-only access, tenant isolation, historical audit integrity and concurrent run execution.
 4. Run all 33 categories and required CI workflows on one final PR head; remediate all failures.
