@@ -41,6 +41,8 @@ INSERT INTO public.staynas_property_members(property_id,user_id,role) VALUES
 \i supabase/migrations/20261109111013_lb01_service_auth_nonce_ledger.sql
 \i supabase/migrations/20261109111027_lb01_secure_handoff_and_delivery.sql
 
+\\i supabase/migrations/20261109180000_lb01r_org_property_integrity.sql
+
 SET ROLE authenticated;
 SELECT set_config('request.test_user_id','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',false);
 SELECT set_config('request.test_role','authenticated',false);
