@@ -124,9 +124,10 @@ export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
     }
     const recurringByCurrency = { TZS: { mrrMinor: "0", arrMinor: "0" }, USD: { mrrMinor: "0", arrMinor: "0" } };
     const recurringResult = customerOrganisationIds.size
-      ? await admin.from("commercial_subscription_recurring_value_facts")
-        .select("subscription_id,account_id,organisation_id,currency,mrr_minor,arr_minor")
-        .in("organisation_id", Array.from(customerOrganisationIds))
+      ? await readAllRows(admin,"commercial_subscription_recurring_value_facts",
+        "subscription_id,account_id,organisation_id,currency,mrr_minor,arr_minor",
+        (query)=>query.in("organisation_id",Array.from(customerOrganisationIds))
+          .order("organisation_id").order("account_id").order("subscription_id"))
       : { data: [], error: null };
     if (recurringResult.error) throw new Error("Exact recurring subscription values could not be loaded.");
     for (const fact of rows(recurringResult.data)) {
