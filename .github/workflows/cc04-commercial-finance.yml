@@ -80,11 +80,11 @@ jobs:
       - name: Verify provider scope and credential access boundaries
         env:
           PGPASSWORD: postgres
-        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/staynas_payment_provider_management.test.sql
+        run: sed -E '/^[[:space:]]*SELECT[[:space:]]+(plan|pass)[[:space:]]*\(/Id' supabase/tests/staynas_payment_provider_management.test.sql | psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1
       - name: Verify financial constraints, idempotency, partial allocation, reversal and immutability
         env:
           PGPASSWORD: postgres
-        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/cc04_financial_ledger.test.sql
+        run: sed -E '/^[[:space:]]*SELECT[[:space:]]+(plan|pass)[[:space:]]*\(/Id' supabase/tests/cc04_financial_ledger.test.sql | psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1
       - name: Apply property guest payment provider migration
         env:
           PGPASSWORD: postgres
@@ -92,7 +92,7 @@ jobs:
       - name: Verify property guest provider security and activation boundaries
         env:
           PGPASSWORD: postgres
-        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/staynas_guest_payment_provider_accounts.test.sql
+        run: sed -E '/^[[:space:]]*SELECT[[:space:]]+(plan|pass)[[:space:]]*\(/Id' supabase/tests/staynas_guest_payment_provider_accounts.test.sql | psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1
   cc04-contracts:
     runs-on: ubuntu-latest
     env:

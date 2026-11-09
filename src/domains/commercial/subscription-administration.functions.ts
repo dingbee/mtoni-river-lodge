@@ -26,6 +26,7 @@ const founderInput = commonInput.extend({
     "activate_paid",
     "suspend",
     "reinstate",
+    "request_cancellation",
     "cancel_immediately",
     "renewal_authorized",
   ]),
@@ -81,8 +82,8 @@ export const administerCommercialSubscription = createServerFn({ method: "POST" 
     if (data.command === "renewal_authorized" && !data.commercialAcceptanceRef) {
       throw new Error("Renewal authorization requires a recorded commercial acceptance reference.");
     }
-    if (["suspend", "cancel_immediately"].includes(data.command) && !data.reasonCode) {
-      throw new Error("A reason code is required for suspension or immediate cancellation.");
+    if (["suspend", "request_cancellation", "cancel_immediately"].includes(data.command) && !data.reasonCode) {
+      throw new Error("A reason code is required for suspension or cancellation.");
     }
 
     const { data: accountData, error: accountError } = await admin
