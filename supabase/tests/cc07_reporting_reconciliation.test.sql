@@ -292,6 +292,13 @@ DECLARE
   v_old_sub uuid := '97000000-0000-4000-8000-000000000006';
   v_invoice uuid := '97000000-0000-4000-8000-000000000007';
   v_result jsonb;
+  v_second_result jsonb;
+  v_first_new_sub uuid;
+  v_final_sub uuid;
+  v_new_invoice uuid := '97000000-0000-4000-8000-000000000008';
+  v_period_start timestamptz;
+  v_period_end timestamptz;
+  v_churn_result jsonb;
   v_movement public.commercial_subscription_revenue_movements%ROWTYPE;
   v_old_snapshot jsonb := '{"currency":"TZS","planCode":"essential","planVersion":1,"billingTerm":"monthly","propertyCount":1,"priceCode":"test-essential-monthly","quoteRequired":false,"total":100000,"lineItems":[{"kind":"plan_base","code":"essential","quantity":1,"unitAmountMinor":100000,"amountMinor":100000}],"addonCodes":[]}'::jsonb;
   v_new_snapshot jsonb := '{"currency":"TZS","planCode":"professional","planVersion":1,"billingTerm":"monthly","propertyCount":1,"priceCode":"test-professional-monthly","quoteRequired":false,"total":150000,"lineItems":[{"kind":"plan_base","code":"professional","quantity":1,"unitAmountMinor":150000,"amountMinor":150000}],"addonCodes":[]}'::jsonb;
@@ -353,6 +360,7 @@ BEGIN
   IF v_result->>'movementType' <> 'expansion' OR v_result->>'deltaMrrMinor' <> '50000' THEN
     RAISE EXCEPTION 'Accepted price replacement did not record exact expansion MRR';
   END IF;
+  v_first_new_sub := (v_result->>'subscriptionId')::uuid;
   SELECT * INTO v_movement FROM public.commercial_subscription_revenue_movements
     WHERE id=(v_result->>'movementId')::uuid;
   IF v_movement.previous_mrr_minor<>100000 OR v_movement.new_mrr_minor<>150000
@@ -395,6 +403,52 @@ BEGIN
     WHERE subscription_id=v_old_sub AND exception_type='active_entitlement_on_inactive_subscription'
   ) THEN
     RAISE EXCEPTION 'Active entitlement attached to cancelled subscription was not detected';
+  END IF;
+
+  SELECT current_period_starts_at,current_period_ends_at INTO v_period_start,v_period_end
+    FROM public.commercial_subscriptions WHERE id=v_first_new_sub;
+  INSERT INTO public.commercial_invoices(
+    id,organisation_id,account_id,subscription_id,invoice_number,idempotency_key,
+    billing_period_start,billing_period_end,currency,billing_term,status,issued_at,due_at,
+    subtotal_minor,tax_minor,discount_minor,total_minor,amount_paid_minor,pricing_snapshot,tax_snapshot
+  ) VALUES (
+    v_new_invoice,v_customer_org,v_account,v_first_new_sub,'CC07-TEST-INV-002','cc07-invoice-new-02',
+    v_period_start,v_period_end,'TZS','monthly','issued',now(),v_period_end,
+    150000,0,0,150000,150000,'{"test":true}'::jsonb,'{"test":true}'::jsonb
+  );
+  INSERT INTO public.commercial_invoice_adjustments(
+    invoice_id,adjustment_ref,adjustment_type,amount_minor,currency,reason_code,status,
+    approval_ref,created_by,posted_at
+  ) VALUES (
+    v_new_invoice,'CC07-CREDIT-001','credit_note',60000,'TZS','approved_plan_contraction','posted',
+    'CC07-APPROVAL-002',v_user,now()
+  );
+  v_second_result := public.commercial_replace_active_subscription_for_founder(
+    v_first_new_sub,'essential',1,'TZS','monthly',1,ARRAY[]::text[],
+    'cc07-lower-price', '{"currency":"TZS","planCode":"essential","planVersion":1,"billingTerm":"monthly","propertyCount":1,"priceCode":"test-essential-lower","quoteRequired":false,"total":90000,"lineItems":[{"kind":"plan_base","code":"essential","quantity":1,"unitAmountMinor":90000,"amountMinor":90000}],"addonCodes":[]}'::jsonb,
+    'cc07-lower-acceptance','CC07-CREDIT-001',v_period_end,
+    'cc07-replace-subscription-002','approved_plan_contraction',v_user,v_founder_org
+  );
+  IF v_second_result->>'movementType'<>'contraction' OR v_second_result->>'deltaMrrMinor'<>'-60000' THEN
+    RAISE EXCEPTION 'Accepted price replacement did not record exact contraction MRR';
+  END IF;
+  v_final_sub := (v_second_result->>'subscriptionId')::uuid;
+  v_churn_result := public.commercial_apply_subscription_command(
+    v_account,v_final_sub,'cancel_immediately','cc07-final-churn-key',
+    v_user,v_founder_org,'founder_admin','customer_churn',NULL,NULL
+  );
+  IF v_churn_result->>'status'<>'cancelled' THEN
+    RAISE EXCEPTION 'Paid subscription churn command did not persist';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.commercial_subscription_revenue_movement_facts
+    WHERE subscription_id=v_final_sub AND movement_type='churned' AND movement_mrr_minor=90000
+  ) THEN
+    RAISE EXCEPTION 'Paid churn MRR was not derived from terminal lifecycle event';
+  END IF;
+  IF (SELECT sum(net_new_mrr_minor) FROM public.commercial_subscription_revenue_movement_facts
+      WHERE account_id=v_account)<>0 THEN
+    RAISE EXCEPTION 'New, expansion, contraction and churn MRR do not reconcile to zero net movement';
   END IF;
   IF (SELECT data_type FROM information_schema.columns
       WHERE table_schema='public' AND table_name='commercial_founder_subscription_movement_facts'
