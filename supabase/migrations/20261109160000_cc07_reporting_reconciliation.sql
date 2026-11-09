@@ -811,8 +811,8 @@ SELECT r.organisation_id,r.account_id,r.subscription_id,r.invoice_id,
   coalesce(ad.debit_notes_minor,0)::numeric(20,0) AS debit_notes_minor,
   coalesce(ad.write_offs_minor,0)::numeric(20,0) AS write_offs_minor
 FROM public.commercial_invoice_receivables r
-LEFT JOIN adjustments ad ON ad.invoice_id=r.invoice_id
-LEFT JOIN one_time ot ON ot.invoice_id=r.invoice_id
+LEFT JOIN adjustments ad ON ad.invoice_id=r.id
+LEFT JOIN one_time ot ON ot.invoice_id=r.id
 WHERE r.status NOT IN ('draft','void') AND r.issued_at IS NOT NULL;
 
 ALTER VIEW public.commercial_revenue_invoice_facts SET (security_invoker=true);
