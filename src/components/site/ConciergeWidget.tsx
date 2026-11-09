@@ -175,14 +175,8 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
         },
       ]);
       setEscalation({
-        reason: "Please try again or reach us directly.",
-        channels: [
-          {
-            type: "whatsapp",
-            label: "Chat on WhatsApp",
-            url: "https://wa.me/255745900440",
-          },
-        ],
+        reason: "The Concierge is temporarily unavailable. Please try again shortly.",
+        channels: [],
       });
     } finally {
       setBusy(false);
