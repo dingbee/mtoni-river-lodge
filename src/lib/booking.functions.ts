@@ -1,18 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Supabase RPC surface uses runtime contracts not yet represented in generated database types */
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import type { Database } from "@/integrations/supabase/types";
-import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
 import { assertSameProperty } from "@/lib/booking-property";
+import { resolvePublicDirectBookingChannel } from "@/lib/public-booking-channel.server";
 
-function getPublicClient() {
-  return createClient<Database>(
-    process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-  );
-}
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date");
 
@@ -103,7 +94,8 @@ export const checkAvailability = createServerFn({ method: "POST" })
       throw new Error("Check-out must be after check-in");
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+    const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
+    const propertyId = channel.propertyId;
     const { data: rows, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced_with_rate_plan", {
       _check_in: data.checkIn,
       _check_out: data.checkOut,
@@ -136,8 +128,9 @@ export const checkAvailability = createServerFn({ method: "POST" })
   });
 
 export const listExtras = createServerFn({ method: "GET" }).handler(async () => {
-  const sb = getPublicClient();
-  const propertyId = await getConfiguredBookingPropertyId(sb);
+  const { supabaseAdmin: sb } = await import("@/integrations/supabase/client.server");
+  const channel = await resolvePublicDirectBookingChannel(sb);
+  const propertyId = channel.propertyId;
   // Generated types predate the property hardening; query through an
   // untyped alias so the property filter compiles against stale types.
   const { data, error } = await (sb as any)
@@ -200,8 +193,8 @@ export const getBookingQuote = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
-    const { data: quote, error } = await (supabaseAdmin as any).rpc("staynas_create_reservation_quote", {
-      _property_id: propertyId,
+    const { data: quote, error } = await (supabaseAdmin as any).rpc("staynas_create_public_channel_quote", {
+      _sales_channel_id: channel.channelId,
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
       _check_out: data.checkOut,
@@ -228,9 +221,11 @@ export const createBooking = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const sb: any = supabaseAdmin;
     const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
-    const { data: result, error } = await sb.rpc("staynas_create_reservation_from_quote", {
+    const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
+    const propertyId = channel.propertyId;
+    const { data: result, error } = await sb.rpc("staynas_create_public_channel_reservation", {
+      _sales_channel_id: channel.channelId,
       _quote_id: data.quoteId,
-      _property_id: propertyId,
       _idempotency_key: data.quoteId,
       _guest_name: data.guestName,
       _guest_email: data.guestEmail,
@@ -307,11 +302,12 @@ export const getBookingByReference = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     // Service-role read since bookings are staff-only via RLS; verify email match.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+    const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
+    const propertyId = channel.propertyId;
     const { data: row, error } = await (supabaseAdmin as any)
       .from("bookings")
       .select(
-        "id, reference, check_in, check_out, nights, adults, children, guest_name, guest_email, total, currency, status, payment_status, room_id, property_id",
+        "id, reference, check_in, check_out, nights, adults, children, guest_name, guest_email, total, currency, status, payment_status, room_id, property_id, sales_channel_id",
       )
       .eq("reference", data.reference)
       .maybeSingle();
@@ -321,6 +317,7 @@ export const getBookingByReference = createServerFn({ method: "POST" })
     }
     // Never surface a booking outside the configured booking property.
     assertSameProperty(row.property_id, propertyId, "Booking");
+    if (row.sales_channel_id !== channel.channelId) throw new Error("Booking does not belong to this direct-booking channel");
     const { data: room } = await supabaseAdmin
       .from("rooms")
       .select("name, slug")
