@@ -70,14 +70,14 @@ INSERT INTO public.staynas_rate_plan_publications(id,property_id,code,name,curre
 SELECT set_config('request.jwt.claim.sub','40000000-0000-4000-8000-000000000001',true);
 SET LOCAL ROLE authenticated;
 
-INSERT INTO public.booking_pages(organisation_id,property_id,slug,title,status)
-VALUES ('10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','book','Book Direct','published');
+INSERT INTO public.booking_pages(organisation_id,property_id,slug,title)
+VALUES ('10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','book','Book Direct');
 
 INSERT INTO public.booking_campaigns(id,organisation_id,property_id,slug,name,status)
 VALUES ('60000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','resident-escape','Resident Escape','draft');
 
-INSERT INTO public.campaign_page_content(campaign_id,property_id,version,status,content)
-VALUES ('60000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001',1,'published','{"headline":"Resident Escape"}');
+INSERT INTO public.campaign_page_content(campaign_id,property_id,version,content)
+VALUES ('60000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001',1,'{"headline":"Resident Escape"}');
 
 INSERT INTO public.campaign_room_selections(campaign_id,property_id,room_id)
 VALUES ('60000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001');
@@ -103,14 +103,28 @@ BEGIN
     NULL;
   END;
 
-  UPDATE public.booking_campaigns SET status='published', published_at=now()
-  WHERE id='60000000-0000-4000-8000-000000000001';
+  BEGIN
+    UPDATE public.booking_campaigns SET status='published'
+    WHERE id='60000000-0000-4000-8000-000000000001';
+    RAISE EXCEPTION 'Tenant publication-state update unexpectedly succeeded';
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL;
+  END;
 
   IF (SELECT count(*) FROM public.booking_campaigns WHERE property_id='20000000-0000-4000-8000-000000000002') <> 0 THEN
     RAISE EXCEPTION 'Tenant can read another property campaign';
   END IF;
 END
 $test$;
+
+RESET ROLE;
+SET LOCAL ROLE service_role;
+UPDATE public.booking_pages SET status='published', published_at=now()
+WHERE property_id='20000000-0000-4000-8000-000000000001';
+UPDATE public.booking_campaigns SET status='published', published_at=now()
+WHERE id='60000000-0000-4000-8000-000000000001';
+UPDATE public.campaign_page_content SET status='published', published_at=now()
+WHERE campaign_id='60000000-0000-4000-8000-000000000001';
 
 RESET ROLE;
 SET LOCAL ROLE anon;
