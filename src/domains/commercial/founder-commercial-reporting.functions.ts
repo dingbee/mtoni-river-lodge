@@ -22,6 +22,7 @@ const currencyOf = (value: unknown): Currency | null =>
   value === "TZS" || value === "USD" ? value : null;
 const rows = (value: unknown): Row[] => Array.isArray(value) ? value as Row[] : [];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function readAll(admin: any, table: string, select: string, configure: (query: any) => any): Promise<Row[]> {
   const result: Row[] = [];
   const pageSize = 500;
@@ -89,8 +90,11 @@ export const getFounderCommercialReporting = createServerFn({ method: "GET" })
       };
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const currencyFilter = (query: any) => data.currency ? query.eq("currency", data.currency) : query;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const orgFilter = (query: any) => query.in("organisation_id", organisationIds);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const periodFilter = (query: any) => currencyFilter(orgFilter(
       query.gte("period_month", data.periodStart).lt("period_month", data.periodEnd),
     ));
