@@ -108,10 +108,11 @@ export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
       else if (subscription.billing_term === "annual") { recurringByCurrency[currency].mrrMinor += total / 12; recurringByCurrency[currency].arrMinor += total; }
     }
     const recentEvents: Row[] = [
-      ...rows(eventsResult.data).map((event) => ({ ...event, eventSource: "commercial" })),
-      ...rows(financialEventsResult.data).map((event) => ({ ...event, eventSource: "financial" })),
-    ].sort((a, b) => Date.parse(String(b.occurred_at ?? "")) - Date.parse(String(a.occurred_at ?? ""))).slice(0, 20);
-    return {
+      ...rows(eventsResult.data).map((event): Row => ({ ...event, eventSource: "commercial" })),
+      ...rows(financialEventsResult.data).map((event): Row => ({ ...event, eventSource: "financial" })),
+    ];
+    recentEvents.sort((a, b) => Date.parse(String(b.occurred_at ?? "")) - Date.parse(String(a.occurred_at ?? "")));
+    const workspace = {
       generatedAt: new Date().toISOString(),
       metrics: {
         totalTenants: organisations.length, activeTenants: organisations.filter((item) => item.status === "active").length,
@@ -152,8 +153,9 @@ export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
         ...run, tenant_name: organisations.find((organisation) => organisation.id === run.organisation_id)?.name ?? "Unknown tenant",
       })),
       entitlementGrantRules: rows(grantRulesResult.data),
-      recentEvents,
+      recentEvents: recentEvents.slice(0, 20),
     };
+    return JSON.parse(JSON.stringify(workspace));
   });
 
 export const getFounderTenantCommercialProfile = createServerFn({ method: "GET" })
@@ -361,8 +363,8 @@ export const listFounderCommercialAudit = createServerFn({ method: "GET" })
     ]);
     if(commercial.error||financial.error||subscriptions.error) throw new Error("Founder commercial audit history could not be loaded.");
     const events: Row[]=[
-      ...rows(commercial.data).map((event)=>({...event,audit_source:"commercial"})),
-      ...rows(financial.data).map((event)=>({...event,audit_source:"financial"})),
+      ...rows(commercial.data).map((event): Row => ({...event,audit_source:"commercial"})),
+      ...rows(financial.data).map((event): Row => ({...event,audit_source:"financial"})),
       ...rows(subscriptions.data).map((event)=>({
         ...event,
         action:event.event_type,
@@ -373,6 +375,7 @@ export const listFounderCommercialAudit = createServerFn({ method: "GET" })
         metadata:event.event_metadata,
         audit_source:"subscription",
       })),
-    ].sort((a,b)=>Date.parse(String(b.occurred_at??""))-Date.parse(String(a.occurred_at??"")));
+    ];
+    events.sort((a,b)=>Date.parse(String(b.occurred_at??""))-Date.parse(String(a.occurred_at??"")));
     return JSON.parse(JSON.stringify(events));
   });

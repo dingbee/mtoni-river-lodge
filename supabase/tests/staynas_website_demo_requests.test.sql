@@ -1,5 +1,24 @@
 -- Runs against an isolated PostgreSQL instance in GitHub Actions.
-DO $$
+BEGIN;
+INSERT INTO auth.users(id) VALUES
+  ('77777777-7777-4777-8777-777777777771'),
+  ('77777777-7777-4777-8777-777777777772')
+ON CONFLICT (id) DO NOTHING;
+DO $
+DECLARE v_founder_organisation_id uuid;
+BEGIN
+  INSERT INTO public.staynas_organisations(slug,name,status)
+  VALUES ('nolmark-cdma','Nolmark CDMA test founder','active')
+  ON CONFLICT (slug) DO UPDATE SET status='active'
+  RETURNING id INTO v_founder_organisation_id;
+  INSERT INTO public.staynas_properties(id,organisation_id,slug,code,name,status)
+  VALUES ('77777777-7777-4777-8777-777777777773',v_founder_organisation_id,'cc06-demo-founder','CC06DEMO','CC06 Demo Founder Property','active')
+  ON CONFLICT (id) DO UPDATE SET organisation_id=EXCLUDED.organisation_id,status='active';
+  INSERT INTO public.staynas_property_members(property_id,user_id,role,status)
+  VALUES ('77777777-7777-4777-8777-777777777773','77777777-7777-4777-8777-777777777771','owner','active')
+  ON CONFLICT (property_id,user_id,role) DO UPDATE SET status='active';
+END $;
+DO $
 DECLARE
   v_first record;
   v_duplicate record;
@@ -117,7 +136,8 @@ END $$;
 RESET ROLE;
 
 SET ROLE authenticated;
-SELECT set_config('request.jwt.claim.role', 'tenant', false);
+SELECT set_config('request.jwt.claim.sub', '77777777-7777-4777-8777-777777777772', false);
+SELECT set_config('request.jwt.claim.role', 'authenticated', false);
 DO $$
 DECLARE v_count integer;
 BEGIN
@@ -126,7 +146,8 @@ BEGIN
     RAISE EXCEPTION 'non-founder authenticated users must not see demo requests';
   END IF;
 END $$;
-SELECT set_config('request.jwt.claim.role', 'founder', false);
+SELECT set_config('request.jwt.claim.sub', '77777777-7777-4777-8777-777777777771', false);
+SELECT set_config('request.jwt.claim.role', 'authenticated', false);
 DO $$
 DECLARE v_count integer;
 BEGIN
@@ -136,3 +157,4 @@ BEGIN
   END IF;
 END $$;
 RESET ROLE;
+ROLLBACK;
