@@ -358,7 +358,7 @@ export const listFounderCommercialAudit = createServerFn({ method: "GET" })
       admin.from("commercial_subscription_events").select("*").order("occurred_at",{ascending:false}).limit(500),
     ]);
     if(commercial.error||financial.error||subscriptions.error) throw new Error("Founder commercial audit history could not be loaded.");
-    const events=[
+    const events: Row[]=[
       ...rows(commercial.data).map((event)=>({...event,audit_source:"commercial"})),
       ...rows(financial.data).map((event)=>({...event,audit_source:"financial"})),
       ...rows(subscriptions.data).map((event)=>({
