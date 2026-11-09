@@ -50,11 +50,11 @@ BEGIN
   END IF;
 
   INSERT INTO auth.users(id) VALUES (v_user), (v_tenant_user);
-  INSERT INTO public.staynas_organisations(id, slug, name)
-  VALUES (v_org, 'cc03-policy-founder', 'CC03 Policy Founder'),
-         (v_tenant_org, 'cc03-policy-tenant', 'CC03 Policy Tenant');
+  INSERT INTO public.staynas_organisations(id, slug, name, currency)
+  VALUES (v_org, 'cc03-policy-founder', 'CC03 Policy Founder', 'TZS'),
+         (v_tenant_org, 'cc03-policy-tenant', 'CC03 Policy Tenant', 'TZS');
   INSERT INTO public.staynas_properties(id, organisation_id, slug, code, name, status, currency)
-  VALUES (v_property, v_org, 'cc03-policy-founder-property', 'CC03PF', 'Founder Property', 'active'),
+  VALUES (v_property, v_org, 'cc03-policy-founder-property', 'CC03PF', 'Founder Property', 'active', 'TZS'),
          (v_tenant_property, v_tenant_org, 'cc03-policy-tenant-property', 'CC03PT', 'Tenant Property', 'active','TZS');
   INSERT INTO public.staynas_property_members(property_id, user_id, status, role)
   VALUES (v_property, v_user, 'active', 'owner'),
