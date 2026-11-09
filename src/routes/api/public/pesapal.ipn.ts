@@ -10,13 +10,14 @@ async function handleNotification(orderTrackingId: string, merchantReference: st
 
   const { data: booking } = await supabaseAdmin
     .from("bookings")
-    .select("id, payment_status")
+    .select("id, payment_status, payment_provider_account_id")
     .eq("pesapal_order_tracking_id", orderTrackingId)
     .maybeSingle();
 
   // Always log the raw notification, even if booking missing.
-  await supabaseAdmin.from("payment_events").insert({
+  await (supabaseAdmin as any).from("payment_events").insert({
     booking_id: booking?.id ?? null,
+    provider_account_id: booking?.payment_provider_account_id ?? null,
     provider: "pesapal",
     event_type: `ipn:${notificationType || "unknown"}`,
     order_tracking_id: orderTrackingId,
