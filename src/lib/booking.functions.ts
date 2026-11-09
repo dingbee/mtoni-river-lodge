@@ -353,11 +353,13 @@ export const createBooking = createServerFn({ method: "POST" })
     await assertCampaignRoomSelection(sb, propertyId, data.roomSlug, campaignContext);
     if (campaignContext) {
       const { data: quoteRecord, error: quoteRecordError } = await sb.from("staynas_reservation_quotes")
-        .select("property_id,request,expires_at,consumed_at")
+        .select("property_id,request,expires_at,consumed_at,booking_id")
         .eq("id", data.quoteId).eq("property_id", propertyId).maybeSingle();
       const request = quoteRecord?.request ?? {};
-      if (quoteRecordError || !quoteRecord || quoteRecord.consumed_at
-        || Date.parse(quoteRecord.expires_at) <= Date.now()
+      const previouslyBooked = !!quoteRecord?.consumed_at && !!quoteRecord?.booking_id;
+      if (quoteRecordError || !quoteRecord
+        || (quoteRecord.consumed_at && !previouslyBooked)
+        || (!previouslyBooked && Date.parse(quoteRecord.expires_at) <= Date.now())
         || request.room_slug !== data.roomSlug
         || request.rate_plan_id !== data.ratePlanId
         || request.check_in !== data.checkIn || request.check_out !== data.checkOut) {
