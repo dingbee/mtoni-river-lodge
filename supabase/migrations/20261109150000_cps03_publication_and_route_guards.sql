@@ -86,7 +86,7 @@ as $function$
     select 1 from public.staynas_properties p
     where p.id = _property_id
       and p.organisation_id = _organisation_id
-      and public.cps03_is_property_public_active(c.property_id, c.organisation_id)
+      and p.status = 'active'
   )
 $function$;
 
