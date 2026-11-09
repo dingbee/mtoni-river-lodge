@@ -69,6 +69,22 @@ function FounderCommercialReporting() {
     ["61–90 days", report.receivablesAging.days61To90],
     [">90 days", report.receivablesAging.over90],
   ] as const;
+  const downloadCsv = () => {
+    const lines: string[][] = [["metric", "currency", "amount_minor"]];
+    for (const metric of ["invoiced", "collected", "outstanding", "unallocated", "mrr", "arr"] as const) {
+      for (const currency of ["TZS", "USD"] as const) lines.push([metric, currency, report.totals[metric][currency]]);
+    }
+    for (const [bucket, values] of aging) {
+      for (const currency of ["TZS", "USD"] as const) lines.push([`aging_${bucket.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`, currency, values[currency]]);
+    }
+    const csv = lines.map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\\r\\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `staynas-commercial-report-${report.periodStart.slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
   return <main className="min-h-screen bg-background px-4 py-7 text-foreground sm:px-7 lg:px-10">
     <div className="mx-auto max-w-6xl space-y-7">
       <header className="flex flex-wrap items-end justify-between gap-4 border-b pb-5">
@@ -78,7 +94,11 @@ function FounderCommercialReporting() {
           <p className="mt-2 text-sm text-muted-foreground">Currency-separated commercial performance and receivables. No currency conversion is applied.</p>
           <p className="mt-1 text-xs text-muted-foreground">Reporting window: {dateLabel(report.periodStart)} – {dateLabel(report.periodEnd)}</p>
         </div>
-        <a href="/founder" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Back to Control Centre</a>
+        <div className="flex gap-2 print:hidden">
+          <button type="button" onClick={downloadCsv} className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Export CSV</button>
+          <button type="button" onClick={() => window.print()} className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Print / Save PDF</button>
+          <a href="/founder" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Back to Control Centre</a>
+        </div>
       </header>
 
       <section className="space-y-3">
