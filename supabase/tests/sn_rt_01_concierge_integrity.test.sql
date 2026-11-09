@@ -32,6 +32,29 @@ CREATE TABLE public.ai_concierge_sessions(
   guest_id uuid,
   UNIQUE(id, property_id)
 );
+CREATE TABLE public.ai_concierge_messages(
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id uuid NOT NULL REFERENCES public.ai_concierge_sessions(id),
+  role text NOT NULL,
+  content text NOT NULL,
+  citations jsonb NOT NULL DEFAULT '[]'::jsonb,
+  tool_calls jsonb NOT NULL DEFAULT '[]'::jsonb,
+  confidence numeric,
+  escalated boolean NOT NULL DEFAULT false,
+  model text,
+  latency_ms integer,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE public.ai_concierge_channels(
+  channel text PRIMARY KEY,
+  provider text,
+  display_name text NOT NULL,
+  status text NOT NULL,
+  inbound_enabled boolean NOT NULL DEFAULT false,
+  outbound_enabled boolean NOT NULL DEFAULT false
+);
+INSERT INTO public.ai_concierge_channels(channel,display_name,status,inbound_enabled,outbound_enabled)
+VALUES ('web','Website Concierge','active',true,true);
 CREATE TABLE public.ai_concierge_leads(
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id uuid,
@@ -202,6 +225,35 @@ BEGIN
   );
   IF NOT result.created THEN RAISE EXCEPTION 'authorized staff escalation should be created'; END IF;
 
+  PERFORM public.staynas_transition_concierge_escalation(
+    result.escalation_id,
+    '11111111-1111-4111-8111-111111111111',
+    'assigned',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    NULL
+  );
+  PERFORM public.staynas_transition_concierge_escalation(
+    result.escalation_id,
+    '11111111-1111-4111-8111-111111111111',
+    'assigned',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    NULL
+  );
+  PERFORM public.staynas_transition_concierge_escalation(
+    result.escalation_id,
+    '11111111-1111-4111-8111-111111111111',
+    'in_progress',
+    NULL,
+    NULL
+  );
+  PERFORM public.staynas_transition_concierge_escalation(
+    result.escalation_id,
+    '11111111-1111-4111-8111-111111111111',
+    'resolved',
+    NULL,
+    'Guest issue resolved.'
+  );
+
   IF (SELECT count(*) FROM public.ai_escalations) <> 2 THEN
     RAISE EXCEPTION 'active property staff can only read their own escalations';
   END IF;
@@ -268,6 +320,12 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.ai_escalations WHERE ops_task_id IS NOT NULL AND property_id='11111111-1111-4111-8111-111111111111') THEN
     RAISE EXCEPTION 'escalation must retain its operations task link';
+  END IF;
+  IF (SELECT count(*) FROM public.ai_escalation_guest_notifications WHERE delivery_status='sent') <> 3 THEN
+    RAISE EXCEPTION 'guest must receive assigned, in-progress and resolved updates through web channel';
+  END IF;
+  IF (SELECT count(*) FROM public.ai_concierge_messages WHERE model='staynas-concierge-handoff') <> 3 THEN
+    RAISE EXCEPTION 'guest web notifications must be durable conversation messages';
   END IF;
 END
 $handoff_tests$;
