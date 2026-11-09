@@ -29,12 +29,12 @@ CREATE TABLE IF NOT EXISTS public.commercial_policy_config_current (
 );
 ALTER TABLE public.commercial_policy_config_current ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.commercial_policy_config_current FORCE ROW LEVEL SECURITY;
-REVOKE ALL ON TABLE public.commercial_policy_config_current FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.commercial_policy_config_current FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT ON TABLE public.commercial_policy_config_current TO service_role;
 
 ALTER TABLE public.commercial_policy_config_versions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.commercial_policy_config_versions FORCE ROW LEVEL SECURITY;
-REVOKE ALL ON TABLE public.commercial_policy_config_versions FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.commercial_policy_config_versions FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT ON TABLE public.commercial_policy_config_versions TO service_role;
 
 CREATE INDEX IF NOT EXISTS commercial_policy_config_lookup_idx
