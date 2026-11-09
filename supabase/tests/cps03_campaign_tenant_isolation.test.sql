@@ -141,6 +141,29 @@ $test$;
 
 RESET ROLE;
 SET LOCAL ROLE service_role;
+UPDATE public.staynas_properties SET currency='USD'
+WHERE id='20000000-0000-4000-8000-000000000001';
+DO $test$
+DECLARE v_rejected boolean := false;
+BEGIN
+  BEGIN
+    PERFORM public.cps03_configure_booking_campaign(
+      '60000000-0000-4000-8000-000000000001',
+      '20000000-0000-4000-8000-000000000001',
+      '10000000-0000-4000-8000-000000000001',
+      ARRAY['30000000-0000-4000-8000-000000000001']::uuid[],
+      '50000000-0000-4000-8000-000000000001',
+      'resident-rate','Resident Rate','USD must be rejected',
+      '40000000-0000-4000-8000-000000000001'
+    );
+  EXCEPTION WHEN raise_exception THEN
+    v_rejected := true;
+  END;
+  IF NOT v_rejected THEN RAISE EXCEPTION 'Campaign offer accepted USD as property base currency'; END IF;
+END
+$test$;
+UPDATE public.staynas_properties SET currency='TZS'
+WHERE id='20000000-0000-4000-8000-000000000001';
 DO $test$
 BEGIN
   PERFORM public.cps03_configure_booking_campaign(
