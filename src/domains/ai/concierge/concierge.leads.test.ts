@@ -124,7 +124,7 @@ describe("property-scoped Concierge lead capture", () => {
     setup(PROPERTY, { id: "existing-lead", intent_level: "high" }, true);
     const result = await captureLead(validInput, PROPERTY);
     expect(result.lead_id).toBe("existing-lead");
-    expect(admin.from).toHaveBeenCalledTimes(3);
+    expect(admin.from).toHaveBeenCalledTimes(4);
   });
 
   it("rejects malformed email and invalid travel ranges", async () => {
