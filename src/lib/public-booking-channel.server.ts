@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type PublicBookingChannelContext = {
   propertyId: string;
+  organisationId: string;
   channelId: string;
   channelCode: "direct_web";
   currency: string;
@@ -52,7 +53,7 @@ export async function resolvePublicDirectBookingChannel(
 
   const { data: property, error: propertyError } = await (sb as any)
     .from("staynas_properties")
-    .select("id, status")
+    .select("id, organisation_id, status")
     .eq("id", domain.property_id)
     .maybeSingle();
   if (propertyError) throw new Error("Public booking property lookup failed");
@@ -62,6 +63,7 @@ export async function resolvePublicDirectBookingChannel(
 
   return {
     propertyId: domain.property_id,
+    organisationId: property.organisation_id,
     channelId: channel.id,
     channelCode: "direct_web",
     currency: channel.transaction_currency,
