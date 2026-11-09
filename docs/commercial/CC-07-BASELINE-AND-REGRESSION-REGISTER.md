@@ -51,7 +51,7 @@ Status: IN PROGRESS — UAT/review only; no production promotion.
 | 19 | TZS and USD isolation | TZS monthly and USD annual fixture asserts separate MRR/ARR with no conversion; cross-currency replacement rejection asserted |
 | 20 | Receivables aging | Fixture asserts current and both sides of 30-, 60- and 90-day boundaries |
 | 21 | Entitlement/subscription consistency | Drift view and founder workspace exception panel added; cancelled-subscription active-grant fixture asserts detection |
-| 22 | Reconciliation exception lifecycle | Append-only review, resolve, reopen and re-resolve fixture assertions added |
+| 22 | Reconciliation exception lifecycle | Append-only open, under-review, escalated, resolved, reopened and re-resolved transitions; fixture assertions added |
 | 23 | Report export authorization | Founder route guard and server middleware; adversarial authorization test pending |
 | 24 | Founder-only access | Server founder actor resolution and route guards; adversarial access test pending |
 | 25 | Cross-tenant isolation | Both founder queries scope customer organisation IDs and exclude founder tenant; adversarial isolation fixture pending |
