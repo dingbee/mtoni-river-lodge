@@ -74,18 +74,29 @@ create trigger cps03_booking_campaigns_shared_slug_guard
 before insert or update of property_id, slug on public.booking_campaigns
 for each row execute function public.cps03_guard_shared_booking_slug();
 
+-- SECURITY DEFINER avoids requiring anonymous users to read tenant property records.
+create or replace function public.cps03_is_property_public_active(_property_id uuid, _organisation_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = pg_catalog, public
+as $function$
+  select exists (
+    select 1 from public.staynas_properties p
+    where p.id = _property_id
+      and p.organisation_id = _organisation_id
+      and public.cps03_is_property_public_active(c.property_id, c.organisation_id)
+  )
+$function$;
+
 -- Public RLS visibility is always conditional on the property remaining active.
 drop policy if exists booking_pages_public_published_read on public.booking_pages;
 create policy booking_pages_public_published_read
 on public.booking_pages for select to anon, authenticated
 using (
   status = 'published'
-  and exists (
-    select 1 from public.staynas_properties p
-    where p.id = booking_pages.property_id
-      and p.organisation_id = booking_pages.organisation_id
-      and p.status = 'active'
-  )
+  and public.cps03_is_property_public_active(property_id, organisation_id)
 );
 
 drop policy if exists booking_campaigns_public_published_read on public.booking_campaigns;
@@ -95,12 +106,7 @@ using (
   status = 'published'
   and (starts_at is null or starts_at <= now())
   and (ends_at is null or ends_at > now())
-  and exists (
-    select 1 from public.staynas_properties p
-    where p.id = booking_campaigns.property_id
-      and p.organisation_id = booking_campaigns.organisation_id
-      and p.status = 'active'
-  )
+  and public.cps03_is_property_public_active(property_id, organisation_id)
 );
 
 drop policy if exists campaign_page_content_public_published_read on public.campaign_page_content;
@@ -110,7 +116,7 @@ using (
   status = 'published'
   and exists (
     select 1 from public.booking_campaigns c
-    join public.staynas_properties p on p.id = c.property_id and p.organisation_id = c.organisation_id
+    
     where c.id = campaign_page_content.campaign_id
       and c.property_id = campaign_page_content.property_id
       and c.status = 'published'
