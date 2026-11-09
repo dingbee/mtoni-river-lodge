@@ -58,7 +58,7 @@ export async function captureLead(input: ConciergeLeadInput, propertyId: string)
   }
 
   const interests = Array.isArray(input.interests)
-    ? input.interests.filter((value): value is string => typeof value === "string").slice(0, 12).map((value) => value.trim().slice(0, 40)).filter(Boolean)
+    ? input.interests.filter((value): value is string => typeof value === "string").slice(0, 12).map((value) => value.replace(/[\u0000-\u001F\u007F]/g, "").trim().slice(0, 40)).filter(Boolean)
     : [];
   const intent_level = start && email ? "high" : email || phone ? "medium" : "low";
   const idempotencyKey = createHash("sha256")
