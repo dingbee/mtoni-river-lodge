@@ -168,9 +168,9 @@ function FounderCommercialReporting() {
           <ReportCard title="Payment reversals" value={report.totals.reversed} description="Verified provider/payment reversals, shown separately from allocated net collections" />
           <ReportCard title="Outstanding receivables" value={report.totals.outstanding} description="Open balances across all customer invoices" />
           <ReportCard title="Unallocated collections" value={report.totals.unallocated} description="Cash received but not allocated; excluded from collected revenue" />
-          <ReportCard title="Monthly recurring revenue" value={report.totals.mrr} description="Active paid subscriptions from accepted price snapshots" />
-          <ReportCard title="Annual recurring revenue" value={report.totals.arr} description="Annualized recurring contract value from accepted snapshots" />
-          <ReportCard title="Average revenue per tenant" value={report.totals.arpt} description="Current MRR divided by active paid commercial accounts, separately by currency" />
+          <ReportCard title="Current monthly recurring revenue" value={report.totals.mrr} description="Active paid subscriptions from accepted price snapshots" />
+          <ReportCard title="Current annual recurring revenue" value={report.totals.arr} description="Annualized recurring contract value from accepted snapshots" />
+          <ReportCard title="Current ARPT" value={report.totals.arpt} description="Current MRR divided by active paid commercial accounts, separately by currency" />
           <ReportCard title="New MRR" value={report.totals.newMrr} description="Paid subscription activations; trials and quote-only contracts are excluded" />
           <ReportCard title="Expansion MRR" value={report.totals.expansionMrr} description="Positive recurring value changes on accepted replacement contracts" />
           <ReportCard title="Contraction MRR" value={report.totals.contractionMrr} description="Absolute value of negative recurring contract changes" />
