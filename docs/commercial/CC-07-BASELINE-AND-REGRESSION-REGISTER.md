@@ -45,12 +45,12 @@ Status: IN PROGRESS — UAT/review only; no production promotion.
 | 13 | ARR calculation | Exact text-backed recurring-value view; annual-term fixture still pending |
 | 14 | New MRR | Paid activation event projection; initial activation asserted in replacement fixture |
 | 15 | Expansion MRR | Atomic accepted subscription replacement and posted debit-note evidence; fixture asserts +50,000 minor units |
-| 16 | Contraction MRR | Atomic replacement path supports posted credit-note evidence; negative-delta fixture pending |
-| 17 | Churned MRR | Paid cancellation/expiry projection excludes replaced subscriptions; direct churn fixture pending |
+| 16 | Contraction MRR | Replacement fixture verifies -60,000 minor-unit contraction with posted credit-note evidence |
+| 17 | Churned MRR | Paid cancellation fixture verifies 90,000 minor units of churn and excludes replaced subscriptions |
 | 18 | Trial exclusion | Movement facts include only activate_paid events and fixed-price contracts; explicit trial fixture pending |
 | 19 | TZS and USD isolation | Currency is retained through every reporting/movement view; mixed-currency statement guard exists; explicit dual-currency fixture pending |
 | 20 | Receivables aging | Current, 1–30, 31–60, 61–90 and >90 view/UI added; exact boundary fixtures pending |
-| 21 | Entitlement/subscription consistency | Drift view and founder workspace exception panel added; cancelled-subscription active-grant fixture added |
+| 21 | Entitlement/subscription consistency | Drift view and founder workspace exception panel added; cancelled-subscription active-grant fixture asserts detection |
 | 22 | Reconciliation exception lifecycle | Append-only review, resolve, reopen and re-resolve fixture assertions added |
 | 23 | Report export authorization | Founder route guard and server middleware; adversarial authorization test pending |
 | 24 | Founder-only access | Server founder actor resolution and route guards; adversarial access test pending |
@@ -66,7 +66,7 @@ Status: IN PROGRESS — UAT/review only; no production promotion.
 
 ## Remaining acceptance work
 
-1. Revenue movement and financial classifications are implemented. Finish remaining direct fixtures for contraction, churn, annual ARR, trial exclusion, TZS/USD separation, invoice adjustments and aging boundaries.
+1. Revenue movement and financial classifications are implemented. Finish remaining direct fixtures for annual ARR, trial exclusion, TZS/USD separation, invoice adjustment categories and aging boundaries.
 2. Subscription-to-invoice and entitlement/subscription drift views and founder exception display are implemented; complete remaining fixture coverage and define the authorized remediation workflow for each exception type.
 3. Add explicit regression assertions for currency isolation, aging boundaries, trial exclusion, export authorization, founder-only access, tenant isolation, historical audit integrity and concurrent run execution.
 4. Run all 33 categories and required CI workflows on one final PR head; remediate all failures.
