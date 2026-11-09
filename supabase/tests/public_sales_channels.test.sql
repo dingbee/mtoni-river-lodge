@@ -49,6 +49,24 @@ BEGIN
     RAISE EXCEPTION 'Public reservation wrapper does not bind the accepted quote to its channel';
   END IF;
   IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='bookings' AND column_name='payment_provider_account_id'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='payment_events' AND column_name='provider_account_id'
+  ) THEN
+    RAISE EXCEPTION 'Guest payment events and bookings must persist the exact property provider account';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='public.bookings'::regclass AND conname='bookings_payment_provider_account_property_fk'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='public.payment_events'::regclass AND conname='payment_events_provider_account_fk'
+  ) THEN
+    RAISE EXCEPTION 'Guest payment provider account references must be tenant-bound';
+  END IF;
+  IF NOT EXISTS (
     SELECT 1 FROM public.staynas_public_booking_channels ch
     JOIN public.staynas_properties p ON p.id=ch.property_id
     JOIN public.staynas_property_domains d ON d.id=ch.domain_id
