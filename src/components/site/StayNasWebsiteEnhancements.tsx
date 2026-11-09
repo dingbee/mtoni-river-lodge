@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { Fragment, useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, BadgeCheck, BedDouble, Building2, CalendarCheck, ChartNoAxesCombined, Check, ChevronRight, CircleDollarSign, ClipboardCheck, CreditCard, House, Layers3, LockKeyhole, Network, ShieldCheck, Sparkles, Users, Workflow } from "lucide-react";
 
@@ -192,13 +192,13 @@ export function StayNasCommercialPage() {
                 </tr>
               </thead>
               <tbody>
-                {comparison.map((group) => <React.Fragment key={group.group}>
+                {comparison.map((group) => <Fragment key={group.group}>
                   <tr className="bg-[#f3f0e7]"><th colSpan={4} className="px-5 py-3 text-[9px] font-semibold uppercase tracking-[0.2em] text-[#9a7657]">{group.group}</th></tr>
                   {group.rows.map((row) => <tr key={row.label} className="border-t border-[#eeebe3]">
                     <th scope="row" className="px-5 py-4 text-xs font-medium text-[#526057]">{row.label}</th>
                     {row.values.map((value,index) => <td key={index} className="px-5 py-4 text-xs leading-5 text-[#68756d]">{value}</td>)}
                   </tr>)}
-                </React.Fragment>)}
+                </Fragment>)}
               </tbody>
             </table>
           </div>
