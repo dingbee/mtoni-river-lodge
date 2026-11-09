@@ -462,8 +462,8 @@ export const getFounderSubscriptionSetup = createServerFn({ method: "GET" })
     const admin=supabaseAdmin as any;
     const policies=await loadFounderSubscriptionPolicies(admin);
     const today=new Date().toISOString().slice(0,10);
-    const planVersions=policies.catalogue.planVersions.filter(v=>v.status==="active"&&(!v.effectiveFrom||v.effectiveFrom<=today)&&(!v.effectiveTo||v.effectiveTo>=today));
-    const plans=policies.catalogue.plans.filter(p=>p.status==="active");
+    const planVersions=policies.catalogue.planVersions.filter(v=>v.status==="published"&&(!v.effectiveFrom||v.effectiveFrom<=today)&&(!v.effectiveTo||v.effectiveTo>=today));
+    const plans=policies.catalogue.plans.filter(p=>p.status==="published");
     const prices=policies.pricing.planPrices.filter(p=>p.status==="active"&&(!p.effectiveFrom||p.effectiveFrom<=today)&&(!p.effectiveTo||p.effectiveTo>=today));
     const addons=policies.catalogue.addons.filter(addon=>addon.status==="active");
     const addonPrices=policies.pricing.addonPrices.filter(price=>price.status==="active"&&(!price.effectiveFrom||price.effectiveFrom<=today)&&(!price.effectiveTo||price.effectiveTo>=today));
@@ -494,8 +494,8 @@ export const createFounderCommercialSubscription = createServerFn({method:"POST"
     if(accountError||!account||account.status!=="active") throw new Error("An active commercial customer account is required.");
     const policies=await loadFounderSubscriptionPolicies(admin);
     const today=new Date().toISOString().slice(0,10);
-    const plan=policies.catalogue.plans.find(p=>p.code===data.planCode&&p.status==="active");
-    const planVersion=policies.catalogue.planVersions.find(v=>v.planCode===data.planCode&&v.version===data.planVersion&&v.status==="active"&&(!v.effectiveFrom||v.effectiveFrom<=today)&&(!v.effectiveTo||v.effectiveTo>=today));
+    const plan=policies.catalogue.plans.find(p=>p.code===data.planCode&&p.status==="published");
+    const planVersion=policies.catalogue.planVersions.find(v=>v.planCode===data.planCode&&v.version===data.planVersion&&v.status==="published"&&(!v.effectiveFrom||v.effectiveFrom<=today)&&(!v.effectiveTo||v.effectiveTo>=today));
     const composition=policies.composition.compositions.find(c=>c.planCode===data.planCode&&c.planVersion===data.planVersion&&c.status==="published"&&(!c.effectiveFrom||c.effectiveFrom<=today)&&(!c.effectiveTo||c.effectiveTo>=today));
     if(!plan||!planVersion||!composition) throw new Error("The selected plan version is not active in the published catalogue and package composition.");
     const selectedAddons=[...new Set(data.addonCodes)];
