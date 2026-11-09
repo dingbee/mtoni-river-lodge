@@ -255,7 +255,7 @@ BEGIN
   SELECT * INTO result FROM public.staynas_create_concierge_escalation(
     '11111111-1111-4111-8111-111111111111',
     '11111111-1111-4111-8111-111111111112',
-    NULL, 'human_requested', 'Guest asked for a staff member.', 0.9, 2,
+    NULL, 'web', 'human_requested', 'Guest asked for a staff member.', 0.9, 2,
     repeat('a',64)
   );
   IF result.created OR result.escalation_id IS NULL THEN
