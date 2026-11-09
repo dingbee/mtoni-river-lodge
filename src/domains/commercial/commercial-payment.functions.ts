@@ -971,18 +971,31 @@ export const reconcileCommercialProviderStatementRun=createServerFn({method:"POS
       .eq("id",data.runId).maybeSingle();
     if(runError||!run||run.status!=="open") throw new Error("Open reconciliation run was not found.");
     if(!run.provider_account_id||!run.organisation_id) throw new Error("A tenant provider account is required for automated statement matching.");
+    if (data.providerRows.some((row) => row.currency !== run.currency)) {
+      throw new Error("Provider statement currency must match the reconciliation run currency. TZS and USD cannot be reconciled together.");
+    }
     const {data:payments,error:paymentError}=await admin.from("commercial_payment_transactions").select("*")
       .eq("organisation_id",run.organisation_id).eq("provider_account_id",run.provider_account_id)
-      .eq("currency",run.currency).gte("initiated_at",run.period_start).lte("initiated_at",run.period_end);
+      .eq("currency",run.currency).gte("initiated_at",run.period_start).lt("initiated_at",run.period_end);
     if(paymentError) throw new Error("Internal payments for the reconciliation period could not be loaded.");
     const paymentIds=(payments??[]).map((payment:{id:string})=>payment.id);
     const allocations=paymentIds.length
-      ? await admin.from("commercial_payment_allocations").select("payment_id,amount_minor").in("payment_id",paymentIds)
+      ? await admin.from("commercial_payment_allocations").select("id,payment_id,amount_minor").in("payment_id",paymentIds)
       : {data:[],error:null};
     if(allocations.error) throw new Error("Payment allocations for reconciliation could not be loaded.");
+    const allocationIds=(allocations.data??[]).map((allocation:{id:string})=>allocation.id);
+    const allocationReversals=allocationIds.length
+      ? await admin.from("commercial_payment_allocation_reversals").select("allocation_id,amount_minor").in("allocation_id",allocationIds)
+      : {data:[],error:null};
+    if(allocationReversals.error) throw new Error("Allocation reversal evidence for reconciliation could not be loaded.");
+    const reversedByAllocation=new Map<string,bigint>();
+    for(const reversal of allocationReversals.data??[]){
+      reversedByAllocation.set(reversal.allocation_id,(reversedByAllocation.get(reversal.allocation_id)??0n)+BigInt(reversal.amount_minor));
+    }
     const allocatedByPayment=new Map<string,bigint>();
     for(const allocation of allocations.data??[]){
-      allocatedByPayment.set(allocation.payment_id,(allocatedByPayment.get(allocation.payment_id)??0n)+BigInt(allocation.amount_minor));
+      const net=BigInt(allocation.amount_minor)-(reversedByAllocation.get(allocation.id)??0n);
+      allocatedByPayment.set(allocation.payment_id,(allocatedByPayment.get(allocation.payment_id)??0n)+(net>0n?net:0n));
     }
     const internal=(payments??[]).map((payment:{id:string;provider_transaction_ref:string|null;provider_order_ref:string|null;amount_minor:number|string;currency:"TZS"|"USD";status:"pending"|"successful"|"failed"|"cancelled"|"partially_reversed"|"reversed"})=>{
       const amountMinor=BigInt(payment.amount_minor);
@@ -998,15 +1011,15 @@ export const reconcileCommercialProviderStatementRun=createServerFn({method:"POS
     });
     const {reconcileCommercialProviderStatement}=await import("./commercial-reconciliation-engine");
     const results=reconcileCommercialProviderStatement(internal,data.providerRows);
-    if(results.length){
-      const {error:insertError}=await admin.from("commercial_reconciliation_items").insert(results.map(item=>({
-        run_id:data.runId,item_type:item.itemType,internal_payment_id:item.internalPaymentId,
-        provider_ref:item.providerRef,expected_amount_minor:item.expectedAmountMinor,
-        observed_amount_minor:item.observedAmountMinor,expected_currency:item.expectedCurrency,
-        observed_currency:item.observedCurrency,evidence:item.evidence,
-        resolution_status:item.resolutionStatus,resolution_ref:item.resolutionRef,
-      })));
-      if(insertError) throw new Error("Reconciliation evidence could not be persisted.");
+    for (const item of results) {
+      const { error: insertError } = await admin.rpc("commercial_create_reconciliation_item", {
+        _run_id: data.runId, _item_type: item.itemType,
+        _internal_payment_id: item.internalPaymentId, _provider_ref: item.providerRef,
+        _expected_amount_minor: item.expectedAmountMinor, _observed_amount_minor: item.observedAmountMinor,
+        _expected_currency: item.expectedCurrency, _observed_currency: item.observedCurrency,
+        _evidence: item.evidence, _actor_user_id: actor.userId,
+      });
+      if (insertError) throw new Error("Reconciliation item and exception evidence could not be persisted atomically.");
     }
     await writeFinancialAudit(admin,{requestId:globalThis.crypto.randomUUID(),actorUserId:actor.userId,
       organisationId:run.organisation_id,actorRole:"founder_admin",action:"reconciliation.statement_compared",
