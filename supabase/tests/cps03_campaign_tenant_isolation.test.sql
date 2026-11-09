@@ -170,6 +170,39 @@ BEGIN
 END
 $test$;
 
+RESET ROLE;
+SET LOCAL ROLE authenticated;
+DO $test$
+BEGIN
+  BEGIN
+    UPDATE public.booking_campaigns SET name='Tenant Bypass'
+    WHERE id='60000000-0000-4000-8000-000000000001';
+    RAISE EXCEPTION 'Tenant modified published campaign configuration';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    UPDATE public.campaign_page_content SET content='{"headline":"Tenant Bypass"}'::jsonb
+    WHERE campaign_id='60000000-0000-4000-8000-000000000001';
+    RAISE EXCEPTION 'Tenant modified immutable campaign content';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    UPDATE public.campaign_offers SET active=false
+    WHERE campaign_id='60000000-0000-4000-8000-000000000001';
+    RAISE EXCEPTION 'Tenant modified published campaign offer';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    DELETE FROM public.campaign_room_selections
+    WHERE campaign_id='60000000-0000-4000-8000-000000000001';
+    RAISE EXCEPTION 'Tenant modified published campaign room selection';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+END
+$test$;
+RESET ROLE;
+SET LOCAL ROLE service_role;
+
 INSERT INTO public.booking_campaigns(id,organisation_id,property_id,slug,name,status)
 VALUES ('60000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','second-campaign','Second Campaign','draft');
 DO $test$
