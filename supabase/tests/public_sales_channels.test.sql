@@ -157,7 +157,7 @@ BEGIN
      OR pg_get_functiondef('public.validate_staynas_rate_plan_seasonal_rates()'::regprocedure)
        LIKE '%Seasonal pricing requires an explicit property currency%'
      OR pg_get_functiondef('public.validate_staynas_rate_plan_base_and_occupancy_data()'::regprocedure)
-       NOT LIKE '%SELECT upper(NEW.currency)%'
+       NOT LIKE '%v_currency := upper(COALESCE(NEW.currency%'
      OR pg_get_functiondef('public.validate_staynas_rate_plan_base_and_occupancy_data()'::regprocedure)
        LIKE '%Base rate and rate-plan currency must match the property currency%' THEN
     RAISE EXCEPTION 'SPE daily, seasonal, base and occupancy rate validation must use rate-plan transaction currency';
