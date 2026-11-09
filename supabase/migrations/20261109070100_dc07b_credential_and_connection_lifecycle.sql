@@ -120,7 +120,7 @@ DECLARE
   _to_state text;
 BEGIN
   IF _connection_id IS NULL OR _organisation_id IS NULL OR _property_id IS NULL
-     OR _actor_user_id IS NULL OR _action NOT IN ('suspend','resume','revoke')
+     OR _actor_user_id IS NULL OR _action IS NULL OR _action NOT IN ('suspend','resume','revoke')
      OR _reason IS NULL OR length(trim(_reason)) NOT BETWEEN 1 AND 1000
      OR _correlation_id IS NULL OR length(trim(_correlation_id)) NOT BETWEEN 1 AND 128
   THEN
