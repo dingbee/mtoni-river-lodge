@@ -42,7 +42,9 @@ jobs:
           CREATE TABLE public.staynas_properties (
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
             slug text NOT NULL UNIQUE,
-            status text NOT NULL DEFAULT 'setup'
+            status text NOT NULL DEFAULT 'setup',
+            currency text,
+            timezone text NOT NULL DEFAULT 'Africa/Dar_es_Salaam'
           );
           CREATE TABLE public.staynas_property_domains (
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -50,6 +52,16 @@ jobs:
             hostname text NOT NULL UNIQUE,
             verification_status text NOT NULL DEFAULT 'pending',
             verified_at timestamptz
+          );
+          CREATE TABLE public.rooms (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+            currency text NOT NULL DEFAULT 'USD'
+          );
+          CREATE TABLE public.extras (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+            currency text NOT NULL DEFAULT 'USD'
           );
           CREATE TABLE public.staynas_reservation_quotes (
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -60,10 +72,49 @@ jobs:
           CREATE TABLE public.bookings (
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
             property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
-            pricing_snapshot jsonb NOT NULL DEFAULT '{}'::jsonb
+            pricing_snapshot jsonb NOT NULL DEFAULT '{}'::jsonb,
+            currency text NOT NULL DEFAULT 'USD'
           );
+          CREATE FUNCTION public.calculate_staynas_room_pricing(uuid,uuid,date,date,integer,integer,integer)
+          RETURNS jsonb LANGUAGE sql AS $function$ SELECT '{}'::jsonb $function$;
+          CREATE FUNCTION public.resolve_staynas_published_room_pricing(
+            _property_id uuid,_room_id uuid,_check_in date,_check_out date,_adults integer,
+            _children_below_6 integer DEFAULT 0,_children_7_plus integer DEFAULT 0,
+            _rate_plan_id uuid DEFAULT NULL,_booking_timestamp timestamptz DEFAULT now()
+          ) RETURNS jsonb LANGUAGE plpgsql AS $function$
+          DECLARE v_room record; v_property_currency text; v_plan record; v_publication record; v_rate jsonb;
+          BEGIN
+            IF upper(COALESCE(v_room.currency,''))<>v_property_currency THEN
+              RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH','message','Room currency does not match property currency');
+            END IF;
+            IF upper(v_plan.currency)<>v_property_currency
+               OR upper(v_publication.currency)<>v_property_currency THEN
+              RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH','message','Published plan currency does not match property currency');
+            END IF;
+            IF v_rate->>'currency' IS DISTINCT FROM v_property_currency THEN
+              RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH');
+            END IF;
+            RETURN jsonb_build_object('pricing',public.calculate_staynas_room_pricing(
+              _property_id,_room_id,_check_in,_check_out,_adults,_children_below_6,_children_7_plus));
+          END;
+          $function$;
+          CREATE FUNCTION public.calculate_staynas_room_pricing_legacy(
+            _property_id uuid,_room_id uuid,_check_in date,_check_out date,_adults integer,
+            _children_below_6 integer DEFAULT 0,_children_7_plus integer DEFAULT 0
+          ) RETURNS jsonb LANGUAGE plpgsql AS $function$
+          DECLARE v_room record; v_property_currency text; v_occupants integer;
+          BEGIN
+            IF upper(COALESCE(v_room.currency,'')) <> v_property_currency THEN
+              RAISE EXCEPTION 'Room currency % does not match property currency %', v_room.currency, v_property_currency;
+            END IF;
+            v_occupants := _adults;
+            RETURN jsonb_build_object('currency',v_property_currency);
+          END;
+          $function$;
           SQL
       - name: Apply public sales-channel migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109120000_public_sales_channels.sql
-      - name: Verify tenant binding, RLS, grants and channel-aware quote/reservation contracts
+      - name: Apply property and transaction currency separation migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109130000_property_operating_and_transaction_currency.sql
+      - name: Verify tenant binding, RLS, grants, channel-aware quotes and currency isolation
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/public_sales_channels.test.sql
