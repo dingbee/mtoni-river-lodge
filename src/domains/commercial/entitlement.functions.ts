@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { COMMERCIAL_MODULE_CODES, commercialAddonSchema } from "./catalogue-contract";
+import { COMMERCIAL_MODULE_CODES, DIRECT_BOOKING_CAMPAIGN_STUDIO_ADDON_CODE, commercialAddonSchema } from "./catalogue-contract";
 import { commercialPackageCompositionSchema } from "./package-composition-contract";
 import { resolveEntitlement, type EntitlementResolution, type EntitlementResolutionInput } from "./entitlement-engine";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -202,9 +202,10 @@ export async function assertCommercialEntitlement(
           && "addons" in catalogueVersion.payload
           && Array.isArray((catalogueVersion.payload as { addons?: unknown }).addons)) {
           const parsedAddons = (catalogueVersion.payload as { addons: unknown[] }).addons
-            .map((addon) => commercialAddonSchema.safeParse(addon))
-            .filter((parsed) => parsed.success)
-            .map((parsed) => parsed.data);
+            .flatMap((addon) => {
+              const parsed = commercialAddonSchema.safeParse(addon);
+              return parsed.success ? [parsed.data] : [];
+            });
 
           quotaMatches = parsedAddons
             .filter((addon) => eligibleAddonCodes.includes(addon.code) && addon.status === "active")
@@ -322,6 +323,10 @@ export const recordFounderEntitlementGrant = createServerFn({ method: "POST" })
     await resolveVerifiedFounderActor(context as { supabase: unknown; userId: string });
 
     if (data.grantType === "addon_feature") {
+      if (data.addonCode === DIRECT_BOOKING_CAMPAIGN_STUDIO_ADDON_CODE
+        && !["direct_booking_pages", "campaign_studio", "campaign_analytics_advanced"].includes(data.featureCode)) {
+        throw new Error("The Direct Booking & Campaign Studio add-on cannot grant an unrelated platform capability.");
+      }
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const admin = supabaseAdmin as unknown as AdminClient;
       const { data: pointerData, error: pointerError } = await admin.from("commercial_policy_config_current")
@@ -339,9 +344,10 @@ export const recordFounderEntitlementGrant = createServerFn({ method: "POST" })
         throw new Error("The current founder commercial catalogue is invalid.");
       }
       const addons = (version.payload as { addons: unknown[] }).addons
-        .map((item) => commercialAddonSchema.safeParse(item))
-        .filter((parsed) => parsed.success)
-        .map((parsed) => parsed.data);
+        .flatMap((item) => {
+          const parsed = commercialAddonSchema.safeParse(item);
+          return parsed.success ? [parsed.data] : [];
+        });
       if (!addons.some((addon) => addon.code === data.addonCode && addon.status === "active")) {
         throw new Error("The add-on must exist and be active in the published founder catalogue before a feature grant can be issued.");
       }
