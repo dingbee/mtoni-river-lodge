@@ -27,7 +27,9 @@ type SupabaseUpdateQuery = {
   eq(column: string, value: unknown): Promise<{ data: unknown; error: unknown }>;
 };
 
-type SupabaseLike = {
+type SupabaseLike = unknown;
+
+type SupabaseClientContract = {
   rpc(name: string, args: Record<string, unknown>): Promise<{ data: unknown; error: unknown }>;
   from(table: string): {
     select(columns: string): SupabaseSelectQuery;
@@ -84,11 +86,12 @@ export async function issueLb01ServiceCredential(
   connectionId: string,
   expiresAt: string,
 ): Promise<{ credentialId: string; token: string; expiresAt: string }> {
+  const client = callerClient as SupabaseClientContract;
   const prefix = hex(crypto.getRandomValues(new Uint8Array(12)));
   const secretBytes = crypto.getRandomValues(new Uint8Array(32));
   const secret = base64Url(secretBytes);
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", toArrayBuffer(secretBytes)));
-  const { data, error } = await callerClient.rpc("lb01_issue_product_service_credential", {
+  const { data, error } = await client.rpc("lb01_issue_product_service_credential", {
     _connection_id: connectionId,
     _prefix: prefix,
     _hash: `\\x${hex(digest)}`,
@@ -103,7 +106,8 @@ export async function revokeLb01ServiceCredential(
   credentialId: string,
   reason: string,
 ): Promise<boolean> {
-  const { data, error } = await callerClient.rpc("lb01_revoke_product_service_credential", {
+  const client = callerClient as SupabaseClientContract;
+  const { data, error } = await client.rpc("lb01_revoke_product_service_credential", {
     _credential_id: credentialId,
     _reason: reason.slice(0, 500),
   });
@@ -120,12 +124,13 @@ export async function authenticateLb01ServiceRequest(
   supabaseAdmin: SupabaseLike,
   request: Request,
 ): Promise<{ credentialId: string; connection: Record<string, unknown> }> {
+  const client = supabaseAdmin as SupabaseClientContract;
   const authorization = request.headers.get("authorization") ?? "";
   const token = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
   const parsed = parseCredentialToken(token);
   if (!parsed) throw new Error("Unauthorized LB-01 service request.");
 
-  const { data: credential, error: credentialError } = await supabaseAdmin
+  const { data: credential, error: credentialError } = await client
     .from("product_service_credentials")
     .select("id, connection_id, credential_hash, status, expires_at")
     .eq("credential_prefix", parsed.prefix)
@@ -148,7 +153,8 @@ export async function authenticateLb01ServiceRequest(
     .select("id, integration_tenant_id, integration_property_id, local_organisation_id, local_property_id, remote_tenant_id, remote_property_id, remote_product, status, correlation_id")
     .eq("id", credentialRow.connection_id)
     .maybeSingle();
-  if (connectionError || !connection || connection.status !== "active") {
+  const connectionRow = connection as Record<string, unknown> | null;
+  if (connectionError || !connectionRow || connectionRow.status !== "active") {
     throw new Error("Unauthorized LB-01 service request.");
   }
 
@@ -167,15 +173,15 @@ export async function authenticateLb01ServiceRequest(
   if (!valid) throw new Error("Unauthorized LB-01 service request.");
 
   const nonceExpiry = new Date(Math.min(Number(timestamp) + 300, Math.floor(Date.now() / 1000) + 300) * 1000).toISOString();
-  const { data: claimed, error: nonceError } = await supabaseAdmin.rpc("lb01_claim_service_nonce", {
+  const { data: claimed, error: nonceError } = await client.rpc("lb01_claim_service_nonce", {
     _credential_id: credentialRow.id,
     _nonce: nonce,
     _expires_at: nonceExpiry,
   });
   if (nonceError || claimed !== true) throw new Error("Replay or invalid LB-01 service nonce.");
 
-  void supabaseAdmin.from("product_service_credentials")
+  void client.from("product_service_credentials")
     .update({ last_used_at: new Date().toISOString() }).eq("id", credentialRow.id);
 
-  return { credentialId: credentialRow.id, connection };
+  return { credentialId: credentialRow.id, connection: connectionRow };
 }
