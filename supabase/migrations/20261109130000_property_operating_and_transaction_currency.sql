@@ -411,6 +411,7 @@ $old$;
 $new$;
   v_updated:=replace(v_updated,v_old,v_new);
   v_updated:=replace(v_updated,'Component currency differs from property currency','Component currency differs from quote transaction currency');
+  v_updated:=replace(v_updated,'Property currency remains the sole quote currency','The resolved transaction currency remains the sole quote currency');
   v_updated:=replace(v_updated,'AND (p.currency IS NULL OR upper(p.currency)=v_currency)','AND upper(p.currency)=v_currency');
   v_updated:=replace(v_updated,'WHERE f.property_id=_property_id AND f.active=true','WHERE f.property_id=_property_id AND f.active=true AND upper(f.currency)=v_currency');
   v_old:=$old$    IF v_fee.currency IS NOT NULL AND upper(v_fee.currency)<>v_currency THEN
@@ -445,5 +446,24 @@ $old$;
   EXECUTE v_updated;
 END;
 $spe05_transaction_currency$;
+
+DO $booking_quote_currency_message$
+DECLARE
+  v_signature regprocedure;
+  v_definition text;
+  v_updated text;
+BEGIN
+  v_signature:=to_regprocedure('public.calculate_staynas_booking_quote(uuid,uuid,date,date,integer,integer,integer,jsonb)');
+  IF v_signature IS NULL THEN RAISE EXCEPTION 'Canonical booking quote calculator is missing'; END IF;
+  v_definition:=pg_get_functiondef(v_signature);
+  v_updated:=replace(v_definition,
+    'Extra currency % does not match property currency %',
+    'Extra currency % does not match booking transaction currency %');
+  IF v_updated=v_definition THEN
+    RAISE EXCEPTION 'Booking quote currency diagnostic did not update';
+  END IF;
+  EXECUTE v_updated;
+END;
+$booking_quote_currency_message$;
 
 COMMIT;
