@@ -276,7 +276,8 @@ export async function handleConciergeChat(
       citations: [],
     });
   }
-  const parsed = tryJson<{ answer?: string; confidence?: number; escalate?: boolean; citations?: any[] }>(raw) ?? {};
+  const parsedValue = tryJson<{ answer?: string; confidence?: number; escalate?: boolean; citations?: unknown }>(raw);
+  const parsed = parsedValue && typeof parsedValue === "object" && !Array.isArray(parsedValue) ? parsedValue : {};
   const malformedModelResponse = typeof parsed.answer !== "string" || !parsed.answer.trim();
   const answer = !malformedModelResponse
     ? parsed.answer!.trim().slice(0, 6000)
@@ -284,7 +285,8 @@ export async function handleConciergeChat(
   // Only expose citations explicitly selected by the model and validated against
   // this property's retrieved evidence. Never attach every retrieved row by default.
   const citationKeys = new Set<string>();
-  const citations: ConciergeCitation[] = (parsed.citations ?? []).flatMap((candidate) => {
+  const citationCandidates = Array.isArray(parsed.citations) ? parsed.citations : [];
+  const citations: ConciergeCitation[] = citationCandidates.flatMap((candidate: any) => {
     if (!candidate || typeof candidate.source_id !== "string") return [];
     const source = retrievedCitations.find((item) =>
       item.source_id === candidate.source_id &&
