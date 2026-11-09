@@ -1,7 +1,8 @@
 -- Founder-managed policy configuration authorization, persistence and audit tests.
 -- Runs after the CC-03 lifecycle and founder-policy configuration migrations.
 BEGIN;
-
+SELECT plan(1);
+SELECT lives_ok($body$
 DO $test$
 DECLARE
   v_user uuid := '71000000-0000-4000-8000-000000000001';
@@ -128,5 +129,6 @@ BEGIN
   END;
 END;
 $test$;
-
+$body$, 'CC-03 founder policy configuration authorization and audit contract executes without exceptions');
+SELECT * FROM finish();
 ROLLBACK;
