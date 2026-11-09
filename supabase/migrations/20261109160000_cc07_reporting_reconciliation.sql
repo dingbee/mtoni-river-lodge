@@ -827,3 +827,25 @@ GROUP BY p.organisation_id,p.account_id,date_trunc('month',r.verified_at),p.curr
 ALTER VIEW public.commercial_revenue_reversal_facts SET (security_invoker=true);
 REVOKE ALL ON public.commercial_revenue_reversal_facts FROM PUBLIC,anon,authenticated;
 GRANT SELECT ON public.commercial_revenue_reversal_facts TO service_role;
+
+
+-- Founder workspace money projections return NUMERIC(20,0) as text to prevent
+-- IEEE-754 precision loss in the legacy control-centre UI.
+CREATE OR REPLACE VIEW public.commercial_founder_invoice_workspace_facts AS
+SELECT r.id,r.organisation_id,r.account_id,r.subscription_id,r.invoice_number,r.currency,
+  r.status,r.issued_at,r.due_at,r.total_minor::numeric(20,0)::text AS total_minor,
+  r.amount_paid_minor::numeric(20,0)::text AS amount_paid_minor,
+  r.outstanding_minor::numeric(20,0)::text AS outstanding_minor,r.is_overdue
+FROM public.commercial_invoice_receivables r;
+ALTER VIEW public.commercial_founder_invoice_workspace_facts SET (security_invoker=true);
+REVOKE ALL ON public.commercial_founder_invoice_workspace_facts FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.commercial_founder_invoice_workspace_facts TO service_role;
+
+CREATE OR REPLACE VIEW public.commercial_founder_payment_workspace_facts AS
+SELECT p.id,p.organisation_id,p.account_id,p.invoice_id,p.provider,p.provider_transaction_ref,
+  p.amount_minor::numeric(20,0)::text AS amount_minor,p.currency,p.payment_method,p.status,
+  p.confirmed_at,p.created_at
+FROM public.commercial_payment_transactions p;
+ALTER VIEW public.commercial_founder_payment_workspace_facts SET (security_invoker=true);
+REVOKE ALL ON public.commercial_founder_payment_workspace_facts FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.commercial_founder_payment_workspace_facts TO service_role;
