@@ -71,6 +71,20 @@ function CampaignStudioPage() {
   const [headline, setHeadline] = useState("");
   const [description, setDescription] = useState("");
   const [highlights, setHighlights] = useState("");
+  const [subheadline, setSubheadline] = useState("");
+  const [inclusionsText, setInclusionsText] = useState("");
+  const [termsText, setTermsText] = useState("");
+  const [faqsText, setFaqsText] = useState("");
+  const [ctaLabel, setCtaLabel] = useState("Book this offer");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactWhatsApp, setContactWhatsApp] = useState("");
+  const [seoTitle, setSeoTitle] = useState("");
+  const [seoDescription, setSeoDescription] = useState("");
+  const [seoImageUrl, setSeoImageUrl] = useState("");
+  const [socialTitle, setSocialTitle] = useState("");
+  const [socialDescription, setSocialDescription] = useState("");
+  const [socialImageUrl, setSocialImageUrl] = useState("");
   const [roomIds, setRoomIds] = useState<string[]>([]);
   const [publicationId, setPublicationId] = useState("");
   const [offerCode, setOfferCode] = useState("resident-rate");
@@ -107,10 +121,18 @@ function CampaignStudioPage() {
     mutationFn: () => {
       if (!selectedId) throw new Error("Select a campaign first.");
       return saveFn({ data: { campaignId: selectedId, content: {
-        headline, subheadline: "", description,
+        headline, subheadline, description,
         highlights: highlights.split("\n").map((item) => item.trim()).filter(Boolean),
-        inclusions: [], terms: [], faqs: [], ctaLabel: "Book this offer",
-        contact: {}, seo: { title: headline, description },
+        inclusions: inclusionsText.split("\n").map((item) => item.trim()).filter(Boolean),
+        terms: termsText.split("\n").map((item) => item.trim()).filter(Boolean),
+        faqs: faqsText.split("\n").map((line) => {
+          const [question, ...answerParts] = line.split("|");
+          return { question: question?.trim() ?? "", answer: answerParts.join("|").trim() };
+        }).filter((item) => item.question && item.answer),
+        ctaLabel,
+        contact: { email: contactEmail || undefined, phone: contactPhone || undefined, whatsapp: contactWhatsApp || undefined },
+        seo: { title: seoTitle, description: seoDescription, imageUrl: seoImageUrl || undefined },
+        social: { title: socialTitle, description: socialDescription, imageUrl: socialImageUrl || undefined },
       } } });
     },
     onSuccess: () => { setPreview(null); toast.success("Draft content version saved."); },
@@ -167,7 +189,7 @@ function CampaignStudioPage() {
               {campaigns.isLoading && <p className="text-sm text-muted-foreground">Loading campaigns…</p>}
               {campaigns.isError && <p className="text-sm text-destructive">Campaigns could not be loaded.</p>}
               {!campaigns.isLoading && !campaigns.data?.length && <p className="text-sm text-muted-foreground">No campaigns have been created for this property.</p>}
-              {campaigns.data?.map((campaign) => <button key={campaign.id} type="button" onClick={() => { setSelectedId(campaign.id); setHeadline(campaign.name); setDescription(""); setHighlights(""); setStartsAtDate(dateInPropertyTimezone(campaign.starts_at, resources.data?.timezone ?? "UTC")); setEndsAtDate(dateInPropertyTimezone(campaign.ends_at, resources.data?.timezone ?? "UTC")); setPreview(null); }} className={`flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left ${selectedId === campaign.id ? "border-primary bg-primary/5" : "hover:bg-muted/50"}`}>
+              {campaigns.data?.map((campaign) => <button key={campaign.id} type="button" onClick={() => { setSelectedId(campaign.id); setHeadline(campaign.name); setDescription(""); setHighlights(""); setSubheadline(""); setInclusionsText(""); setTermsText(""); setFaqsText(""); setStartsAtDate(dateInPropertyTimezone(campaign.starts_at, resources.data?.timezone ?? "UTC")); setEndsAtDate(dateInPropertyTimezone(campaign.ends_at, resources.data?.timezone ?? "UTC")); setPreview(null); }} className={`flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left ${selectedId === campaign.id ? "border-primary bg-primary/5" : "hover:bg-muted/50"}`}>
                 <span className="min-w-0"><span className="block truncate text-sm font-medium">{campaign.name}</span><span className="block truncate text-xs text-muted-foreground">/{campaign.slug}</span></span>
                 <Badge variant={campaign.status === "published" ? "default" : "secondary"}>{campaign.status}</Badge>
               </button>)}
@@ -181,6 +203,26 @@ function CampaignStudioPage() {
             <div className="space-y-1.5"><Label htmlFor="campaign-headline">Hero headline</Label><Input id="campaign-headline" value={headline} onChange={(event) => setHeadline(event.target.value)} maxLength={160} /></div>
             <div className="space-y-1.5"><Label htmlFor="campaign-description">Description</Label><Textarea id="campaign-description" value={description} onChange={(event) => setDescription(event.target.value)} rows={4} maxLength={5000} /></div>
             <div className="space-y-1.5"><Label htmlFor="campaign-highlights">Highlights (one per line)</Label><Textarea id="campaign-highlights" value={highlights} onChange={(event) => setHighlights(event.target.value)} rows={3} /></div>
+            <div className="space-y-1.5"><Label htmlFor="campaign-subheadline">Hero subheadline</Label><Input id="campaign-subheadline" value={subheadline} onChange={(event) => setSubheadline(event.target.value)} maxLength={240} /></div>
+            <div className="space-y-1.5"><Label htmlFor="campaign-inclusions">Inclusions (one per line)</Label><Textarea id="campaign-inclusions" value={inclusionsText} onChange={(event) => setInclusionsText(event.target.value)} rows={3} /></div>
+            <div className="space-y-1.5"><Label htmlFor="campaign-terms">Terms and conditions (one per line)</Label><Textarea id="campaign-terms" value={termsText} onChange={(event) => setTermsText(event.target.value)} rows={3} /></div>
+            <div className="space-y-1.5"><Label htmlFor="campaign-faqs">FAQs (one per line: question | answer)</Label><Textarea id="campaign-faqs" value={faqsText} onChange={(event) => setFaqsText(event.target.value)} rows={4} placeholder="Is breakfast included? | Yes, breakfast is included." /></div>
+            <div className="space-y-1.5"><Label htmlFor="campaign-cta">Booking CTA label</Label><Input id="campaign-cta" value={ctaLabel} onChange={(event) => setCtaLabel(event.target.value)} maxLength={60} /></div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="space-y-1.5"><Label htmlFor="campaign-email">Contact email</Label><Input id="campaign-email" type="email" value={contactEmail} onChange={(event) => setContactEmail(event.target.value)} /></div>
+              <div className="space-y-1.5"><Label htmlFor="campaign-phone">Contact phone</Label><Input id="campaign-phone" value={contactPhone} onChange={(event) => setContactPhone(event.target.value)} /></div>
+              <div className="space-y-1.5"><Label htmlFor="campaign-whatsapp">WhatsApp</Label><Input id="campaign-whatsapp" value={contactWhatsApp} onChange={(event) => setContactWhatsApp(event.target.value)} /></div>
+            </div>
+            <div className="border-t pt-3"><p className="mb-2 text-sm font-medium">SEO metadata</p>
+              <div className="space-y-1.5"><Label htmlFor="campaign-seo-title">SEO title</Label><Input id="campaign-seo-title" value={seoTitle} onChange={(event) => setSeoTitle(event.target.value)} maxLength={160} /></div>
+              <div className="mt-2 space-y-1.5"><Label htmlFor="campaign-seo-description">SEO description</Label><Textarea id="campaign-seo-description" value={seoDescription} onChange={(event) => setSeoDescription(event.target.value)} rows={2} maxLength={320} /></div>
+              <div className="mt-2 space-y-1.5"><Label htmlFor="campaign-seo-image">SEO image URL</Label><Input id="campaign-seo-image" type="url" value={seoImageUrl} onChange={(event) => setSeoImageUrl(event.target.value)} /></div>
+            </div>
+            <div className="border-t pt-3"><p className="mb-2 text-sm font-medium">Social sharing metadata</p>
+              <div className="space-y-1.5"><Label htmlFor="campaign-social-title">Social title</Label><Input id="campaign-social-title" value={socialTitle} onChange={(event) => setSocialTitle(event.target.value)} maxLength={160} /></div>
+              <div className="mt-2 space-y-1.5"><Label htmlFor="campaign-social-description">Social description</Label><Textarea id="campaign-social-description" value={socialDescription} onChange={(event) => setSocialDescription(event.target.value)} rows={2} maxLength={320} /></div>
+              <div className="mt-2 space-y-1.5"><Label htmlFor="campaign-social-image">Social image URL</Label><Input id="campaign-social-image" type="url" value={socialImageUrl} onChange={(event) => setSocialImageUrl(event.target.value)} /></div>
+            </div>
             <Button onClick={() => saveContent.mutate()} disabled={saveContent.isPending || headline.trim().length < 2}><Save className="mr-2 h-4 w-4" /> Save content draft</Button>
             <div className="border-t pt-4"><div className="mb-3 flex items-center gap-2 font-medium"><Settings2 className="h-4 w-4" /> Campaign schedule</div>
               <div className="grid gap-3 sm:grid-cols-2">
