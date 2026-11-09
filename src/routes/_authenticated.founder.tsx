@@ -105,7 +105,7 @@ function FounderWorkspace() {
             <thead className="bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="px-4 py-3">Tenant / account</th><th className="px-4 py-3">Plan</th><th className="px-4 py-3">Subscription</th><th className="px-4 py-3">Properties</th><th className="px-4 py-3">Entitlements</th><th className="px-4 py-3">Outstanding</th><th className="px-4 py-3">Last payment</th><th className="px-4 py-3">Health</th></tr></thead>
             <tbody className="divide-y">
               {tenants.map((tenant) => <tr key={tenant.id} className="hover:bg-muted/30">
-                <td className="px-4 py-3"><p className="font-medium">{tenant.name}</p><p className="text-xs text-muted-foreground">{tenant.slug}</p></td>
+                <td className="px-4 py-3"><a href={`/founder/tenants/${tenant.id}`} className="font-medium hover:underline">{tenant.name}</a><p className="text-xs text-muted-foreground">{tenant.slug}</p></td>
                 <td className="px-4 py-3">{tenant.subscription ? label(tenant.subscription.planCode) : "Not assigned"}</td>
                 <td className="px-4 py-3"><span className="rounded-full bg-muted px-2 py-1 text-xs">{tenant.subscription ? label(tenant.subscription.status) : "Not provisioned"}</span></td>
                 <td className="px-4 py-3 tabular-nums">{tenant.propertyCount} / {tenant.subscription?.propertyAllowance ?? "—"}</td>

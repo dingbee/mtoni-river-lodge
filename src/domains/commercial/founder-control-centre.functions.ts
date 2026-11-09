@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { resolveVerifiedFounderActor } from "./subscription.functions";
 
@@ -115,5 +116,65 @@ export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
         totalInvoicedByCurrency: invoicedByCurrency, collectedByCurrency, outstandingByCurrency, mrrArrByCurrency: recurringByCurrency,
       },
       tenants: tenantRows, recentEvents,
+    };
+  });
+
+export const getFounderTenantCommercialProfile = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ organisationId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await resolveVerifiedFounderActor(context as { supabase: unknown; userId: string });
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin = supabaseAdmin as any;
+    const { data: organisation, error: organisationError } = await admin.from("staynas_organisations")
+      .select("id,slug,name,status,created_at,updated_at").eq("id", data.organisationId).maybeSingle();
+    if (organisationError || !organisation) throw new Error("Tenant commercial profile was not found.");
+    const [accountResult, propertiesResult] = await Promise.all([
+      admin.from("commercial_accounts").select("id,organisation_id,status,created_at,updated_at").eq("organisation_id", data.organisationId).maybeSingle(),
+      admin.from("staynas_properties").select("id,name,slug,code,status,currency,timezone,created_at").eq("organisation_id", data.organisationId).order("created_at", { ascending: true }),
+    ]);
+    if (accountResult.error || propertiesResult.error) throw new Error("Tenant identity and property records could not be loaded.");
+    const account = accountResult.data as Row | null;
+    if (!account) return { organisation, account: null, properties: rows(propertiesResult.data), subscriptions: [], subscriptionEvents: [], invoices: [], payments: [], assignments: [], decisions: [], notifications: [] };
+    const [subscriptionsResult, invoicesResult, paymentsResult, assignmentsResult, decisionsResult, notificationsResult] = await Promise.all([
+      admin.from("commercial_subscriptions").select("*").eq("account_id", account.id).order("created_at", { ascending: false }),
+      admin.from("commercial_invoice_receivables").select("*").eq("organisation_id", data.organisationId).order("issued_at", { ascending: false }),
+      admin.from("commercial_payment_transactions").select("*").eq("organisation_id", data.organisationId).order("created_at", { ascending: false }),
+      admin.from("commercial_entitlement_assignments").select("*").eq("organisation_id", data.organisationId).order("created_at", { ascending: false }),
+      admin.from("commercial_entitlement_decisions").select("*").eq("organisation_id", data.organisationId).order("decided_at", { ascending: false }).limit(100),
+      admin.from("commercial_financial_notifications").select("id,invoice_id,payment_id,notification_type,recipient_email,status,provider_message_ref,attempted_at,sent_at,created_at").eq("organisation_id", data.organisationId).order("created_at", { ascending: false }).limit(100),
+    ]);
+    const relatedErrors = [subscriptionsResult, invoicesResult, paymentsResult, assignmentsResult, decisionsResult, notificationsResult].filter((result) => result.error);
+    if (relatedErrors.length) throw new Error("Tenant commercial history could not be loaded.");
+    const subscriptions = rows(subscriptionsResult.data);
+    const subscriptionIds = subscriptions.map((item) => String(item.id));
+    const invoiceIds = rows(invoicesResult.data).map((item) => String(item.id));
+    const paymentIds = rows(paymentsResult.data).map((item) => String(item.id));
+    const [subscriptionEventsResult, commercialAuditResult, financialAuditResult] = await Promise.all([
+      subscriptionIds.length ? admin.from("commercial_subscription_events").select("*").in("subscription_id", subscriptionIds).order("occurred_at", { ascending: false }) : Promise.resolve({ data: [], error: null }),
+      admin.from("commercial_audit_events").select("*").order("occurred_at", { ascending: false }).limit(300),
+      admin.from("commercial_financial_audit_events").select("*").order("occurred_at", { ascending: false }).limit(300),
+    ]);
+    if (subscriptionEventsResult.error || commercialAuditResult.error || financialAuditResult.error) {
+      throw new Error("Tenant commercial audit history could not be loaded.");
+    }
+    const auditIds = new Set([...subscriptionIds, ...invoiceIds, ...paymentIds, String(account.id), data.organisationId]);
+    const auditEvents = [
+      ...rows(commercialAuditResult.data).filter((event) => auditIds.has(String(event.resource_ref))),
+      ...rows(financialAuditResult.data).filter((event) => auditIds.has(String(event.resource_ref))),
+    ].sort((a, b) => Date.parse(String(b.occurred_at ?? "")) - Date.parse(String(a.occurred_at ?? "")));
+    return {
+      organisation,
+      account,
+      properties: rows(propertiesResult.data),
+      subscriptions,
+      subscriptionEvents: rows(subscriptionEventsResult.data),
+      invoices: rows(invoicesResult.data),
+      payments: rows(paymentsResult.data),
+      assignments: rows(assignmentsResult.data),
+      decisions: rows(decisionsResult.data),
+      notifications: rows(notificationsResult.data),
+      auditEvents,
     };
   });
