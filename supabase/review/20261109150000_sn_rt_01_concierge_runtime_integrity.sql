@@ -309,6 +309,10 @@ ALTER TABLE public.ai_escalation_guest_notifications ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.ai_escalation_guest_notifications FROM PUBLIC, anon;
 GRANT SELECT ON public.ai_escalation_guest_notifications TO authenticated;
 GRANT ALL ON public.ai_escalation_guest_notifications TO service_role;
+REVOKE TRUNCATE, REFERENCES, TRIGGER ON TABLE public.ai_escalation_guest_notifications
+  FROM anon, authenticated, service_role;
+DROP POLICY IF EXISTS "Escalation guest notifications read in active property"
+  ON public.ai_escalation_guest_notifications;
 CREATE POLICY "Escalation guest notifications read in active property"
   ON public.ai_escalation_guest_notifications FOR SELECT TO authenticated
   USING (public.staynas_ai_property_in_active_context(
