@@ -90,6 +90,22 @@ as $function$
   )
 $function$;
 
+create or replace function public.cps03_is_campaign_property_public(_property_id uuid, _organisation_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = pg_catalog, public
+as $function$
+  select exists (
+    select 1 from public.staynas_properties p
+    where p.id = _property_id
+      and p.organisation_id = _organisation_id
+      and p.status = 'active'
+      and p.currency <> 'USD'
+  )
+$function$;
+
 -- Public RLS visibility is always conditional on the property remaining active.
 drop policy if exists booking_pages_public_published_read on public.booking_pages;
 create policy booking_pages_public_published_read
@@ -106,7 +122,7 @@ using (
   status = 'published'
   and (starts_at is null or starts_at <= now())
   and (ends_at is null or ends_at > now())
-  and public.cps03_is_property_public_active(property_id, organisation_id)
+  and public.cps03_is_campaign_property_public(property_id, organisation_id)
 );
 
 drop policy if exists campaign_page_content_public_published_read on public.campaign_page_content;
@@ -122,7 +138,7 @@ using (
       and c.status = 'published'
       and (c.starts_at is null or c.starts_at <= now())
       and (c.ends_at is null or c.ends_at > now())
-      and public.cps03_is_property_public_active(c.property_id, c.organisation_id)
+      and public.cps03_is_campaign_property_public(c.property_id, c.organisation_id)
   )
 );
 
@@ -137,7 +153,7 @@ using (
       and c.status = 'published'
       and (c.starts_at is null or c.starts_at <= now())
       and (c.ends_at is null or c.ends_at > now())
-      and public.cps03_is_property_public_active(c.property_id, c.organisation_id)
+      and public.cps03_is_campaign_property_public(c.property_id, c.organisation_id)
   )
 );
 
@@ -153,7 +169,7 @@ using (
       and c.status = 'published'
       and (c.starts_at is null or c.starts_at <= now())
       and (c.ends_at is null or c.ends_at > now())
-      and public.cps03_is_property_public_active(c.property_id, c.organisation_id)
+      and public.cps03_is_campaign_property_public(c.property_id, c.organisation_id)
   )
 );
 
