@@ -161,8 +161,12 @@ REVOKE TRUNCATE, REFERENCES, TRIGGER ON TABLE
   public.extras,
   public.ai_concierge_channels,
   public.ops_tasks,
-  public.notifications
-FROM anon, authenticated;
+  public.notifications,
+  public.ai_concierge_sessions,
+  public.ai_concierge_messages,
+  public.ai_concierge_leads,
+  public.ai_escalations
+FROM anon, authenticated, service_role;
 
 DROP POLICY IF EXISTS "Escalations read in active property" ON public.ai_escalations;
 DROP POLICY IF EXISTS "Escalations manage in active property" ON public.ai_escalations;
