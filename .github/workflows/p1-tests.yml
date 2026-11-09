@@ -10,7 +10,10 @@ on:
       - feat/finance-*
       - feat/spe-03-*
       - feat/spe-04-*
+      - feat/spe-07-*
+      - feat/spe-08-*
       - feat/cc-03-*
+      - feat/cc03-founder-*
       - feat/lb-01-*
       - spe-02/**
   pull_request:
@@ -60,13 +63,15 @@ jobs:
           src/domains/commercial/commercial-api-contract.test.ts
           src/domains/commercial/subscription-lifecycle-contract.test.ts
           src/domains/commercial/subscription.authorization.test.ts
+          src/domains/commercial/founder-policy.functions.test.ts
+          src/domains/marketing/demo-requests.test.ts
           src/domains/integrations/lb01.contracts.test.ts
       # TanStack Start generates routeTree.gen.ts during the Vite build.
       - name: Generate routes and verify production build
         run: bun run build
       - name: TypeScript verification
         run: bunx tsc --noEmit
-      - name: Finance, shared and integration changed-file lint
+      - name: Finance, shared, StayNas website and integration changed-file lint
         run: >-
           bunx eslint
           src/domains/finance/finance.functions.ts
@@ -116,6 +121,25 @@ jobs:
           src/domains/commercial/subscription-lifecycle-contract.test.ts
           src/domains/commercial/subscription.functions.ts
           src/domains/commercial/subscription.authorization.test.ts
+          src/domains/commercial/founder-policy.functions.ts
+          src/domains/commercial/founder-policy.functions.test.ts
+          src/routes/_authenticated.admin.commercial.tsx
+          src/components/os/AdminSidebar.tsx
+          src/components/os/nav-config.ts
+          src/components/site/StayNasProductSite.tsx
+          src/components/site/StayNasWebsiteEnhancements.tsx
+          src/domains/marketing/demo-requests.ts
+          src/domains/marketing/demo-requests.functions.ts
+          src/domains/marketing/demo-requests.test.ts
+          src/routes/api/public/staynas-demo-request.ts
+          src/routes/_authenticated.admin.website-demo-requests.tsx
+          src/routes/modules.tsx
+          src/routes/product-tour.tsx
+          src/routes/architecture.tsx
+          src/routes/security.tsx
+          src/routes/pricing.tsx
+          src/routes/robots[.]txt.ts
+          src/routes/sitemap[.]xml.ts
           src/domains/integrations/lb01.contracts.ts
           src/domains/integrations/lb01.contracts.test.ts
           --rule 'prettier/prettier: off'
