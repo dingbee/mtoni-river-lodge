@@ -153,6 +153,7 @@ DECLARE
   v_org uuid := '97000000-0000-4000-8000-000000000001';
   v_run uuid;
   v_item uuid;
+  v_currency_item uuid;
   v_event uuid;
   v_provider uuid;
   v_run_payload jsonb;
@@ -197,19 +198,19 @@ BEGIN
 
   v_import := public.commercial_import_reconciliation_statement(
     v_replayed_id,
-    '[{"item_type":"matched","internal_payment_id":null,"provider_ref":"cc07-statement-row-1","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"TZS","evidence":{"test":true},"resolution_status":"resolved","resolution_ref":"exact_match"}]'::jsonb,
+    '[{"item_type":"matched","internal_payment_id":null,"provider_ref":"cc07-statement-row-1","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"TZS","evidence":{"test":true},"resolution_status":"resolved","resolution_ref":"exact_match"},{"item_type":"currency_mismatch","internal_payment_id":null,"provider_ref":"cc07-statement-row-2","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"USD","evidence":{"test":true},"resolution_status":"unresolved","resolution_ref":null}]'::jsonb,
     NULL
   );
-  IF (v_import->>'findingCount')::integer <> 1 OR (v_import->>'replayed')::boolean IS DISTINCT FROM false THEN
+  IF (v_import->>'findingCount')::integer <> 2 OR (v_import->>'replayed')::boolean IS DISTINCT FROM false THEN
     RAISE EXCEPTION 'First provider statement import was not committed';
   END IF;
   v_import := public.commercial_import_reconciliation_statement(
     v_replayed_id,
-    '[{"item_type":"matched","internal_payment_id":null,"provider_ref":"cc07-statement-row-1","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"TZS","evidence":{"test":true},"resolution_status":"resolved","resolution_ref":"exact_match"}]'::jsonb,
+    '[{"item_type":"matched","internal_payment_id":null,"provider_ref":"cc07-statement-row-1","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"TZS","evidence":{"test":true},"resolution_status":"resolved","resolution_ref":"exact_match"},{"item_type":"currency_mismatch","internal_payment_id":null,"provider_ref":"cc07-statement-row-2","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"USD","evidence":{"test":true},"resolution_status":"unresolved","resolution_ref":null}]'::jsonb,
     NULL
   );
   SELECT count(*) INTO v_item_count FROM public.commercial_reconciliation_items WHERE run_id=v_replayed_id;
-  IF (v_import->>'replayed')::boolean IS DISTINCT FROM true OR v_item_count <> 1 THEN
+  IF (v_import->>'replayed')::boolean IS DISTINCT FROM true OR v_item_count <> 2 THEN
     RAISE EXCEPTION 'Repeated statement import created duplicate reconciliation items';
   END IF;
   v_event := public.commercial_record_reconciliation_item_event(
@@ -267,10 +268,14 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'Reconciliation run did not close after all exceptions were resolved';
   END IF;
+  SELECT id INTO v_currency_item FROM public.commercial_reconciliation_items
+    WHERE run_id=v_replayed_id AND item_type='currency_mismatch';
+  IF v_currency_item IS NULL THEN RAISE EXCEPTION 'Mixed-currency statement row was not recorded as a currency mismatch'; END IF;
+  PERFORM public.commercial_resolve_reconciliation_item(v_currency_item,'cc07-currency-mismatch-reviewed',NULL);
   PERFORM public.commercial_complete_reconciliation_run(v_replayed_id,NULL);
   v_import := public.commercial_import_reconciliation_statement(
     v_replayed_id,
-    '[{"item_type":"matched","internal_payment_id":null,"provider_ref":"cc07-statement-row-1","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"TZS","evidence":{"test":true},"resolution_status":"resolved","resolution_ref":"exact_match"}]'::jsonb,
+    '[{"item_type":"matched","internal_payment_id":null,"provider_ref":"cc07-statement-row-1","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"TZS","evidence":{"test":true},"resolution_status":"resolved","resolution_ref":"exact_match"},{"item_type":"currency_mismatch","internal_payment_id":null,"provider_ref":"cc07-statement-row-2","expected_amount_minor":10000,"observed_amount_minor":10000,"expected_currency":"TZS","observed_currency":"USD","evidence":{"test":true},"resolution_status":"unresolved","resolution_ref":null}]'::jsonb,
     NULL
   );
   IF (v_import->>'replayed')::boolean IS DISTINCT FROM true THEN
