@@ -14,7 +14,6 @@ import type { ConciergeRoomCatalogItem, ConciergeExperienceCatalogItem } from ".
 import { searchAvailability, buildBookingPlan } from "./concierge.tools";
 import { loadConciergeMemoryContext, suggestMemoriesFromMessage } from "./memory.context";
 import { AI_GATEWAY_DEFAULT_MODEL, callAiGateway, parseAiJson } from "@/lib/ai-gateway.server";
-import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
 
 const MODEL = AI_GATEWAY_DEFAULT_MODEL;
 const MAX_MESSAGE_LEN = 1000;
@@ -144,6 +143,7 @@ const tryJson = parseAiJson;
 export async function handleConciergeChat(
   input: ConciergeChatInput,
   meta: { userAgent?: string | null; referer?: string | null },
+  propertyId: string,
 ): Promise<ConciergeReply> {
   const message = safeString(input.message, MAX_MESSAGE_LEN)?.trim() ?? "";
   if (!message) throw new Error("Message is required.");
@@ -151,7 +151,7 @@ export async function handleConciergeChat(
   const page = safeString(input.page, 200);
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+  if (!propertyId) throw new Error("Public property context is required.");
   const [roomCatalog, experienceCatalog, propertyFacts] = await Promise.all([
     loadRoomCatalog(supabaseAdmin, propertyId),
     loadExperienceCatalog(supabaseAdmin, propertyId),
@@ -229,7 +229,7 @@ export async function handleConciergeChat(
   let plan: ConciergeBookingPlan | null = null;
   if (intent.detected.check_in && intent.detected.check_out) {
     try {
-      availability = await searchAvailability({ check_in: intent.detected.check_in, check_out: intent.detected.check_out, adults: intent.detected.adults ?? 2, children: intent.detected.children ?? 0 });
+      availability = await searchAvailability({ propertyId, check_in: intent.detected.check_in, check_out: intent.detected.check_out, adults: intent.detected.adults ?? 2, children: intent.detected.children ?? 0 });
       plan = buildBookingPlan(intent, availability, recommendations.find((r) => r.type === "room")?.slug, experienceCatalog);
     } catch {}
   }
