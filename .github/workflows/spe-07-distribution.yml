@@ -12,6 +12,9 @@ on:
       - "src/components/os/nav-config.ts"
       - "docs/database/SPE-07-distribution-persistence.sql"
       - "supabase/tests/database/**"
+      - "supabase/tests/**"
+      - "supabase/review/**"
+      - "supabase/migrations/**"
       - "scripts/ci/normalize-optional-legacy-revokes.py"
       - ".github/workflows/spe-07-distribution.yml"
 
@@ -53,6 +56,8 @@ jobs:
       - name: Apply migrations and run database contracts
         run: |
           supabase db reset
+          eval "$(supabase status -o env)"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/review/20261107100000_staynas_website_demo_requests.sql
           supabase test db
       - name: Stop local Supabase stack
         if: always()
