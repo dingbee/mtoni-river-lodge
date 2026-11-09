@@ -4,6 +4,7 @@ name: P1 test verification
 on:
   push:
     branches:
+      - fix/mtoni-currency-fail-closed-etm-integration-prep
       - fix/pesapal-*
       - fix/ci-*
       - main
