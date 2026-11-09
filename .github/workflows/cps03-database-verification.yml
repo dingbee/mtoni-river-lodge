@@ -104,7 +104,8 @@ jobs:
             property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
             slug text NOT NULL,
             name text NOT NULL,
-            status text NOT NULL
+            status text NOT NULL,
+            catalogue_type_id uuid NOT NULL
           );
           CREATE TABLE public.bookings (
             id uuid PRIMARY KEY,
@@ -131,6 +132,7 @@ jobs:
             effective_from date,
             effective_to date,
             snapshot_hash text NOT NULL DEFAULT '0123456789abcdef0123456789abcdef',
+            room_type_assignments jsonb NOT NULL DEFAULT '[]'::jsonb,
             published_at timestamptz NOT NULL DEFAULT now()
           );
           SQL
