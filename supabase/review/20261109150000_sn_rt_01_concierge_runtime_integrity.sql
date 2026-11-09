@@ -356,6 +356,7 @@ BEGIN
     WHERE member.property_id = p_property_id
       AND member.user_id = p_assigned_to
       AND member.status = 'active'
+      AND member.role::text IN ('owner','manager','admin','reservations','reception')
   ) THEN
     RAISE EXCEPTION 'Assignee must be an active member of the property' USING ERRCODE = '42501';
   END IF;
@@ -365,7 +366,15 @@ BEGIN
     RAISE EXCEPTION 'Closed escalations cannot be reopened' USING ERRCODE = '23514';
   END IF;
 
-  v_next_status := coalesce(p_status, v_escalation.status);
+  IF v_escalation.status = 'assigned' AND p_status = 'open'
+     OR v_escalation.status = 'in_progress' AND p_status IN ('open','assigned') THEN
+    RAISE EXCEPTION 'Escalation status cannot move backwards' USING ERRCODE = '23514';
+  END IF;
+
+  v_next_status := coalesce(
+    p_status,
+    CASE WHEN p_assigned_to IS NOT NULL AND v_escalation.status = 'open' THEN 'assigned' ELSE v_escalation.status END
+  );
   UPDATE public.ai_escalations
   SET status = v_next_status,
       assigned_to = CASE WHEN p_assigned_to IS NOT NULL THEN p_assigned_to ELSE assigned_to END,
