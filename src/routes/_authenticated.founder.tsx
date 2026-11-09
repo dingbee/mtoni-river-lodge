@@ -164,6 +164,7 @@ function FounderWorkspace() {
           <a href="/founder/subscriptions" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Subscriptions</a>
           <a href="/founder/billing" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Billing & collections</a>
           <a href="/founder/reporting" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Commercial reporting</a>
+          <a href="/founder/reconciliation" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Reconciliation</a>
           <a href="#entitlements" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Entitlements</a>
           <a href="#activity" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Audit activity</a>
           <span className="inline-flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground"><ShieldCheck className="size-4" /> Founder-authorized</span>
