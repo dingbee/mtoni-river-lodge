@@ -161,7 +161,7 @@ export async function assertCommercialEntitlement(
     const eligibleAddonCodes = Array.from(new Set(
       featureAddonRules
         .map((rule) => rule.addon_code)
-        .filter((code): code is string => Boolean(code) && (subscription.addon_codes ?? []).includes(code)),
+        .filter((code): code is string => code !== null && (subscription.addon_codes ?? []).includes(code)),
     ));
 
     // No quota value is accepted from the caller. Resolve exactly one matching
