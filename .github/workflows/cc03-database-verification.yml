@@ -6,6 +6,7 @@ on:
       - feat/cc-03-*
       - feat/cc03-04-*
       - feat/cc03-founder-*
+      - feat/spe-07-*
   pull_request:
     branches:
       - main
