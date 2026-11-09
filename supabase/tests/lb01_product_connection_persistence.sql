@@ -323,6 +323,12 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'Other property administrator must not manage this connection';
   END IF;
+  IF public.staynas_can_manage_product_connection(
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
+    (SELECT local_property_id FROM public.staynas_product_connections WHERE correlation_id='lb01-test-reauthorization')
+  ) THEN
+    RAISE EXCEPTION 'Authenticated users must not impersonate another property administrator';
+  END IF;
   BEGIN
     PERFORM 1 FROM public.lb01_credential_handoffs;
     RAISE EXCEPTION 'Authenticated users must not read credential handoffs';
