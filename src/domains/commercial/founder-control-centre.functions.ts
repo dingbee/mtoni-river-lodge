@@ -13,6 +13,18 @@ const numeric = (value: unknown) => { const result = Number(value ?? 0); return 
 const currencyOf = (value: unknown): "TZS" | "USD" | null => value === "TZS" || value === "USD" ? value : null;
 const addMoney = (target: MoneyByCurrency, currency: unknown, amount: unknown) => { const key = currencyOf(currency); if (key) target[key] = (BigInt(target[key]) + BigInt(String(amount ?? 0))).toString(); };
 const rows = (value: unknown): Row[] => Array.isArray(value) ? value as Row[] : [];
+async function readAllRows(admin: any, table: string, select: string, configure: (query: any) => any) {
+  const result: Row[] = [];
+  const pageSize = 500;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await configure(admin.from(table).select(select)).range(offset, offset + pageSize - 1);
+    if (error) return { data: null, error };
+    const page = rows(data);
+    result.push(...page);
+    if (page.length < pageSize) return { data: result, error: null };
+  }
+}
+
 
 export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -22,25 +34,25 @@ export const getFounderCommercialWorkspace = createServerFn({ method: "GET" })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const admin = supabaseAdmin as any;
     const [organisationsResult, founderConfigResult, accountsResult, contactsResult, subscriptionsResult, propertiesResult, invoicesResult, paymentsResult, assignmentsResult, eventsResult, financialEventsResult, policyVersionsResult, policyCurrentResult, notificationsResult, decisionsResult, providerAccountsResult, unallocatedResult, reconciliationRunsResult, grantRulesResult] = await Promise.all([
-      admin.from("staynas_organisations").select("id,slug,name,status,created_at").order("created_at", { ascending: false }),
+      readAllRows(admin,"staynas_organisations","id,slug,name,status,created_at",(query)=>query.order("created_at",{ascending:false}).order("id",{ascending:false})),
       admin.from("commercial_founder_tenant_config").select("founder_organisation_id").eq("singleton",true).maybeSingle(),
-      admin.from("commercial_accounts").select("id,organisation_id,status,created_at,updated_at"),
-      admin.from("commercial_account_contacts").select("account_id,contact_name,contact_email,contact_phone,contact_role,created_at,updated_at"),
-      admin.from("commercial_subscriptions").select("id,account_id,plan_code,plan_version,currency,billing_term,status,property_count,addon_codes,trial_started_at,trial_ends_at,current_period_starts_at,current_period_ends_at,cancel_at_period_end,accepted_price_snapshot,quote_required,created_at"),
-      admin.from("staynas_properties").select("id,organisation_id,name,status,created_at"),
-      admin.from("commercial_founder_invoice_workspace_facts").select("id,organisation_id,account_id,subscription_id,invoice_number,currency,status,issued_at,due_at,total_minor,amount_paid_minor,outstanding_minor,is_overdue"),
-      admin.from("commercial_founder_payment_workspace_facts").select("id,organisation_id,invoice_id,provider,provider_transaction_ref,amount_minor,currency,payment_method,status,confirmed_at,created_at").order("created_at", { ascending: false }),
-      admin.from("commercial_entitlement_assignments").select("id,organisation_id,feature_code,source_type,status,effective_from,effective_to"),
+      readAllRows(admin,"commercial_accounts","id,organisation_id,status,created_at,updated_at",(query)=>query.order("organisation_id").order("id")),
+      readAllRows(admin,"commercial_account_contacts","account_id,contact_name,contact_email,contact_phone,contact_role,created_at,updated_at",(query)=>query.order("account_id").order("created_at").order("contact_email")),
+      readAllRows(admin,"commercial_subscriptions","id,account_id,plan_code,plan_version,currency,billing_term,status,property_count,addon_codes,trial_started_at,trial_ends_at,current_period_starts_at,current_period_ends_at,cancel_at_period_end,accepted_price_snapshot,quote_required,created_at",(query)=>query.order("created_at",{ascending:false}).order("id",{ascending:false})),
+      readAllRows(admin,"staynas_properties","id,organisation_id,name,status,created_at",(query)=>query.order("organisation_id").order("id")),
+      readAllRows(admin,"commercial_founder_invoice_workspace_facts","id,organisation_id,account_id,subscription_id,invoice_number,currency,status,issued_at,due_at,total_minor,amount_paid_minor,outstanding_minor,is_overdue",(query)=>query.order("organisation_id").order("issued_at").order("id")),
+      readAllRows(admin,"commercial_founder_payment_workspace_facts","id,organisation_id,invoice_id,provider,provider_transaction_ref,amount_minor,currency,payment_method,status,confirmed_at,created_at",(query)=>query.order("created_at",{ascending:false}).order("id",{ascending:false})),
+      readAllRows(admin,"commercial_entitlement_assignments","id,organisation_id,feature_code,source_type,status,effective_from,effective_to",(query)=>query.order("organisation_id").order("subscription_id").order("feature_code")),
       admin.from("commercial_audit_events").select("id,actor_user_id,actor_role,action,resource_type,resource_ref,outcome,reason_code,occurred_at,metadata").order("occurred_at", { ascending: false }).limit(30),
       admin.from("commercial_financial_audit_events").select("id,actor_user_id,actor_role,action,resource_type,resource_ref,outcome,reason_code,occurred_at,metadata").order("occurred_at", { ascending: false }).limit(30),
-      admin.from("commercial_policy_config_versions").select("id,policy_type,version,status,effective_from,effective_to,created_at").order("created_at", { ascending: false }),
+      readAllRows(admin,"commercial_policy_config_versions","id,policy_type,version,status,effective_from,effective_to,created_at",(query)=>query.order("created_at",{ascending:false}).order("id",{ascending:false})),
       admin.from("commercial_policy_config_current").select("policy_type,version_id,published_at"),
       admin.from("commercial_financial_notifications").select("id,organisation_id,invoice_id,payment_id,notification_type,recipient_email,status,provider_message_ref,attempted_at,sent_at,created_at").order("created_at", { ascending: false }).limit(100),
       admin.from("commercial_entitlement_decisions").select("id,organisation_id,feature_code,allowed,outcome,source_type,reason,decided_at").order("decided_at", { ascending: false }).limit(100),
-      admin.from("commercial_provider_accounts").select("id,organisation_id,provider,provider_account_ref,supported_currencies,status,created_at").order("created_at", { ascending: false }),
-      admin.from("commercial_unallocated_collections").select("*").order("confirmed_at", { ascending: false }),
+      readAllRows(admin,"commercial_provider_accounts","id,organisation_id,provider,provider_account_ref,supported_currencies,status,created_at",(query)=>query.order("created_at",{ascending:false}).order("id",{ascending:false})),
+      readAllRows(admin,"commercial_founder_unallocated_collection_workspace_facts","payment_id,organisation_id,account_id,provider,provider_transaction_ref,amount_minor,currency,status,confirmed_at,unallocated_minor",(query)=>query.order("confirmed_at",{ascending:false}).order("payment_id",{ascending:false})),
       admin.from("commercial_reconciliation_runs").select("id,organisation_id,provider_account_id,currency,period_start,period_end,status,source_ref,completed_at,created_at").order("created_at", { ascending: false }).limit(100),
-      admin.from("commercial_entitlement_grant_rules").select("id,grant_type,organisation_id,addon_code,feature_code,effect,effective_from,effective_to,reason,created_by,created_at").order("created_at", { ascending: false }),
+      readAllRows(admin,"commercial_entitlement_grant_rules","id,grant_type,organisation_id,addon_code,feature_code,effect,effective_from,effective_to,reason,created_by,created_at",(query)=>query.order("created_at",{ascending:false}).order("id",{ascending:false})),
     ]);
     const errors = [organisationsResult, founderConfigResult, accountsResult, contactsResult, subscriptionsResult, propertiesResult, invoicesResult, paymentsResult, assignmentsResult, eventsResult, financialEventsResult, policyVersionsResult, policyCurrentResult, notificationsResult, decisionsResult, providerAccountsResult, unallocatedResult, reconciliationRunsResult, grantRulesResult].filter((result) => result.error);
     if (errors.length) throw new Error("Founder commercial workspace data could not be loaded from authoritative records.");
