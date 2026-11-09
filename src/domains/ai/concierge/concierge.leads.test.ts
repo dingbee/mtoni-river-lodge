@@ -131,6 +131,7 @@ describe("property-scoped Concierge lead capture", () => {
     setup();
     await expect(captureLead({ ...validInput, email: "not-an-email" }, PROPERTY))
       .rejects.toThrow("valid email");
+    admin.from.mockReset();
     setup();
     await expect(captureLead({ ...validInput, travel_period_start: "2026-12-04", travel_period_end: "2026-12-03" }, PROPERTY))
       .rejects.toThrow("valid travel date range");
