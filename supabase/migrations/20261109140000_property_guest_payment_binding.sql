@@ -1,6 +1,10 @@
 -- Bind guest payment attempts and settlement events to the exact property provider account.
 BEGIN;
 
+CREATE UNIQUE INDEX IF NOT EXISTS staynas_guest_payment_one_active_provider_uidx
+  ON public.staynas_guest_payment_provider_accounts(organisation_id,property_id,provider)
+  WHERE status='active';
+
 CREATE UNIQUE INDEX IF NOT EXISTS staynas_guest_payment_provider_accounts_id_property_uidx
   ON public.staynas_guest_payment_provider_accounts(id,property_id);
 
