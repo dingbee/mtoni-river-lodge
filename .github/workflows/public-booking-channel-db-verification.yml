@@ -84,7 +84,9 @@ jobs:
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
             property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
             pricing_snapshot jsonb NOT NULL DEFAULT '{}'::jsonb,
-            currency text NOT NULL DEFAULT 'USD'
+            currency text NOT NULL DEFAULT 'USD',
+            pesapal_order_tracking_id text,
+            pesapal_merchant_reference text
           );
           CREATE FUNCTION public.calculate_staynas_room_pricing(uuid,uuid,date,date,integer,integer,integer)
           RETURNS jsonb LANGUAGE sql AS $function$ SELECT '{}'::jsonb $function$;
