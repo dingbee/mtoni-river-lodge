@@ -415,6 +415,12 @@ BEGIN
     RAISE EXCEPTION 'Verified payment reversal was not classified separately in revenue reporting';
   END IF;
   IF NOT EXISTS (
+    SELECT 1 FROM public.commercial_founder_unallocated_collection_workspace_facts
+    WHERE payment_id=v_payment AND unallocated_minor='80000' AND amount_minor='100000'
+  ) THEN
+    RAISE EXCEPTION 'Reversed unallocated cash was not separated from net collected revenue';
+  END IF;
+  IF NOT EXISTS (
     SELECT 1 FROM public.commercial_founder_revenue_invoice_facts
     WHERE invoice_id=v_invoice AND gross_invoiced_minor='100000'
       AND net_invoiced_minor='150000' AND one_time_minor='5000'
