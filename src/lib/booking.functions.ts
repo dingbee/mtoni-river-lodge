@@ -61,7 +61,7 @@ async function resolveCampaignBookingContext(
     .eq("campaign_id", campaign.id).eq("property_id", propertyId).eq("active", true).maybeSingle();
   if (offerError || !offer) throw new Error("Selected campaign offer is no longer available.");
   const { data: publication, error: publicationError } = await sb.from("staynas_rate_plan_publications")
-    .select("id,rate_plan_id,currency,effective_from,effective_to")
+    .select("id,rate_plan_id,publication_number,rate_plan_version,snapshot_hash,currency,effective_from,effective_to")
     .eq("id", offer.rate_plan_publication_id).eq("property_id", propertyId).maybeSingle();
   if (publicationError || !publication || publication.rate_plan_id !== input.ratePlanId
     || publication.currency !== property.currency
@@ -83,6 +83,14 @@ async function resolveCampaignBookingContext(
     offerId: offer.id,
     allowedRoomIds: new Set<string>(selections.map((item: any) => item.room_id)),
     sessionKey: input.sessionKey,
+    pricingEvidence: {
+      publicationId: publication.id,
+      ratePlanId: publication.rate_plan_id,
+      publicationNumber: publication.publication_number,
+      ratePlanVersion: publication.rate_plan_version,
+      snapshotHash: publication.snapshot_hash,
+      currency: publication.currency,
+    },
     attribution: {
       source: input.utmSource ?? null, medium: input.utmMedium ?? null,
       utm_campaign: input.utmCampaign ?? null, utm_content: input.utmContent ?? null,
@@ -320,7 +328,7 @@ export const getBookingQuote = createServerFn({ method: "POST" })
         source: campaignContext.attribution.source, medium: campaignContext.attribution.medium,
         utm_campaign: campaignContext.attribution.utm_campaign, utm_content: campaignContext.attribution.utm_content,
         utm_term: campaignContext.attribution.utm_term, referrer: campaignContext.attribution.referrer,
-        metadata: { offerId: campaignContext.offerId }, occurred_at: new Date().toISOString(),
+        metadata: { offerId: campaignContext.offerId, pricingEvidence: campaignContext.pricingEvidence, quoteId: quote.quote_id }, occurred_at: new Date().toISOString(),
       }, { onConflict: "property_id,event_key", ignoreDuplicates: true });
       if (attributionError) console.error("[StayNas campaign attribution] Quote created but booking-start event failed", { code: attributionError.code, propertyId });
     }
@@ -373,7 +381,7 @@ export const createBooking = createServerFn({ method: "POST" })
         source: campaignContext.attribution.source, medium: campaignContext.attribution.medium,
         utm_campaign: campaignContext.attribution.utm_campaign, utm_content: campaignContext.attribution.utm_content,
         utm_term: campaignContext.attribution.utm_term, referrer: campaignContext.attribution.referrer,
-        metadata: { offerId: campaignContext.offerId }, occurred_at: new Date().toISOString(),
+        metadata: { offerId: campaignContext.offerId, pricingEvidence: campaignContext.pricingEvidence, quoteId: data.quoteId }, occurred_at: new Date().toISOString(),
       }, { onConflict: "property_id,event_key", ignoreDuplicates: true });
       if (attributionError) console.error("[StayNas campaign attribution] Reservation created but attribution persistence failed", { code: attributionError.code, propertyId });
     }
