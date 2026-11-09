@@ -34,9 +34,9 @@ Status: IN PROGRESS — UAT/review only; no production promotion.
 | 2 | Partial payment reconciliation | Existing CC-04 ledger tests |
 | 3 | Full payment reconciliation | Existing CC-04 ledger tests |
 | 4 | Multiple payment allocation | Existing CC-04 ledger tests |
-| 5 | Payment reversal | Existing CC-04 ledger tests |
-| 6 | Credit-note treatment | Existing CC-04 ledger tests |
-| 7 | Unallocated payment detection | Existing CC-04 ledger tests; CC-07 reporting view added |
+| 5 | Payment reversal | Existing CC-04 ledger tests; CC-07 verified reversal fact and currency-separated report fixture added |
+| 6 | Credit-note treatment | Existing CC-04 ledger tests; CC-07 revenue invoice facts assert posted credit-note classification |
+| 7 | Unallocated payment detection | Existing CC-04 ledger tests; precision-safe founder projection and unallocated collection view added |
 | 8 | Duplicate provider callback detection | Existing CC-04 idempotency tests |
 | 9 | Provider/internal amount mismatch | Existing reconciliation engine tests |
 | 10 | Currency mismatch detection | Existing reconciliation engine tests; CC-07 mixed-currency statement guard added |
@@ -66,7 +66,7 @@ Status: IN PROGRESS — UAT/review only; no production promotion.
 
 ## Remaining acceptance work
 
-1. Revenue movement and financial classifications are implemented. Finish remaining direct fixtures for invoice credit/debit/write-off aggregation, entitlement effective-window edge cases, cross-tenant authorization, report export authorization and concurrent database sessions.
+1. Revenue movement and financial classifications are implemented. Finish adversarial founder/export authorization and cross-tenant access tests; add entitlement effective-window edge fixtures. The concurrent-session test is now wired into the CC-03 database workflow and awaits CI execution.
 2. Subscription-to-invoice and entitlement/subscription drift views and founder exception display are implemented; complete remaining fixture coverage and define the authorized remediation workflow for each exception type.
 3. Add explicit regression assertions for currency isolation, aging boundaries, trial exclusion, export authorization, founder-only access, tenant isolation, historical audit integrity and concurrent run execution.
 4. Run all 33 categories and required CI workflows on one final PR head; remediate all failures.
