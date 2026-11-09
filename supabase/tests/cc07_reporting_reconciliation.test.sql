@@ -685,6 +685,19 @@ BEGIN
     RAISE EXCEPTION 'TZS/USD MRR/ARR facts were mixed, annualized incorrectly or converted';
   END IF;
 
+  INSERT INTO public.commercial_entitlement_assignments(
+    organisation_id,account_id,subscription_id,feature_code,source_type,source_ref,
+    status,effective_from,effective_to,context_snapshot
+  ) VALUES
+    (v_customer_org,v_account,v_tzs_new_sub,'future-feature','plan','cc07-future-assignment',
+      'active',now()+interval '1 day',NULL,'{"test":true}'::jsonb),
+    (v_customer_org,v_account,v_tzs_new_sub,'expired-feature','plan','cc07-expired-assignment',
+      'active',now()-interval '2 days',now()-interval '1 day','{"test":true}'::jsonb);
+  IF (SELECT count(*) FROM public.commercial_subscription_entitlement_consistency_facts
+      WHERE subscription_id=v_tzs_new_sub AND exception_type='active_assignment_outside_effective_window')<>2 THEN
+    RAISE EXCEPTION 'Future and expired active entitlement assignments were not detected';
+  END IF;
+
   -- Trial activations must not appear in paid MRR or new-MRR movement facts.
   INSERT INTO public.staynas_organisations(id,slug,name,status)
     VALUES (v_trial_org,'cc07-trial-test','CC07 Trial Customer','active');
