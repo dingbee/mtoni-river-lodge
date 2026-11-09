@@ -37,7 +37,7 @@ export const Route = createFileRoute("/book")({
     search: Record<string, unknown>
   ): {
     step?: 1 | 2 | 3 | 4; session?: string; room?: string;
-    property?: string; campaign?: string; offer?: string; ratePlan?: string;
+    property?: string; campaign?: string; offer?: string; ratePlan?: string; campaignSession?: string;
     utmSource?: string; utmMedium?: string; utmCampaign?: string; utmContent?: string; utmTerm?: string; referrer?: string;
   } => {
     const raw = Number(search.step);
@@ -47,7 +47,7 @@ export const Route = createFileRoute("/book")({
     const read = (key: string) => typeof search[key] === "string" ? search[key] as string : undefined;
     return {
       step: step as 1 | 2 | 3 | 4, session, room,
-      property: read("property"), campaign: read("campaign"), offer: read("offer"), ratePlan: read("ratePlan"),
+      property: read("property"), campaign: read("campaign"), offer: read("offer"), ratePlan: read("ratePlan"), campaignSession: read("campaignSession"),
       utmSource: read("utmSource"), utmMedium: read("utmMedium"), utmCampaign: read("utmCampaign"),
       utmContent: read("utmContent"), utmTerm: read("utmTerm"), referrer: read("referrer"),
     };
@@ -127,7 +127,7 @@ function BookPage() {
   // routing, never a browser-history pop into a different session.
   const {
     step: stepNum, session: incomingSession, room: incomingRoom,
-    property: campaignProperty, campaign, offer, ratePlan,
+    property: campaignProperty, campaign, offer, ratePlan, campaignSession,
     utmSource, utmMedium, utmCampaign, utmContent, utmTerm, referrer,
   } = Route.useSearch();
   const navigate = Route.useNavigate();
@@ -374,7 +374,7 @@ function BookPage() {
         checkAvailabilityFn({ data: {
           checkIn, checkOut, guests: totalOccupants, adults, childrenBelow6, children7Plus,
           propertySlug: campaignProperty, campaignSlug: campaign, offerId: offer, ratePlanId: ratePlan,
-          sessionKey: campaign ? sessionId : undefined,
+          sessionKey: campaign ? (campaignSession ?? sessionId) : undefined,
           utmSource, utmMedium, utmCampaign, utmContent, utmTerm, referrer,
         } }),
         listExtrasFn(),
