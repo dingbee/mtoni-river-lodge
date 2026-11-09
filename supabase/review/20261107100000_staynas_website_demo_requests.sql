@@ -32,6 +32,7 @@ ALTER TABLE public.staynas_website_demo_requests ENABLE ROW LEVEL SECURITY;
 
 REVOKE ALL ON TABLE public.staynas_website_demo_requests FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.staynas_website_demo_requests TO authenticated;
+REVOKE DELETE ON TABLE public.staynas_website_demo_requests FROM service_role;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.staynas_website_demo_requests TO service_role;
 
 DROP POLICY IF EXISTS "Founder can read StayNas website demo requests"
