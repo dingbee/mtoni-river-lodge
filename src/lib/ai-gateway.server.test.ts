@@ -1,5 +1,12 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { callAiGateway, parseAiJson } from "./ai-gateway.server";
+
+beforeEach(() => {
+  vi.stubEnv("STAYNAS_AI_BASE_URL", "");
+  vi.stubEnv("STAYNAS_AI_API_KEY", "");
+  vi.stubEnv("STAYNAS_AI_MODEL", "");
+  vi.stubEnv("LOVABLE_API_KEY", "");
+});
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -28,6 +35,49 @@ describe("provider-independent AI gateway", () => {
     expect(result.content).toContain("hello");
     expect(result.requestId).toBeTruthy();
     expect(parseAiJson(result.content)).toEqual({ answer: "hello" });
+  });
+
+  it("preserves the SN-IQ founder-managed StayNas provider contract", async () => {
+    vi.stubEnv("STAYNAS_AI_BASE_URL", "https://founder-provider.example/v1/chat/completions");
+    vi.stubEnv("STAYNAS_AI_API_KEY", "staynas-secret");
+    vi.stubEnv("STAYNAS_AI_MODEL", "founder-model");
+    vi.stubEnv("AI_PROVIDER_API_KEY", "lower-priority-secret");
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: "staynas-provider-ok" } }],
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await callAiGateway({ system: "system", user: "hello" });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://founder-provider.example/v1/chat/completions");
+    expect(new Headers(init.headers).get("Authorization")).toBe("Bearer staynas-secret");
+    expect(JSON.parse(String(init.body)).model).toBe("founder-model");
+    expect(result.provider).toBe("staynas");
+  });
+
+  it("retains the explicit legacy Lovable compatibility route", async () => {
+    vi.stubEnv("LOVABLE_API_KEY", "legacy-secret");
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: "legacy-ok" } }],
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await callAiGateway({ system: "system", user: "hello" });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://ai.gateway.lovable.dev/v1/chat/completions");
+    expect(new Headers(init.headers).get("Authorization")).toBe("Bearer legacy-secret");
+    expect(JSON.parse(String(init.body)).model).toBe("google/gemini-2.5-flash");
+    expect(result.provider).toBe("legacy");
+  });
+
+  it("rejects partial StayNas provider configuration instead of silently falling back", async () => {
+    vi.stubEnv("STAYNAS_AI_BASE_URL", "https://founder-provider.example/v1/chat/completions");
+    vi.stubEnv("AI_PROVIDER_API_KEY", "fallback-secret");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(callAiGateway({ system: "system", user: "hello" }))
+      .rejects.toThrow("StayNas AI provider configuration is incomplete.");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("supports structured tool calls and enforces the hard output-token ceiling", async () => {
@@ -68,6 +118,7 @@ describe("provider-independent AI gateway", () => {
   it("fails closed when no provider credential is configured", async () => {
     vi.stubEnv("AI_PROVIDER_API_KEY", "");
     vi.stubEnv("OPENAI_API_KEY", "");
+    vi.stubEnv("LOVABLE_API_KEY", "");
     await expect(callAiGateway({ system: "system", user: "hello" }))
       .rejects.toThrow("AI service is not configured.");
   });
