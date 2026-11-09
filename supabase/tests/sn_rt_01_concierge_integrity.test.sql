@@ -130,8 +130,7 @@ $$;
 
 ALTER TABLE public.ai_concierge_leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_escalations ENABLE ROW LEVEL SECURITY;
-GRANT SELECT, UPDATE ON public.ai_concierge_leads TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_escalations TO authenticated;
+GRANT ALL ON TABLE public.ai_concierge_sessions, public.ai_concierge_messages, public.ai_concierge_leads, public.ai_escalations TO anon, authenticated;
 GRANT USAGE ON SCHEMA public, auth TO anon, authenticated, service_role;
 GRANT ALL ON ALL TABLES IN SCHEMA public, auth TO service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
@@ -159,6 +158,22 @@ BEGIN
     'public.staynas_consume_public_rate_limit(text,integer,integer)',
     'EXECUTE') THEN
     RAISE EXCEPTION 'anon must not execute the privileged rate limit function';
+  END IF;
+  IF has_table_privilege('anon','public.ai_concierge_sessions','TRUNCATE')
+     OR has_table_privilege('anon','public.ai_concierge_messages','TRUNCATE')
+     OR has_table_privilege('anon','public.ai_concierge_leads','TRUNCATE')
+     OR has_table_privilege('anon','public.ai_escalations','TRUNCATE') THEN
+    RAISE EXCEPTION 'anon must not retain TRUNCATE on Concierge tables';
+  END IF;
+  IF has_table_privilege('authenticated','public.ai_escalations','INSERT')
+     OR has_table_privilege('authenticated','public.ai_escalations','UPDATE')
+     OR has_table_privilege('authenticated','public.ai_escalations','DELETE')
+     OR has_table_privilege('authenticated','public.ai_escalations','TRUNCATE') THEN
+    RAISE EXCEPTION 'authenticated staff must use the scoped escalation RPC';
+  END IF;
+  IF NOT has_table_privilege('authenticated','public.ai_concierge_leads','SELECT')
+     OR NOT has_table_privilege('authenticated','public.ai_concierge_leads','UPDATE') THEN
+    RAISE EXCEPTION 'authorized staff lead read/update access must be preserved';
   END IF;
 END
 $test$;
