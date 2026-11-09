@@ -24,7 +24,7 @@ const TYPES: { value: PolicyType; label: string; description: string; template: 
   {
     value: "catalogue",
     label: "Plan catalogue",
-    description: "Define Essential, Professional and Enterprise plans, version records, modules and add-ons.",
+    description: "Define Essential, Professional and Enterprise plans, version records, modules, add-ons and founder-controlled capability quota policies.",
     template: JSON.stringify({ plans: [], planVersions: [], modules: [], planModules: [], addons: [] }, null, 2),
   },
   {
