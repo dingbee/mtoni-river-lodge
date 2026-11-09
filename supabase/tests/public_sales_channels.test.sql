@@ -54,6 +54,36 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'A property may not activate multiple Pesapal accounts simultaneously';
   END IF;
+  IF (SELECT is_nullable FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='staynas_property_tax_rules' AND column_name='currency')<>'NO'
+     OR (SELECT is_nullable FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='staynas_property_fee_rules' AND column_name='currency')<>'NO'
+     OR (SELECT is_nullable FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='staynas_property_promotions' AND column_name='currency')<>'NO' THEN
+    RAISE EXCEPTION 'Tax, fee and promotion rules must declare a transaction currency';
+  END IF;
+  IF pg_get_functiondef('public.validate_staynas_rate_plan_context()'::regprocedure)
+       LIKE '%Rate plan currency % must match property currency%'
+     OR pg_get_functiondef('public.validate_staynas_rate_plan_context()'::regprocedure)
+       NOT LIKE '%Child rate plan transaction currency must match its parent plan%' THEN
+    RAISE EXCEPTION 'Rate-plan context must allow transaction currency independent of property operating currency';
+  END IF;
+  IF pg_get_functiondef('public.calculate_staynas_spe05_adjustments(uuid,date,date,text,jsonb,uuid,uuid,text,text,date)'::regprocedure)
+       NOT LIKE '%v_currency := upper(COALESCE(_currency%' 
+     OR pg_get_functiondef('public.calculate_staynas_spe05_adjustments(uuid,date,date,text,jsonb,uuid,uuid,text,text,date)'::regprocedure)
+       LIKE '%Quote currency must match the configured property currency%'
+     OR pg_get_functiondef('public.calculate_staynas_spe05_adjustments(uuid,date,date,text,jsonb,uuid,uuid,text,text,date)'::regprocedure)
+       NOT LIKE '%upper(f.currency)=v_currency%'
+     OR pg_get_functiondef('public.calculate_staynas_spe05_adjustments(uuid,date,date,text,jsonb,uuid,uuid,text,text,date)'::regprocedure)
+       NOT LIKE '%upper(t.currency)=v_currency%' THEN
+    RAISE EXCEPTION 'SPE-05 adjustment engine must scope taxes, fees and promotions to transaction currency';
+  END IF;
+  IF pg_get_functiondef('public.calculate_staynas_booking_quote(uuid,uuid,date,date,integer,integer,integer,jsonb)'::regprocedure)
+       NOT LIKE '%booking transaction currency%'
+     OR pg_get_functiondef('public.calculate_staynas_booking_quote(uuid,uuid,date,date,integer,integer,integer,jsonb)'::regprocedure)
+       LIKE '%does not match property currency%' THEN
+    RAISE EXCEPTION 'Booking quote diagnostics must describe transaction currency';
+  END IF;
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_schema='public' AND table_name='bookings' AND column_name='payment_provider_account_id'
