@@ -292,6 +292,38 @@ export const savePropertyPaymentProviderConfig = createServerFn({ method: "POST"
     return safeProviderRow(saved as ProviderConfigRow, "property_guest");
   });
 
+export const testPropertyPaymentProviderConnection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ providerConfigId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const actor = await resolveVerifiedTenantActor(context);
+    if (actor.actorRole !== "tenant_admin") throw new Error("Property administrator authority is required.");
+    const admin = await getAdmin();
+    const { data: provider, error: lookupError } = await admin.from("staynas_guest_payment_provider_accounts")
+      .select("id,provider,environment,credential_secret_ref,integration_status")
+      .eq("id",data.providerConfigId).eq("organisation_id",actor.organisationId)
+      .eq("property_id",actor.propertyId).maybeSingle();
+    if (lookupError || !provider) throw new Error("Property provider configuration was not found.");
+    if (provider.provider !== "pesapal") {
+      throw new Error("No certified property guest-payment adapter is available for this provider yet.");
+    }
+    if (!provider.credential_secret_ref) throw new Error("Save the property's Pesapal credentials before testing the connection.");
+    const credentials = await readProviderCredentials(admin, String(provider.credential_secret_ref));
+    const { testPesapalPropertyAccount } = await import("@/lib/pesapal.server");
+    await testPesapalPropertyAccount(
+      credentials as { consumer_key: string; consumer_secret: string },
+      provider.environment as "sandbox" | "live",
+    );
+    const { error: updateError } = await admin.from("staynas_guest_payment_provider_accounts")
+      .update({ integration_status: "ready", updated_at: new Date().toISOString() })
+      .eq("id",provider.id).eq("organisation_id",actor.organisationId).eq("property_id",actor.propertyId);
+    if (updateError) throw new Error("Property Pesapal adapter readiness could not be recorded.");
+    await auditProviderChange(admin, actor, "provider.property_connection_tested", provider.id, {
+      provider: provider.provider, environment: provider.environment, result: "ready",
+    });
+    return { id: provider.id, integrationStatus: "ready" as const };
+  });
+
 export const setPlatformPaymentProviderStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({
