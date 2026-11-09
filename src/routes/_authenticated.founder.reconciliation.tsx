@@ -98,11 +98,11 @@ function FounderReconciliationWorkspace() {
     } catch (error) { setMessage(error instanceof Error ? error.message : "Statement reconciliation failed."); }
     finally { setBusy(false); }
   };
-  const recordEvent = async (itemId: string, eventType: "review_started" | "escalated") => {
+  const recordEvent = async (itemId: string, eventType: "review_started" | "reopened" | "escalated") => {
     setBusy(true); setMessage("");
     try {
       await recordCommercialReconciliationLifecycleEvent({ data: {
-        itemId, eventType, reasonCode: eventType === "review_started" ? "founder_review_started" : "founder_escalation",
+        itemId, eventType, reasonCode: eventType === "review_started" ? "founder_review_started" : eventType === "reopened" ? "founder_exception_reopened" : "founder_escalation",
         note: null, evidence: {},
       } });
       setMessage(`Exception ${eventType.replaceAll("_", " ")}.`);
@@ -221,6 +221,8 @@ function FounderReconciliationWorkspace() {
                       <input value={resolutionRefs[String(item.id)] ?? ""} onChange={(e) => setResolutionRefs((prev) => ({ ...prev, [String(item.id)]: e.target.value }))} placeholder="Resolution evidence reference" className="h-8 min-w-[220px] rounded border bg-background px-2 text-xs" />
                       <button disabled={busy} onClick={() => void resolveItem(String(item.id))} className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground">Resolve</button>
                     </>}
+                    {["open", "discrepancy"].includes(String(run.status)) && item.resolution_status === "resolved" &&
+                      <button disabled={busy} onClick={() => void recordEvent(String(item.id), "reopened")} className="rounded border px-2 py-1 text-xs">Reopen exception</button>}
                   </div>
                   {itemEvents.length > 0 && <ul className="mt-2 space-y-1 border-l pl-3 text-xs text-muted-foreground">
                     {itemEvents.map((event) => <li key={String(event.id)}>{label(event.event_type)} · {date(event.occurred_at)} · {String(event.reason_code)}</li>)}
