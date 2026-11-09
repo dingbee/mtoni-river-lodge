@@ -47,11 +47,14 @@ function SubscriptionAction({ subscription }: { subscription: Record<string, unk
   const [acceptanceRef, setAcceptanceRef] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
   const [busy, setBusy] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
   const [message, setMessage] = useState("");
   const needsReason = command === "suspend" || command === "cancel_immediately";
+  const needsConfirmation = needsReason;
   const needsAcceptance = command === "activate_paid" || command === "renewal_authorized";
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (needsConfirmation && !confirmed) return;
     setBusy(true); setMessage("");
     try {
       await administerCommercialSubscription({ data: {
@@ -75,7 +78,8 @@ function SubscriptionAction({ subscription }: { subscription: Record<string, unk
     {needsReason && <input required value={reasonCode} onChange={(event) => setReasonCode(event.target.value)} placeholder="Reason code" className="h-8 w-full rounded-md border bg-background px-2 text-xs" />}
     {needsAcceptance && <input required value={acceptanceRef} onChange={(event) => setAcceptanceRef(event.target.value)} placeholder="Commercial acceptance reference" className="h-8 w-full rounded-md border bg-background px-2 text-xs" />}
     {command === "activate_paid" && <input required type="datetime-local" value={periodEnd} onChange={(event) => setPeriodEnd(event.target.value)} className="h-8 w-full rounded-md border bg-background px-2 text-xs" />}
-    <button type="submit" disabled={busy} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50">{busy ? "Processing…" : "Apply lifecycle command"}</button>
+    {needsConfirmation && <label className="flex items-start gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={confirmed} onChange={(event)=>setConfirmed(event.target.checked)} className="mt-0.5" /> I confirm this lifecycle action and its commercial consequences.</label>}
+    <button type="submit" disabled={busy || (needsConfirmation && !confirmed)} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50">{busy ? "Processing…" : "Apply lifecycle command"}</button>
     {message && <p role="status" className="max-w-[260px] text-xs text-muted-foreground">{message}</p>}
   </form>;
 }
@@ -102,6 +106,7 @@ function FounderWorkspace() {
           <a href="/founder/plans" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Plans & pricing</a>
           <a href="/founder/entitlements" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Entitlements</a>
           <a href="/founder/notifications" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Alerts</a>
+          <a href="/founder/audit" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Audit & governance</a>
           <a href="#notifications" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Notifications</a>
           <a href="#subscriptions" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Subscriptions</a>
           <a href="/founder/billing" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Billing & collections</a>

@@ -344,3 +344,33 @@ export const resolveFounderCommercialNotification = createServerFn({ method: "PO
     }
     return {id:data.notificationId,status:"resolved" as const};
   });
+
+export const listFounderCommercialAudit = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await resolveVerifiedFounderActor(context as { supabase: unknown; userId: string });
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin = supabaseAdmin as any;
+    const [commercial, financial, subscriptions] = await Promise.all([
+      admin.from("commercial_audit_events").select("*").order("occurred_at",{ascending:false}).limit(500),
+      admin.from("commercial_financial_audit_events").select("*").order("occurred_at",{ascending:false}).limit(500),
+      admin.from("commercial_subscription_events").select("*").order("occurred_at",{ascending:false}).limit(500),
+    ]);
+    if(commercial.error||financial.error||subscriptions.error) throw new Error("Founder commercial audit history could not be loaded.");
+    const events=[
+      ...rows(commercial.data).map((event)=>({...event,audit_source:"commercial"})),
+      ...rows(financial.data).map((event)=>({...event,audit_source:"financial"})),
+      ...rows(subscriptions.data).map((event)=>({
+        ...event,
+        action:event.event_type,
+        resource_type:"subscription",
+        resource_ref:event.subscription_id,
+        outcome:"succeeded",
+        occurred_at:event.occurred_at,
+        metadata:event.event_metadata,
+        audit_source:"subscription",
+      })),
+    ].sort((a,b)=>Date.parse(String(b.occurred_at??""))-Date.parse(String(a.occurred_at??"")));
+    return JSON.parse(JSON.stringify(events));
+  });
