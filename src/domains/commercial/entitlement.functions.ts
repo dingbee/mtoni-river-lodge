@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { COMMERCIAL_MODULE_CODES } from "./catalogue-contract";
+import { COMMERCIAL_MODULE_CODES, DIRECT_BOOKING_CAMPAIGN_STUDIO_ADDON_CODE, commercialAddonSchema } from "./catalogue-contract";
 import { commercialPackageCompositionSchema } from "./package-composition-contract";
-import { resolveEntitlement, type EntitlementResolution } from "./entitlement-engine";
+import { resolveEntitlement, type EntitlementResolution, type EntitlementResolutionInput } from "./entitlement-engine";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { resolveVerifiedFounderActor, resolveVerifiedTenantActor } from "./subscription.functions";
 
@@ -12,6 +12,8 @@ type Query = PromiseLike<Result> & {
   eq(column: string, value: unknown): Query;
   in(column: string, values: unknown[]): Query;
   or(filters: string): Query;
+  order(column: string, options?: { ascending?: boolean }): Query;
+  limit(count: number): Query;
   maybeSingle(): Promise<Result>;
 };
 type AdminClient = {
@@ -67,7 +69,19 @@ function sourceFor(featureCode: string, planFeatures: string[], addonRules: Gran
 export async function assertCommercialEntitlement(
   context: { supabase: unknown; userId: string },
   featureCode: z.infer<typeof moduleCodeSchema>,
-  options: { propertyCreationRequested?: boolean } = {},
+  options: {
+    propertyCreationRequested?: boolean;
+    /**
+     * Trusted server-computed usage only. Never populate this from browser input.
+     * The limit is always resolved from the founder-published commercial catalogue.
+     */
+    usage?: {
+      metric: string;
+      used: number;
+      scope: "property" | "organisation";
+      period: "concurrent" | "monthly" | "billing_period" | "lifetime";
+    };
+  } = {},
 ): Promise<EntitlementResolution> {
   const actor = await resolveVerifiedTenantActor(context);
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -140,6 +154,82 @@ export async function assertCommercialEntitlement(
   const featureAddonRules = addonRules.filter((rule) => rule.feature_code === featureCode);
   const featureCustomRules = customRules.filter((rule) => rule.feature_code === featureCode);
   const featureOverrides = overrides.filter((rule) => rule.feature_code === featureCode);
+
+  let resolvedUsage: EntitlementResolutionInput["usage"];
+  if (options.usage) {
+    const usageRequest = options.usage;
+    const eligibleAddonCodes = Array.from(new Set(
+      featureAddonRules
+        .map((rule) => rule.addon_code)
+        .filter((code): code is string => code !== null && (subscription.addon_codes ?? []).includes(code)),
+    ));
+
+    // No quota value is accepted from the caller. Resolve exactly one matching
+    // quota from the currently published founder catalogue for an effective,
+    // purchased add-on that grants this feature.
+    let quotaMatches: Array<{
+      featureCode: string;
+      metric: string;
+      limit: number;
+      scope: "property" | "organisation";
+      period: "concurrent" | "monthly" | "billing_period" | "lifetime";
+    }> = [];
+
+    if (eligibleAddonCodes.length > 0) {
+      const { data: cataloguePointerData, error: cataloguePointerError } = await admin
+        .from("commercial_policy_config_current")
+        .select("version_id")
+        .eq("policy_type", "catalogue")
+        .maybeSingle();
+      const cataloguePointer = cataloguePointerData as { version_id: string } | null;
+
+      if (!cataloguePointerError && cataloguePointer?.version_id) {
+        const { data: catalogueVersionData, error: catalogueVersionError } = await admin
+          .from("commercial_policy_config_versions")
+          .select("policy_type, status, payload")
+          .eq("id", cataloguePointer.version_id)
+          .eq("status", "published")
+          .maybeSingle();
+        const catalogueVersion = catalogueVersionData as {
+          policy_type?: string;
+          status?: string;
+          payload?: unknown;
+        } | null;
+
+        if (!catalogueVersionError && catalogueVersion?.policy_type === "catalogue"
+          && catalogueVersion.status === "published"
+          && catalogueVersion.payload && typeof catalogueVersion.payload === "object"
+          && "addons" in catalogueVersion.payload
+          && Array.isArray((catalogueVersion.payload as { addons?: unknown }).addons)) {
+          const parsedAddons = (catalogueVersion.payload as { addons: unknown[] }).addons
+            .flatMap((addon) => {
+              const parsed = commercialAddonSchema.safeParse(addon);
+              return parsed.success ? [parsed.data] : [];
+            });
+
+          quotaMatches = parsedAddons
+            .filter((addon) => eligibleAddonCodes.includes(addon.code) && addon.status === "active")
+            .flatMap((addon) => addon.quotaPolicies)
+            .filter((quota) => quota.featureCode === featureCode
+              && quota.metric === usageRequest.metric
+              && quota.scope === usageRequest.scope
+              && quota.period === usageRequest.period);
+        }
+      }
+    }
+
+    const validUsageCount = Number.isInteger(usageRequest.used) && usageRequest.used >= 0;
+    const quota = quotaMatches.length === 1 ? quotaMatches[0] : undefined;
+    resolvedUsage = {
+      metric: usageRequest.metric,
+      used: validUsageCount ? usageRequest.used : -1,
+      limit: quota?.limit ?? -1,
+      scope: usageRequest.scope,
+      period: usageRequest.period,
+      policyConfigured: Boolean(quota) && validUsageCount,
+    };
+  }
+
   const resolution = resolveEntitlement({
     tenantId: actor.organisationId,
     subscription: {
@@ -160,6 +250,7 @@ export async function assertCommercialEntitlement(
     })),
     propertyCreationRequested: options.propertyCreationRequested,
     propertyAllowance: subscription.property_count, activePropertyCount,
+    usage: resolvedUsage,
     platformRestriction: policyValid ? platformRestriction : "review",
     now: new Date(now).toISOString(),
   }, featureCode);
@@ -174,6 +265,7 @@ export async function assertCommercialEntitlement(
     _context_snapshot: {
       planCode: subscription.plan_code, planVersion: subscription.plan_version,
       policyValid, activePropertyCount, propertyAllowance: subscription.property_count,
+      usage: resolvedUsage ?? null,
     },
   });
   if (recordError) throw new Error("Entitlement decision could not be durably recorded; access denied.");
@@ -208,12 +300,70 @@ const founderGrantInput = z.object({
   if (!valid) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Grant scope, target and effect are inconsistent." });
 });
 
+/** Founder-only read of append-only entitlement grant rules. */
+export const listFounderEntitlementGrantRules = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await resolveVerifiedFounderActor(context as { supabase: unknown; userId: string });
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const admin = supabaseAdmin as unknown as AdminClient;
+    const { data, error } = await admin.from("commercial_entitlement_grant_rules")
+      .select("id, grant_type, organisation_id, addon_code, feature_code, effect, effective_from, effective_to, reason, created_by, created_at")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw new Error("Unable to load founder entitlement grant rules.");
+    return data ?? [];
+  });
+
 /** Founder-only policy authoring; database independently rechecks founder authority. */
 export const recordFounderEntitlementGrant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => founderGrantInput.parse(input))
   .handler(async ({ data, context }) => {
     await resolveVerifiedFounderActor(context as { supabase: unknown; userId: string });
+
+    if (data.grantType === "addon_feature") {
+      if (data.addonCode === DIRECT_BOOKING_CAMPAIGN_STUDIO_ADDON_CODE
+        && !["direct_booking_pages", "campaign_studio", "campaign_analytics_advanced"].includes(data.featureCode)) {
+        throw new Error("The Direct Booking & Campaign Studio add-on cannot grant an unrelated platform capability.");
+      }
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const admin = supabaseAdmin as unknown as AdminClient;
+      const { data: pointerData, error: pointerError } = await admin.from("commercial_policy_config_current")
+        .select("version_id").eq("policy_type", "catalogue").maybeSingle();
+      const pointer = pointerData as { version_id: string } | null;
+      if (pointerError || !pointer?.version_id) {
+        throw new Error("A published founder commercial catalogue is required before granting an add-on feature.");
+      }
+      const { data: versionData, error: versionError } = await admin.from("commercial_policy_config_versions")
+        .select("policy_type, status, payload").eq("id", pointer.version_id).maybeSingle();
+      const version = versionData as { policy_type?: string; status?: string; payload?: unknown } | null;
+      if (versionError || version?.policy_type !== "catalogue" || version.status !== "published"
+        || !version.payload || typeof version.payload !== "object"
+        || !("addons" in version.payload) || !Array.isArray((version.payload as { addons?: unknown }).addons)) {
+        throw new Error("The current founder commercial catalogue is invalid.");
+      }
+      const addons = (version.payload as { addons: unknown[] }).addons
+        .flatMap((item) => {
+          const parsed = commercialAddonSchema.safeParse(item);
+          return parsed.success ? [parsed.data] : [];
+        });
+      const targetAddon = addons.find((addon) => addon.code === data.addonCode && addon.status === "active");
+      if (!targetAddon) {
+        throw new Error("The add-on must exist and be active in the published founder catalogue before a feature grant can be issued.");
+      }
+      if (data.addonCode === DIRECT_BOOKING_CAMPAIGN_STUDIO_ADDON_CODE
+        && data.featureCode === "campaign_studio"
+        && targetAddon.quotaPolicies.filter((quota) =>
+          quota.featureCode === "campaign_studio"
+          && quota.metric === "campaign_pages.max_active_per_property"
+          && quota.scope === "property"
+          && quota.period === "concurrent",
+        ).length !== 1) {
+        throw new Error("Campaign Studio cannot be granted until exactly one property-scoped active-campaign quota is published by Founder Admin.");
+      }
+    }
+
     const client = context.supabase as unknown as {
       rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown | null }>;
     };

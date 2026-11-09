@@ -53,6 +53,9 @@ const moduleNames: Record<(typeof COMMERCIAL_MODULE_CODES)[number], string> = {
   marketing: "Marketing",
   integrations: "Integrations",
   intelligence: "StayNas Intelligence",
+  direct_booking_pages: "Direct Booking Pages",
+  campaign_studio: "Campaign Studio",
+  campaign_analytics_advanced: "Advanced Campaign Analytics",
 };
 
 export const COMMERCIAL_MODULES: readonly CommercialModule[] = COMMERCIAL_MODULE_CODES.map((code) => ({

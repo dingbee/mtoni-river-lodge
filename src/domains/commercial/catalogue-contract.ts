@@ -43,8 +43,14 @@ export const COMMERCIAL_MODULE_CODES = [
   "marketing",
   "integrations",
   "intelligence",
+  "direct_booking_pages",
+  "campaign_studio",
+  "campaign_analytics_advanced",
 ] as const;
 export type CommercialModuleCode = (typeof COMMERCIAL_MODULE_CODES)[number];
+
+/** Stable commercial add-on identity; publication and pricing remain founder-configured. */
+export const DIRECT_BOOKING_CAMPAIGN_STUDIO_ADDON_CODE = "direct_booking_campaign_studio" as const;
 
 export const COMMERCIAL_CATALOGUE_STATUSES = ["draft", "active", "retired"] as const;
 export type CommercialCatalogueStatus = (typeof COMMERCIAL_CATALOGUE_STATUSES)[number];
@@ -52,6 +58,7 @@ export type CommercialCatalogueStatus = (typeof COMMERCIAL_CATALOGUE_STATUSES)[n
 const nonEmptyCode = z.string().trim().min(2).max(60).regex(/^[a-z][a-z0-9_]*$/);
 const nonEmptyName = z.string().trim().min(2).max(120);
 const description = z.string().trim().max(2000);
+const quotaMetric = z.string().trim().min(2).max(100).regex(/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*$/);
 
 export const commercialPlanSchema = z.object({
   code: z.enum(COMMERCIAL_PLAN_CODES),
@@ -96,11 +103,33 @@ export const commercialPlanModuleSchema = z.object({
 });
 export type CommercialPlanModule = z.infer<typeof commercialPlanModuleSchema>;
 
+export const commercialAddonQuotaSchema = z.object({
+  featureCode: z.enum(COMMERCIAL_MODULE_CODES),
+  metric: quotaMetric,
+  limit: z.number().int().min(0).max(1_000_000),
+  scope: z.enum(["property", "organisation"]),
+  period: z.enum(["concurrent", "monthly", "billing_period", "lifetime"]),
+});
+export type CommercialAddonQuota = z.infer<typeof commercialAddonQuotaSchema>;
+
 export const commercialAddonSchema = z.object({
   code: nonEmptyCode,
   name: nonEmptyName,
   description,
   status: z.enum(COMMERCIAL_CATALOGUE_STATUSES),
+  /** Founder-authored limits; omitted on legacy add-ons and never inferred. */
+  quotaPolicies: z.array(commercialAddonQuotaSchema).default([]),
+}).superRefine((value, ctx) => {
+  const keys = value.quotaPolicies.map((quota) =>
+    [quota.featureCode, quota.metric, quota.scope, quota.period].join(":"),
+  );
+  if (new Set(keys).size !== keys.length) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["quotaPolicies"],
+      message: "An add-on cannot define duplicate quota policies for the same feature, metric, scope and period.",
+    });
+  }
 });
 export type CommercialAddon = z.infer<typeof commercialAddonSchema>;
 

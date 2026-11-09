@@ -64,6 +64,7 @@ jobs:
           src/domains/commercial/subscription.authorization.test.ts
           src/domains/commercial/founder-policy.functions.test.ts
           src/domains/commercial/entitlement-engine.test.ts
+          src/domains/commercial/capability-quota-contract.test.ts
           src/domains/commercial/settlement-contract.test.ts
           src/domains/commercial/commercial-billing-engine.test.ts
           src/domains/commercial/commercial-payment-adapters.test.ts
@@ -109,6 +110,7 @@ jobs:
           src/lib/pesapal-currency.test.ts
           src/domains/commercial/catalogue.ts
           src/domains/commercial/catalogue-contract.ts
+          src/domains/commercial/capability-quota-contract.test.ts
           src/domains/commercial/catalogue.test.ts
           src/domains/commercial/pricing-contract.ts
           src/domains/commercial/pricing-engine.ts
