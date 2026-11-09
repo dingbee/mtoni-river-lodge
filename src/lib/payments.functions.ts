@@ -50,6 +50,10 @@ export const initiatePayment = createServerFn({ method: "POST" })
     });
     const notificationId = await ensureIpn(baseUrl);
 
+    if (booking.currency !== "TZS" && booking.currency !== "USD") {
+      throw new Error("Booking currency is missing or unsupported. Payment cannot be initiated.");
+    }
+
     const deposit = Number(booking.deposit_amount);
     if (!deposit || deposit <= 0) throw new Error("Invalid deposit amount");
 
@@ -62,7 +66,7 @@ export const initiatePayment = createServerFn({ method: "POST" })
     const order = await submitPesapalOrder({
       merchantReference: merchantRef,
       amount: deposit,
-      currency: booking.currency || "USD",
+      currency: booking.currency,
       description: `Mtoni River Lodge deposit – ${booking.reference}`,
       callbackUrl,
       notificationId,
