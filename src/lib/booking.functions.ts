@@ -16,6 +16,14 @@ function getPublicClient() {
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date");
 
+function dateInTimezone(timezone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(new Date());
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
 const campaignBookingContextSchema = z.object({
   propertySlug: z.string().trim().min(3).max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
   campaignSlug: z.string().trim().min(2).max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
@@ -43,7 +51,7 @@ async function resolveCampaignBookingContext(
     throw new Error("Campaign booking requires a complete campaign offer and published rate-plan context.");
   }
   const [{ data: property, error: propertyError }, { data: campaign, error: campaignError }] = await Promise.all([
-    sb.from("staynas_properties").select("id,slug,currency,status").eq("id", propertyId).maybeSingle(),
+    sb.from("staynas_properties").select("id,slug,currency,status,timezone").eq("id", propertyId).maybeSingle(),
     sb.from("booking_campaigns").select("id,property_id,status,starts_at,ends_at")
       .eq("property_id", propertyId).eq("slug", input.campaignSlug).eq("status", "published").maybeSingle(),
   ]);
@@ -65,8 +73,8 @@ async function resolveCampaignBookingContext(
     .eq("id", offer.rate_plan_publication_id).eq("property_id", propertyId).maybeSingle();
   if (publicationError || !publication || publication.rate_plan_id !== input.ratePlanId
     || publication.currency !== property.currency
-    || (publication.effective_from && publication.effective_from > new Date().toISOString().slice(0,10))
-    || (publication.effective_to && publication.effective_to < new Date().toISOString().slice(0,10))) {
+    || (publication.effective_from && publication.effective_from > dateInTimezone(property.timezone))
+    || (publication.effective_to && publication.effective_to < dateInTimezone(property.timezone))) {
     throw new Error("Campaign offer does not match a currently effective published pricing snapshot in the property currency.");
   }
   const { data: plan, error: planError } = await sb.from("staynas_rate_plans")
