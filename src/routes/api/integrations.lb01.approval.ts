@@ -33,7 +33,13 @@ export const Route = createFileRoute("/api/integrations/lb01/approval")({
 
         try {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          const { data, error } = await supabaseAdmin.rpc("staynas_record_lexibite_approval", {
+          // The generated client schema can lag additive integration migrations.
+          // Keep the narrow RPC contract local instead of weakening the client globally.
+          const recordApproval = supabaseAdmin.rpc.bind(supabaseAdmin) as unknown as (
+            functionName: string,
+            args: Record<string, unknown>,
+          ) => Promise<{ data: unknown; error: unknown }>;
+          const { data, error } = await recordApproval("staynas_record_lexibite_approval", {
             _integration_tenant_id: connection.integration_tenant_id,
             _integration_property_id: connection.integration_property_id,
             _remote_tenant_id: connection.remote_tenant_id,
