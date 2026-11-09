@@ -1,0 +1,69 @@
+name: Public booking channel database verification
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - fix/mtoni-currency-fail-closed-etm-integration-prep
+
+jobs:
+  public-booking-channel-database:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: public_booking_channel_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d public_booking_channel_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: public_booking_channel_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bootstrap isolated StayNas booking schema
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE anon NOLOGIN;
+          CREATE ROLE authenticated NOLOGIN;
+          CREATE ROLE service_role NOLOGIN BYPASSRLS;
+          CREATE TABLE public.staynas_properties (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            slug text NOT NULL UNIQUE,
+            status text NOT NULL DEFAULT 'setup'
+          );
+          CREATE TABLE public.staynas_property_domains (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+            hostname text NOT NULL UNIQUE,
+            verification_status text NOT NULL DEFAULT 'pending',
+            verified_at timestamptz
+          );
+          CREATE TABLE public.staynas_reservation_quotes (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+            request jsonb NOT NULL DEFAULT '{}'::jsonb,
+            quote_snapshot jsonb NOT NULL DEFAULT '{}'::jsonb
+          );
+          CREATE TABLE public.bookings (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+            pricing_snapshot jsonb NOT NULL DEFAULT '{}'::jsonb
+          );
+          SQL
+      - name: Apply public sales-channel migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109120000_public_sales_channels.sql
+      - name: Verify tenant binding, RLS, grants and channel-aware quote/reservation contracts
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/public_sales_channels.test.sql
