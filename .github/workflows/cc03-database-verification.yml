@@ -3,6 +3,7 @@ name: CC-03 database verification
 on:
   push:
     branches:
+      - fix/mtoni-currency-fail-closed-etm-integration-prep
       - feat/cc-03-*
       - feat/cc03-04-*
       - feat/cc03-founder-*
