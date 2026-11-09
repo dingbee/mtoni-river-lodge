@@ -93,19 +93,19 @@ export const getFounderCommercialReporting = createServerFn({ method: "GET" })
       query.gte("period_month", data.periodStart).lt("period_month", data.periodEnd),
     ));
     const [invoiceFacts, collectionFacts, unallocatedFacts, reversalFacts, receivables, recurringFacts, movementFacts] = await Promise.all([
-      readAll(admin, "commercial_revenue_invoice_facts",
+      readAll(admin, "commercial_founder_revenue_invoice_facts",
         "organisation_id,account_id,invoice_id,period_month,currency,gross_invoiced_minor,net_invoiced_minor,one_time_minor,credit_notes_minor,debit_notes_minor,write_offs_minor,outstanding_minor,credit_balance_minor",
         (query) => periodFilter(query).order("organisation_id").order("period_month").order("invoice_id")),
-      readAll(admin, "commercial_revenue_collection_facts",
+      readAll(admin, "commercial_founder_revenue_collection_facts",
         "organisation_id,account_id,invoice_id,payment_id,period_month,currency,net_collected_minor",
         (query) => periodFilter(query).order("organisation_id").order("period_month").order("payment_id")),
-      readAll(admin, "commercial_revenue_unallocated_facts",
+      readAll(admin, "commercial_founder_revenue_unallocated_facts",
         "organisation_id,account_id,period_month,currency,unallocated_minor",
         (query) => periodFilter(query).order("organisation_id").order("period_month").order("account_id")),
-      readAll(admin, "commercial_revenue_reversal_facts",
+      readAll(admin, "commercial_founder_revenue_reversal_facts",
         "organisation_id,account_id,period_month,currency,reversed_minor,reversal_count",
         (query) => periodFilter(query).order("organisation_id").order("period_month").order("account_id")),
-      readAll(admin, "commercial_receivables_aging",
+      readAll(admin, "commercial_founder_receivables_aging",
         "invoice_id,organisation_id,currency,outstanding_minor,aging_bucket,status",
         (query) => {
           let scoped = orgFilter(query).gt("outstanding_minor", 0);
@@ -115,7 +115,7 @@ export const getFounderCommercialReporting = createServerFn({ method: "GET" })
       readAll(admin, "commercial_subscription_recurring_value_facts",
         "subscription_id,account_id,organisation_id,currency,contract_total_minor,mrr_minor,arr_minor",
         (query) => currencyFilter(orgFilter(query).order("organisation_id").order("account_id").order("subscription_id"))),
-      readAll(admin, "commercial_subscription_revenue_movement_facts",
+      readAll(admin, "commercial_founder_subscription_movement_facts",
         "account_id,organisation_id,subscription_id,effective_at,currency,movement_type,previous_mrr_minor,movement_mrr_minor,net_new_mrr_minor",
         (query) => {
           let scoped = orgFilter(query).gte("effective_at", data.periodStart).lt("effective_at", data.periodEnd);
