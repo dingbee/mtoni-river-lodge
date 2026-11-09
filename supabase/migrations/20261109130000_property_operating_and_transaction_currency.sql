@@ -12,8 +12,8 @@ ALTER TABLE public.bookings
 ALTER TABLE public.extras
   ALTER COLUMN currency DROP DEFAULT;
 
--- These two existing StayNas properties are Tanzanian operating properties.
--- Preserve their existing USD room/rate-plan transaction prices and history.
+-- Existing StayNas properties in Tanzania use TZS as their operating/reporting
+-- currency. Their existing USD room prices and published USD plans are retained.
 UPDATE public.staynas_properties
 SET currency = 'TZS'
 WHERE slug IN ('mtoni-river-lodge','nolmark-cdma-staynas','staynas-demo-property')
@@ -164,7 +164,7 @@ BEGIN
 
   v_old:=$old$  SELECT upper(currency) INTO v_currency
   FROM public.staynas_properties WHERE id=NEW.property_id;
-  IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}
+  IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}$' THEN
     RAISE EXCEPTION 'Rate override property must have an explicit currency';
   END IF;
   IF upper(NEW.currency) <> v_currency THEN
@@ -191,74 +191,7 @@ $old$;
   ELSE
     RAISE EXCEPTION 'Rate override requires an explicit room or rate-plan pricing source';
   END IF;
-  IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}' THEN
-    RAISE EXCEPTION 'Rate override pricing source must have an explicit transaction currency';
-  END IF;
-  IF upper(NEW.currency) <> v_currency THEN
-    RAISE EXCEPTION 'Rate override currency must match the selected pricing source currency %',v_currency;
-  END IF;
-  NEW.currency := v_currency;
-$new$;
-  v_updated:=replace(v_updated,v_old,v_new);
-  IF v_updated=v_definition
-     OR position('FROM public.staynas_rate_plans' in v_updated)=0
-     OR position('FROM public.rooms' in v_updated)=0
-     OR position('Rate override currency must match property currency' in v_updated)>0 THEN
-    RAISE EXCEPTION 'Rate override validation did not migrate to pricing-source transaction currency';
-  END IF;
-  EXECUTE v_updated;
-END;
-$rate_override_currency$;
-
-COMMIT;
- THEN
-    RAISE EXCEPTION 'Rate override property must have an explicit currency';
-  END IF;
-  IF upper(NEW.currency) <> v_currency THEN
-    RAISE EXCEPTION 'Rate override currency must match property currency %',v_currency;
-  END IF;
-  NEW.currency := v_currency;
-$old$;
-  v_new:=$new$  IF NEW.rate_plan_id IS NOT NULL THEN
-    SELECT upper(currency) INTO v_currency
-    FROM public.staynas_rate_plans
-    WHERE id=NEW.rate_plan_id AND property_id=NEW.property_id;
-  ELSIF NEW.room_id IS NOT NULL THEN
-    SELECT upper(currency) INTO v_currency
-    FROM public.rooms
-    WHERE id=NEW.room_id AND property_id=NEW.property_id;
-  ELSIF NEW.room_type_id IS NOT NULL THEN
-    SELECT min(upper(currency)),count(DISTINCT upper(currency))
-      INTO v_currency,v_currency_count
-    FROM public.rooms
-    WHERE property_id=NEW.property_id AND catalogue_type_id=NEW.room_type_id AND status='active';
-    IF COALESCE(v_currency_count,0)<>1 THEN
-      RAISE EXCEPTION 'A room-type override requires one consistent room transaction currency';
-    END IF;
-  ELSE
-    RAISE EXCEPTION 'Rate override requires an explicit room or rate-plan pricing source';
-  END IF;
-  IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}
-    RAISE EXCEPTION 'Rate override pricing source must have an explicit transaction currency';
-  END IF;
-  IF upper(NEW.currency) <> v_currency THEN
-    RAISE EXCEPTION 'Rate override currency must match the selected pricing source currency %',v_currency;
-  END IF;
-  NEW.currency := v_currency;
-$new$;
-  v_updated:=replace(v_updated,v_old,v_new);
-  IF v_updated=v_definition
-     OR position('FROM public.staynas_rate_plans' in v_updated)=0
-     OR position('FROM public.rooms' in v_updated)=0
-     OR position('Rate override currency must match property currency' in v_updated)>0 THEN
-    RAISE EXCEPTION 'Rate override validation did not migrate to pricing-source transaction currency';
-  END IF;
-  EXECUTE v_updated;
-END;
-$rate_override_currency$;
-
-COMMIT;
- THEN
+  IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}$' THEN
     RAISE EXCEPTION 'Rate override pricing source must have an explicit transaction currency';
   END IF;
   IF upper(NEW.currency) <> v_currency THEN
