@@ -148,7 +148,7 @@ export const listMyCampaignStudioResources = createServerFn({ method: "GET" })
     const { actor, admin } = await resolveCampaignAdmin(context as ServerContext);
     const sb = admin as any;
     const [{ data: property, error: propertyError }, { data: rooms, error: roomsError }, { data: publications, error: publicationsError }, { data: plans, error: plansError }] = await Promise.all([
-      sb.from("staynas_properties").select("id,currency,timezone").eq("id", actor.propertyId).eq("organisation_id", actor.organisationId).eq("status", "active").maybeSingle(),
+      sb.from("staynas_properties").select("id,currency,timezone,status").eq("id", actor.propertyId).eq("organisation_id", actor.organisationId).eq("status", "active").maybeSingle(),
       sb.from("rooms").select("id,slug,name,max_occupancy,status,catalogue_type_id").eq("property_id", actor.propertyId).eq("status", "active").order("name"),
       sb.from("staynas_rate_plan_publications").select("id,rate_plan_id,publication_number,rate_plan_version,code,name,currency,effective_from,effective_to,snapshot_hash,room_type_assignments,published_at").eq("property_id", actor.propertyId).order("published_at", { ascending: false }),
       sb.from("staynas_rate_plans").select("id,code,name,currency,publication_status,active").eq("property_id", actor.propertyId).eq("publication_status", "published").eq("active", true).order("name"),
@@ -172,7 +172,7 @@ export const listMyCampaignStudioResources = createServerFn({ method: "GET" })
       && property.currency !== "USD" && publication.currency === property.currency
       && (!publication.effective_from || publication.effective_from <= today)
       && (!publication.effective_to || publication.effective_to >= today));
-    return { currency: property.currency, timezone: property.timezone, rooms: rooms ?? [], publications: validPublications };
+    return { currency: property.currency, timezone: property.timezone, propertyStatus: property.status, rooms: rooms ?? [], publications: validPublications };
   });
 
 export const configureMyBookingCampaign = createServerFn({ method: "POST" })
