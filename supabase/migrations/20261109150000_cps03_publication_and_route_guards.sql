@@ -86,7 +86,7 @@ as $function$
     select 1 from public.staynas_properties p
     where p.id = _property_id
       and p.organisation_id = _organisation_id
-      and public.cps03_is_property_public_active(c.property_id, c.organisation_id)
+      and p.status = 'active'
   )
 $function$;
 
@@ -132,13 +132,12 @@ on public.campaign_room_selections for select to anon, authenticated
 using (
   exists (
     select 1 from public.booking_campaigns c
-    
     where c.id = campaign_room_selections.campaign_id
       and c.property_id = campaign_room_selections.property_id
       and c.status = 'published'
       and (c.starts_at is null or c.starts_at <= now())
       and (c.ends_at is null or c.ends_at > now())
-      and p.status = 'active'
+      and public.cps03_is_property_public_active(c.property_id, c.organisation_id)
   )
 );
 
@@ -149,13 +148,12 @@ using (
   active
   and exists (
     select 1 from public.booking_campaigns c
-    join public.staynas_properties p on p.id = c.property_id and p.organisation_id = c.organisation_id
     where c.id = campaign_offers.campaign_id
       and c.property_id = campaign_offers.property_id
       and c.status = 'published'
       and (c.starts_at is null or c.starts_at <= now())
       and (c.ends_at is null or c.ends_at > now())
-      and p.status = 'active'
+      and public.cps03_is_property_public_active(c.property_id, c.organisation_id)
   )
 );
 
