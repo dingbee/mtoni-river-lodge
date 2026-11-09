@@ -133,6 +133,12 @@ BEGIN
     RAISE EXCEPTION 'Invalid Concierge escalation contract' USING ERRCODE = '22023';
   END IF;
 
+  IF auth.role() <> 'service_role' AND NOT public.staynas_ai_property_in_active_context(
+    p_property_id, ARRAY['owner','manager','admin','reservations']::public.app_role[]
+  ) THEN
+    RAISE EXCEPTION 'Active property authorization is required' USING ERRCODE = '42501';
+  END IF;
+
   IF NOT EXISTS (
     SELECT 1 FROM public.staynas_properties property
     JOIN public.ai_concierge_sessions session ON session.property_id = property.id
@@ -197,6 +203,6 @@ $function$;
 REVOKE ALL ON FUNCTION public.staynas_create_concierge_escalation(uuid,uuid,uuid,text,text,numeric,smallint,text)
   FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.staynas_create_concierge_escalation(uuid,uuid,uuid,text,text,numeric,smallint,text)
-  TO service_role;
+  TO authenticated, service_role;
 
 COMMIT;
