@@ -117,5 +117,7 @@ jobs:
           SQL
       - name: Apply CPS-03 campaign data and tenant isolation migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109130000_cps03_campaign_data_tenant_isolation.sql
+      - name: Apply CPS-03 publication, route and attribution hardening
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109150000_cps03_publication_and_route_guards.sql
       - name: Verify tenant boundaries, composite references and public publication gates
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/cps03_campaign_tenant_isolation.test.sql
