@@ -113,6 +113,8 @@ function FounderCommercialReporting() {
     lines.push(["count_overdue_invoices", "count", String(report.counts.overdueInvoices)]);
     lines.push(["period_start", "date", report.periodStart]);
     lines.push(["period_end_exclusive", "date", report.periodEnd]);
+    lines.push(["currency_scope", "currency", currency]);
+    lines.push(["tenant_scope", "tenant_id", organisationId || "all_customer_tenants"]);
     lines.push(["generated_at", "timestamp", new Date().toISOString()]);
     const csv = lines.map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\r\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
