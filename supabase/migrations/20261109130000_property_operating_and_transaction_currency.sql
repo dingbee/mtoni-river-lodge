@@ -290,7 +290,7 @@ BEGIN
   IF v_updated=v_definition
      OR position('v_currency := upper(COALESCE(NEW.currency' in v_updated)=0
      OR position('SELECT upper(p.currency)' in v_updated)>0
-     OR position('match the selected rate-plan currency' in v_updated)=0 THEN
+     THEN
     RAISE EXCEPTION 'Rate-plan base and occupancy validation did not migrate to transaction currency';
   END IF;
   EXECUTE v_updated;
