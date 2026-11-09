@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Supabase schema types lag the current property-scoped runtime contracts */
 import { getRequestHeader } from "@tanstack/react-start/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
