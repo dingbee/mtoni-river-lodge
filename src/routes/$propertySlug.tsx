@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- existing public room catalog payload is dynamically shaped */
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -13,6 +13,7 @@ import {
   getPublicDemoProperty,
   searchPublicDemoAvailability,
 } from "@/lib/public-booking.functions";
+import { resolveConfiguredPropertyCampaignSlug } from "@/domains/booking-campaigns/campaigns.functions";
 
 export const Route = createFileRoute("/$propertySlug")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -28,6 +29,13 @@ export const Route = createFileRoute("/$propertySlug")({
       const propertyData = await getPublicDemoProperty({ data: { propertySlug: params.propertySlug, campaignSlug } });
       return { propertyData, pageError: "" };
     } catch (error) {
+      const campaign = await resolveConfiguredPropertyCampaignSlug({ data: { campaignSlug: params.propertySlug } }).catch(() => null);
+      if (campaign) {
+        throw redirect({
+          to: "/p/$propertySlug/campaign/$campaignSlug",
+          params: { propertySlug: campaign.propertySlug, campaignSlug: campaign.campaignSlug },
+        });
+      }
       return {
         propertyData: null,
         pageError: error instanceof Error ? error.message : "This booking page is unavailable.",
