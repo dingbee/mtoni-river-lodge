@@ -8,6 +8,7 @@ import type {
   ConciergeRecommendation,
   ConciergeAvailabilityRoom,
   ConciergeBookingPlan,
+  ConciergeAvailabilityOutcome,
 } from "@/domains/ai/concierge/concierge.types";
 
 const STORAGE_KEY = "staynas.concierge.session";
@@ -38,6 +39,20 @@ function postBeacon(url: string, body: unknown) {
 
 type ChatMessage = ConciergeMessage & { pending?: boolean };
 
+function availabilityOutcomeLabel(status: ConciergeAvailabilityOutcome): string {
+  const labels: Record<ConciergeAvailabilityOutcome, string> = {
+    available: "Availability verified for these dates.",
+    unavailable: "No suitable rooms are available for these dates.",
+    invalid_search: "Please check the dates and guest count.",
+    property_resolution_failure: "This website is not configured for guest availability.",
+    inventory_service_failure: "Room availability could not be verified right now.",
+    pricing_service_failure: "Room pricing could not be verified right now.",
+    child_age_breakdown_required: "Please share each child's age so we can calculate the correct rate.",
+    temporary_failure: "The availability service is temporarily unavailable.",
+  };
+  return labels[status];
+}
+
 function useSessionToken() {
   const [token, setToken] = useState<string | null>(null);
   useEffect(() => {
@@ -66,7 +81,7 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const [leadOpen, setLeadOpen] = useState(false);
   const [leadSent, setLeadSent] = useState(false);
-  const [lead, setLead] = useState({ name: "", email: "", travel_period_start: "", travel_period_end: "", adults: "2", notes: "" });
+  const [lead, setLead] = useState({ name: "", email: "", travel_period_start: "", travel_period_end: "", adults: "2", notes: "", consent: false });
   const [leadBusy, setLeadBusy] = useState(false);
   const [leadError, setLeadError] = useState<string | null>(null);
   const [feedbackSent, setFeedbackSent] = useState<null | "helpful" | "not_helpful">(null);
@@ -90,7 +105,7 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
     () => ({
       role: "assistant",
       content:
-        "Karibu — welcome to the StayNas demo property. I'm your AI Concierge. I can help you discover rooms, explore experiences, check availability, and plan your stay in Arusha.",
+        "Karibu — welcome. I'm your property's AI Concierge. I can help you discover rooms, explore experiences, check availability, and plan your stay.",
     }),
     [],
   );
@@ -110,6 +125,45 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
     const el = scrollerRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, open, busy]);
+
+  // Poll durable web-channel handoff updates while the guest widget is open.
+  useEffect(() => {
+    if (!open || !token) return;
+    let active = true;
+    const refresh = async () => {
+      try {
+        const response = await fetch("/api/public/concierge/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_token: token }),
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const data = await response.json() as { messages?: ConciergeMessage[] };
+        if (!active || !Array.isArray(data.messages)) return;
+        const incoming = data.messages.filter((item) => item.role === "assistant" && Boolean(item.id));
+        setMessages((previous) => {
+          const known = new Set(previous.map((item) => item.id).filter(Boolean));
+          const fresh = incoming.filter((item) => item.id && !known.has(item.id));
+          return fresh.length ? [...previous, ...fresh] : previous;
+        });
+        if (incoming.some((item) =>
+          item.content.includes("marked your request as resolved") ||
+          item.content.includes("has closed this request")
+        )) {
+          setEscalation(null);
+        }
+      } catch {
+        // A missed poll is harmless; the next interval retries.
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 5000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [open, token]);
 
   async function sendText(raw: string) {
     const text = raw.trim();
@@ -161,14 +215,8 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
         },
       ]);
       setEscalation({
-        reason: "Please try again or reach us directly.",
-        channels: [
-          {
-            type: "whatsapp",
-            label: "Chat on WhatsApp",
-            url: "https://wa.me/255745900440",
-          },
-        ],
+        reason: "The Concierge is temporarily unavailable. Please try again shortly.",
+        channels: [],
       });
     } finally {
       setBusy(false);
@@ -185,6 +233,7 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           session_token: token,
+          consent: lead.consent,
           name: lead.name || null,
           email: lead.email || null,
           travel_period_start: lead.travel_period_start || null,
@@ -252,6 +301,7 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
                 )}
               >
                 {m.content}
+                {m.availability_outcome && <p className="mt-1 text-[11px] opacity-80">{availabilityOutcomeLabel(m.availability_outcome)}</p>}
                 {m.citations && m.citations.length > 0 && (
                   <div className="mt-2 border-t border-border/60 pt-2 text-[11px] opacity-80">
                     <p className="font-medium">Source: StayNas property information</p>
@@ -408,7 +458,9 @@ function RecommendationsList({ recs }: { recs: ConciergeRecommendation[] }) {
         >
           <div className="flex items-center justify-between gap-2">
             <span className="font-medium">{r.name}</span>
-            <span className="whitespace-nowrap text-muted-foreground">from {formatConciergeCurrency(r.from_price, r.currency)}</span>
+            {r.type === "experience" && (
+              <span className="whitespace-nowrap text-muted-foreground">from {formatConciergeCurrency(r.from_price, r.currency)}</span>
+            )}
           </div>
           <p className="opacity-70">{r.reasoning[0]}</p>
         </a>
@@ -474,7 +526,7 @@ function BookingPlanCard({ plan }: { plan: ConciergeBookingPlan }) {
 }
 
 function LeadForm(props: {
-  value: { name: string; email: string; travel_period_start: string; travel_period_end: string; adults: string; notes: string };
+  value: { name: string; email: string; travel_period_start: string; travel_period_end: string; adults: string; notes: string; consent: boolean };
   onChange: (v: LeadFormValue) => void;
   busy: boolean;
   error: string | null;
@@ -482,7 +534,7 @@ function LeadForm(props: {
   onCancel: () => void;
 }) {
   const v = props.value;
-  const set = (k: keyof LeadFormValue, val: string) => props.onChange({ ...v, [k]: val });
+  const set = <K extends keyof LeadFormValue>(k: K, val: LeadFormValue[K]) => props.onChange({ ...v, [k]: val });
   return (
     <div className="mr-auto w-full max-w-[95%] space-y-1.5 rounded-md border border-border bg-background p-2 text-xs">
       <p className="font-medium">Share your details</p>
@@ -494,10 +546,11 @@ function LeadForm(props: {
       </div>
       <input type="number" min="1" max="10" className="w-full rounded border bg-background px-2 py-1" placeholder="Adults" value={v.adults} onChange={(e) => set("adults", e.target.value)} />
       <textarea className="w-full rounded border bg-background px-2 py-1" placeholder="Notes (optional)" rows={2} value={v.notes} onChange={(e) => set("notes", e.target.value)} />
+      <label className="flex items-start gap-2 leading-relaxed"><input type="checkbox" checked={v.consent} onChange={(e) => set("consent", e.target.checked)} /><span>I agree that the property team may use these details to respond to my enquiry.</span></label>
       {props.error && <p className="text-destructive">{props.error}</p>}
       <div className="flex justify-end gap-1.5">
         <button type="button" onClick={props.onCancel} className="rounded px-2 py-1 hover:bg-muted">Cancel</button>
-        <button type="button" disabled={props.busy} onClick={props.onSubmit} className="rounded bg-primary px-2.5 py-1 text-primary-foreground disabled:opacity-50">
+        <button type="button" disabled={props.busy || !v.consent} onClick={props.onSubmit} className="rounded bg-primary px-2.5 py-1 text-primary-foreground disabled:opacity-50">
           {props.busy ? "Sending…" : "Send"}
         </button>
       </div>
@@ -505,4 +558,4 @@ function LeadForm(props: {
   );
 }
 
-type LeadFormValue = { name: string; email: string; travel_period_start: string; travel_period_end: string; adults: string; notes: string };
+type LeadFormValue = { name: string; email: string; travel_period_start: string; travel_period_end: string; adults: string; notes: string; consent: boolean };
