@@ -4,7 +4,7 @@ import { COMMERCIAL_MODULE_CODES } from "./catalogue-contract";
 import { commercialPackageCompositionSchema } from "./package-composition-contract";
 import { resolveEntitlement, type EntitlementResolution } from "./entitlement-engine";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { resolveVerifiedTenantActor } from "./subscription.functions";
+import { resolveVerifiedFounderActor, resolveVerifiedTenantActor } from "./subscription.functions";
 
 type Result = { data: unknown; error: unknown | null };
 type Query = PromiseLike<Result> & {
@@ -214,8 +214,8 @@ export const recordFounderEntitlementGrant = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => founderGrantInput.parse(input))
   .handler(async ({ data, context }) => {
     await resolveVerifiedFounderActor(context as { supabase: unknown; userId: string });
-    const client = context.supabase as {
-      rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown | null }>;
+    const client = context.supabase as unknown as {
+      rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown | null }>;
     };
     const { data: id, error } = await client.rpc("commercial_record_entitlement_grant", {
       _grant_type: data.grantType,
