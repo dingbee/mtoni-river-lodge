@@ -57,7 +57,7 @@ export const initiatePayment = createServerFn({ method: "POST" })
       : null;
     const ipn = await ensurePesapalPropertyAccountIpn(baseUrl, credentials, account.environment, storedIpnId);
     if (account.public_configuration?.ipn_id !== ipn.ipnId || account.public_configuration?.ipn_url !== ipn.ipnUrl) {
-      const { error: ipnConfigError } = await supabaseAdmin
+      const { error: ipnConfigError } = await (supabaseAdmin as any)
         .from("staynas_guest_payment_provider_accounts")
         .update({ public_configuration: { ...account.public_configuration, ipn_id: ipn.ipnId, ipn_url: ipn.ipnUrl, ipn_environment: account.environment } })
         .eq("id", account.id).eq("property_id", propertyId).eq("organisation_id", channel.organisationId);
@@ -91,7 +91,7 @@ export const initiatePayment = createServerFn({ method: "POST" })
       phone: booking.guest_phone,
       firstName: firstName || "Guest",
       lastName,
-    });
+    }, credentials, account.environment);
 
     const { error: orderBindingError } = await (supabaseAdmin as any)
       .from("bookings")
