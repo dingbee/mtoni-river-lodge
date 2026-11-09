@@ -66,7 +66,7 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const [leadOpen, setLeadOpen] = useState(false);
   const [leadSent, setLeadSent] = useState(false);
-  const [lead, setLead] = useState({ name: "", email: "", travel_period_start: "", travel_period_end: "", adults: "2", notes: "" });
+  const [lead, setLead] = useState({ name: "", email: "", travel_period_start: "", travel_period_end: "", adults: "2", notes: "", consent: false });
   const [leadBusy, setLeadBusy] = useState(false);
   const [leadError, setLeadError] = useState<string | null>(null);
   const [feedbackSent, setFeedbackSent] = useState<null | "helpful" | "not_helpful">(null);
@@ -90,7 +90,7 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
     () => ({
       role: "assistant",
       content:
-        "Karibu — welcome to the StayNas demo property. I'm your AI Concierge. I can help you discover rooms, explore experiences, check availability, and plan your stay in Arusha.",
+        "Karibu — welcome. I'm your property's AI Concierge. I can help you discover rooms, explore experiences, check availability, and plan your stay.",
     }),
     [],
   );
@@ -185,6 +185,7 @@ export function ConciergeWidget({ onOpenChange }: ConciergeWidgetProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           session_token: token,
+          consent: lead.consent,
           name: lead.name || null,
           email: lead.email || null,
           travel_period_start: lead.travel_period_start || null,
@@ -474,7 +475,7 @@ function BookingPlanCard({ plan }: { plan: ConciergeBookingPlan }) {
 }
 
 function LeadForm(props: {
-  value: { name: string; email: string; travel_period_start: string; travel_period_end: string; adults: string; notes: string };
+  value: { name: string; email: string; travel_period_start: string; travel_period_end: string; adults: string; notes: string; consent: boolean };
   onChange: (v: LeadFormValue) => void;
   busy: boolean;
   error: string | null;
@@ -482,7 +483,7 @@ function LeadForm(props: {
   onCancel: () => void;
 }) {
   const v = props.value;
-  const set = (k: keyof LeadFormValue, val: string) => props.onChange({ ...v, [k]: val });
+  const set = (k: keyof LeadFormValue, val: string | boolean) => props.onChange({ ...v, [k]: val });
   return (
     <div className="mr-auto w-full max-w-[95%] space-y-1.5 rounded-md border border-border bg-background p-2 text-xs">
       <p className="font-medium">Share your details</p>
@@ -494,10 +495,11 @@ function LeadForm(props: {
       </div>
       <input type="number" min="1" max="10" className="w-full rounded border bg-background px-2 py-1" placeholder="Adults" value={v.adults} onChange={(e) => set("adults", e.target.value)} />
       <textarea className="w-full rounded border bg-background px-2 py-1" placeholder="Notes (optional)" rows={2} value={v.notes} onChange={(e) => set("notes", e.target.value)} />
+      <label className="flex items-start gap-2 leading-relaxed"><input type="checkbox" checked={v.consent} onChange={(e) => set("consent", e.target.checked)} /><span>I agree that the property team may use these details to respond to my enquiry.</span></label>
       {props.error && <p className="text-destructive">{props.error}</p>}
       <div className="flex justify-end gap-1.5">
         <button type="button" onClick={props.onCancel} className="rounded px-2 py-1 hover:bg-muted">Cancel</button>
-        <button type="button" disabled={props.busy} onClick={props.onSubmit} className="rounded bg-primary px-2.5 py-1 text-primary-foreground disabled:opacity-50">
+        <button type="button" disabled={props.busy || !v.consent} onClick={props.onSubmit} className="rounded bg-primary px-2.5 py-1 text-primary-foreground disabled:opacity-50">
           {props.busy ? "Sending…" : "Send"}
         </button>
       </div>
@@ -505,4 +507,4 @@ function LeadForm(props: {
   );
 }
 
-type LeadFormValue = { name: string; email: string; travel_period_start: string; travel_period_end: string; adults: string; notes: string };
+type LeadFormValue = { name: string; email: string; travel_period_start: string; travel_period_end: string; adults: string; notes: string; consent: boolean };
