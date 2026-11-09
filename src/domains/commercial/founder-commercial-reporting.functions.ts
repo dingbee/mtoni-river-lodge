@@ -1,3 +1,4 @@
+// Founder reporting uses month-grain facts, exact integer minor units and original-currency separation.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
