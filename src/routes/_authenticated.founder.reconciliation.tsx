@@ -9,8 +9,13 @@ import {
   completeCommercialReconciliationRun,
 } from "@/domains/commercial/commercial-payment.functions";
 
+type WorkspaceRow = Record<string, unknown> & {
+  tenantName: string;
+  provider: { provider?: unknown } | null;
+};
 type Workspace = {
-  runs: Array<Record<string, unknown>>;
+  generatedAt: string;
+  runs: WorkspaceRow[];
   items: Array<Record<string, unknown>>;
   events: Array<Record<string, unknown>>;
   providers: Array<Record<string, unknown>>;
