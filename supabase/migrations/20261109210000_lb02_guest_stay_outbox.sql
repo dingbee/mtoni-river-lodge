@@ -96,7 +96,9 @@ DECLARE
   v_version bigint;
   v_occurred_at timestamptz := clock_timestamp();
 BEGIN
-  IF TG_OP = 'UPDATE' AND NEW.status IS NOT DISTINCT FROM OLD.status THEN
+  IF TG_OP = 'UPDATE' AND NEW.status IS NOT DISTINCT FROM OLD.status
+     AND NEW.guest_id IS NOT DISTINCT FROM OLD.guest_id
+     AND NEW.property_id IS NOT DISTINCT FROM OLD.property_id THEN
     RETURN NEW;
   END IF;
   IF NEW.guest_id IS NULL THEN RETURN NEW; END IF;
@@ -123,7 +125,11 @@ BEGIN
     VALUES (v_connection.id, NEW.property_id, NEW.guest_id)
     ON CONFLICT (connection_id, property_id, guest_id) DO UPDATE
       SET updated_at = now()
+      WHERE public.lb02_guest_reference_registry.revoked_at IS NULL
     RETURNING * INTO v_guest_ref;
+    IF v_guest_ref.id IS NULL THEN
+      CONTINUE;
+    END IF;
 
     INSERT INTO public.lb02_guest_stay_references(
       connection_id, property_id, booking_id, guest_id, guest_reference, last_projected_status, status_version
