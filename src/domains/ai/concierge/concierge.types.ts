@@ -79,6 +79,8 @@ export type ConciergeAvailabilityOutcome = "available" | "unavailable" | "invali
 export interface ConciergeAvailabilityRoom {
   slug: string;
   name: string;
+  /** Currency returned by the authoritative SPE quote, never a fallback. */
+  currency: string;
   max_occupancy: number;
   is_available: boolean;
   min_available: number;
