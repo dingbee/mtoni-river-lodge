@@ -9,17 +9,17 @@ type FounderWorkspaceData = {
   metrics: {
     totalTenants: number; activeTenants: number; trialTenants: number; paidSubscriptions: number;
     suspendedTenants: number; expiredSubscriptions: number; renewalsApproaching: number; overdueInvoices: number;
-    totalInvoicedByCurrency: { TZS: number; USD: number };
-    collectedByCurrency: { TZS: number; USD: number };
-    outstandingByCurrency: { TZS: number; USD: number };
-    mrrArrByCurrency: { TZS: { mrrMinor: number; arrMinor: number }; USD: { mrrMinor: number; arrMinor: number } };
+    totalInvoicedByCurrency: { TZS: string; USD: string };
+    collectedByCurrency: { TZS: string; USD: string };
+    outstandingByCurrency: { TZS: string; USD: string };
+    mrrArrByCurrency: { TZS: { mrrMinor: string; arrMinor: string }; USD: { mrrMinor: string; arrMinor: string } };
   };
   tenants: Array<{
     id: string; slug: string; name: string; status: string; accountId: string | null; propertyCount: number; subscriptionCount: number;
     primaryContact: {contact_name:string;contact_email:string;contact_phone:string|null;contact_role:string}|null;
     subscription: { id: string; planCode: string; status: string; propertyAllowance: number } | null;
-    entitlementCount: number; outstandingByCurrency: { TZS: number; USD: number };
-    lastPayment: { amountMinor: number; currency: "TZS" | "USD"; confirmedAt: string | null; reference: string | null } | null;
+    entitlementCount: number; outstandingByCurrency: { TZS: string; USD: string };
+    lastPayment: { amountMinor: string; currency: "TZS" | "USD"; confirmedAt: string | null; reference: string | null } | null;
     commercialHealth: string;
   }>;
   subscriptions: Array<Record<string, unknown>>;
@@ -43,8 +43,17 @@ export const Route = createFileRoute("/_authenticated/founder")({
   component: FounderWorkspace,
 });
 
-const money = (minor: number, currency: "TZS" | "USD") =>
-  new Intl.NumberFormat("en-TZ", { style: "currency", currency, maximumFractionDigits: 2 }).format(minor / 100);
+const money = (minor: string | number, currency: "TZS" | "USD") => {
+  const amount = BigInt(String(minor ?? 0));
+  const negative = amount < 0n;
+  const absolute = negative ? -amount : amount;
+  const major = absolute / 100n;
+  const fraction = (absolute % 100n).toString().padStart(2, "0");
+  const formatted = new Intl.NumberFormat("en-TZ", {
+    style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0,
+  }).format(major);
+  return `${negative ? "-" : ""}${formatted}.${fraction}`;
+};
 const date = (value: unknown) => value ? new Date(String(value)).toLocaleDateString() : "—";
 const label = (value: string) => value.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -355,9 +364,9 @@ function FounderWorkspace() {
             <thead className="bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="px-4 py-3">Invoice</th><th className="px-4 py-3">Tenant</th><th className="px-4 py-3">Issued</th><th className="px-4 py-3">Due</th><th className="px-4 py-3">Total</th><th className="px-4 py-3">Collected</th><th className="px-4 py-3">Outstanding</th><th className="px-4 py-3">Status</th></tr></thead>
             <tbody className="divide-y">{data.invoices.map((invoice) => <tr key={String(invoice.id)}>
               <td className="px-4 py-3 font-medium">{String(invoice.invoice_number)}</td><td className="px-4 py-3">{String(invoice.tenant_name)}</td><td className="px-4 py-3">{date(invoice.issued_at)}</td><td className="px-4 py-3">{date(invoice.due_at)}</td>
-              <td className="px-4 py-3 tabular-nums">{money(Number(invoice.total_minor ?? 0), invoice.currency === "USD" ? "USD" : "TZS")}</td>
-              <td className="px-4 py-3 tabular-nums">{money(Number(invoice.amount_paid_minor ?? 0), invoice.currency === "USD" ? "USD" : "TZS")}</td>
-              <td className="px-4 py-3 tabular-nums">{money(Number(invoice.outstanding_minor ?? 0), invoice.currency === "USD" ? "USD" : "TZS")}</td><td className="px-4 py-3">{label(String(invoice.status))}</td>
+              <td className="px-4 py-3 tabular-nums">{money(String(invoice.total_minor ?? "0"), invoice.currency === "USD" ? "USD" : "TZS")}</td>
+              <td className="px-4 py-3 tabular-nums">{money(String(invoice.amount_paid_minor ?? "0"), invoice.currency === "USD" ? "USD" : "TZS")}</td>
+              <td className="px-4 py-3 tabular-nums">{money(String(invoice.outstanding_minor ?? "0"), invoice.currency === "USD" ? "USD" : "TZS")}</td><td className="px-4 py-3">{label(String(invoice.status))}</td>
             </tr>)}{data.invoices.length === 0 && <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">No issued invoice records.</td></tr>}</tbody>
           </table>
         </div>
@@ -367,7 +376,7 @@ function FounderWorkspace() {
             <thead className="bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="px-4 py-3">Tenant</th><th className="px-4 py-3">Provider</th><th className="px-4 py-3">Reference</th><th className="px-4 py-3">Amount</th><th className="px-4 py-3">Method</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Confirmed</th></tr></thead>
             <tbody className="divide-y">{data.payments.map((payment) => <tr key={String(payment.id)}>
               <td className="px-4 py-3">{String(payment.tenant_name)}</td><td className="px-4 py-3">{label(String(payment.provider))}</td><td className="px-4 py-3 text-xs">{String(payment.provider_transaction_ref ?? "Pending provider reference")}</td>
-              <td className="px-4 py-3 tabular-nums">{money(Number(payment.amount_minor ?? 0), payment.currency === "USD" ? "USD" : "TZS")}</td><td className="px-4 py-3">{label(String(payment.payment_method ?? "—"))}</td><td className="px-4 py-3">{label(String(payment.status))}</td><td className="px-4 py-3">{date(payment.confirmed_at)}</td>
+              <td className="px-4 py-3 tabular-nums">{money(String(payment.amount_minor ?? "0"), payment.currency === "USD" ? "USD" : "TZS")}</td><td className="px-4 py-3">{label(String(payment.payment_method ?? "—"))}</td><td className="px-4 py-3">{label(String(payment.status))}</td><td className="px-4 py-3">{date(payment.confirmed_at)}</td>
             </tr>)}{data.payments.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No payment transactions.</td></tr>}</tbody>
           </table>
         </div>
