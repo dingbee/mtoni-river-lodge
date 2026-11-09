@@ -105,8 +105,8 @@ BEGIN
 
   INSERT INTO auth.users(id) VALUES (v_user), (v_other_user);
   INSERT INTO public.staynas_organisations(id, slug, name) VALUES (v_org, 'cc03-test-org-1', 'CC03 Test Organisation 1');
-  INSERT INTO public.staynas_properties(id, organisation_id, slug, code, name, status)
-  VALUES (v_property, v_org, 'cc03-test-property-1', 'CC03T1', 'CC03 Test Property 1', 'active');
+  INSERT INTO public.staynas_properties(id, organisation_id, slug, code, name, status, currency)
+  VALUES (v_property, v_org, 'cc03-test-property-1', 'CC03T1', 'CC03 Test Property 1', 'active','TZS');
   INSERT INTO public.staynas_property_members(property_id, user_id, status, role)
   VALUES (v_property, v_user, 'active', 'owner');
   INSERT INTO public.commercial_founder_tenant_config(singleton, founder_organisation_id)

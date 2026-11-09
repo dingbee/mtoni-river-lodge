@@ -199,7 +199,6 @@ function PublicPropertyBookingPage() {
   }
 
   const { property, rooms, branding } = propertyData;
-  const currency = property.currency || "USD";
   const brandStyle = {
     "--direct-primary": branding.primaryColor,
     "--direct-secondary": branding.secondaryColor,
@@ -293,7 +292,7 @@ function PublicPropertyBookingPage() {
               <div className="p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0"><h3 className="text-[17px] font-semibold tracking-[-0.035em] text-[#253229]">{room.name}</h3><p className="mt-1 line-clamp-2 text-xs leading-5 text-[#7a857d]">{room.short_description || "A considered space for a comfortable stay."}</p></div>
-                  <div className="shrink-0 text-right"><p className="text-[17px] font-semibold tracking-tight text-[#253229]">{hasSearched && live && needsPlanChoice && !selectedPlanForRoom ? "Choose a plan" : hasSearched && live && selectedPlanForRoom ? money(Number(selectedPlanForRoom.total), selectedPlanForRoom.currency) : money(room.base_price, room.currency || currency)}</p><p className="text-[10px] text-[#899188]">{hasSearched && live && selectedPlanForRoom ? "accommodation subtotal" : hasSearched && live && needsPlanChoice ? "to view pricing" : "per night · indicative"}</p></div>
+                  <div className="shrink-0 text-right"><p className="text-[17px] font-semibold tracking-tight text-[#253229]">{hasSearched && live && needsPlanChoice && !selectedPlanForRoom ? "Choose a plan" : hasSearched && live && selectedPlanForRoom ? money(Number(selectedPlanForRoom.total), selectedPlanForRoom.currency) : money(room.base_price, room.currency)}</p><p className="text-[10px] text-[#899188]">{hasSearched && live && selectedPlanForRoom ? "accommodation subtotal" : hasSearched && live && needsPlanChoice ? "to view pricing" : "per night · indicative"}</p></div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-x-3 gap-y-2 border-t border-[#f0f0eb] pt-3 text-[10px] text-[#758078]">
                   <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5"/>{room.max_occupancy} guests max</span>
@@ -318,13 +317,13 @@ function PublicPropertyBookingPage() {
           <div className="mt-4 rounded-xl border border-[#e8e9e2] bg-white p-4">
             <div className="flex items-center justify-between text-xs"><span className="text-[#718078]">Final price calculation</span><span className="text-[10px] text-[#899188]">{quoteLoading ? "Calculating…" : bookingQuote?.quote_expires_at ? `Valid until ${new Date(bookingQuote.quote_expires_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Awaiting guest email"}</span></div>
             {bookingQuote ? <div className="mt-3 space-y-2 text-xs">
-              <div className="flex justify-between gap-3"><span>Accommodation</span><span>{money(Number(bookingQuote.accommodation_subtotal ?? 0), bookingQuote.currency ?? selectedRoom.currency)}</span></div>
-              <div className="flex justify-between gap-3"><span>Extras</span><span>{money(Number(bookingQuote.extras_total ?? 0), bookingQuote.currency ?? selectedRoom.currency)}</span></div>
-              <div className="flex justify-between gap-3"><span>Fees</span><span>{money(Number(bookingQuote.fee_total ?? 0), bookingQuote.currency ?? selectedRoom.currency)}</span></div>
-              <div className="flex justify-between gap-3"><span>Discounts</span><span>−{money(Number(bookingQuote.discount_total ?? 0), bookingQuote.currency ?? selectedRoom.currency)}</span></div>
-              <div className="flex justify-between gap-3"><span>Included taxes</span><span>{money(Number(bookingQuote.taxes ?? 0), bookingQuote.currency ?? selectedRoom.currency)}</span></div>
-              <div className="flex justify-between gap-3"><span>Additional taxes</span><span>{money(Number(bookingQuote.tax_addition ?? 0), bookingQuote.currency ?? selectedRoom.currency)}</span></div>
-              <div className="flex justify-between gap-3 border-t border-[#e9eae3] pt-3 text-sm font-semibold text-[#29372e]"><span>Total</span><span>{money(Number(bookingQuote.total ?? 0), bookingQuote.currency ?? selectedRoom.currency)}</span></div>
+              <div className="flex justify-between gap-3"><span>Accommodation</span><span>{money(Number(bookingQuote.accommodation_subtotal ?? 0), bookingQuote.currency)}</span></div>
+              <div className="flex justify-between gap-3"><span>Extras</span><span>{money(Number(bookingQuote.extras_total ?? 0), bookingQuote.currency)}</span></div>
+              <div className="flex justify-between gap-3"><span>Fees</span><span>{money(Number(bookingQuote.fee_total ?? 0), bookingQuote.currency)}</span></div>
+              <div className="flex justify-between gap-3"><span>Discounts</span><span>−{money(Number(bookingQuote.discount_total ?? 0), bookingQuote.currency)}</span></div>
+              <div className="flex justify-between gap-3"><span>Included taxes</span><span>{money(Number(bookingQuote.taxes ?? 0), bookingQuote.currency)}</span></div>
+              <div className="flex justify-between gap-3"><span>Additional taxes</span><span>{money(Number(bookingQuote.tax_addition ?? 0), bookingQuote.currency)}</span></div>
+              <div className="flex justify-between gap-3 border-t border-[#e9eae3] pt-3 text-sm font-semibold text-[#29372e]"><span>Total</span><span>{money(Number(bookingQuote.total ?? 0), bookingQuote.currency)}</span></div>
             </div> : <p className="mt-2 text-[11px] text-[#7d887f]">{quoteLoading ? "Resolving published rates, fees, promotions and taxes…" : "Enter a valid email address to resolve the final guest quote."}</p>}
             {quoteError && <p role="alert" className="mt-2 text-[11px] text-red-700">{quoteError}</p>}
           </div>
@@ -351,7 +350,7 @@ function PublicPropertyBookingPage() {
 
       {!confirmation && <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#e6e4dc] bg-[#fafaf7]/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-lg sm:hidden">
         <div className="mx-auto flex max-w-lg items-center gap-3">
-          <div className="min-w-0 flex-1"><p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[#7d897f]">{selectedRoom ? "Selected room" : "Your stay"}</p><p className="truncate text-xs font-semibold text-[#29372e]">{selectedRoom ? money(selectedTotal, selectedRoom.currency) + " · " + selectedRoom.name : `${nights} nights · ${guests} guests`}</p></div>
+          <div className="min-w-0 flex-1"><p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[#7d897f]">{selectedRoom ? "Selected room" : "Your stay"}</p><p className="truncate text-xs font-semibold text-[#29372e]">{selectedRoom ? money(selectedTotal, selectedPlan?.currency ?? selectedRoom.currency) + " · " + selectedRoom.name : `${nights} nights · ${guests} guests`}</p></div>
           <button type="button" onClick={() => selectedRoom ? document.getElementById("guest-details")?.scrollIntoView({ behavior: "smooth", block: "start" }) : runAvailability()} disabled={availabilityMutation.isPending || (selectedRoom === null && nights < 1)} className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--direct-primary)] px-5 text-xs font-semibold text-white disabled:opacity-50">{selectedRoom ? "Continue" : availabilityMutation.isPending ? "Checking…" : "Find a room"}<ArrowRight className="h-3.5 w-3.5"/></button>
         </div>
       </div>}

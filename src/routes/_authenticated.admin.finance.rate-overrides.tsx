@@ -54,7 +54,7 @@ function RateOverrides() {
       effective_from: from,
       effective_to: scope === "room_date" ? from : to,
       nightly_rate: Number(rate),
-      currency: String(data?.property?.currency ?? "").toUpperCase(),
+      currency: selectedCurrency,
       reason,
     } }),
     onSuccess: () => {
@@ -77,6 +77,12 @@ function RateOverrides() {
   const plans = data?.plans ?? [];
   const roomTypes = data?.roomTypes ?? [];
   const rooms = data?.rooms ?? [];
+  const roomTypeCurrencies = Array.from(new Set(rooms.filter((item: {room_type_id:string}) => item.room_type_id === roomTypeId).map((item: {currency:string}) => String(item.currency ?? "").toUpperCase())));
+  const selectedCurrency = scope === "room_date"
+    ? String(rooms.find((item: {id:string}) => item.id === roomId)?.currency ?? "").toUpperCase()
+    : scope === "room_type"
+      ? (roomTypeCurrencies.length === 1 ? String(roomTypeCurrencies[0] ?? "") : "")
+      : String(plans.find((item: {id:string}) => item.id === ratePlanId)?.currency ?? "").toUpperCase();
   const validTarget =
     (scope === "room_date" && !!roomId && !!from) ||
     (scope === "room_type" && !!roomTypeId && !!from && !!to) ||
@@ -93,11 +99,11 @@ function RateOverrides() {
       {data?.property && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span className="font-medium text-foreground">{data.property.name}</span>
-          <Badge variant="outline">{String(data.property.currency).toUpperCase()}</Badge>
+          <Badge variant="outline">Operating {String(data.property.currency).toUpperCase()}</Badge>
           <span>{data.property.timezone}</span>
         </div>
       )}
-      <SectionCard title="Create override proposal" description="Every proposal starts pending. Approval is separately recorded; approved commercial terms are immutable. SPE-04 precedence: approved exact-date override → published daily rate → seasonal rate → inherited/base rate.">
+      <SectionCard title="Create override proposal" description="Every proposal starts pending. Approval is separately recorded; approved commercial terms are immutable. Currency follows the selected room or rate plan. SPE-04 precedence: approved exact-date override → published daily rate → seasonal rate → inherited/base rate.">
         <div className="grid gap-3 md:grid-cols-3">
           <label className="text-sm">Override scope
             <select className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2" value={scope} onChange={e => {
@@ -113,8 +119,8 @@ function RateOverrides() {
             <label className="text-sm">Rate plan
               <select className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2" value={ratePlanId} onChange={e => setRatePlanId(e.target.value)}>
                 <option value="">Choose rate plan</option>
-                {plans.map((plan: {id:string;name:string;code:string;publication_status:string}) =>
-                  <option key={plan.id} value={plan.id}>{plan.name} ({plan.code}) · {plan.publication_status}</option>)}
+                {plans.map((plan: {id:string;name:string;code:string;currency:string;publication_status:string}) =>
+                  <option key={plan.id} value={plan.id}>{plan.name} ({plan.code}) · {plan.currency} · {plan.publication_status}</option>)}
               </select>
             </label>
           )}
@@ -130,7 +136,7 @@ function RateOverrides() {
             <label className="text-sm">Room
               <select className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2" value={roomId} onChange={e => setRoomId(e.target.value)}>
                 <option value="">Choose room</option>
-                {rooms.map((item: {id:string;name:string}) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                {rooms.map((item: {id:string;name:string;currency:string}) => <option key={item.id} value={item.id}>{item.name} · {item.currency}</option>)}
               </select>
             </label>
           )}
@@ -142,7 +148,7 @@ function RateOverrides() {
               <Input className="mt-1" type="date" min={from || undefined} value={to} onChange={e => setTo(e.target.value)} />
             </label>
           )}
-          <label className="text-sm">Nightly rate ({String(data?.property?.currency ?? "").toUpperCase()})
+          <label className="text-sm">Nightly rate ({selectedCurrency || "select a target"})
             <Input className="mt-1" type="number" min="0.01" step="0.01" value={rate} onChange={e => setRate(e.target.value)} />
           </label>
           <label className="text-sm md:col-span-3">Reason
@@ -150,10 +156,10 @@ function RateOverrides() {
           </label>
         </div>
         <div className="mt-4 flex items-center gap-3">
-          <Button disabled={!validTarget || !rate || Number(rate) <= 0 || reason.trim().length < 5 || create.isPending} onClick={() => create.mutate()}>
+          <Button disabled={!validTarget || !selectedCurrency || !rate || Number(rate) <= 0 || reason.trim().length < 5 || create.isPending} onClick={() => create.mutate()}>
             {create.isPending ? "Saving…" : "Create pending proposal"}
           </Button>
-          <span className="text-xs text-muted-foreground">Currency is locked to the active property. Rate changes do not change room availability or block state.</span>
+          <span className="text-xs text-muted-foreground">Currency follows the selected room or rate plan transaction contract. Rate changes do not change room availability or block state.</span>
         </div>
       </SectionCard>
 

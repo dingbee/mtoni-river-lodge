@@ -51,7 +51,7 @@ jobs:
             BEGIN INSERT INTO vault.test_secrets(secret) VALUES ($1) RETURNING id INTO secret_id; RETURN secret_id; END
           $$;
           CREATE VIEW vault.decrypted_secrets AS SELECT id, secret AS decrypted_secret FROM vault.test_secrets;
-          CREATE TABLE public.staynas_organisations(id uuid PRIMARY KEY, slug text UNIQUE NOT NULL, name text NOT NULL, status text NOT NULL DEFAULT 'active');
+          CREATE TABLE public.staynas_organisations(id uuid PRIMARY KEY, slug text UNIQUE NOT NULL, name text NOT NULL, status text NOT NULL DEFAULT 'active', currency text NOT NULL);
           CREATE TABLE public.staynas_properties(id uuid PRIMARY KEY, organisation_id uuid NOT NULL REFERENCES public.staynas_organisations(id), slug text NOT NULL, code text NOT NULL, name text NOT NULL, status text NOT NULL DEFAULT 'active');
           CREATE TABLE public.commercial_accounts(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organisation_id uuid NOT NULL REFERENCES public.staynas_organisations(id), status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(organisation_id));
           CREATE TABLE public.commercial_subscriptions(

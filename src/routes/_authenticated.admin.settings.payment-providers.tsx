@@ -16,6 +16,7 @@ import {
   savePropertyPaymentProviderConfig,
   setPlatformPaymentProviderStatus,
   setPropertyPaymentProviderStatus,
+  testPropertyPaymentProviderConnection,
 } from "@/domains/payments/payment-provider-management.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/settings/payment-providers")({
@@ -58,6 +59,7 @@ function PaymentProviderSettings() {
   const savePropertyFn = useServerFn(savePropertyPaymentProviderConfig);
   const setPlatformStatusFn = useServerFn(setPlatformPaymentProviderStatus);
   const setPropertyStatusFn = useServerFn(setPropertyPaymentProviderStatus);
+  const testPropertyFn = useServerFn(testPropertyPaymentProviderConnection);
   const founderStatus = useQuery({ queryKey: ["settings.founder-admin-status"], queryFn: () => founderStatusFn() });
   const isFounder = founderStatus.data?.isFounderAdmin === true;
   const platformQuery = useQuery({
@@ -111,6 +113,12 @@ function PaymentProviderSettings() {
     onError: (error: unknown) => toast.error((error as Error).message),
   });
 
+  const connectionTest = useMutation({
+    mutationFn: (providerConfigId: string) => testPropertyFn({ data: { providerConfigId } }),
+    onSuccess: () => toast.success("Pesapal credentials authenticated. The account remains inactive until sandbox order, IPN and settlement certification is complete."),
+    onError: (error: unknown) => toast.error((error as Error).message),
+  });
+
   const statusMutation = useMutation({
     mutationFn: (input: { providerConfigId: string; status: "inactive" | "active" | "suspended" }) =>
       isFounder
@@ -148,7 +156,7 @@ function PaymentProviderSettings() {
         <div className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-sm">
           <p className="font-medium">Configuration is separate from activation</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Provider details are encrypted server-side and never returned to this screen. Configurations are saved inactive. A provider cannot be activated until its provider-specific adapter, callback verification and end-to-end certification are complete.
+            Provider details are encrypted server-side and never returned to this screen. Configurations are saved inactive. Pesapal credential authentication is only a connectivity check; activation remains blocked until sandbox order submission, IPN callback and settlement verification pass.
           </p>
         </div>
 
@@ -217,7 +225,7 @@ function PaymentProviderSettings() {
         </form>
       </SectionCard>
 
-      <SectionCard title="Configured providers" description="Credentials are never displayed after saving. Activation is withheld until an approved adapter is available.">
+      <SectionCard title="Configured providers" description="Credentials are never displayed after saving. Activation is withheld until provider-specific end-to-end certification is complete.">
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Loading provider configurations…</p>
         ) : queryError ? (
@@ -238,6 +246,11 @@ function PaymentProviderSettings() {
                   <p className="mt-1 text-xs text-muted-foreground">{row.hasCredentials ? "Vault credentials saved" : "No credentials saved"}{row.credentialUpdatedAt ? ` · Updated ${new Date(row.credentialUpdatedAt).toLocaleString()}` : ""}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                  {!isFounder && row.provider === "pesapal" && row.hasCredentials && (
+                    <Button size="sm" variant="outline" disabled={connectionTest.isPending} onClick={() => connectionTest.mutate(row.id)}>
+                      {connectionTest.isPending ? "Testing…" : "Test credentials"}
+                    </Button>
+                  )}
                   {row.status === "active" ? (
                     <Button size="sm" variant="outline" disabled={statusMutation.isPending} onClick={() => statusMutation.mutate({ providerConfigId: row.id, status: "suspended" })}>Suspend</Button>
                   ) : (

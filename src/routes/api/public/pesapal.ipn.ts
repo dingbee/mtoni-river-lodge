@@ -8,15 +8,16 @@ async function handleNotification(orderTrackingId: string, merchantReference: st
 
   console.info("[pesapal] IPN received", { orderTrackingId, merchantReference, notificationType });
 
-  const { data: booking } = await supabaseAdmin
+  const { data: booking } = await (supabaseAdmin as any)
     .from("bookings")
-    .select("id, payment_status")
-    .eq("pesapal_order_tracking_id", orderTrackingId)
+    .select("id, payment_status, payment_provider_account_id, pesapal_order_tracking_id, pesapal_merchant_reference")
+    .eq("pesapal_merchant_reference", merchantReference)
     .maybeSingle();
 
   // Always log the raw notification, even if booking missing.
-  await supabaseAdmin.from("payment_events").insert({
+  await (supabaseAdmin as any).from("payment_events").insert({
     booking_id: booking?.id ?? null,
+    provider_account_id: booking?.payment_provider_account_id ?? null,
     provider: "pesapal",
     event_type: `ipn:${notificationType || "unknown"}`,
     order_tracking_id: orderTrackingId,
@@ -25,7 +26,27 @@ async function handleNotification(orderTrackingId: string, merchantReference: st
   });
 
   if (!booking) {
-    console.warn("[pesapal] IPN: no booking matches orderTrackingId", { orderTrackingId });
+    console.warn("[pesapal] IPN: no booking matches merchant reference", { merchantReference });
+    return;
+  }
+  if (booking.payment_provider_account_id == null || (booking.pesapal_order_tracking_id && booking.pesapal_order_tracking_id !== orderTrackingId)) {
+    await (supabaseAdmin as any).from("payment_events").insert({
+      booking_id: booking.id,
+      provider_account_id: booking.payment_provider_account_id ?? null,
+      provider: "pesapal",
+      event_type: "security:ipn_account_or_order_mismatch",
+      order_tracking_id: orderTrackingId,
+      merchant_reference: merchantReference,
+      raw: { expectedOrderTrackingId: booking.pesapal_order_tracking_id, receivedOrderTrackingId: orderTrackingId },
+    });
+    console.warn("[pesapal] IPN rejected: provider account or order reference mismatch", { bookingId: booking.id });
+    return;
+  }
+  if (!booking.pesapal_order_tracking_id) {
+    // The provider can notify before the SubmitOrder response is persisted.
+    // Do not trust or bind an IPN-supplied tracking ID; the return/status flow
+    // will verify the order after the server has stored the submit response.
+    console.info("[pesapal] IPN arrived before order binding; deferred to status verification", { bookingId: booking.id });
     return;
   }
 

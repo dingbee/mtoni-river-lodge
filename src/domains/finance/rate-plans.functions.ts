@@ -20,6 +20,7 @@ async function getActivePropertyId(supabase: any, userId: string): Promise<strin
 const ratePlanSchema = z.object({
   id: z.string().uuid().optional(),
   code: z.string().trim().min(2).max(40).regex(/^[A-Za-z0-9_-]+$/),
+  currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/),
   name: z.string().trim().min(2).max(120),
   description: z.string().max(2000).nullable().optional(),
   category: z.string().trim().min(2).max(60),
@@ -68,11 +69,13 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
     const sb: any = context.supabase;
     const { data: property, error: propertyError } = await sb.from("staynas_properties")
       .select("currency").eq("id",propertyId).single();
-    if (propertyError || !property?.currency) throw new Error("Property currency must be configured before managing rate plans.");
+    if (propertyError || !property?.currency) throw new Error("Property operating currency must be configured before managing rate plans.");
+    let ratePlanCurrency = data.currency;
     if (data.id) {
       const { data: existing, error: existingError } = await sb.from("staynas_rate_plans")
-        .select("publication_status").eq("id",data.id).eq("property_id",propertyId).maybeSingle();
+        .select("publication_status,currency").eq("id",data.id).eq("property_id",propertyId).maybeSingle();
       if (existingError || !existing) throw new Error("Rate plan is not part of the active property.");
+      if (String(existing.currency ?? "").toUpperCase() !== ratePlanCurrency) throw new Error("A rate plan currency cannot be changed in place. Duplicate the plan to publish a new currency contract.");
       if (existing.publication_status === "archived") throw new Error("Archived rate plans are read-only. Duplicate the plan to create a new version.");
       if (existing.publication_status === "published") throw new Error("Suspend the rate plan before editing its commercial terms.");
     }
@@ -81,8 +84,11 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
     let inheritedRestrictions: Record<string, unknown> = {};
     if (data.parent_rate_plan_id) {
       const { data: parent, error: parentError } = await sb.from("staynas_rate_plans")
-        .select("id").eq("id",data.parent_rate_plan_id).eq("property_id",propertyId).maybeSingle();
+        .select("id,currency").eq("id",data.parent_rate_plan_id).eq("property_id",propertyId).maybeSingle();
       if (parentError || !parent) throw new Error("Parent rate plan is not part of the active property.");
+      if (String(parent.currency ?? "").toUpperCase() !== ratePlanCurrency) {
+        throw new Error("A child rate plan must use the same transaction currency as its parent.");
+      }
       const { data: inherited, error: inheritanceError } = await sb.rpc(
         "resolve_staynas_rate_plan_inheritance",
         { _property_id: propertyId, _rate_plan_id: data.parent_rate_plan_id },
@@ -92,6 +98,7 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
       inheritedDailyRates = (inherited?.resolved_data?.daily_rates ?? {}) as Record<string, unknown>;
       inheritedRestrictions = (inherited?.resolved_data?.restrictions ?? {}) as Record<string, unknown>;
     }
+    if (!/^[A-Z]{3}$/.test(ratePlanCurrency)) throw new Error("Select a valid ISO-4217 transaction currency for this rate plan.");
 
     const ownSeasonalRates = (data.rate_plan_data.seasonal_rates ?? {}) as Record<string, unknown>;
     const mergedSeasonalRates = mergeSeasonalRateRecords(inheritedSeasonalRates, ownSeasonalRates);
@@ -100,7 +107,7 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
     const effectiveSeasonalRates = seasonalRatesSchema.parse(
       Object.fromEntries(Object.entries(mergedSeasonalRates).filter(([, value]) => value !== null)),
     );
-    validateSeasonalRateCurrency(effectiveSeasonalRates, String(property.currency));
+    validateSeasonalRateCurrency(effectiveSeasonalRates, ratePlanCurrency);
     if (Object.keys(effectiveSeasonalRates).length) {
       const { data: roomTypes, error: roomTypesError } = await sb.rpc(
         "get_staynas_rate_plan_room_types", { _property_id: propertyId },
@@ -125,7 +132,7 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
         .filter(([, roomRates]) => Object.keys(roomRates as Record<string, unknown>).length > 0),
     );
     const effectiveDailyRates = dailyRatesSchema.parse(normalizedDailyRates);
-    validateDailyRateCurrency(effectiveDailyRates, String(property.currency));
+    validateDailyRateCurrency(effectiveDailyRates, ratePlanCurrency);
     if (Object.keys(effectiveDailyRates).length) {
       const { data: roomTypes, error: roomTypesError } = await sb.rpc(
         "get_staynas_rate_plan_room_types", { _property_id: propertyId },
@@ -152,7 +159,7 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
     const payload = {
       ...data,
       property_id: propertyId,
-      currency: String(property.currency).toUpperCase(),
+      currency: ratePlanCurrency,
       code: data.code.toUpperCase(),
       updated_by: context.userId,
       ...(data.id ? {} : { created_by: context.userId }),

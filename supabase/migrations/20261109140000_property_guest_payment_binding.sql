@@ -1,0 +1,70 @@
+-- Bind guest payment attempts and settlement events to the exact property provider account.
+BEGIN;
+
+CREATE UNIQUE INDEX IF NOT EXISTS staynas_guest_payment_one_active_provider_uidx
+  ON public.staynas_guest_payment_provider_accounts(organisation_id,property_id,provider)
+  WHERE status='active';
+
+CREATE UNIQUE INDEX IF NOT EXISTS staynas_guest_payment_provider_accounts_id_property_uidx
+  ON public.staynas_guest_payment_provider_accounts(id,property_id);
+
+ALTER TABLE public.bookings
+  ADD COLUMN IF NOT EXISTS payment_provider_account_id uuid,
+  ADD COLUMN IF NOT EXISTS payment_provider_credential_secret_ref uuid,
+  ADD COLUMN IF NOT EXISTS payment_provider_environment text;
+ALTER TABLE public.payment_events
+  ADD COLUMN IF NOT EXISTS provider_account_id uuid;
+
+DO $constraints$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='bookings_payment_provider_account_property_fk') THEN
+    ALTER TABLE public.bookings
+      ADD CONSTRAINT bookings_payment_provider_account_property_fk
+      FOREIGN KEY (payment_provider_account_id,property_id)
+      REFERENCES public.staynas_guest_payment_provider_accounts(id,property_id)
+      ON DELETE RESTRICT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='payment_events_provider_account_fk') THEN
+    ALTER TABLE public.payment_events
+      ADD CONSTRAINT payment_events_provider_account_fk
+      FOREIGN KEY (provider_account_id)
+      REFERENCES public.staynas_guest_payment_provider_accounts(id)
+      ON DELETE RESTRICT;
+  END IF;
+END;
+$constraints$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS bookings_pesapal_account_tracking_uidx
+  ON public.bookings(payment_provider_account_id,pesapal_order_tracking_id)
+  WHERE payment_provider_account_id IS NOT NULL AND pesapal_order_tracking_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS bookings_pesapal_account_merchant_uidx
+  ON public.bookings(payment_provider_account_id,pesapal_merchant_reference)
+  WHERE payment_provider_account_id IS NOT NULL AND pesapal_merchant_reference IS NOT NULL;
+
+DO $environment_check$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='bookings_payment_provider_environment_check') THEN
+    ALTER TABLE public.bookings
+      ADD CONSTRAINT bookings_payment_provider_environment_check
+      CHECK (payment_provider_environment IS NULL OR payment_provider_environment IN ('sandbox','live'));
+  END IF;
+END;
+$environment_check$;
+
+CREATE INDEX IF NOT EXISTS bookings_payment_provider_account_idx
+  ON public.bookings(payment_provider_account_id)
+  WHERE payment_provider_account_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS payment_events_provider_account_idx
+  ON public.payment_events(provider_account_id)
+  WHERE provider_account_id IS NOT NULL;
+
+COMMENT ON COLUMN public.bookings.payment_provider_credential_secret_ref IS
+  'Vault secret reference snapshot used for the original booking payment; never store provider credentials on the booking.';
+COMMENT ON COLUMN public.bookings.payment_provider_environment IS
+  'Pesapal environment snapshot used for the original booking payment.';
+COMMENT ON COLUMN public.bookings.payment_provider_account_id IS
+  'Exact property-scoped guest payment account used to initiate and verify this booking payment; no platform credential fallback.';
+COMMENT ON COLUMN public.payment_events.provider_account_id IS
+  'Property-scoped guest payment account that generated this event.';
+
+COMMIT;

@@ -4,21 +4,13 @@
 // Staff-only RPCs: room blocks, calendar events, unified calendar payload.
 
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { Database } from "@/integrations/supabase/types";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 import { bookingRpc } from "@/lib/booking-rpc";
 import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
+import { resolvePublicDirectBookingChannel } from "@/lib/public-booking-channel.server";
 
-function publicClient() {
-  return createClient<Database>(
-    process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-  );
-}
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date");
 
@@ -37,8 +29,9 @@ export const createBookingHold = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => createHoldSchema.parse(d))
   .handler(async ({ data }) => {
     if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in");
-    const sb = publicClient();
-    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { supabaseAdmin: sb } = await import("@/integrations/supabase/client.server");
+    const channel = await resolvePublicDirectBookingChannel(sb);
+    const propertyId = channel.propertyId;
     const { data: rows, error } = await bookingRpc(sb).rpc("create_booking_hold", {
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
@@ -63,8 +56,9 @@ export const releaseBookingHold = createServerFn({ method: "POST" })
     z.object({ holdId: z.string().uuid(), sessionId: z.string().min(6) }).parse(d),
   )
   .handler(async ({ data }) => {
-    const sb = publicClient();
-    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { supabaseAdmin: sb } = await import("@/integrations/supabase/client.server");
+    const channel = await resolvePublicDirectBookingChannel(sb);
+    const propertyId = channel.propertyId;
     const { data: ok, error } = await bookingRpc(sb).rpc("release_booking_hold", {
       _hold_id: data.holdId,
       _session_id: data.sessionId,
@@ -79,8 +73,9 @@ export const getBookingHold = createServerFn({ method: "POST" })
     z.object({ holdId: z.string().uuid(), sessionId: z.string().min(6) }).parse(d),
   )
   .handler(async ({ data }) => {
-    const sb = publicClient();
-    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { supabaseAdmin: sb } = await import("@/integrations/supabase/client.server");
+    const channel = await resolvePublicDirectBookingChannel(sb);
+    const propertyId = channel.propertyId;
     const { data: rows, error } = await bookingRpc(sb).rpc("get_booking_hold_for_session", {
       _hold_id: data.holdId,
       _session_id: data.sessionId,

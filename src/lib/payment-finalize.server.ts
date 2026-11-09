@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Json } from "@/integrations/supabase/types";
-import { getPesapalTransactionStatus, classifyStatus } from "./pesapal.server";
+import { getPesapalPropertyAccountTransactionStatus, classifyStatus } from "./pesapal.server";
+import { getPropertyPesapalAccountForSettlement, readPropertyPesapalCredentials } from "./property-pesapal-account.server";
 import { resolvePesapalSettlementCurrency } from "./pesapal-currency";
 
 
@@ -66,18 +67,32 @@ export async function verifyAndFinalizePayment(opts: {
   orderTrackingId: string;
   source: "ipn" | "status_check";
 }): Promise<{ outcome: FinalizeOutcome; paymentMethod: string | null }> {
-  const { data: booking, error: bookingError } = await supabaseAdmin
+  const { data: booking, error: bookingError } = await (supabaseAdmin as any)
     .from("bookings")
-    .select("id, reference, payment_status, status, deposit_amount, total, paid_amount, currency, invoice_number, pesapal_order_tracking_id")
+    .select("id, reference, payment_status, status, deposit_amount, total, paid_amount, currency, invoice_number, pesapal_order_tracking_id, payment_provider_account_id, payment_provider_credential_secret_ref, payment_provider_environment, property_id")
     .eq("id", opts.bookingId)
     .eq("pesapal_order_tracking_id", opts.orderTrackingId)
     .maybeSingle();
   if (bookingError) throw new Error(`Unable to load booking for Pesapal finalization: ${bookingError.message}`);
   if (!booking) return { outcome: "pending", paymentMethod: null };
 
-  // Always re-query Pesapal. A completed settlement can later be reversed;
-  // booking payment_status must never suppress provider status verification.
-  const status = await getPesapalTransactionStatus(opts.orderTrackingId);
+  if (!booking.payment_provider_account_id || !booking.payment_provider_credential_secret_ref || !booking.payment_provider_environment) {
+    throw new Error("Booking has no complete property-scoped Pesapal payment snapshot. Platform credentials are not used as a fallback.");
+  }
+  const providerAccount = await getPropertyPesapalAccountForSettlement(
+    supabaseAdmin,
+    booking.payment_provider_account_id,
+    booking.property_id,
+  );
+  const providerCredentials = await readPropertyPesapalCredentials(supabaseAdmin, booking.payment_provider_credential_secret_ref);
+
+  // Always re-query the exact property account that initiated this order. A completed
+  // settlement can later be reversed; never substitute platform/global credentials.
+  const status = await getPesapalPropertyAccountTransactionStatus(
+    opts.orderTrackingId,
+    providerCredentials,
+    booking.payment_provider_environment as "sandbox" | "live",
+  );
   const outcome = classifyStatus(status.status_code);
   const paymentMethod = status.payment_method ?? null;
   const raw = JSON.parse(JSON.stringify(status)) as Json;
@@ -90,8 +105,9 @@ export async function verifyAndFinalizePayment(opts: {
 
     if (!amountsMatch || currency === null) {
       const nowIso = new Date().toISOString();
-      const { error: eventError } = await supabaseAdmin.from("payment_events").insert({
+      const { error: eventError } = await (supabaseAdmin as any).from("payment_events").insert({
         booking_id: booking.id,
+        provider_account_id: providerAccount.id,
         provider: "pesapal",
         event_type: `${opts.source}:completed`,
         order_tracking_id: opts.orderTrackingId,
@@ -112,8 +128,9 @@ export async function verifyAndFinalizePayment(opts: {
         .eq("id", booking.id);
       if (bookingUpdateError) throw new Error(`Unable to mark Pesapal payment mismatch: ${bookingUpdateError.message}`);
 
-      const { error: mismatchEventError } = await supabaseAdmin.from("payment_events").insert({
+      const { error: mismatchEventError } = await (supabaseAdmin as any).from("payment_events").insert({
         booking_id: booking.id,
+        provider_account_id: providerAccount.id,
         provider: "pesapal",
         event_type: "security:payment_mismatch",
         order_tracking_id: opts.orderTrackingId,
@@ -170,8 +187,9 @@ export async function verifyAndFinalizePayment(opts: {
     return { outcome: reversalResult.duplicate ? "already_finalized" : "reversed", paymentMethod };
   }
 
-  const { error: eventError } = await supabaseAdmin.from("payment_events").insert({
+  const { error: eventError } = await (supabaseAdmin as any).from("payment_events").insert({
     booking_id: booking.id,
+    provider_account_id: providerAccount.id,
     provider: "pesapal",
     event_type: `${opts.source}:${outcome}`,
     order_tracking_id: opts.orderTrackingId,

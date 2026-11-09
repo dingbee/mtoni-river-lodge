@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 const SANDBOX = "https://cybqa.pesapal.com/pesapalv3";
 const LIVE = "https://pay.pesapal.com/v3";
 
@@ -214,4 +215,183 @@ export function classifyStatus(statusCode: number | undefined):
   if (statusCode === 2) return "failed";
   if (statusCode === 3) return "reversed";
   return "pending";
+}
+
+// Property guest-payment adapter surface. Unlike the legacy platform environment
+// helpers above, these functions require the exact property account credentials
+// and environment resolved from the property-scoped Vault account.
+export type PesapalPropertyCredentials = {
+  consumer_key: string;
+  consumer_secret: string;
+};
+
+export type PesapalPropertyEnvironment = "sandbox" | "live";
+
+const propertyTokenCache = new Map<string, { token: string; expiresAt: number }>();
+
+function propertyPesapalBaseUrl(environment: PesapalPropertyEnvironment) {
+  return environment === "live" ? LIVE : SANDBOX;
+}
+
+export function normalizePesapalPropertyCredentials(
+  credentials: PesapalPropertyCredentials | Record<string, unknown>,
+): PesapalPropertyCredentials {
+  const row = credentials as Record<string, unknown>;
+  const consumerKey = row.consumer_key ?? row.consumerKey;
+  const consumerSecret = row.consumer_secret ?? row.consumerSecret;
+  if (typeof consumerKey !== "string" || !consumerKey.trim()
+    || typeof consumerSecret !== "string" || !consumerSecret.trim()) {
+    throw new Error("Property Pesapal credentials are incomplete.");
+  }
+  return { consumer_key: consumerKey.trim(), consumer_secret: consumerSecret.trim() };
+}
+
+export async function getPesapalPropertyAccountToken(
+  credentialsInput: PesapalPropertyCredentials | Record<string, unknown>,
+  environment: PesapalPropertyEnvironment,
+): Promise<string> {
+  const credentials = normalizePesapalPropertyCredentials(credentialsInput);
+  const cacheIdentity = createHash("sha256").update(`${credentials.consumer_key}\u0000${credentials.consumer_secret}`).digest("hex");
+  const cacheKey = `${environment}:${cacheIdentity}`;
+  const cached = propertyTokenCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now() + 30_000) return cached.token;
+
+  const response = await fetch(`${propertyPesapalBaseUrl(environment)}/api/Auth/RequestToken`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({
+      consumer_key: credentials.consumer_key,
+      consumer_secret: credentials.consumer_secret,
+    }),
+  });
+  const json = (await response.json()) as TokenResp;
+  if (!response.ok || !json.token) {
+    throw new Error(`Property Pesapal authentication failed: HTTP ${response.status}`);
+  }
+  const expiry = new Date(json.expiryDate).getTime();
+  const expiresAt = Number.isFinite(expiry) ? expiry : Date.now() + 4 * 60_000;
+  propertyTokenCache.set(cacheKey, { token: json.token, expiresAt });
+  return json.token;
+}
+
+async function propertyPesapalFetch(
+  path: string,
+  credentials: PesapalPropertyCredentials,
+  environment: PesapalPropertyEnvironment,
+  init: RequestInit & { json?: unknown } = {},
+) {
+  const token = await getPesapalPropertyAccountToken(credentials, environment);
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    Authorization: `Bearer ${token}`,
+    ...(init.headers as Record<string, string> | undefined),
+  };
+  if (init.json !== undefined) headers["Content-Type"] = "application/json";
+  const response = await fetch(`${propertyPesapalBaseUrl(environment)}${path}`, {
+    ...init,
+    headers,
+    body: init.json !== undefined ? JSON.stringify(init.json) : init.body,
+  });
+  const text = await response.text();
+  let json: unknown = null;
+  try { json = text ? JSON.parse(text) : null; } catch { json = { raw: text }; }
+  if (!response.ok) throw new Error(`Property Pesapal request failed: HTTP ${response.status}`);
+  return json as Record<string, unknown>;
+}
+
+export async function testPesapalPropertyAccount(
+  credentials: PesapalPropertyCredentials | Record<string, unknown>,
+  environment: PesapalPropertyEnvironment,
+) {
+  await getPesapalPropertyAccountToken(credentials, environment);
+  return { ok: true as const, provider: "pesapal" as const, environment };
+}
+
+export async function ensurePesapalPropertyAccountIpn(
+  baseUrl: string,
+  credentials: PesapalPropertyCredentials,
+  environment: PesapalPropertyEnvironment,
+  existingIpnId?: string | null,
+) {
+  const origin = new URL(baseUrl).origin;
+  const ipnUrl = `${origin}/api/public/pesapal/ipn`;
+  if (existingIpnId?.trim()) return { ipnId: existingIpnId.trim(), ipnUrl };
+  const response = await propertyPesapalFetch(
+    "/api/URLSetup/RegisterIPN",
+    credentials,
+    environment,
+    { method: "POST", json: { url: ipnUrl, ipn_notification_type: "GET" } },
+  );
+  const ipnId = String(response.ipn_id ?? "").trim();
+  if (!ipnId) throw new Error("Property Pesapal account did not return an IPN registration ID.");
+  return { ipnId, ipnUrl };
+}
+
+export async function submitPesapalPropertyAccountOrder(
+  input: SubmitOrderInput,
+  credentials: PesapalPropertyCredentials,
+  environment: PesapalPropertyEnvironment,
+) {
+  const billing: Record<string, string> = { email_address: input.email };
+  if (input.phone) billing.phone_number = input.phone;
+  if (input.firstName) billing.first_name = input.firstName;
+  if (input.lastName) billing.last_name = input.lastName;
+  if (input.countryCode) billing.country_code = input.countryCode;
+  const response = await propertyPesapalFetch(
+    "/api/Transactions/SubmitOrderRequest",
+    credentials,
+    environment,
+    {
+      method: "POST",
+      json: {
+        id: input.merchantReference,
+        currency: input.currency,
+        amount: Number(input.amount.toFixed(2)),
+        description: input.description.slice(0, 100),
+        callback_url: input.callbackUrl,
+        notification_id: input.notificationId,
+        billing_address: billing,
+      },
+    },
+  );
+  const parsed = response as {
+    order_tracking_id?: string;
+    merchant_reference?: string;
+    redirect_url?: string;
+    status?: string;
+    error?: { code?: string; error_type?: string; message?: string } | null;
+  };
+  if (!parsed.redirect_url || !parsed.order_tracking_id) {
+    throw new Error(
+      `Property Pesapal order rejected: ${parsed.error?.message || parsed.error?.code || parsed.status || "no checkout URL"}`,
+    );
+  }
+  return {
+    order_tracking_id: parsed.order_tracking_id,
+    merchant_reference: parsed.merchant_reference ?? input.merchantReference,
+    redirect_url: parsed.redirect_url,
+    status: parsed.status ?? "200",
+  };
+}
+
+export async function getPesapalPropertyAccountTransactionStatus(
+  orderTrackingId: string,
+  credentials: PesapalPropertyCredentials,
+  environment: PesapalPropertyEnvironment,
+) {
+  return (await propertyPesapalFetch(
+    `/api/Transactions/GetTransactionStatus?orderTrackingId=${encodeURIComponent(orderTrackingId)}`,
+    credentials,
+    environment,
+    { method: "GET" },
+  )) as {
+    payment_method?: string;
+    amount?: number;
+    currency?: string;
+    status_code?: number;
+    merchant_reference?: string;
+    payment_status_description?: string;
+    error?: unknown;
+    status?: string;
+  };
 }

@@ -66,8 +66,8 @@ SELECT ok(has_function_privilege('service_role',
 INSERT INTO public.staynas_organisations(slug,name)
 VALUES ('spe07-test-tenant-a','SPE07 Test Tenant A'),('spe07-test-tenant-b','SPE07 Test Tenant B')
 ON CONFLICT (slug) DO NOTHING;
-INSERT INTO public.staynas_properties(organisation_id,slug,code,name)
-SELECT id,'spe07-test-property-a','SPE07A','SPE07 Test Property A'
+INSERT INTO public.staynas_properties(organisation_id,slug,code,name,currency)
+SELECT id,'spe07-test-property-a','SPE07A','SPE07 Test Property A','TZS'
 FROM public.staynas_organisations WHERE slug='spe07-test-tenant-a'
 ON CONFLICT (organisation_id,slug) DO NOTHING;
 

@@ -40,7 +40,7 @@ This document is the binding SPE-04.02 contract. Implementation must not silentl
 
 - Read commercial rate data from the latest immutable publication snapshot for the selected plan, not mutable draft data or a newly recalculated inheritance tree.
 - The snapshot's `resolved_data`, publication metadata, room-type assignments and hash form the pricing evidence.
-- Property currency must be explicitly configured and valid. Publication currency, selected override currency, daily-rate currency and seasonal-rate currency must equal the property currency. Any mismatch is `CURRENCY_MISMATCH`; no USD or other fallback.
+- Property operating currency must be explicitly configured and valid, but it is not a transaction-price currency. Publication currency, selected override currency, base-rate currency, occupancy-rate currency, daily-rate currency and seasonal-rate currency must equal the selected rate plan transaction currency. Legacy room-price calculations use the room currency. Any mismatch is `CURRENCY_MISMATCH`; no FX or implicit fallback.
 - Property timezone must be explicitly configured and valid. Stay dates are property-local ISO calendar dates. Do not convert a date through server-local timezone or UTC midnight in a way that changes the property's calendar date.
 - Resolve the publication snapshot once per quote and use that exact snapshot for every night.
 
