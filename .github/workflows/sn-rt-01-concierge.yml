@@ -83,6 +83,9 @@ jobs:
           src/lib/public-rate-limit.server.ts
           src/lib/public-rate-limit.server.test.ts
           src/domains/ai/concierge/concierge.server.ts
+          src/domains/ai/concierge/concierge.functions.ts
+          src/domains/ai/concierge/analytics.functions.ts
+          src/domains/ai/concierge/proactive.functions.ts
           src/domains/ai/concierge/concierge.intent.ts
           src/domains/ai/concierge/concierge.intent.test.ts
           src/domains/ai/concierge/concierge.types.ts
