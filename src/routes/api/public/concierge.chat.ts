@@ -13,6 +13,8 @@ export const Route = createFileRoute("/api/public/concierge/chat")({
           if (message.length > 1000) {
             return Response.json({ error: "Message is too long." }, { status: 400 });
           }
+          const { resolvePublicPropertyFromHostname } = await import("@/lib/public-property.server");
+          const propertyId = await resolvePublicPropertyFromHostname(request.headers.get("host"));
           const { handleConciergeChat } = await import("@/domains/ai/concierge/concierge.server");
           const reply = await handleConciergeChat(
             {
@@ -25,6 +27,7 @@ export const Route = createFileRoute("/api/public/concierge/chat")({
               userAgent: request.headers.get("user-agent"),
               referer: request.headers.get("referer"),
             },
+            propertyId,
           );
           return Response.json(reply);
         } catch (err: any) {
