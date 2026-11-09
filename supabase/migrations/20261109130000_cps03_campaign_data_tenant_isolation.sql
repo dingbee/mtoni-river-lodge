@@ -276,8 +276,26 @@ create policy campaign_attribution_property_staff_read
 
 grant select on public.booking_pages, public.booking_campaigns, public.campaign_page_content,
   public.campaign_room_selections, public.campaign_offers to anon, authenticated;
-grant insert, update, delete on public.booking_pages, public.booking_campaigns,
-  public.campaign_page_content, public.campaign_room_selections, public.campaign_offers
+-- Publication state is server-controlled. Tenant clients can create drafts and edit
+-- content/configuration, but cannot publish or unpublish pages/campaigns/content directly.
+grant insert (organisation_id, property_id, slug, title, seo_metadata, theme_config,
+  booking_config, created_by, updated_by) on public.booking_pages to authenticated;
+grant update (slug, title, seo_metadata, theme_config, booking_config, updated_by, updated_at)
+  on public.booking_pages to authenticated;
+grant delete on public.booking_pages to authenticated;
+
+grant insert (organisation_id, property_id, slug, name, starts_at, ends_at, created_by, updated_by)
+  on public.booking_campaigns to authenticated;
+grant update (slug, name, starts_at, ends_at, updated_by, updated_at)
+  on public.booking_campaigns to authenticated;
+grant delete on public.booking_campaigns to authenticated;
+
+grant insert (campaign_id, property_id, version, content, created_by, updated_by)
+  on public.campaign_page_content to authenticated;
+grant update (content, updated_by, updated_at) on public.campaign_page_content to authenticated;
+grant delete on public.campaign_page_content to authenticated;
+
+grant insert, update, delete on public.campaign_room_selections, public.campaign_offers
   to authenticated;
 grant select on public.campaign_attribution to authenticated;
 grant all on public.booking_pages, public.booking_campaigns, public.campaign_page_content,
