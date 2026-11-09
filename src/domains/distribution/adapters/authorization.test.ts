@@ -106,4 +106,19 @@ describe("adapter execution tenant authorization", () => {
     });
     expect(context.propertyId).toBe("property-1");
   });
+
+  it("allows pending-validation connections only for the health capability", () => {
+    const healthInput: AdapterExecutionAuthorizationInput = {
+      ...base,
+      connection: { ...base.connection, lifecycle: "pending_validation" },
+      capability: "connection.health",
+      operation: "connection.health",
+    };
+    expect(authorizeAdapterExecution(healthInput).connectionId).toBe("connection-1");
+    expect(() => authorizeAdapterExecution({
+      ...healthInput,
+      capability: "listing.read",
+      operation: "listing.read",
+    })).toThrow(AdapterAuthorizationError);
+  });
 });
