@@ -30,6 +30,7 @@ export const Route = createFileRoute("/_authenticated/founder/reconciliation")({
 });
 
 const label = (value: unknown) => String(value ?? "").replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
+const exceptionStatus = (value: unknown) => value === "unresolved" ? "Open" : value === "reviewed" ? "Under review" : label(value);
 const date = (value: unknown) => value ? new Date(String(value)).toLocaleString() : "—";
 
 function FounderReconciliationWorkspace() {
