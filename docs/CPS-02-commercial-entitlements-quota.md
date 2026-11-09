@@ -40,7 +40,7 @@ Example only — not seeded and not a proposed commercial price:
 }
 ```
 
-The example limit of 5 is illustrative only. Founder Admin must set and publish the actual approved limit. No quota is inferred when the policy is absent.
+The example limit of 5 is illustrative only. Founder Admin must set and publish the actual approved limit. No quota is inferred when the policy is absent. The founder grant function refuses to grant `campaign_studio` unless exactly one property-scoped concurrent active-campaign quota is present in the published add-on definition.
 
 ## Runtime enforcement
 
