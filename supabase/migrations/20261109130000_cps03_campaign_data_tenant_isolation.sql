@@ -280,6 +280,9 @@ grant insert, update, delete on public.booking_pages, public.booking_campaigns,
   public.campaign_page_content, public.campaign_room_selections, public.campaign_offers
   to authenticated;
 grant select on public.campaign_attribution to authenticated;
+grant all on public.booking_pages, public.booking_campaigns, public.campaign_page_content,
+  public.campaign_room_selections, public.campaign_offers, public.campaign_attribution
+  to service_role;
 
 comment on table public.booking_pages is 'One permanent direct-booking page configuration per StayNas property.';
 comment on table public.booking_campaigns is 'Tenant-managed, property-scoped campaign pages; publication is gated by CPS-04.';
