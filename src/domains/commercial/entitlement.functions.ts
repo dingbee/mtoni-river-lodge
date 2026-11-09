@@ -348,8 +348,19 @@ export const recordFounderEntitlementGrant = createServerFn({ method: "POST" })
           const parsed = commercialAddonSchema.safeParse(item);
           return parsed.success ? [parsed.data] : [];
         });
-      if (!addons.some((addon) => addon.code === data.addonCode && addon.status === "active")) {
+      const targetAddon = addons.find((addon) => addon.code === data.addonCode && addon.status === "active");
+      if (!targetAddon) {
         throw new Error("The add-on must exist and be active in the published founder catalogue before a feature grant can be issued.");
+      }
+      if (data.addonCode === DIRECT_BOOKING_CAMPAIGN_STUDIO_ADDON_CODE
+        && data.featureCode === "campaign_studio"
+        && targetAddon.quotaPolicies.filter((quota) =>
+          quota.featureCode === "campaign_studio"
+          && quota.metric === "campaign_pages.max_active_per_property"
+          && quota.scope === "property"
+          && quota.period === "concurrent",
+        ).length !== 1) {
+        throw new Error("Campaign Studio cannot be granted until exactly one property-scoped active-campaign quota is published by Founder Admin.");
       }
     }
 
