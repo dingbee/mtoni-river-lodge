@@ -10,7 +10,7 @@ CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SEL
 CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$ SELECT coalesce(current_setting('request.test_role', true), current_user) $$;
 DO $$ BEGIN CREATE TYPE public.app_role AS ENUM ('owner','manager','admin','reception'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 CREATE TABLE public.staynas_organisations(id uuid PRIMARY KEY, slug text UNIQUE NOT NULL, name text NOT NULL, status text NOT NULL DEFAULT 'active');
-CREATE TABLE public.staynas_properties(id uuid PRIMARY KEY, organisation_id uuid NOT NULL REFERENCES public.staynas_organisations(id), slug text NOT NULL, status text NOT NULL DEFAULT 'active');
+CREATE TABLE public.staynas_properties(id uuid PRIMARY KEY, organisation_id uuid NOT NULL REFERENCES public.staynas_organisations(id), slug text NOT NULL, status text NOT NULL DEFAULT 'active', UNIQUE (organisation_id,id));
 CREATE TABLE public.staynas_property_members(property_id uuid NOT NULL REFERENCES public.staynas_properties(id), user_id uuid NOT NULL REFERENCES auth.users(id), role public.app_role NOT NULL, status text NOT NULL DEFAULT 'active');
 CREATE OR REPLACE FUNCTION public.staynas_user_has_property_access(_uid uuid, _property_id uuid)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
@@ -408,3 +408,23 @@ BEGIN
 END $lb01revocation$;
 RESET ROLE;
 
+
+-- LB-01R: database-level ownership pairing must reject privileged inconsistent writes.
+SET ROLE service_role;
+DO $lb01r_org_pair$
+BEGIN
+  BEGIN
+    INSERT INTO public.staynas_product_connections(
+      integration_tenant_id,integration_property_id,local_organisation_id,local_property_id,
+      remote_tenant_id,remote_property_id,requested_by,correlation_id
+    ) VALUES (
+      '30000000-0000-4000-8000-000000000099','40000000-0000-4000-8000-000000000099',
+      '10000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001',
+      '50000000-0000-4000-8000-000000000099','60000000-0000-4000-8000-000000000099',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1','lb01r-org-mismatch'
+    );
+    RAISE EXCEPTION 'LB-01R expected mismatched organisation/property insert to fail';
+  EXCEPTION WHEN foreign_key_violation THEN NULL;
+  END;
+END $lb01r_org_pair$;
+RESET ROLE;
