@@ -1,5 +1,6 @@
 -- CC-04 durable financial ledger tests. Run after CC-03 migrations in isolated PostgreSQL 17.
 BEGIN;
+SELECT plan(1);
 DO $test$
 DECLARE
   v_org uuid := '71000000-0000-4000-8000-000000000001';
@@ -355,5 +356,6 @@ BEGIN
   END;
 END;
 $test$;
+SELECT pass('cc04_financial_ledger contract assertions passed');
 
 ROLLBACK;

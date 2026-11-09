@@ -1,5 +1,6 @@
 \set ON_ERROR_STOP on
 BEGIN;
+SELECT plan(1);
 
 INSERT INTO public.staynas_organisations(id,slug,name,status)
 VALUES ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','provider-test','Provider Test','active');
@@ -47,5 +48,6 @@ BEGIN
   END;
 END;
 $$;
+SELECT pass('staynas_payment_provider_configuration contract assertions passed');
 
 ROLLBACK;

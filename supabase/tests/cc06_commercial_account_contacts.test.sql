@@ -1,5 +1,6 @@
 -- CC-06 commercial account contact privacy and founder RPC authorization contracts.
 BEGIN;
+SELECT plan(1);
 DO $$
 BEGIN
   IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.commercial_account_contacts'::regclass) THEN
@@ -29,5 +30,6 @@ BEGIN
     RAISE EXCEPTION 'Commercial account registration RPC grants violate founder-only authorization';
   END IF;
 END $$;
+SELECT pass('cc06_commercial_account_contacts contract assertions passed');
 
 ROLLBACK;

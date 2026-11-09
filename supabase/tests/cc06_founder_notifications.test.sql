@@ -1,5 +1,6 @@
 -- CC-06 founder notification privacy and evidence integrity contracts.
 BEGIN;
+SELECT plan(1);
 DO $$
 BEGIN
   IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.commercial_founder_notifications'::regclass) THEN
@@ -41,5 +42,6 @@ BEGIN
   END;
   IF NOT delete_blocked THEN RAISE EXCEPTION 'Notification deletion was not blocked'; END IF;
 END $$;
+SELECT pass('cc06_founder_notifications contract assertions passed');
 
 ROLLBACK;
