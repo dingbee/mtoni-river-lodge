@@ -60,7 +60,7 @@ function resolveGatewayConfig(): AiGatewayConfig {
   const providerKey = process.env.AI_PROVIDER_API_KEY || process.env.OPENAI_API_KEY;
   if (providerKey) {
     const configuredBase = process.env.AI_PROVIDER_BASE_URL || process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
-    const base = configuredBase.replace(/\\/+$/, "");
+    const base = configuredBase.replace(/\/+$/, "");
     const endpoint = base.endsWith("/chat/completions") ? base : `${base}/chat/completions`;
     const model = process.env.AI_PROVIDER_MODEL || process.env.AI_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini";
     return { endpoint, key: providerKey, model, provider: "openai-compatible" };
