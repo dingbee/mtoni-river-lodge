@@ -56,7 +56,7 @@ Status: IN PROGRESS — UAT/review only; no production promotion.
 | 24 | Founder-only access | Server founder actor resolution and route guards; adversarial access test pending |
 | 25 | Cross-tenant isolation | Both founder queries scope customer organisation IDs and exclude founder tenant; adversarial isolation fixture pending |
 | 26 | Historical audit integrity | Append-only reconciliation events and subscription movement rows; mutation guard test covers reconciliation evidence |
-| 27 | Concurrent reconciliation execution | Run locks, unique provider-period identity, atomic statement import and idempotent replay; true concurrent-session test pending |
+| 27 | Concurrent reconciliation execution | Run locks, unique provider-period identity, atomic statement import and idempotent replay; concurrent-session test script added to CC-03 database workflow, execution pending |
 | 28 | Existing CC-03 regression | Existing CC-03 workflow required |
 | 29 | Existing CC-04 settlement regression | Existing CC-04 workflow required |
 | 30 | Existing CC-05 entitlement regression | Existing CC-05 workflow required |
