@@ -69,30 +69,29 @@ export async function verifyAndFinalizePayment(opts: {
 }): Promise<{ outcome: FinalizeOutcome; paymentMethod: string | null }> {
   const { data: booking, error: bookingError } = await (supabaseAdmin as any)
     .from("bookings")
-    .select("id, reference, payment_status, status, deposit_amount, total, paid_amount, currency, invoice_number, pesapal_order_tracking_id, payment_provider_account_id, property_id")
+    .select("id, reference, payment_status, status, deposit_amount, total, paid_amount, currency, invoice_number, pesapal_order_tracking_id, payment_provider_account_id, payment_provider_credential_secret_ref, payment_provider_environment, property_id")
     .eq("id", opts.bookingId)
     .eq("pesapal_order_tracking_id", opts.orderTrackingId)
     .maybeSingle();
   if (bookingError) throw new Error(`Unable to load booking for Pesapal finalization: ${bookingError.message}`);
   if (!booking) return { outcome: "pending", paymentMethod: null };
 
-  if (!booking.payment_provider_account_id) {
-    throw new Error("Booking has no property-scoped Pesapal account. Platform credentials are not used as a fallback.");
+  if (!booking.payment_provider_account_id || !booking.payment_provider_credential_secret_ref || !booking.payment_provider_environment) {
+    throw new Error("Booking has no complete property-scoped Pesapal payment snapshot. Platform credentials are not used as a fallback.");
   }
   const providerAccount = await getPropertyPesapalAccountForSettlement(
     supabaseAdmin,
     booking.payment_provider_account_id,
     booking.property_id,
-    booking.currency,
   );
-  const providerCredentials = await readPropertyPesapalCredentials(supabaseAdmin, providerAccount.credential_secret_ref);
+  const providerCredentials = await readPropertyPesapalCredentials(supabaseAdmin, booking.payment_provider_credential_secret_ref);
 
   // Always re-query the exact property account that initiated this order. A completed
   // settlement can later be reversed; never substitute platform/global credentials.
   const status = await getPesapalPropertyAccountTransactionStatus(
     opts.orderTrackingId,
     providerCredentials,
-    providerAccount.environment,
+    booking.payment_provider_environment as "sandbox" | "live",
   );
   const outcome = classifyStatus(status.status_code);
   const paymentMethod = status.payment_method ?? null;
