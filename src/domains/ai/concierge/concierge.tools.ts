@@ -1,3 +1,4 @@
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { ConciergeAvailabilityRoom, ConciergeAvailabilityOutcome, ConciergeIntentSignal, ConciergeBookingPlan, ConciergeExperienceCatalogItem } from "./concierge.types";
 
 function isValidDate(value: string): boolean {
@@ -73,7 +74,6 @@ export async function searchAvailability(input: {
   if (!input.propertyId) return { status: "property_resolution_failure", rooms: [] };
 
   try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced", {
       _check_in: input.check_in,
       _check_out: input.check_out,
