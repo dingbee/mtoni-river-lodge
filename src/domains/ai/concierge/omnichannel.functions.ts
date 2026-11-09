@@ -483,7 +483,7 @@ export const updateEscalation = createServerFn({ method: "POST" })
     const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
     const { data: existingEscalation, error: existingError } = await context.supabase
       .from("ai_escalations")
-      .select("id, acknowledged_at")
+      .select("id, acknowledged_at, ops_task_id")
       .eq("id", data.id)
       .eq("property_id", propertyId)
       .maybeSingle();
@@ -523,6 +523,26 @@ export const updateEscalation = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!updated) throw new Error("Escalation not found in the active property.");
+
+    if (existingEscalation.ops_task_id) {
+      const taskPatch: Record<string, unknown> = {};
+      if (data.assigned_to !== undefined) taskPatch.assigned_to = data.assigned_to;
+      if (data.status === "in_progress") taskPatch.status = "in_progress";
+      if (data.status === "resolved") {
+        taskPatch.status = "completed";
+        taskPatch.completed_at = new Date().toISOString();
+        taskPatch.completed_by = context.userId;
+      }
+      if (data.status === "dismissed") taskPatch.status = "cancelled";
+      if (Object.keys(taskPatch).length > 0) {
+        const { error: taskError } = await context.supabase
+          .from("ops_tasks")
+          .update(taskPatch as never)
+          .eq("id", existingEscalation.ops_task_id)
+          .eq("property_id", propertyId);
+        if (taskError) throw new Error("Escalation task update failed.");
+      }
+    }
     return { ok: true };
   });
 
