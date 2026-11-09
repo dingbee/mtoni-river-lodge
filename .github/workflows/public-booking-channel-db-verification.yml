@@ -95,11 +95,11 @@ jobs:
               RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH',
                 'message','Published plan currency does not match property currency');
             END IF;
-                IF v_rate->>'currency' IS DISTINCT FROM v_property_currency THEN
+              IF v_rate->>'currency' IS DISTINCT FROM v_property_currency THEN
               RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH');
             END IF;
             RETURN jsonb_build_object(
-                    'pricing',public.calculate_staynas_room_pricing(
+                'pricing',public.calculate_staynas_room_pricing(
                 _property_id,_room_id,_check_in,_check_out,_adults,_children_below_6,_children_7_plus));
           END;
           $function$;
