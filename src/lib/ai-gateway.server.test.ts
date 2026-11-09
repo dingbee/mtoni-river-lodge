@@ -30,6 +30,41 @@ describe("provider-independent AI gateway", () => {
     expect(parseAiJson(result.content)).toEqual({ answer: "hello" });
   });
 
+  it("supports structured tool calls and enforces the hard output-token ceiling", async () => {
+    vi.stubEnv("AI_PROVIDER_API_KEY", "test-secret");
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: null, tool_calls: [{
+        id: "call-1", type: "function",
+        function: { name: "lookup_availability", arguments: "{\\"check_in\\":\\"2026-12-01\\"}" },
+      }] } }],
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await callAiGateway({
+      system: "system",
+      user: "check dates",
+      maxTokens: 99_999,
+      tools: [{ type: "function", function: { name: "lookup_availability", parameters: { type: "object" } } }],
+      toolChoice: "required",
+    });
+    const body = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body));
+    expect(body.max_tokens).toBe(2_000);
+    expect(body.tool_choice).toBe("required");
+    expect(result.toolCalls[0].function.name).toBe("lookup_availability");
+  });
+
+  it("retries transient provider failures within the configured bound", async () => {
+    vi.stubEnv("AI_PROVIDER_API_KEY", "test-secret");
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response("busy", { status: 503 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        choices: [{ message: { content: "recovered" } }],
+      }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await callAiGateway({ system: "system", user: "hello", maxRetries: 1 });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.content).toBe("recovered");
+  });
+
   it("fails closed when no provider credential is configured", async () => {
     vi.stubEnv("AI_PROVIDER_API_KEY", "");
     vi.stubEnv("OPENAI_API_KEY", "");
