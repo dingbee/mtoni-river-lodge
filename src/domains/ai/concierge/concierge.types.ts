@@ -76,7 +76,7 @@ export type ConciergeRecommendation =
   | ConciergeRoomRecommendation
   | ConciergeExperienceRecommendation;
 
-export type ConciergeAvailabilityOutcome = "available" | "unavailable" | "invalid_search" | "property_resolution_failure" | "inventory_service_failure" | "pricing_service_failure" | "temporary_failure";
+export type ConciergeAvailabilityOutcome = "available" | "unavailable" | "invalid_search" | "property_resolution_failure" | "inventory_service_failure" | "pricing_service_failure" | "child_age_breakdown_required" | "temporary_failure";
 
 export interface ConciergeAvailabilityRoom {
   slug: string;
