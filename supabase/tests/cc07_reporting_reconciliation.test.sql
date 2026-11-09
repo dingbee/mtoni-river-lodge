@@ -320,6 +320,8 @@ DECLARE
   v_invoice uuid := '97000000-0000-4000-8000-000000000007';
   v_result jsonb;
   v_second_result jsonb;
+  v_replay_result jsonb;
+  v_conflict_rejected boolean := false;
   v_first_new_sub uuid;
   v_final_sub uuid;
   v_new_invoice uuid := '97000000-0000-4000-8000-000000000008';
@@ -437,16 +439,41 @@ BEGIN
     OR NOT EXISTS (SELECT 1 FROM public.commercial_subscriptions WHERE id=v_old_sub AND status='active') THEN
     RAISE EXCEPTION 'Rejected currency change mutated the subscription ledger';
   END IF;
+  SELECT current_period_ends_at INTO v_period_end FROM public.commercial_subscriptions WHERE id=v_old_sub;
   v_result := public.commercial_replace_active_subscription_for_founder(
     v_old_sub,'professional',1,'TZS','monthly',1,ARRAY[]::text[],
     'cc07-new-price',v_new_snapshot,'cc07-new-acceptance','CC07-DEBIT-001',
-    now()+interval '10 days','cc07-replace-subscription-001','approved_plan_expansion',
+    v_period_end,'cc07-replace-subscription-001','approved_plan_expansion',
     v_user,v_founder_org
   );
   IF v_result->>'movementType' <> 'expansion' OR v_result->>'deltaMrrMinor' <> '50000' THEN
     RAISE EXCEPTION 'Accepted price replacement did not record exact expansion MRR';
   END IF;
   v_first_new_sub := (v_result->>'subscriptionId')::uuid;
+  v_replay_result := public.commercial_replace_active_subscription_for_founder(
+    v_old_sub,'professional',1,'TZS','monthly',1,ARRAY[]::text[],
+    'cc07-new-price-replayed',v_new_snapshot,'cc07-new-acceptance','CC07-DEBIT-001',
+    v_period_end,'cc07-replace-subscription-001','approved_plan_expansion',v_user,v_founder_org
+  );
+  IF (v_replay_result->>'replayed')::boolean IS DISTINCT FROM true
+    OR (v_replay_result->>'subscriptionId')::uuid IS DISTINCT FROM v_first_new_sub THEN
+    RAISE EXCEPTION 'Identical subscription replacement retry did not return the original result';
+  END IF;
+  BEGIN
+    PERFORM public.commercial_replace_active_subscription_for_founder(
+      v_old_sub,'professional',1,'TZS','monthly',1,ARRAY[]::text[],
+      'cc07-new-price-conflict',
+      '{"currency":"TZS","planCode":"professional","planVersion":1,"billingTerm":"monthly","propertyCount":1,"priceCode":"test-professional-conflict","quoteRequired":false,"total":160000,"lineItems":[{"kind":"plan_base","code":"professional","quantity":1,"unitAmountMinor":160000,"amountMinor":160000}],"addonCodes":[]}'::jsonb,
+      'cc07-new-acceptance','CC07-DEBIT-001',v_period_end,
+      'cc07-replace-subscription-001','approved_plan_expansion',v_user,v_founder_org
+    );
+    RAISE EXCEPTION 'Conflicting subscription replacement replay was accepted';
+  EXCEPTION WHEN SQLSTATE '23505' THEN
+    v_conflict_rejected := true;
+  END;
+  IF NOT v_conflict_rejected THEN
+    RAISE EXCEPTION 'Conflicting subscription replacement replay was not rejected';
+  END IF;
   SELECT * INTO v_movement FROM public.commercial_subscription_revenue_movements
     WHERE id=(v_result->>'movementId')::uuid;
   IF v_movement.previous_mrr_minor<>100000 OR v_movement.new_mrr_minor<>150000
