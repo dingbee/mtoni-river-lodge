@@ -2,15 +2,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-// First controlled Public Booking Network demo. Keep the UAT property allowlist
-// explicit until StayNas has a property-level publication/visibility setting.
-const PUBLIC_DEMO_PROPERTY_SLUGS = new Set(["nolmark-cdma-staynas"]);
-
-async function resolvePublicDemoProperty(propertySlug: string) {
-  if (!PUBLIC_DEMO_PROPERTY_SLUGS.has(propertySlug)) {
-    throw new Error("This property booking page is not published.");
-  }
-
+// Public booking resolves every published property by its public slug.
+// Tenant/property isolation is enforced by resolving one property first and
+// scoping every catalogue, availability, quote and booking operation to its ID.
+async function resolvePublicProperty(propertySlug: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await (supabaseAdmin as any)
     .from("staynas_properties")
@@ -30,7 +25,7 @@ const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 export const getPublicDemoProperty = createServerFn({ method: "GET" })
   .inputValidator((value: unknown) => z.object({ propertySlug: propertySlugSchema }).parse(value))
   .handler(async ({ data }) => {
-    const { property, supabaseAdmin } = await resolvePublicDemoProperty(data.propertySlug);
+    const { property, supabaseAdmin } = await resolvePublicProperty(data.propertySlug);
     const { data: rooms, error } = await (supabaseAdmin as any)
       .from("rooms")
       .select("id,slug,name,short_name,short_description,description,details,cta_line,hero_line,bed_label,bathroom_label,amenities,max_occupancy,capacity_adults,capacity_children,total_units,base_price,currency,included_guests,extra_guest_fee,image_url,gallery_urls,size_label,view_label,category:room_categories(id,slug,name,description,features,specifications)")
@@ -89,7 +84,7 @@ export const getPublicDemoProperty = createServerFn({ method: "GET" })
         base_price: Number(room.base_price),
         extra_guest_fee: Number(room.extra_guest_fee ?? 0),
       })),
-      demo: true,
+      demo: false,
       paymentEnabled: false,
     };
   });
@@ -106,7 +101,7 @@ export const searchPublicDemoAvailability = createServerFn({ method: "POST" })
   .inputValidator((value: unknown) => availabilitySchema.parse(value))
   .handler(async ({ data }) => {
     if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in.");
-    const { property, supabaseAdmin } = await resolvePublicDemoProperty(data.propertySlug);
+    const { property, supabaseAdmin } = await resolvePublicProperty(data.propertySlug);
     const { data: rows, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced_with_rate_plan", {
       _check_in: data.checkIn,
       _check_out: data.checkOut,
@@ -174,7 +169,7 @@ export const getPublicDemoQuote = createServerFn({ method: "POST" })
   .inputValidator((value: unknown) => publicQuoteSchema.parse(value))
   .handler(async ({ data }) => {
     if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in.");
-    const { property, supabaseAdmin } = await resolvePublicDemoProperty(data.propertySlug);
+    const { property, supabaseAdmin } = await resolvePublicProperty(data.propertySlug);
     const { data: quote, error } = await (supabaseAdmin as any).rpc("staynas_create_reservation_quote", {
       _property_id: property.id,
       _room_slug: data.roomSlug,
@@ -214,7 +209,7 @@ export const createPublicDemoBooking = createServerFn({ method: "POST" })
   .inputValidator((value: unknown) => createBookingSchema.parse(value))
   .handler(async ({ data }) => {
     if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in.");
-    const { property, supabaseAdmin } = await resolvePublicDemoProperty(data.propertySlug);
+    const { property, supabaseAdmin } = await resolvePublicProperty(data.propertySlug);
 
     // The guest submits the exact server-issued quote. The database rechecks
     // its expiry, pricing evidence, inventory and idempotency in one transaction.
