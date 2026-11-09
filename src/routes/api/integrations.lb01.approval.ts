@@ -1,0 +1,59 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { authenticateLb01ServiceRequest } from "@/domains/integrations/lb01.credentials.server";
+
+/**
+ * LB-01 receiver: a remote product may record its approval only after the
+ * credential, signature, timestamp and durable nonce have been validated.
+ * All mapping identifiers are derived from the authenticated connection.
+ */
+export const Route = createFileRoute("/api/integrations/lb01/approval")({
+  server: {
+    handlers: {
+      POST: async ({ request }) => {
+        let authenticated: Awaited<ReturnType<typeof authenticateLb01ServiceRequest>>;
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          authenticated = await authenticateLb01ServiceRequest(supabaseAdmin, request);
+        } catch {
+          return Response.json({ error: "Unauthorized integration request." }, { status: 401 });
+        }
+
+        let body: unknown;
+        try {
+          body = await request.json();
+        } catch {
+          return Response.json({ error: "Invalid approval payload." }, { status: 400 });
+        }
+        const correlationId = (body as { correlationId?: unknown } | null)?.correlationId;
+        const connection = authenticated.connection;
+        if (typeof correlationId !== "string" || correlationId !== connection.correlation_id
+          || connection.remote_product !== "lexibite") {
+          return Response.json({ error: "Approval does not match the authenticated connection." }, { status: 403 });
+        }
+
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          // The generated client schema can lag additive integration migrations.
+          // Keep the narrow RPC contract local instead of weakening the client globally.
+          const recordApproval = supabaseAdmin.rpc.bind(supabaseAdmin) as unknown as (
+            functionName: string,
+            args: Record<string, unknown>,
+          ) => Promise<{ data: unknown; error: unknown }>;
+          const { data, error } = await recordApproval("staynas_record_lexibite_approval", {
+            _integration_tenant_id: connection.integration_tenant_id,
+            _integration_property_id: connection.integration_property_id,
+            _remote_tenant_id: connection.remote_tenant_id,
+            _remote_property_id: connection.remote_property_id,
+            _correlation_id: connection.correlation_id,
+          });
+          if (error || !["pending", "active"].includes(String(data))) {
+            return Response.json({ error: "Connection approval could not be recorded." }, { status: 409 });
+          }
+          return Response.json({ accepted: true, status: data, correlationId });
+        } catch {
+          return Response.json({ error: "Connection approval could not be recorded." }, { status: 500 });
+        }
+      },
+    },
+  },
+});
