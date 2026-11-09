@@ -196,10 +196,12 @@ export async function handleConciergeChat(
 
   if (!sessionId) throw new Error("Unable to establish a property-scoped concierge session.");
 
-  const { data: historyRows } = await supabaseAdmin.from("ai_concierge_messages").select("role, content").eq("session_id", sessionId).order("created_at", { ascending: true }).limit(HISTORY_LIMIT);
+  const { data: historyRows, error: historyError } = await supabaseAdmin.from("ai_concierge_messages").select("role, content").eq("session_id", sessionId).order("created_at", { ascending: true }).limit(HISTORY_LIMIT);
+  if (historyError) throw new Error("Conversation history is temporarily unavailable.");
   const history = (historyRows ?? []).map((r): ConciergeMessage => ({ role: r.role as ConciergeMessage["role"], content: r.content }));
 
-  await supabaseAdmin.from("ai_concierge_messages").insert({ session_id: sessionId, role: "user", content: message });
+  const { error: userMessageError } = await supabaseAdmin.from("ai_concierge_messages").insert({ session_id: sessionId, role: "user", content: message });
+  if (userMessageError) throw new Error("Your message could not be saved. Please try again.");
 
   // Guest retrieval is feature-gated until SN-IQ-01 database isolation and
   // the property-scoped public search migration have been applied and verified.
@@ -311,12 +313,13 @@ export async function handleConciergeChat(
   const availabilityFailure = ["property_resolution_failure", "inventory_service_failure", "pricing_service_failure", "temporary_failure"].includes(availabilityOutcome ?? "");
   const shouldEscalate = parsed.escalate === true || confidence < LOW_CONFIDENCE || availabilityFailure || malformedModelResponse || inferenceFailed;
 
-  const { data: assistantRow } = await supabaseAdmin.from("ai_concierge_messages").insert({
+  const { data: assistantRow, error: assistantMessageError } = await supabaseAdmin.from("ai_concierge_messages").insert({
     session_id: sessionId, role: "assistant", content: answer, citations: citations as any,
     confidence, escalated: shouldEscalate, model: MODEL, latency_ms: latency,
   }).select("id, created_at").single();
+  if (assistantMessageError || !assistantRow?.id) throw new Error("The Concierge response could not be saved. Please retry.");
 
-  const assistantMessageId = assistantRow?.id ?? null;
+  const assistantMessageId = assistantRow.id;
 
   if (shouldEscalate) {
     const reason = /complaint|unhappy|refund|unsafe|medical|emergency/i.test(message)
@@ -348,25 +351,26 @@ export async function handleConciergeChat(
       throw new Error("The property team handoff is temporarily unavailable.");
     }
   }
-  try {
-    await supabaseAdmin.from("ai_concierge_intents").insert({
-      session_id: sessionId, message_id: assistantMessageId, intent_level: intent.level,
-      confidence: intent.confidence, keywords: intent.keywords, detected_context: intent.detected as any,
-    });
-    if (recommendations.length > 0) {
-      await supabaseAdmin.from("ai_concierge_recommendations").insert(recommendations.map((r) => ({
-        session_id: sessionId, message_id: assistantMessageId, recommendation_type: r.type,
-        item_slug: r.slug, item_name: r.name, reasoning: r.reasoning.join(" "),
-        confidence: r.confidence, evidence: (r.type === "experience" ? { from_price: r.from_price, currency: r.currency, unit: r.unit } : {}) as any,
-      })));
-    }
-  } catch {}
+  const { error: intentError } = await supabaseAdmin.from("ai_concierge_intents").insert({
+    session_id: sessionId, message_id: assistantMessageId, intent_level: intent.level,
+    confidence: intent.confidence, keywords: intent.keywords, detected_context: intent.detected as any,
+  });
+  if (intentError) throw new Error("The Concierge could not save the conversation analysis.");
+  if (recommendations.length > 0) {
+    const { error: recommendationError } = await supabaseAdmin.from("ai_concierge_recommendations").insert(recommendations.map((r) => ({
+      session_id: sessionId, message_id: assistantMessageId, recommendation_type: r.type,
+      item_slug: r.slug, item_name: r.name, reasoning: r.reasoning.join(" "),
+      confidence: r.confidence, evidence: (r.type === "experience" ? { from_price: r.from_price, currency: r.currency, unit: r.unit } : {}) as any,
+    })));
+    if (recommendationError) throw new Error("The Concierge could not save its recommendations.");
+  }
 
-  await supabaseAdmin.from("ai_concierge_sessions").update({
+  const { error: sessionUpdateError } = await supabaseAdmin.from("ai_concierge_sessions").update({
     message_count: history.length + 2, last_active_at: new Date().toISOString(),
     escalated: shouldEscalate, escalation_channel: shouldEscalate ? "staff" : null,
     guest_id: memoryCtx.guestId ?? existingGuestId ?? null,
   }).eq("id", sessionId).eq("property_id", propertyId);
+  if (sessionUpdateError) throw new Error("The Concierge session could not be updated.");
 
   try {
     await suggestMemoriesFromMessage({
