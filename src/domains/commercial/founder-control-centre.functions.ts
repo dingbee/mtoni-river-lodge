@@ -303,7 +303,7 @@ export const syncFounderCommercialNotifications = createServerFn({ method: "POST
         }
       }
     }
-    for(const invoice of rows(invoicesResult.data).filter((item)=>customerOrganisationIds.has(String(item.organisation_id))&&item.is_overdue===true&&numeric(item.outstanding_minor)>0)){
+    for(const invoice of rows(invoicesResult.data).filter((item)=>customerOrganisationIds.has(String(item.organisation_id))&&item.is_overdue===true&&BigInt(String(item.outstanding_minor ?? 0))>0n)){
       alerts.push({dedupe_key:`invoice-overdue:${invoice.id}`,organisation_id:invoice.organisation_id,alert_type:"invoice_overdue",severity:"critical",title:"Invoice overdue",detail:`${tenantName(invoice.organisation_id)} invoice ${invoice.invoice_number} has ${invoice.currency} ${invoice.outstanding_minor} outstanding.`,resource_type:"invoice",resource_ref:String(invoice.id),href:"/founder/billing",metadata:{invoiceNumber:invoice.invoice_number,currency:invoice.currency,outstandingMinor:String(invoice.outstanding_minor),dueAt:invoice.due_at}});
     }
     for(const payment of rows(paymentsResult.data).filter((item)=>customerOrganisationIds.has(String(item.organisation_id)))){
