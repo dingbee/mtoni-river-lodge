@@ -37,6 +37,7 @@ type Campaign = {
 type StudioResources = {
   currency: string;
   timezone: string;
+  propertyStatus: string;
   rooms: Array<{ id: string; slug: string; name: string; max_occupancy: number; catalogue_type_id: string }>;
   publications: Array<{ id: string; code: string; name: string; currency: string; publication_number: number; rate_plan_version: number; effective_from: string | null; effective_to: string | null; room_type_assignments: Array<{ room_type_id: string }> }>;
 };
@@ -270,7 +271,9 @@ function CampaignStudioPage() {
             </div>
             <div className="border-t pt-4"><div className="mb-3 flex items-center gap-2 font-medium"><Settings2 className="h-4 w-4" /> Booking offer configuration</div>
               {resources.isError && <p className="text-sm text-destructive">Property booking resources could not be loaded.</p>}
-              <p className="mb-3 text-xs text-muted-foreground">Property currency: {resources.data?.currency ?? "Not configured"} · timezone: {resources.data?.timezone ?? "Not configured"}. Schedule dates use the property's timezone. Only active rooms and current published rate snapshots in this currency are selectable.</p>
+              <p className="mb-3 text-xs text-muted-foreground">Property currency: {resources.data?.currency ?? "Not configured"} · timezone: {resources.data?.timezone ?? "Not configured"} · property status: {resources.data?.propertyStatus ?? "unknown"}. Schedule dates use the property's timezone.</p>
+              {resources.data?.currency === "USD" && <p className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-800 dark:text-amber-300">Campaign offers and publication are blocked while the property base currency is USD. Correct the property currency through the approved pricing/currency workflow and publish matching rate-plan snapshots. Campaign Studio will not change currency or existing /book prices.</p>}
+              {resources.data?.propertyStatus !== "active" && <p className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-800 dark:text-amber-300">Draft creation and content editing are available during property setup. Public campaign resolution and publication require an active property.</p>}
               <div className="space-y-2">
                 <Label>Included room types</Label>
                 {resources.data?.rooms.map((room) => <label key={room.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={roomIds.includes(room.id)} onChange={(event) => setRoomIds((current) => event.target.checked ? [...current, room.id] : current.filter((id) => id !== room.id))} />{room.name} <span className="text-xs text-muted-foreground">· max {room.max_occupancy}</span></label>)}
@@ -279,7 +282,7 @@ function CampaignStudioPage() {
               <div className="mt-3 space-y-1.5"><Label htmlFor="campaign-publication">Published rate plan snapshot</Label><select id="campaign-publication" value={publicationId} onChange={(event) => setPublicationId(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm"><option value="">Select published rate snapshot</option>{eligiblePublications.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.code} · v{item.rate_plan_version} / pub {item.publication_number} · {item.currency}</option>)}</select></div>
               <div className="mt-3 grid gap-3 sm:grid-cols-2"><div className="space-y-1.5"><Label htmlFor="offer-code">Offer code</Label><Input id="offer-code" value={offerCode} onChange={(event) => setOfferCode(event.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""))} /></div><div className="space-y-1.5"><Label htmlFor="offer-title">Offer title</Label><Input id="offer-title" value={offerTitle} onChange={(event) => setOfferTitle(event.target.value)} /></div></div>
               <div className="mt-3 space-y-1.5"><Label htmlFor="offer-description">Offer description</Label><Textarea id="offer-description" value={offerDescription} onChange={(event) => setOfferDescription(event.target.value)} rows={2} /></div>
-              <Button variant="outline" onClick={() => configure.mutate()} disabled={configure.isPending || !publicationId || !eligiblePublications.some((item) => item.id === publicationId) || roomIds.length === 0}><Settings2 className="mr-2 h-4 w-4" /> Save room and offer configuration</Button>
+              <Button variant="outline" onClick={() => configure.mutate()} disabled={configure.isPending || resources.data?.currency === "USD" || !publicationId || !eligiblePublications.some((item) => item.id === publicationId) || roomIds.length === 0}><Settings2 className="mr-2 h-4 w-4" /> Save room and offer configuration</Button>
             </div>
             <div className="flex flex-wrap gap-2 border-t pt-4">
               <Button variant="outline" onClick={() => loadPreview.mutate(selectedId)} disabled={loadPreview.isPending}><Eye className="mr-2 h-4 w-4" /> Preview</Button>
