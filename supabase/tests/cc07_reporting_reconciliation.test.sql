@@ -211,4 +211,106 @@ BEGIN
 END
 $data_test$;
 
+
+
+DO $revenue_test$
+DECLARE
+  v_founder_org uuid := '97000000-0000-4000-8000-000000000002';
+  v_customer_org uuid := '97000000-0000-4000-8000-000000000003';
+  v_user uuid := '97000000-0000-4000-8000-000000000004';
+  v_account uuid := '97000000-0000-4000-8000-000000000005';
+  v_old_sub uuid := '97000000-0000-4000-8000-000000000006';
+  v_invoice uuid := '97000000-0000-4000-8000-000000000007';
+  v_result jsonb;
+  v_movement public.commercial_subscription_revenue_movements%ROWTYPE;
+  v_old_snapshot jsonb := '{"currency":"TZS","planCode":"essential","planVersion":1,"billingTerm":"monthly","propertyCount":1,"priceCode":"test-essential-monthly","quoteRequired":false,"total":100000,"lineItems":[{"kind":"plan_base","code":"essential","quantity":1,"unitAmountMinor":100000,"amountMinor":100000}],"addonCodes":[]}'::jsonb;
+  v_new_snapshot jsonb := '{"currency":"TZS","planCode":"professional","planVersion":1,"billingTerm":"monthly","propertyCount":1,"priceCode":"test-professional-monthly","quoteRequired":false,"total":150000,"lineItems":[{"kind":"plan_base","code":"professional","quantity":1,"unitAmountMinor":150000,"amountMinor":150000}],"addonCodes":[]}'::jsonb;
+BEGIN
+  INSERT INTO auth.users(id) VALUES (v_user);
+  INSERT INTO public.staynas_organisations(id,slug,name,status) VALUES
+    (v_founder_org,'cc07-founder-test','CC07 Founder Test','active'),
+    (v_customer_org,'cc07-customer-test','CC07 Customer Test','active');
+  INSERT INTO public.commercial_founder_tenant_config(singleton,founder_organisation_id)
+    VALUES (true,v_founder_org);
+  INSERT INTO public.commercial_founder_admin_memberships(
+    principal_id,organisation_id,status,verified_at
+  ) VALUES (v_user,v_founder_org,'active',now());
+  INSERT INTO public.commercial_accounts(id,organisation_id,status)
+    VALUES (v_account,v_customer_org,'active');
+  INSERT INTO public.commercial_subscriptions(
+    id,account_id,plan_code,plan_version,currency,billing_term,property_count,addon_codes,
+    price_resolution_ref,accepted_price_snapshot,quote_required,commercial_acceptance_ref,
+    status,activated_at,current_period_starts_at,current_period_ends_at
+  ) VALUES (
+    v_old_sub,v_account,'essential',1,'TZS','monthly',1,ARRAY[]::text[],
+    'cc07-old-price',v_old_snapshot,false,'cc07-old-acceptance',
+    'active',now()-interval '20 days',now()-interval '20 days',now()+interval '10 days'
+  );
+  INSERT INTO public.commercial_subscription_events(
+    account_id,subscription_id,event_type,occurred_at,idempotency_key,actor_user_id,
+    actor_organisation_id,actor_role,reason_code,event_metadata
+  ) VALUES
+    (v_account,v_old_sub,'created',now()-interval '20 days','cc07-old-created',v_user,v_founder_org,'founder_admin','test_setup','{}'::jsonb),
+    (v_account,v_old_sub,'activate_paid',now()-interval '20 days','cc07-old-activated',v_user,v_founder_org,'founder_admin','test_setup',
+      '{"currency":"TZS","priceResolutionRef":"cc07-old-price"}'::jsonb);
+
+  INSERT INTO public.commercial_invoices(
+    id,organisation_id,account_id,subscription_id,invoice_number,idempotency_key,
+    billing_period_start,billing_period_end,currency,billing_term,status,issued_at,due_at,
+    subtotal_minor,tax_minor,discount_minor,total_minor,amount_paid_minor,
+    pricing_snapshot,tax_snapshot
+  ) VALUES (
+    v_invoice,v_customer_org,v_account,v_old_sub,'CC07-TEST-INV-001','cc07-invoice-test-key',
+    now()-interval '20 days',now()+interval '10 days','TZS','monthly','issued',
+    now()-interval '20 days',now()+interval '10 days',100000,0,0,100000,100000,
+    '{"test":true}'::jsonb,'{"test":true}'::jsonb
+  );
+  INSERT INTO public.commercial_invoice_adjustments(
+    invoice_id,adjustment_ref,adjustment_type,amount_minor,currency,reason_code,status,
+    approval_ref,created_by,posted_at
+  ) VALUES (
+    v_invoice,'CC07-DEBIT-001','debit_note',50000,'TZS','approved_plan_expansion','posted',
+    'CC07-APPROVAL-001',v_user,now()
+  );
+
+  PERFORM set_config('request.jwt.claim.role','service_role',true);
+  v_result := public.commercial_replace_active_subscription_for_founder(
+    v_old_sub,'professional',1,'TZS','monthly',1,ARRAY[]::text[],
+    'cc07-new-price',v_new_snapshot,'cc07-new-acceptance','CC07-DEBIT-001',
+    now()+interval '10 days','cc07-replace-subscription-001','approved_plan_expansion',
+    v_user,v_founder_org
+  );
+  IF v_result->>'movementType' <> 'expansion' OR v_result->>'deltaMrrMinor' <> '50000' THEN
+    RAISE EXCEPTION 'Accepted price replacement did not record exact expansion MRR';
+  END IF;
+  SELECT * INTO v_movement FROM public.commercial_subscription_revenue_movements
+    WHERE id=(v_result->>'movementId')::uuid;
+  IF v_movement.previous_mrr_minor<>100000 OR v_movement.new_mrr_minor<>150000
+    OR v_movement.delta_mrr_minor<>50000 OR v_movement.currency<>'TZS' THEN
+    RAISE EXCEPTION 'Stored subscription MRR movement values are inconsistent';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.commercial_subscriptions WHERE id=v_old_sub AND status='cancelled')
+    OR NOT EXISTS (SELECT 1 FROM public.commercial_subscriptions WHERE id=(v_result->>'subscriptionId')::uuid AND status='active') THEN
+    RAISE EXCEPTION 'Subscription replacement did not atomically close old and activate new contract';
+  END IF;
+  IF (SELECT count(*) FROM public.commercial_subscription_revenue_movement_facts
+      WHERE account_id=v_account AND movement_type='expansion')<>1
+    OR (SELECT count(*) FROM public.commercial_subscription_revenue_movement_facts
+      WHERE account_id=v_account AND movement_type='churned')<>0
+    OR (SELECT count(*) FROM public.commercial_subscription_revenue_movement_facts
+      WHERE account_id=v_account AND movement_type='new')<>1 THEN
+    RAISE EXCEPTION 'Expansion replacement was incorrectly classified as new business or churn';
+  END IF;
+  IF (SELECT mrr_minor FROM public.commercial_subscription_recurring_value_facts
+      WHERE subscription_id=(v_result->>'subscriptionId')::uuid)<>'150000' THEN
+    RAISE EXCEPTION 'Current recurring contract value view returned incorrect MRR';
+  END IF;
+  IF (SELECT data_type FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='commercial_founder_subscription_movement_facts'
+        AND column_name='net_new_mrr_minor')<>'text' THEN
+    RAISE EXCEPTION 'Founder movement facts must preserve exact numeric values as text';
+  END IF;
+END
+$revenue_test$;
+
 ROLLBACK;
