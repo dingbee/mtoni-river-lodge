@@ -50,18 +50,35 @@ function parseDates(text: string): { check_in: string | null; check_out: string 
   return { check_in: null, check_out: null, nights: nights ? parseInt(nights[1], 10) : null };
 }
 
-function parseParty(text: string): { adults: number | null; children: number | null } {
+function parseChildAges(text: string): number[] | null {
+  const match = text.match(/\b(?:children?|kids?)\s*(?:aged?|ages?)\s*[:\-]?\s*(\d{1,2}(?:\s*(?:,|and|&)\s*\d{1,2})*)/i);
+  if (!match) return null;
+  const ages = match[1].match(/\d{1,2}/g)?.map((age) => Number(age)) ?? [];
+  return ages.length > 0 && ages.every((age) => Number.isInteger(age) && age >= 0 && age <= 17) ? ages : null;
+}
+
+function parseParty(text: string): {
+  adults: number | null;
+  children: number | null;
+  childrenBelow6: number | null;
+  children7Plus: number | null;
+} {
   const lower = text.toLowerCase();
   const adults = lower.match(/(\d{1,2})\s*(adults?|people|guests?|pax)/);
   const children = lower.match(/(\d{1,2})\s*(child|children|kids?)/);
+  const childAges = parseChildAges(lower);
   const couple = /\bcouple\b|\bhoneymoon\b/.test(lower);
   const family = /\bfamily\b/.test(lower);
+  const childCount = children ? parseInt(children[1], 10) : childAges?.length ?? (family ? 2 : null);
+  const ageBreakdownIsComplete = childCount === 0 ||
+    (childAges !== null && childAges.length === childCount && !childAges.includes(6));
   return {
     adults: adults ? parseInt(adults[1], 10) : couple ? 2 : null,
-    children: children ? parseInt(children[1], 10) : family && !children ? 2 : null,
+    children: childCount,
+    childrenBelow6: ageBreakdownIsComplete && childAges ? childAges.filter((age) => age < 6).length : childCount === 0 ? 0 : null,
+    children7Plus: ageBreakdownIsComplete && childAges ? childAges.filter((age) => age >= 7).length : childCount === 0 ? 0 : null,
   };
 }
-
 function parseInterests(text: string): string[] {
   const map: Record<string, RegExp> = {
     canoe: /\bcanoe|kayak|paddle|duluti\b/i,
@@ -114,6 +131,8 @@ export function classifyIntent(message: string, history: string[] = []): Concier
         : null),
       adults: party.adults,
       children: party.children,
+      children_below_6: party.childrenBelow6,
+      children_7_plus: party.children7Plus,
       interests,
     },
   };
