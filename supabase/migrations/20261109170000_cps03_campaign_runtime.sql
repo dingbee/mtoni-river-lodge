@@ -36,105 +36,10 @@ begin
 
   select * into v_property from public.staynas_properties
   where id = _property_id and organisation_id = _organisation_id and status = 'active';
-  if not found or v_property.currency is null or v_property.currency !~ '^[A-Z]{3}
-    raise exception 'Select at least one active room type';
-  end if;
-  select count(distinct r.id) into v_room_count
-  from public.rooms r
-  where r.property_id = _property_id and r.status = 'active'
-    and r.id = any(_room_ids);
-  if v_room_count <> cardinality(_room_ids) then
-    raise exception 'One or more selected rooms are unavailable or belong to another property';
-  end if;
-
-  select pub.id, pub.rate_plan_id, pub.currency, pub.effective_from, pub.effective_to,
-         p.active, p.publication_status, p.currency as plan_currency
-  into v_publication
-  from public.staynas_rate_plan_publications pub
-  join public.staynas_rate_plans p
-    on p.id = pub.rate_plan_id and p.property_id = pub.property_id
-  where pub.id = _publication_id and pub.property_id = _property_id
-    and p.active = true and p.publication_status = 'published'
-    and pub.currency = v_property.currency and p.currency = v_property.currency
-    and pub.publication_number = (
-      select max(latest.publication_number) from public.staynas_rate_plan_publications latest
-      where latest.property_id = pub.property_id and latest.rate_plan_id = pub.rate_plan_id
-    )
-    and (pub.effective_from is null or pub.effective_from <= v_property_today)
-    and (pub.effective_to is null or pub.effective_to >= v_property_today)
-  order by pub.publication_number desc
-  limit 1;
-  if not found then
-    raise exception 'Offer must reference a current published rate-plan snapshot in the property currency';
-  end if;
-
-  update public.campaign_offers set active = false, updated_at = now()
-  where campaign_id = _campaign_id and property_id = _property_id;
-  delete from public.campaign_room_selections
-  where campaign_id = _campaign_id and property_id = _property_id;
-
-  insert into public.campaign_room_selections(campaign_id,property_id,room_id,sort_order)
-  select _campaign_id,_property_id,r.id,r.ordinality::integer
-  from unnest(_room_ids) with ordinality as r(id,ordinality);
-
-  insert into public.campaign_offers(
-    campaign_id,property_id,offer_code,title,description,rate_plan_publication_id,sort_order,active
-  ) values (
-    _campaign_id,_property_id,_offer_code,_offer_title,_offer_description,_publication_id,0,true
-  );
-
-  update public.booking_campaigns set updated_by = _actor_id, updated_at = now()
-  where id = _campaign_id and property_id = _property_id;
-
-  return jsonb_build_object('ok',true,'campaign_id',_campaign_id,'selected_rooms',v_room_count,
-    'rate_plan_publication_id',v_publication.id,'currency',v_property.currency);
-end
-$function$;
-
-create or replace function public.cps03_publish_booking_campaign(
-  _campaign_id uuid,
-  _property_id uuid,
-  _organisation_id uuid,
-  _actor_id uuid,
-  _usage_limit integer
-) returns jsonb
-language plpgsql
-security invoker
-set search_path = pg_catalog, public
-as $function$
-declare
-  v_campaign public.booking_campaigns%rowtype;
-  v_property public.staynas_properties%rowtype;
-  v_active_count integer;
-  v_content_id uuid;
-  v_room_count integer;
-  v_offer_count integer;
-  v_property_today date;
-begin
-  if _usage_limit is null or _usage_limit < 0 then
-    raise exception 'A valid founder-published active campaign quota is required';
-  end if;
-
-  perform pg_advisory_xact_lock(hashtextextended(_property_id::text || ':cps03_active_campaigns',0));
-  select * into v_campaign
-  from public.booking_campaigns
-  where id = _campaign_id and property_id = _property_id
-    and organisation_id = _organisation_id
-  for update;
-  if not found then raise exception 'Campaign is not part of the verified property'; end if;
-  if v_campaign.status not in ('draft','paused','expired') then
-    raise exception 'Campaign cannot be published from its current lifecycle state';
-  end if;
-  if v_campaign.ends_at is not null and v_campaign.ends_at <= now() then
-    raise exception 'An expired campaign cannot be republished; update its dates first';
-  end if;
-
-  select * into v_property from public.staynas_properties
-  where id = _property_id and organisation_id = _organisation_id
-    and status = 'active' and currency ~ '^[A-Z]{3}$';
-  if not found or nullif(trim(v_property.timezone),'') is null
+  if not found or v_property.currency is null or v_property.currency !~ '^[A-Z]{3}$'
+    or nullif(trim(v_property.timezone),'') is null
     or not exists (select 1 from pg_catalog.pg_timezone_names tz where tz.name = v_property.timezone) then
-    raise exception 'Active property, valid configured currency and timezone are required';
+    raise exception 'Active property currency and valid IANA timezone are required';
   end if;
   v_property_today := (now() at time zone v_property.timezone)::date;
 
