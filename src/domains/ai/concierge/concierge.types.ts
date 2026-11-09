@@ -24,6 +24,8 @@ export interface ConciergeIntentSignal {
     check_out?: string | null;
     adults?: number | null;
     children?: number | null;
+    children_below_6?: number | null;
+    children_7_plus?: number | null;
     nights?: number | null;
     country?: string | null;
     interests?: string[];
