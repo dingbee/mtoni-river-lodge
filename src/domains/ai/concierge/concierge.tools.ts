@@ -21,7 +21,6 @@ export function mapAvailabilityForParty(
       adults <= capacityAdults && children <= capacityChildren &&
       adults + children <= maxOccupancy;
     const currency = typeof row.currency === "string" ? row.currency.toUpperCase() : "";
-    const basePrice = Number(row.base_price);
     const quote = row.pricing_quote && typeof row.pricing_quote === "object"
       ? row.pricing_quote as Record<string, unknown>
       : null;
@@ -29,7 +28,6 @@ export function mapAvailabilityForParty(
     return {
       slug: String(row.slug ?? ""),
       name: String(row.name ?? ""),
-      base_price: Number.isFinite(basePrice) ? basePrice : 0,
       currency,
       max_occupancy: maxOccupancy,
       is_available: row.is_available === true,
