@@ -16,6 +16,34 @@ ALTER TABLE public.ai_concierge_leads
   ADD COLUMN IF NOT EXISTS consent_at timestamptz,
   ADD COLUMN IF NOT EXISTS consent_version text;
 
+DO $lead_session_integrity$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM public.ai_concierge_leads
+    WHERE session_id IS NULL OR idempotency_key IS NULL
+       OR consent_at IS NULL OR consent_version IS NULL
+  ) THEN
+    RAISE EXCEPTION 'SN-RT-01: historical leads lack session, idempotency or consent evidence; refusing unsafe backfill';
+  END IF;
+  ALTER TABLE public.ai_concierge_leads ALTER COLUMN session_id SET NOT NULL;
+  ALTER TABLE public.ai_concierge_leads ALTER COLUMN idempotency_key SET NOT NULL;
+  ALTER TABLE public.ai_concierge_leads ALTER COLUMN consent_at SET NOT NULL;
+  ALTER TABLE public.ai_concierge_leads ALTER COLUMN consent_version SET NOT NULL;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'ai_concierge_leads_session_property_fkey'
+      AND conrelid = 'public.ai_concierge_leads'::regclass
+  ) THEN
+    ALTER TABLE public.ai_concierge_leads
+      ADD CONSTRAINT ai_concierge_leads_session_property_fkey
+      FOREIGN KEY (session_id, property_id)
+      REFERENCES public.ai_concierge_sessions(id, property_id)
+      ON DELETE RESTRICT;
+  END IF;
+END
+$lead_session_integrity$;
+
 CREATE UNIQUE INDEX IF NOT EXISTS ai_concierge_leads_idempotency_key_uidx
   ON public.ai_concierge_leads(idempotency_key);
 
