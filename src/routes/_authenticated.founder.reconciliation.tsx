@@ -216,6 +216,10 @@ function FounderReconciliationWorkspace() {
                     </div>
                     <span className="text-xs">{exceptionStatus(item.resolution_status)}</span>
                   </div>
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-xs text-muted-foreground">View reconciliation evidence</summary>
+                    <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words rounded bg-background p-3 text-xs">{JSON.stringify(item.evidence ?? {}, null, 2)}</pre>
+                  </details>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {["open", "discrepancy"].includes(String(run.status)) && item.resolution_status !== "resolved" && <>
                       <button disabled={busy} onClick={() => void recordEvent(String(item.id), "review_started")} className="rounded border px-2 py-1 text-xs">Under review</button>
