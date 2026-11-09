@@ -93,8 +93,6 @@ export const createMyBookingCampaign = createServerFn({ method: "POST" })
   }).parse(input))
   .handler(async ({ data, context }) => {
     const { actor, admin } = await resolveCampaignAdmin(context as ServerContext);
-    const entitlement = await assertCommercialEntitlement(context as ServerContext, "campaign_studio");
-    if (!entitlement.allowed) throw new Error(entitlement.reason);
     const { data: created, error } = await (admin as any).rpc("cps03_create_booking_campaign", {
       _organisation_id: actor.organisationId,
       _property_id: actor.propertyId,
@@ -116,8 +114,6 @@ export const saveMyBookingCampaignContent = createServerFn({ method: "POST" })
   }).parse(input))
   .handler(async ({ data, context }) => {
     const { actor, admin } = await resolveCampaignAdmin(context as ServerContext);
-    const entitlement = await assertCommercialEntitlement(context as ServerContext, "campaign_studio");
-    if (!entitlement.allowed) throw new Error(entitlement.reason);
     const { data: campaign, error: campaignError } = await admin.from("booking_campaigns")
       .select("id, status").eq("id", data.campaignId)
       .eq("property_id", actor.propertyId).eq("organisation_id", actor.organisationId).maybeSingle();
@@ -173,7 +169,7 @@ export const listMyCampaignStudioResources = createServerFn({ method: "GET" })
     const validPublications = (publications ?? []).filter((publication: any) =>
       activePlanIds.has(publication.rate_plan_id)
       && Number(publication.publication_number) === latestPublicationNumber.get(publication.rate_plan_id)
-      && publication.currency === property.currency
+      && property.currency !== "USD" && publication.currency === property.currency
       && (!publication.effective_from || publication.effective_from <= today)
       && (!publication.effective_to || publication.effective_to >= today));
     return { currency: property.currency, timezone: property.timezone, rooms: rooms ?? [], publications: validPublications };
@@ -191,8 +187,6 @@ export const configureMyBookingCampaign = createServerFn({ method: "POST" })
   }).parse(input))
   .handler(async ({ data, context }) => {
     const { actor, admin } = await resolveCampaignAdmin(context as ServerContext);
-    const entitlement = await assertCommercialEntitlement(context as ServerContext, "campaign_studio");
-    if (!entitlement.allowed) throw new Error(entitlement.reason);
     const { data: result, error } = await (admin as any).rpc("cps03_configure_booking_campaign", {
       _campaign_id: data.campaignId,
       _property_id: actor.propertyId,
@@ -283,7 +277,7 @@ export const getPublicBookingCampaign = createServerFn({ method: "GET" })
     const sb = supabaseAdmin as any;
     const { data: property, error: propertyError } = await sb.from("staynas_properties")
       .select("id,slug,name,currency,timezone,status").eq("slug", data.propertySlug).maybeSingle();
-    if (propertyError || !property || property.status !== "active" || !/^[A-Z]{3}$/.test(property.currency ?? "") || !property.timezone) {
+    if (propertyError || !property || property.status !== "active" || !/^[A-Z]{3}$/.test(property.currency ?? "") || property.currency === "USD" || !property.timezone) {
       throw new Error("This campaign property is unavailable or has no valid configured currency.");
     }
     const { data: campaign, error: campaignError } = await sb.from("booking_campaigns")
@@ -505,8 +499,6 @@ export const updateMyBookingCampaignSchedule = createServerFn({ method: "POST" }
   }).parse(input))
   .handler(async ({ data, context }) => {
     const { actor, admin } = await resolveCampaignAdmin(context as ServerContext);
-    const entitlement = await assertCommercialEntitlement(context as ServerContext, "campaign_studio");
-    if (!entitlement.allowed) throw new Error(entitlement.reason);
     const { data: updated, error } = await (admin as any).rpc("cps03_set_campaign_schedule", {
       _campaign_id: data.campaignId,
       _property_id: actor.propertyId,
