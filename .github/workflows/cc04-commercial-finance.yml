@@ -3,6 +3,7 @@ name: CC-04 commercial billing and settlement
 on:
   push:
     branches:
+      - fix/mtoni-currency-fail-closed-etm-integration-prep
       - feat/cc-04-*
   pull_request:
     branches:
