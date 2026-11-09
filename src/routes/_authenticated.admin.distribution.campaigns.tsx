@@ -94,7 +94,7 @@ function CampaignStudioPage() {
   const [endsAtDate, setEndsAtDate] = useState("");
   const [preview, setPreview] = useState<{
     campaign: { name: string; slug: string };
-    content: { version: number; status: string; content: { headline?: string; description?: string; highlights?: string[] } } | null;
+    content: { version: number; status: string; content: { headline?: string; description?: string; highlights?: string[]; inclusions?: string[]; terms?: string[]; faqs?: Array<{ question: string; answer: string }> } } | null;
     rooms: Array<{ room_id: string; rooms?: { name?: string } }>;
     offers: Array<{ id: string; title: string; description?: string }>;
   } | null>(null);
@@ -257,6 +257,9 @@ function CampaignStudioPage() {
               <h3 className="mt-2 text-xl font-semibold">{preview.content?.content?.headline || preview.campaign.name}</h3>
               <p className="mt-2 text-sm text-muted-foreground">{preview.content?.content?.description || "No description has been saved yet."}</p>
               {!!preview.content?.content?.highlights?.length && <ul className="mt-3 list-disc space-y-1 pl-5 text-sm">{preview.content.content.highlights.map((item, index) => <li key={index}>{item}</li>)}</ul>}
+              {!!preview.content?.content?.inclusions?.length && <div className="mt-3"><p className="text-xs font-semibold uppercase text-muted-foreground">Inclusions</p><ul className="mt-1 list-disc pl-5 text-sm">{preview.content.content.inclusions.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
+              {!!preview.content?.content?.terms?.length && <div className="mt-3"><p className="text-xs font-semibold uppercase text-muted-foreground">Terms</p><ul className="mt-1 list-disc pl-5 text-sm">{preview.content.content.terms.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
+              {!!preview.content?.content?.faqs?.length && <div className="mt-3 space-y-2">{preview.content.content.faqs.map((faq,index)=><div key={index} className="rounded-lg border bg-background p-3 text-sm"><p className="font-medium">{faq.question}</p><p className="mt-1 text-muted-foreground">{faq.answer}</p></div>)}</div>}
               <div className="mt-4 grid gap-2 sm:grid-cols-2">{preview.rooms.map((room) => <div key={room.room_id} className="rounded-lg border bg-background p-3 text-sm">{room.rooms?.name || "Selected room"}</div>)}</div>
               <div className="mt-3 space-y-1">{preview.offers.map((item) => <div key={item.id} className="rounded-lg border bg-background p-3 text-sm"><span className="font-medium">{item.title}</span>{item.description && <span className="ml-2 text-muted-foreground">{item.description}</span>}</div>)}</div>
             </section>}
