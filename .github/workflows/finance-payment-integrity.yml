@@ -15,6 +15,7 @@ on:
       - ".github/workflows/finance-payment-integrity.yml"
   push:
     branches:
+      - fix/mtoni-currency-fail-closed-etm-integration-prep
       - fix/pesapal-*
       - fix/ci-*
       - main
