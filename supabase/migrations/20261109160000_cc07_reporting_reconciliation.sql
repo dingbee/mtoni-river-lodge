@@ -1045,3 +1045,13 @@ WHERE a.organisation_id IS DISTINCT FROM c.organisation_id
 ALTER VIEW public.commercial_subscription_entitlement_consistency_facts SET (security_invoker=true);
 REVOKE ALL ON public.commercial_subscription_entitlement_consistency_facts FROM PUBLIC,anon,authenticated;
 GRANT SELECT ON public.commercial_subscription_entitlement_consistency_facts TO service_role;
+
+
+CREATE OR REPLACE VIEW public.commercial_founder_unallocated_collection_workspace_facts AS
+SELECT payment_id,organisation_id,account_id,provider,provider_transaction_ref,
+  amount_minor::numeric(20,0)::text AS amount_minor,currency,status,confirmed_at,
+  unallocated_minor::numeric(20,0)::text AS unallocated_minor
+FROM public.commercial_unallocated_collections;
+ALTER VIEW public.commercial_founder_unallocated_collection_workspace_facts SET (security_invoker=true);
+REVOKE ALL ON public.commercial_founder_unallocated_collection_workspace_facts FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.commercial_founder_unallocated_collection_workspace_facts TO service_role;
