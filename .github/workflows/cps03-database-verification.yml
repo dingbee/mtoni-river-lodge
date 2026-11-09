@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+      - feat/cps-02-commercial-entitlements-quota
 
 jobs:
   cps03-database:
