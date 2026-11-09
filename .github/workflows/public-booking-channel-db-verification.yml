@@ -71,6 +71,26 @@ jobs:
             request jsonb NOT NULL DEFAULT '{}'::jsonb,
             quote_snapshot jsonb NOT NULL DEFAULT '{}'::jsonb
           );
+          CREATE TABLE public.staynas_property_tax_rules (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+            currency text,
+            active boolean NOT NULL DEFAULT true,
+            valid_from date,
+            valid_to date
+          );
+          CREATE TABLE public.staynas_property_fee_rules (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+            currency text,
+            active boolean NOT NULL DEFAULT true
+          );
+          CREATE TABLE public.staynas_property_promotions (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+            currency text,
+            active boolean NOT NULL DEFAULT true
+          );
           CREATE TABLE public.staynas_guest_payment_provider_accounts (
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
             property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
@@ -128,6 +148,548 @@ jobs:
             END IF;
             v_occupants := _adults + v_children;
             RETURN jsonb_build_object('currency',v_property_currency);
+          END;
+          $function$;
+          CREATE FUNCTION public.validate_staynas_rate_plan_context()
+          RETURNS trigger LANGUAGE plpgsql AS $function$
+          DECLARE property_currency text; parent_row record;
+          BEGIN
+            SELECT upper(currency) INTO property_currency
+            FROM public.staynas_properties
+            WHERE id=NEW.property_id;
+            IF property_currency IS NULL OR property_currency !~ '^[A-Z]{3}
+          RETURNS trigger LANGUAGE plpgsql AS $function$
+          DECLARE v_currency text; v_seasons_timezone text;
+          BEGIN
+            SELECT upper(currency), timezone
+              INTO v_currency, v_seasons_timezone
+            FROM public.staynas_properties
+            WHERE id = NEW.property_id;
+            IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}
+          RETURNS trigger LANGUAGE plpgsql AS $function$
+          DECLARE
+            v_currency text;
+          BEGIN
+            SELECT upper(currency) INTO v_currency
+            FROM public.staynas_properties WHERE id=NEW.property_id;
+            IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}$' THEN
+              RAISE EXCEPTION 'Rate override property must have an explicit currency';
+            END IF;
+            IF upper(NEW.currency) <> v_currency THEN
+              RAISE EXCEPTION 'Rate override currency must match property currency %',v_currency;
+            END IF;
+            NEW.currency := v_currency;
+            RETURN NEW;
+          END;
+          $function$;
+          CREATE FUNCTION public.apply_staynas_room_date_rate_override(
+            _property_id uuid,_room_id uuid,_stay_date date,_nightly_rate numeric,_reason text
+          ) RETURNS jsonb LANGUAGE plpgsql AS $function$
+          DECLARE v_currency text;
+          BEGIN
+            SELECT upper(currency) INTO v_currency FROM public.staynas_properties WHERE id=_property_id;
+            RETURN jsonb_build_object('currency',v_currency);
+          END;
+          $function$;
+          INSERT INTO public.staynas_properties(id,slug,status,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','mtoni-river-lodge','setup','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','nolmark-cdma-staynas','active','USD');
+          INSERT INTO public.staynas_property_domains(id,property_id,hostname,verification_status)
+          VALUES ('5d8c9b45-90b8-4b34-89a5-4c2c7bfae521','258a4f01-28ac-4efb-a641-c7649e55dc95','mtoniriverlodge.com','pending');
+          INSERT INTO public.rooms(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          INSERT INTO public.extras(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          INSERT INTO public.bookings(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          SQL
+      - name: Apply public sales-channel migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109120000_public_sales_channels.sql
+      - name: Apply property and transaction currency separation migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109130000_property_operating_and_transaction_currency.sql
+      - name: Apply property guest-payment account binding migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109140000_property_guest_payment_binding.sql
+      - name: Verify tenant binding, RLS, grants, channel-aware quotes and currency isolation
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/public_sales_channels.test.sql
+ THEN
+              RAISE EXCEPTION 'Daily pricing requires an explicit property currency';
+            END IF;
+            RETURN NEW;
+          END;
+          $function$;
+          CREATE FUNCTION public.validate_staynas_rate_plan_seasonal_rates()
+          RETURNS trigger LANGUAGE plpgsql AS $function$
+          DECLARE v_currency text; v_timezone text;
+          BEGIN
+            SELECT upper(currency), timezone
+              INTO v_currency, v_timezone
+            FROM public.staynas_properties
+            WHERE id = NEW.property_id;
+            IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}
+          RETURNS trigger LANGUAGE plpgsql AS $function$
+          DECLARE
+            v_currency text;
+          BEGIN
+            SELECT upper(currency) INTO v_currency
+            FROM public.staynas_properties WHERE id=NEW.property_id;
+            IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}$' THEN
+              RAISE EXCEPTION 'Rate override property must have an explicit currency';
+            END IF;
+            IF upper(NEW.currency) <> v_currency THEN
+              RAISE EXCEPTION 'Rate override currency must match property currency %',v_currency;
+            END IF;
+            NEW.currency := v_currency;
+            RETURN NEW;
+          END;
+          $function$;
+          CREATE FUNCTION public.apply_staynas_room_date_rate_override(
+            _property_id uuid,_room_id uuid,_stay_date date,_nightly_rate numeric,_reason text
+          ) RETURNS jsonb LANGUAGE plpgsql AS $function$
+          DECLARE v_currency text;
+          BEGIN
+            SELECT upper(currency) INTO v_currency FROM public.staynas_properties WHERE id=_property_id;
+            RETURN jsonb_build_object('currency',v_currency);
+          END;
+          $function$;
+          INSERT INTO public.staynas_properties(id,slug,status,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','mtoni-river-lodge','setup','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','nolmark-cdma-staynas','active','USD');
+          INSERT INTO public.staynas_property_domains(id,property_id,hostname,verification_status)
+          VALUES ('5d8c9b45-90b8-4b34-89a5-4c2c7bfae521','258a4f01-28ac-4efb-a641-c7649e55dc95','mtoniriverlodge.com','pending');
+          INSERT INTO public.rooms(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          INSERT INTO public.extras(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          INSERT INTO public.bookings(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          SQL
+      - name: Apply public sales-channel migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109120000_public_sales_channels.sql
+      - name: Apply property and transaction currency separation migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109130000_property_operating_and_transaction_currency.sql
+      - name: Apply property guest-payment account binding migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109140000_property_guest_payment_binding.sql
+      - name: Verify tenant binding, RLS, grants, channel-aware quotes and currency isolation
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/public_sales_channels.test.sql
+ THEN
+              RAISE EXCEPTION 'Seasonal pricing requires an explicit property currency';
+            END IF;
+            RETURN NEW;
+          END;
+          $function$;
+          CREATE FUNCTION public.validate_staynas_rate_plan_base_and_occupancy_data()
+          RETURNS trigger LANGUAGE plpgsql AS $function$
+          DECLARE v_currency text;
+          BEGIN
+            SELECT upper(p.currency)
+              INTO v_currency
+            FROM public.staynas_properties p
+            WHERE p.id=NEW.property_id AND p.status='active';
+            IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}
+          RETURNS trigger LANGUAGE plpgsql AS $function$
+          DECLARE
+            v_currency text;
+          BEGIN
+            SELECT upper(currency) INTO v_currency
+            FROM public.staynas_properties WHERE id=NEW.property_id;
+            IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}$' THEN
+              RAISE EXCEPTION 'Rate override property must have an explicit currency';
+            END IF;
+            IF upper(NEW.currency) <> v_currency THEN
+              RAISE EXCEPTION 'Rate override currency must match property currency %',v_currency;
+            END IF;
+            NEW.currency := v_currency;
+            RETURN NEW;
+          END;
+          $function$;
+          CREATE FUNCTION public.apply_staynas_room_date_rate_override(
+            _property_id uuid,_room_id uuid,_stay_date date,_nightly_rate numeric,_reason text
+          ) RETURNS jsonb LANGUAGE plpgsql AS $function$
+          DECLARE v_currency text;
+          BEGIN
+            SELECT upper(currency) INTO v_currency FROM public.staynas_properties WHERE id=_property_id;
+            RETURN jsonb_build_object('currency',v_currency);
+          END;
+          $function$;
+          INSERT INTO public.staynas_properties(id,slug,status,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','mtoni-river-lodge','setup','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','nolmark-cdma-staynas','active','USD');
+          INSERT INTO public.staynas_property_domains(id,property_id,hostname,verification_status)
+          VALUES ('5d8c9b45-90b8-4b34-89a5-4c2c7bfae521','258a4f01-28ac-4efb-a641-c7649e55dc95','mtoniriverlodge.com','pending');
+          INSERT INTO public.rooms(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          INSERT INTO public.extras(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          INSERT INTO public.bookings(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          SQL
+      - name: Apply public sales-channel migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109120000_public_sales_channels.sql
+      - name: Apply property and transaction currency separation migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109130000_property_operating_and_transaction_currency.sql
+      - name: Apply property guest-payment account binding migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109140000_property_guest_payment_binding.sql
+      - name: Verify tenant binding, RLS, grants, channel-aware quotes and currency isolation
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/public_sales_channels.test.sql
+ THEN
+              RAISE EXCEPTION USING ERRCODE='22023', MESSAGE='PROPERTY_CONTEXT_INVALID',
+                DETAIL='Rate-plan property must have an explicit valid currency';
+            END IF;
+            RETURN NEW;
+          END;
+          $function$;
+          CREATE FUNCTION public.validate_staynas_rate_override()
+          RETURNS trigger LANGUAGE plpgsql AS $function$
+          DECLARE
+            v_currency text;
+          BEGIN
+            SELECT upper(currency) INTO v_currency
+            FROM public.staynas_properties WHERE id=NEW.property_id;
+            IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}$' THEN
+              RAISE EXCEPTION 'Rate override property must have an explicit currency';
+            END IF;
+            IF upper(NEW.currency) <> v_currency THEN
+              RAISE EXCEPTION 'Rate override currency must match property currency %',v_currency;
+            END IF;
+            NEW.currency := v_currency;
+            RETURN NEW;
+          END;
+          $function$;
+          CREATE FUNCTION public.apply_staynas_room_date_rate_override(
+            _property_id uuid,_room_id uuid,_stay_date date,_nightly_rate numeric,_reason text
+          ) RETURNS jsonb LANGUAGE plpgsql AS $function$
+          DECLARE v_currency text;
+          BEGIN
+            SELECT upper(currency) INTO v_currency FROM public.staynas_properties WHERE id=_property_id;
+            RETURN jsonb_build_object('currency',v_currency);
+          END;
+          $function$;
+          INSERT INTO public.staynas_properties(id,slug,status,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','mtoni-river-lodge','setup','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','nolmark-cdma-staynas','active','USD');
+          INSERT INTO public.staynas_property_domains(id,property_id,hostname,verification_status)
+          VALUES ('5d8c9b45-90b8-4b34-89a5-4c2c7bfae521','258a4f01-28ac-4efb-a641-c7649e55dc95','mtoniriverlodge.com','pending');
+          INSERT INTO public.rooms(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          INSERT INTO public.extras(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          INSERT INTO public.bookings(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          SQL
+      - name: Apply public sales-channel migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109120000_public_sales_channels.sql
+      - name: Apply property and transaction currency separation migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109130000_property_operating_and_transaction_currency.sql
+      - name: Apply property guest-payment account binding migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109140000_property_guest_payment_binding.sql
+      - name: Verify tenant binding, RLS, grants, channel-aware quotes and currency isolation
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/public_sales_channels.test.sql
+ THEN
+              RAISE EXCEPTION 'Rate plan property must have an explicit valid currency';
+            END IF;
+            IF upper(NEW.currency) <> property_currency THEN
+              RAISE EXCEPTION 'Rate plan currency % must match property currency %',NEW.currency,property_currency;
+            END IF;
+            NEW.currency := property_currency;
+            NEW.code := upper(trim(NEW.code));
+            NEW.name := trim(NEW.name);
+            IF NEW.parent_rate_plan_id IS NOT NULL THEN
+              SELECT * INTO parent_row FROM public.staynas_rate_plans
+              WHERE id=NEW.parent_rate_plan_id AND property_id=NEW.property_id;
+              IF NOT FOUND THEN RAISE EXCEPTION 'Parent rate plan must belong to the same property'; END IF;
+            END IF;
+            RETURN NEW;
+          END;
+          $function$;
+          CREATE FUNCTION public.calculate_staynas_spe05_adjustments(
+            _property_id uuid,_check_in date,_check_out date,_currency text,_components jsonb,
+            _room_id uuid DEFAULT NULL,_rate_plan_id uuid DEFAULT NULL,_promo_code text DEFAULT NULL,
+            _guest_key text DEFAULT NULL,_booking_date date DEFAULT NULL
+          ) RETURNS jsonb LANGUAGE plpgsql AS $function$
+          DECLARE v_currency text; v_timezone text; v_fee record; v_promo_row record;
+          BEGIN
+            SELECT upper(p.currency), p.timezone INTO v_currency,v_timezone
+            FROM public.staynas_properties p WHERE p.id=_property_id AND p.status='active';
+            IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}
+          RETURNS trigger LANGUAGE plpgsql AS $function$
+          DECLARE v_currency text; v_seasons_timezone text;
+          BEGIN
+            SELECT upper(currency), timezone
+              INTO v_currency, v_seasons_timezone
+            FROM public.staynas_properties
+            WHERE id = NEW.property_id;
+            IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}
+          RETURNS trigger LANGUAGE plpgsql AS $function$
+          DECLARE
+            v_currency text;
+          BEGIN
+            SELECT upper(currency) INTO v_currency
+            FROM public.staynas_properties WHERE id=NEW.property_id;
+            IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}$' THEN
+              RAISE EXCEPTION 'Rate override property must have an explicit currency';
+            END IF;
+            IF upper(NEW.currency) <> v_currency THEN
+              RAISE EXCEPTION 'Rate override currency must match property currency %',v_currency;
+            END IF;
+            NEW.currency := v_currency;
+            RETURN NEW;
+          END;
+          $function$;
+          CREATE FUNCTION public.apply_staynas_room_date_rate_override(
+            _property_id uuid,_room_id uuid,_stay_date date,_nightly_rate numeric,_reason text
+          ) RETURNS jsonb LANGUAGE plpgsql AS $function$
+          DECLARE v_currency text;
+          BEGIN
+            SELECT upper(currency) INTO v_currency FROM public.staynas_properties WHERE id=_property_id;
+            RETURN jsonb_build_object('currency',v_currency);
+          END;
+          $function$;
+          INSERT INTO public.staynas_properties(id,slug,status,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','mtoni-river-lodge','setup','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','nolmark-cdma-staynas','active','USD');
+          INSERT INTO public.staynas_property_domains(id,property_id,hostname,verification_status)
+          VALUES ('5d8c9b45-90b8-4b34-89a5-4c2c7bfae521','258a4f01-28ac-4efb-a641-c7649e55dc95','mtoniriverlodge.com','pending');
+          INSERT INTO public.rooms(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          INSERT INTO public.extras(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          INSERT INTO public.bookings(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          SQL
+      - name: Apply public sales-channel migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109120000_public_sales_channels.sql
+      - name: Apply property and transaction currency separation migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109130000_property_operating_and_transaction_currency.sql
+      - name: Apply property guest-payment account binding migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109140000_property_guest_payment_binding.sql
+      - name: Verify tenant binding, RLS, grants, channel-aware quotes and currency isolation
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/public_sales_channels.test.sql
+ THEN
+              RAISE EXCEPTION 'Daily pricing requires an explicit property currency';
+            END IF;
+            RETURN NEW;
+          END;
+          $function$;
+          CREATE FUNCTION public.validate_staynas_rate_plan_seasonal_rates()
+          RETURNS trigger LANGUAGE plpgsql AS $function$
+          DECLARE v_currency text; v_timezone text;
+          BEGIN
+            SELECT upper(currency), timezone
+              INTO v_currency, v_timezone
+            FROM public.staynas_properties
+            WHERE id = NEW.property_id;
+            IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}
+          RETURNS trigger LANGUAGE plpgsql AS $function$
+          DECLARE
+            v_currency text;
+          BEGIN
+            SELECT upper(currency) INTO v_currency
+            FROM public.staynas_properties WHERE id=NEW.property_id;
+            IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}$' THEN
+              RAISE EXCEPTION 'Rate override property must have an explicit currency';
+            END IF;
+            IF upper(NEW.currency) <> v_currency THEN
+              RAISE EXCEPTION 'Rate override currency must match property currency %',v_currency;
+            END IF;
+            NEW.currency := v_currency;
+            RETURN NEW;
+          END;
+          $function$;
+          CREATE FUNCTION public.apply_staynas_room_date_rate_override(
+            _property_id uuid,_room_id uuid,_stay_date date,_nightly_rate numeric,_reason text
+          ) RETURNS jsonb LANGUAGE plpgsql AS $function$
+          DECLARE v_currency text;
+          BEGIN
+            SELECT upper(currency) INTO v_currency FROM public.staynas_properties WHERE id=_property_id;
+            RETURN jsonb_build_object('currency',v_currency);
+          END;
+          $function$;
+          INSERT INTO public.staynas_properties(id,slug,status,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','mtoni-river-lodge','setup','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','nolmark-cdma-staynas','active','USD');
+          INSERT INTO public.staynas_property_domains(id,property_id,hostname,verification_status)
+          VALUES ('5d8c9b45-90b8-4b34-89a5-4c2c7bfae521','258a4f01-28ac-4efb-a641-c7649e55dc95','mtoniriverlodge.com','pending');
+          INSERT INTO public.rooms(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          INSERT INTO public.extras(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          INSERT INTO public.bookings(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          SQL
+      - name: Apply public sales-channel migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109120000_public_sales_channels.sql
+      - name: Apply property and transaction currency separation migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109130000_property_operating_and_transaction_currency.sql
+      - name: Apply property guest-payment account binding migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109140000_property_guest_payment_binding.sql
+      - name: Verify tenant binding, RLS, grants, channel-aware quotes and currency isolation
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/public_sales_channels.test.sql
+ THEN
+              RAISE EXCEPTION 'Seasonal pricing requires an explicit property currency';
+            END IF;
+            RETURN NEW;
+          END;
+          $function$;
+          CREATE FUNCTION public.validate_staynas_rate_plan_base_and_occupancy_data()
+          RETURNS trigger LANGUAGE plpgsql AS $function$
+          DECLARE v_currency text;
+          BEGIN
+            SELECT upper(p.currency)
+              INTO v_currency
+            FROM public.staynas_properties p
+            WHERE p.id=NEW.property_id AND p.status='active';
+            IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}
+          RETURNS trigger LANGUAGE plpgsql AS $function$
+          DECLARE
+            v_currency text;
+          BEGIN
+            SELECT upper(currency) INTO v_currency
+            FROM public.staynas_properties WHERE id=NEW.property_id;
+            IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}$' THEN
+              RAISE EXCEPTION 'Rate override property must have an explicit currency';
+            END IF;
+            IF upper(NEW.currency) <> v_currency THEN
+              RAISE EXCEPTION 'Rate override currency must match property currency %',v_currency;
+            END IF;
+            NEW.currency := v_currency;
+            RETURN NEW;
+          END;
+          $function$;
+          CREATE FUNCTION public.apply_staynas_room_date_rate_override(
+            _property_id uuid,_room_id uuid,_stay_date date,_nightly_rate numeric,_reason text
+          ) RETURNS jsonb LANGUAGE plpgsql AS $function$
+          DECLARE v_currency text;
+          BEGIN
+            SELECT upper(currency) INTO v_currency FROM public.staynas_properties WHERE id=_property_id;
+            RETURN jsonb_build_object('currency',v_currency);
+          END;
+          $function$;
+          INSERT INTO public.staynas_properties(id,slug,status,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','mtoni-river-lodge','setup','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','nolmark-cdma-staynas','active','USD');
+          INSERT INTO public.staynas_property_domains(id,property_id,hostname,verification_status)
+          VALUES ('5d8c9b45-90b8-4b34-89a5-4c2c7bfae521','258a4f01-28ac-4efb-a641-c7649e55dc95','mtoniriverlodge.com','pending');
+          INSERT INTO public.rooms(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          INSERT INTO public.extras(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          INSERT INTO public.bookings(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          SQL
+      - name: Apply public sales-channel migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109120000_public_sales_channels.sql
+      - name: Apply property and transaction currency separation migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109130000_property_operating_and_transaction_currency.sql
+      - name: Apply property guest-payment account binding migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109140000_property_guest_payment_binding.sql
+      - name: Verify tenant binding, RLS, grants, channel-aware quotes and currency isolation
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/public_sales_channels.test.sql
+ THEN
+              RAISE EXCEPTION USING ERRCODE='22023', MESSAGE='PROPERTY_CONTEXT_INVALID',
+                DETAIL='Rate-plan property must have an explicit valid currency';
+            END IF;
+            RETURN NEW;
+          END;
+          $function$;
+          CREATE FUNCTION public.validate_staynas_rate_override()
+          RETURNS trigger LANGUAGE plpgsql AS $function$
+          DECLARE
+            v_currency text;
+          BEGIN
+            SELECT upper(currency) INTO v_currency
+            FROM public.staynas_properties WHERE id=NEW.property_id;
+            IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}$' THEN
+              RAISE EXCEPTION 'Rate override property must have an explicit currency';
+            END IF;
+            IF upper(NEW.currency) <> v_currency THEN
+              RAISE EXCEPTION 'Rate override currency must match property currency %',v_currency;
+            END IF;
+            NEW.currency := v_currency;
+            RETURN NEW;
+          END;
+          $function$;
+          CREATE FUNCTION public.apply_staynas_room_date_rate_override(
+            _property_id uuid,_room_id uuid,_stay_date date,_nightly_rate numeric,_reason text
+          ) RETURNS jsonb LANGUAGE plpgsql AS $function$
+          DECLARE v_currency text;
+          BEGIN
+            SELECT upper(currency) INTO v_currency FROM public.staynas_properties WHERE id=_property_id;
+            RETURN jsonb_build_object('currency',v_currency);
+          END;
+          $function$;
+          INSERT INTO public.staynas_properties(id,slug,status,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','mtoni-river-lodge','setup','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','nolmark-cdma-staynas','active','USD');
+          INSERT INTO public.staynas_property_domains(id,property_id,hostname,verification_status)
+          VALUES ('5d8c9b45-90b8-4b34-89a5-4c2c7bfae521','258a4f01-28ac-4efb-a641-c7649e55dc95','mtoniriverlodge.com','pending');
+          INSERT INTO public.rooms(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          INSERT INTO public.extras(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          INSERT INTO public.bookings(property_id,currency) VALUES
+            ('258a4f01-28ac-4efb-a641-c7649e55dc95','USD'),
+            ('f44ff48a-5449-4464-b0cb-83295fadb468','USD');
+          SQL
+      - name: Apply public sales-channel migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109120000_public_sales_channels.sql
+      - name: Apply property and transaction currency separation migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109130000_property_operating_and_transaction_currency.sql
+      - name: Apply property guest-payment account binding migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109140000_property_guest_payment_binding.sql
+      - name: Verify tenant binding, RLS, grants, channel-aware quotes and currency isolation
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/public_sales_channels.test.sql
+ OR v_currency <> upper(COALESCE(_currency,'')) THEN
+              RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH','message','Quote currency must match the configured property currency');
+            END IF;
+            IF COALESCE(v_component.value->>'currency',v_currency) <> v_currency THEN
+              RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH','message','Component currency differs from property currency');
+            END IF;
+            PERFORM 1 FROM public.staynas_property_promotions p
+            WHERE p.currency IS NULL OR upper(p.currency)=v_currency;
+            PERFORM 1 FROM public.staynas_property_fee_rules f
+            WHERE f.property_id=_property_id AND f.active=true;
+            IF v_fee.currency IS NOT NULL AND upper(v_fee.currency)<>v_currency THEN
+              RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH','message','Fee currency differs from property currency','fee_id',v_fee.id);
+            END IF;
+            IF EXISTS(
+              SELECT 1 FROM public.staynas_property_tax_rules t
+              WHERE t.property_id=_property_id AND t.active=true
+                AND (t.valid_from IS NULL OR t.valid_from<=_check_in)
+                AND (t.valid_to IS NULL OR t.valid_to>=_check_out-1)
+                AND t.currency IS NOT NULL AND upper(t.currency)<>v_currency
+            ) THEN
+              RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH',
+                'message','An active tax rule uses a currency different from the property currency');
+            END IF;
+            PERFORM 1 FROM public.staynas_property_tax_rules t
+            WHERE t.currency IS NULL OR upper(t.currency)=v_currency;
+            IF v_promo_row.currency IS NOT NULL AND upper(v_promo_row.currency)<>v_currency THEN
+              RETURN jsonb_build_object('ok',false,'error_code','PROMOTION_INELIGIBLE');
+            END IF;
+            RETURN jsonb_build_object('ok',true,'currency',v_currency);
           END;
           $function$;
           CREATE FUNCTION public.validate_staynas_rate_plan_daily_rates()
