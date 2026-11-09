@@ -21,6 +21,7 @@ import {
   transitionMyBookingCampaign,
   previewMyBookingCampaign,
   getMyBookingCampaignAnalytics,
+  updateMyBookingCampaignSchedule,
 } from "@/domains/booking-campaigns/campaigns.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/distribution/campaigns")({
@@ -50,6 +51,7 @@ function CampaignStudioPage() {
   const transitionFn = useServerFn(transitionMyBookingCampaign);
   const previewFn = useServerFn(previewMyBookingCampaign);
   const analyticsFn = useServerFn(getMyBookingCampaignAnalytics);
+  const scheduleFn = useServerFn(updateMyBookingCampaignSchedule);
   const analytics = useQuery({ queryKey: ["booking-campaign-analytics", "selected-property"], queryFn: () => analyticsFn() });
   const campaigns = useQuery({ queryKey: ["booking-campaigns", "selected-property"], queryFn: () => listFn() as Promise<Campaign[]> });
   const resources = useQuery({ queryKey: ["booking-campaign-resources", "selected-property"], queryFn: () => resourcesFn() as Promise<StudioResources> });
@@ -64,6 +66,8 @@ function CampaignStudioPage() {
   const [offerCode, setOfferCode] = useState("resident-rate");
   const [offerTitle, setOfferTitle] = useState("Resident Rate");
   const [offerDescription, setOfferDescription] = useState("");
+  const [startsAtDate, setStartsAtDate] = useState("");
+  const [endsAtDate, setEndsAtDate] = useState("");
   const [preview, setPreview] = useState<{
     campaign: { name: string; slug: string };
     content: { version: number; status: string; content: { headline?: string; description?: string; highlights?: string[] } } | null;
@@ -78,7 +82,11 @@ function CampaignStudioPage() {
     await queryClient.invalidateQueries({ queryKey: ["booking-campaign-analytics"] });
   };
   const createCampaign = useMutation({
-    mutationFn: () => createFn({ data: { name, slug } }),
+    mutationFn: () => createFn({ data: {
+      name, slug,
+      startsAt: startsAtDate ? new Date(`${startsAtDate}T00:00:00`).toISOString() : null,
+      endsAt: endsAtDate ? new Date(`${endsAtDate}T23:59:59`).toISOString() : null,
+    } }),
     onSuccess: async (created) => {
       setName(""); setSlug(""); setSelectedId(created.id); setHeadline(created.name);
       setPreview(null); await refresh(); toast.success("Campaign draft created.");
@@ -106,6 +114,16 @@ function CampaignStudioPage() {
     onSuccess: () => { toast.success("Rooms and published rate offer configured."); setPreview(null); },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const saveSchedule = useMutation({
+    mutationFn: () => scheduleFn({ data: {
+      campaignId: selectedId,
+      startsAt: startsAtDate ? new Date(`${startsAtDate}T00:00:00`).toISOString() : null,
+      endsAt: endsAtDate ? new Date(`${endsAtDate}T23:59:59`).toISOString() : null,
+    } }),
+    onSuccess: async () => { await refresh(); toast.success("Campaign schedule saved."); },
+    onError: (error: Error) => toast.error(error.message),
+  });
   const publish = useMutation({
     mutationFn: () => publishFn({ data: { campaignId: selectedId } }),
     onSuccess: async () => { await refresh(); toast.success("Campaign published."); },
@@ -131,13 +149,15 @@ function CampaignStudioPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5"><Label htmlFor="campaign-name">Campaign name</Label><Input id="campaign-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="East Africa Resident Escape" /></div>
               <div className="space-y-1.5"><Label htmlFor="campaign-slug">Route slug</Label><Input id="campaign-slug" value={slug} onChange={(event) => setSlug(event.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""))} placeholder="resident-escape" /></div>
+              <div className="space-y-1.5"><Label htmlFor="new-campaign-start">Starts on (optional)</Label><Input id="new-campaign-start" type="date" value={startsAtDate} onChange={(event) => setStartsAtDate(event.target.value)} /></div>
+              <div className="space-y-1.5"><Label htmlFor="new-campaign-end">Ends on (optional)</Label><Input id="new-campaign-end" type="date" min={startsAtDate || undefined} value={endsAtDate} onChange={(event) => setEndsAtDate(event.target.value)} /></div>
             </div>
             <Button onClick={() => createCampaign.mutate()} disabled={createCampaign.isPending || name.trim().length < 2 || slug.trim().length < 2}><Plus className="mr-2 h-4 w-4" /> Create draft</Button>
             <div className="space-y-2 border-t pt-4">
               {campaigns.isLoading && <p className="text-sm text-muted-foreground">Loading campaigns…</p>}
               {campaigns.isError && <p className="text-sm text-destructive">Campaigns could not be loaded.</p>}
               {!campaigns.isLoading && !campaigns.data?.length && <p className="text-sm text-muted-foreground">No campaigns have been created for this property.</p>}
-              {campaigns.data?.map((campaign) => <button key={campaign.id} type="button" onClick={() => { setSelectedId(campaign.id); setHeadline(campaign.name); setDescription(""); setHighlights(""); setPreview(null); }} className={`flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left ${selectedId === campaign.id ? "border-primary bg-primary/5" : "hover:bg-muted/50"}`}>
+              {campaigns.data?.map((campaign) => <button key={campaign.id} type="button" onClick={() => { setSelectedId(campaign.id); setHeadline(campaign.name); setDescription(""); setHighlights(""); setStartsAtDate(campaign.starts_at?.slice(0,10) ?? ""); setEndsAtDate(campaign.ends_at?.slice(0,10) ?? ""); setPreview(null); }} className={`flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left ${selectedId === campaign.id ? "border-primary bg-primary/5" : "hover:bg-muted/50"}`}>
                 <span className="min-w-0"><span className="block truncate text-sm font-medium">{campaign.name}</span><span className="block truncate text-xs text-muted-foreground">/{campaign.slug}</span></span>
                 <Badge variant={campaign.status === "published" ? "default" : "secondary"}>{campaign.status}</Badge>
               </button>)}
@@ -152,6 +172,13 @@ function CampaignStudioPage() {
             <div className="space-y-1.5"><Label htmlFor="campaign-description">Description</Label><Textarea id="campaign-description" value={description} onChange={(event) => setDescription(event.target.value)} rows={4} maxLength={5000} /></div>
             <div className="space-y-1.5"><Label htmlFor="campaign-highlights">Highlights (one per line)</Label><Textarea id="campaign-highlights" value={highlights} onChange={(event) => setHighlights(event.target.value)} rows={3} /></div>
             <Button onClick={() => saveContent.mutate()} disabled={saveContent.isPending || headline.trim().length < 2}><Save className="mr-2 h-4 w-4" /> Save content draft</Button>
+            <div className="border-t pt-4"><div className="mb-3 flex items-center gap-2 font-medium"><Settings2 className="h-4 w-4" /> Campaign schedule</div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5"><Label htmlFor="campaign-start">Starts on</Label><Input id="campaign-start" type="date" value={startsAtDate} onChange={(event) => setStartsAtDate(event.target.value)} disabled={selected.status === "published" || selected.status === "archived"} /></div>
+                <div className="space-y-1.5"><Label htmlFor="campaign-end">Ends on</Label><Input id="campaign-end" type="date" min={startsAtDate || undefined} value={endsAtDate} onChange={(event) => setEndsAtDate(event.target.value)} disabled={selected.status === "published" || selected.status === "archived"} /></div>
+              </div>
+              <Button className="mt-3" variant="outline" onClick={() => saveSchedule.mutate()} disabled={saveSchedule.isPending || selected.status === "published" || selected.status === "archived"}>Save schedule</Button>
+            </div>
             <div className="border-t pt-4"><div className="mb-3 flex items-center gap-2 font-medium"><Settings2 className="h-4 w-4" /> Booking offer configuration</div>
               {resources.isError && <p className="text-sm text-destructive">Property booking resources could not be loaded.</p>}
               <p className="mb-3 text-xs text-muted-foreground">Property currency: {resources.data?.currency ?? "Not configured"}. Only active rooms and current published rate snapshots in this currency are selectable.</p>
