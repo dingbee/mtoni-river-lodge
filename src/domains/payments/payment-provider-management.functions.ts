@@ -314,14 +314,11 @@ export const testPropertyPaymentProviderConnection = createServerFn({ method: "P
       credentials as { consumer_key: string; consumer_secret: string },
       provider.environment as "sandbox" | "live",
     );
-    const { error: updateError } = await admin.from("staynas_guest_payment_provider_accounts")
-      .update({ integration_status: "ready", updated_at: new Date().toISOString() })
-      .eq("id",provider.id).eq("organisation_id",actor.organisationId).eq("property_id",actor.propertyId);
-    if (updateError) throw new Error("Property Pesapal adapter readiness could not be recorded.");
     await auditProviderChange(admin, actor, "provider.property_connection_tested", provider.id, {
-      provider: provider.provider, environment: provider.environment, result: "ready",
+      provider: provider.provider, environment: provider.environment, result: "credentials_authenticated",
+      integrationStatus: provider.integration_status,
     });
-    return { id: provider.id, integrationStatus: "ready" as const };
+    return { id: provider.id, connectionTest: "passed" as const, integrationStatus: provider.integration_status };
   });
 
 export const setPlatformPaymentProviderStatus = createServerFn({ method: "POST" })
