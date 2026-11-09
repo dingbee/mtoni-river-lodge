@@ -1,7 +1,5 @@
--- CC-05 durable entitlement persistence, authorization and least-privilege checks.
+\set ON_ERROR_STOP on
 BEGIN;
-SELECT plan(1);
-SELECT lives_ok($body$
 DO $test$
 DECLARE
   v_founder uuid := '81000000-0000-4000-8000-000000000001';
@@ -114,6 +112,4 @@ BEGIN
   END;
 END;
 $test$;
-$body$, 'CC-05 entitlement rules, assignments, decisions and authorization contracts execute without exceptions');
-SELECT * FROM finish();
 ROLLBACK;
