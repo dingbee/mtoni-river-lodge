@@ -13,6 +13,7 @@ import {
   ArrowRight,
   Network,
   ScrollText,
+  CreditCard,
 } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
@@ -102,6 +103,12 @@ function SettingsHub() {
     },
   ];
   const integrations: LinkTile[] = [
+    {
+      to: "/admin/settings/payment-providers",
+      title: "Payment Providers",
+      description: "Configure property guest-payment integrations and platform collection providers.",
+      Icon: CreditCard,
+    },
     {
       to: "/admin/system/health",
       title: "System Health",
