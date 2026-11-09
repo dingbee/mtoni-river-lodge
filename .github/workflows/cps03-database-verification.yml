@@ -143,3 +143,36 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109180000_cps03_attribution_idempotency.sql
       - name: Verify tenant boundaries, composite references, publication, quota and public visibility
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/cps03_campaign_tenant_isolation.test.sql
+
+  cps03-application:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Generate routes and verify production build
+        run: bun run build
+      - name: TypeScript verification
+        run: bunx tsc --noEmit
+      - name: CPS-03 and booking-flow lint
+        run: >-
+          bunx eslint
+          src/domains/booking-campaigns/campaigns.functions.ts
+          src/routes/_authenticated.admin.distribution.campaigns.tsx
+          'src/routes/p.$propertySlug.campaign.$campaignSlug.tsx'
+          'src/routes/$propertySlug.tsx'
+          src/routes/book.tsx
+          src/lib/booking.functions.ts
+          src/lib/public-booking.functions.ts
+          src/components/os/nav-config.ts
+          --rule 'prettier/prettier: off'
