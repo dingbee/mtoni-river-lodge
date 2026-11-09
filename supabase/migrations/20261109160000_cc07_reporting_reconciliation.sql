@@ -5,6 +5,12 @@
 -- The TypeScript reconciler already emits status_mismatch. Persist that supported
 -- classification rather than silently dropping or failing a reconciliation run.
 ALTER TABLE public.commercial_reconciliation_items
+  DROP CONSTRAINT IF EXISTS commercial_reconciliation_items_resolution_status_check;
+ALTER TABLE public.commercial_reconciliation_items
+  ADD CONSTRAINT commercial_reconciliation_items_resolution_status_check
+  CHECK (resolution_status IN ('unresolved','reviewed','escalated','resolved'));
+
+ALTER TABLE public.commercial_reconciliation_items
   DROP CONSTRAINT IF EXISTS commercial_reconciliation_items_item_type_check;
 ALTER TABLE public.commercial_reconciliation_items
   ADD CONSTRAINT commercial_reconciliation_items_item_type_check
@@ -97,7 +103,13 @@ BEGIN
       RAISE EXCEPTION 'Resolved exception must be reopened before review' USING ERRCODE = '55000';
     END IF;
     UPDATE public.commercial_reconciliation_items
-      SET resolution_status='reviewed' WHERE id=_item_id AND resolution_status='unresolved';
+      SET resolution_status='reviewed' WHERE id=_item_id AND resolution_status IN ('unresolved','escalated');
+  ELSIF _event_type='escalated' THEN
+    IF v_item.resolution_status='resolved' THEN
+      RAISE EXCEPTION 'Resolved exception must be reopened before escalation' USING ERRCODE = '55000';
+    END IF;
+    UPDATE public.commercial_reconciliation_items
+      SET resolution_status='escalated' WHERE id=_item_id AND resolution_status IN ('unresolved','reviewed');
   ELSIF _event_type='reopened' THEN
     IF v_item.resolution_status<>'resolved' THEN
       RAISE EXCEPTION 'Only a resolved exception can be reopened' USING ERRCODE = '55000';
@@ -210,7 +222,7 @@ BEGIN
     OR (_observed_currency IS NOT NULL AND _observed_currency NOT IN ('TZS','USD'))
     OR (_expected_amount_minor IS NOT NULL AND _expected_amount_minor < 0)
     OR (_observed_amount_minor IS NOT NULL AND _observed_amount_minor < 0)
-    OR _resolution_status NOT IN ('unresolved','reviewed','resolved')
+    OR _resolution_status NOT IN ('unresolved','reviewed','escalated','resolved')
     OR (_resolution_status='resolved' AND nullif(btrim(_resolution_ref),'') IS NULL) THEN
     RAISE EXCEPTION 'Invalid reconciliation item' USING ERRCODE = '22023';
   END IF;
