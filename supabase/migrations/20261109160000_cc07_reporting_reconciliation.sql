@@ -546,6 +546,7 @@ CREATE TABLE IF NOT EXISTS public.commercial_subscription_revenue_movements (
   commercial_acceptance_ref text NOT NULL CHECK (length(btrim(commercial_acceptance_ref)) BETWEEN 1 AND 300),
   financial_adjustment_ref text NOT NULL CHECK (length(btrim(financial_adjustment_ref)) BETWEEN 1 AND 300),
   idempotency_key text NOT NULL CHECK (length(btrim(idempotency_key)) BETWEEN 8 AND 170),
+  request_fingerprint text NOT NULL CHECK (length(request_fingerprint)=32),
   created_by uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,
   evidence jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(evidence)='object'),
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -617,6 +618,7 @@ DECLARE
   v_new_mrr numeric(20,0);
   v_delta numeric(20,0);
   v_movement_type text;
+  v_fingerprint text;
   v_now timestamptz := clock_timestamp();
   v_cancel jsonb;
   v_activate jsonb;
@@ -666,6 +668,13 @@ BEGIN
     RAISE EXCEPTION 'Invalid accepted subscription replacement contract' USING ERRCODE='22023';
   END IF;
 
+  v_fingerprint := md5(jsonb_build_object(
+    'oldSubscriptionId',_old_subscription_id,'planCode',_plan_code,'planVersion',_plan_version,
+    'currency',_currency,'billingTerm',_billing_term,'propertyCount',_property_count,
+    'addonCodes',coalesce(_addon_codes,ARRAY[]::text[]),'acceptedPriceSnapshot',_accepted_price_snapshot,
+    'commercialAcceptanceRef',_commercial_acceptance_ref,'financialAdjustmentRef',_financial_adjustment_ref,
+    'periodEndsAt',_period_ends_at,'reasonCode',_reason_code
+  )::text);
   PERFORM pg_advisory_xact_lock(hashtextextended(_idempotency_key,0));
   SELECT * INTO v_old FROM public.commercial_subscriptions WHERE id=_old_subscription_id FOR UPDATE;
   IF NOT FOUND THEN
@@ -678,6 +687,9 @@ BEGIN
   SELECT * INTO v_existing FROM public.commercial_subscription_revenue_movements
     WHERE account_id=v_old.account_id AND idempotency_key=_idempotency_key;
   IF FOUND THEN
+    IF v_existing.request_fingerprint IS DISTINCT FROM v_fingerprint THEN
+      RAISE EXCEPTION 'Subscription replacement idempotency key was reused with conflicting terms' USING ERRCODE='23505';
+    END IF;
     RETURN jsonb_build_object('ok',true,'replayed',true,'movementId',v_existing.id,
       'subscriptionId',v_existing.new_subscription_id,'movementType',v_existing.movement_type,
       'deltaMrrMinor',v_existing.delta_mrr_minor::text);
@@ -747,11 +759,11 @@ BEGIN
     account_id,organisation_id,previous_subscription_id,new_subscription_id,movement_type,
     currency,previous_mrr_minor,new_mrr_minor,delta_mrr_minor,effective_at,
     price_resolution_ref,commercial_acceptance_ref,financial_adjustment_ref,
-    idempotency_key,created_by,evidence
+    idempotency_key,request_fingerprint,created_by,evidence
   ) VALUES (
     v_account.id,v_account.organisation_id,v_old.id,v_new.id,v_movement_type,
     _currency,v_old_mrr,v_new_mrr,v_delta,v_now,_price_resolution_ref,
-    _commercial_acceptance_ref,_financial_adjustment_ref,_idempotency_key,_actor_user_id,
+    _commercial_acceptance_ref,_financial_adjustment_ref,_idempotency_key,v_fingerprint,_actor_user_id,
     jsonb_build_object('reasonCode',_reason_code,'previousBillingTerm',v_old.billing_term,
       'newBillingTerm',_billing_term,'previousPlanCode',v_old.plan_code,'newPlanCode',_plan_code,
       'oldCancellationEventId',v_cancel->>'eventId','newActivationEventId',v_activate->>'eventId')
