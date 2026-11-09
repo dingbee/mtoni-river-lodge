@@ -142,10 +142,10 @@ function FounderCommercialReporting() {
 
       <section className="rounded-xl border p-4">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <label className="space-y-1 text-xs text-muted-foreground">Period start
+          <label className="space-y-1 text-xs text-muted-foreground">Start month
             <input type="month" value={periodStart} onChange={(event)=>setPeriodStart(event.target.value)} className="h-10 w-full rounded-md border bg-background px-2 text-sm text-foreground"/>
           </label>
-          <label className="space-y-1 text-xs text-muted-foreground">Period end
+          <label className="space-y-1 text-xs text-muted-foreground">End month
             <input type="month" value={periodEnd} onChange={(event)=>setPeriodEnd(event.target.value)} className="h-10 w-full rounded-md border bg-background px-2 text-sm text-foreground"/>
           </label>
           <label className="space-y-1 text-xs text-muted-foreground">Currency scope
