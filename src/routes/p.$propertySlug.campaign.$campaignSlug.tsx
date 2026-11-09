@@ -77,7 +77,7 @@ function PublicCampaignPage() {
           offerId: selectedOffer.id,
           ...tracking,
         },
-      });
+      }).catch((error) => console.error("Campaign booking-click attribution failed", error));
       await navigate({
         to: "/book",
         search: {
