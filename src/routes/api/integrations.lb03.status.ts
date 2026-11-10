@@ -20,17 +20,20 @@ export const Route=createFileRoute("/api/integrations/lb03/status")({
     .eq("pos_transaction_id",body.posTransactionId).maybeSingle();
    if(error) return Response.json({error:"status_unavailable"},{status:503});
    if(!operation) return Response.json({status:"NOT_FOUND"},{status:200,headers:{"Cache-Control":"no-store"}});
-   let posting=null;
-   if(operation.posting_id){
-    const result=await admin.from("pms_folio_postings")
-     .select("id,status,posting_reference,folio_reference,amount,currency,posted_at")
-     .eq("id",operation.posting_id).maybeSingle();
-    if(result.error) return Response.json({error:"folio_status_unavailable"},{status:503});
-    posting=result.data;
-   }
+   const postingResult=await admin.from("pms_folio_postings")
+    .select("id,status,posting_reference,folio_reference,amount,currency,posted_at")
+    .eq("source_system","lexibite").eq("source_tenant_id",connection.remote_tenant_id)
+    .eq("source_property_id",connection.remote_property_id).eq("source_order_id",body.posTransactionId);
+   if(postingResult.error)return Response.json({error:"folio_status_unavailable"},{status:503});
+   const postings=Array.isArray(postingResult.data)?postingResult.data:[];
+   if(postings.length>1)return Response.json({status:"DUPLICATE_POSTING",postings,amount:operation.amount,
+    currency:operation.currency,reversedAmount:operation.reversed_amount,reversalReference:operation.reversal_reference},
+    {headers:{"Cache-Control":"no-store"}});
+   const posting=postings[0]??null;
+   const postingMatches=posting&&operation.posting_id===posting.id&&posting.status==="posted";
    const status=operation.state==="POSTED"||operation.state==="PARTIALLY_REVERSED"||operation.state==="REVERSED"
-    ? (posting?.status==="posted"?operation.state:"RECONCILIATION_REQUIRED")
-    : operation.state;
+    ? (postingMatches?operation.state:"RECONCILIATION_REQUIRED")
+    : (operation.state==="AUTHORIZED"&&posting?"RECONCILIATION_REQUIRED":operation.state);
    return Response.json({status,authorizationReference:operation.authorization_reference,
     expiresAt:operation.expires_at,posting:posting??null,amount:operation.amount,currency:operation.currency,
     reversedAmount:operation.reversed_amount,reversalReference:operation.reversal_reference},
