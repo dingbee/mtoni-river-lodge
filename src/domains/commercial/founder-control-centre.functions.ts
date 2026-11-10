@@ -6,7 +6,8 @@ import { validatePackageComposition } from "./package-composition-contract";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { resolveVerifiedFounderActor } from "./subscription.functions";
 
-type SupabaseAdminClient = typeof import("@/integrations/supabase/client.server").supabaseAdmin;
+import type { SupabaseClient } from "@supabase/supabase-js";
+type SupabaseAdminClient = SupabaseClient;
 
 type Row = Record<string, unknown>;
 type MoneyByCurrency = { TZS: string; USD: string };
