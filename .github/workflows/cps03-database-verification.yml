@@ -136,6 +136,7 @@ jobs:
             room_type_assignments jsonb NOT NULL DEFAULT '[]'::jsonb,
             published_at timestamptz NOT NULL DEFAULT now()
           );
+          GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
           SQL
       - name: Apply CPS-03 campaign data and tenant isolation migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109130000_cps03_campaign_data_tenant_isolation.sql
