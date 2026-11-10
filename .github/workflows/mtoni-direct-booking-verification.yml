@@ -1,0 +1,74 @@
+name: Mtoni direct booking connection verification
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/lib/booking.functions.ts"
+      - "src/lib/availability.functions.ts"
+      - "src/lib/public-booking-channel.server.ts"
+      - "src/lib/public-booking-channel.server.test.ts"
+      - "src/routes/book.tsx"
+      - "src/routes/api/public/**"
+      - "src/lib/email-templates/**"
+      - "vite.config.ts"
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+      - ".github/workflows/mtoni-direct-booking-verification.yml"
+  push:
+    branches:
+      - fix/mtoni-direct-booking-connection-first
+
+jobs:
+  booking-app:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Trusted host, payment deferral and cache-isolation tests
+        run: bunx vitest run src/lib/public-booking-channel.server.test.ts
+      - name: Production build
+        run: bun run build
+      - name: TypeScript verification
+        run: bunx tsc --noEmit
+      - name: Lint changed booking paths
+        run: >-
+          bunx eslint
+          src/lib/booking.functions.ts
+          src/lib/availability.functions.ts
+          src/lib/public-booking-channel.server.ts
+          src/lib/public-booking-channel.server.test.ts
+          src/routes/book.tsx
+          src/routes/api/public/availability.search.ts
+          src/routes/api/public/rooms.catalog.ts
+          src/routes/api/public/rooms.status.ts
+          src/lib/email-templates/_shared.tsx
+          src/lib/email-templates/booking-received.tsx
+          vite.config.ts
+          --rule 'prettier/prettier: off'
+
+  booking-database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.1
+      - name: Normalize optional legacy function revoke in ephemeral checkout
+        run: python3 scripts/ci/normalize-optional-legacy-revokes.py
+      - name: Start isolated Supabase database
+        run: supabase start --exclude studio,inbucket,storage-api,imgproxy,vector
+      - name: Apply all migrations and run database contracts
+        run: |
+          supabase db reset
+          supabase test db
