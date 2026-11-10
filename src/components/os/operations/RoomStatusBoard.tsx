@@ -17,7 +17,7 @@ type State = {
   room: Room | undefined;
 };
 
-export function RoomStatusBoard({ states, rooms = [] }: { states: State[]; rooms?: Room[] }) {
+export function RoomStatusBoard({ states, rooms = [], canManageUnits = false }: { states: State[]; rooms?: Room[]; canManageUnits?: boolean }) {
   const grouped = useMemo(() => {
     const map = new Map<string, { room: Room; units: State[] }>();
     for (const room of rooms) map.set(room.id, { room, units: [] });
@@ -38,13 +38,13 @@ export function RoomStatusBoard({ states, rooms = [] }: { states: State[]; rooms
               <h3 className="text-sm font-medium text-foreground">{room.name}</h3>
               <p className="text-xs text-muted-foreground">{units.length} physical units</p>
             </div>
-            <AddRoomUnit room={room} existingCount={units.length} />
+            {canManageUnits && <AddRoomUnit room={room} existingCount={units.length} />}
           </div>
           {units.length === 0 ? (
             <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">No physical units yet.</p>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {units.map((unit) => <RoomStateCard key={unit.id} unit={unit} room={room} />)}
+              {units.map((unit) => <RoomStateCard key={unit.id} unit={unit} room={room} canManageUnits={canManageUnits} />)}
             </div>
           )}
         </section>
@@ -82,7 +82,7 @@ function AddRoomUnit({ room, existingCount }: { room: Room; existingCount: numbe
   );
 }
 
-function RoomStateCard({ unit, room }: { unit: State; room: Room }) {
+function RoomStateCard({ unit, room, canManageUnits }: { unit: State; room: Room; canManageUnits: boolean }) {
   const [state, setState] = useState<RoomStateValue>(unit.state);
   const [label, setLabel] = useState(unit.unit_label);
   const qc = useQueryClient();
@@ -125,14 +125,14 @@ function RoomStateCard({ unit, room }: { unit: State; room: Room }) {
         </SelectContent>
       </Select>
       {unit.state_note && <p className="mt-2 text-xs text-muted-foreground">{unit.state_note}</p>}
-      <div className="mt-3 flex gap-2">
+      {canManageUnits && <div className="mt-3 flex gap-2">
         <input aria-label={`Unit label ${unit.unit_label}`} value={label} onChange={(event) => setLabel(event.target.value)}
           className="h-8 min-w-0 flex-1 rounded-md border bg-background px-2 text-xs" maxLength={80} />
         <button type="button" disabled={unitMutation.isPending || !label.trim() || label.trim() === unit.unit_label || !!unit.booking_id}
           onClick={() => unitMutation.mutate("rename")} className="rounded-md border px-2 text-xs hover:bg-muted disabled:opacity-40">Save</button>
         <button type="button" disabled={unitMutation.isPending || !canDelete}
           onClick={() => unitMutation.mutate("delete")} className="rounded-md border border-destructive/40 px-2 text-xs text-destructive hover:bg-destructive/5 disabled:opacity-40">Remove</button>
-      </div>
+      </div>}
     </div>
   );
 }
