@@ -42,12 +42,12 @@ SELECT ok(
 
 SELECT ok(
   COALESCE(
-    position('verification_status<>''verified''' in pg_get_functiondef(to_regprocedure('public.staynas_create_public_channel_quote(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text,text,integer)')))>0
+    position('verification_status=''verified''' in pg_get_functiondef(to_regprocedure('public.staynas_create_public_channel_quote(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text,text,integer)')))>0
     AND position('channel_code<>''direct_web''' in pg_get_functiondef(to_regprocedure('public.staynas_create_public_channel_quote(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text,text,integer)')))>0
-    AND position('transaction_currency' in pg_get_functiondef(to_regprocedure('public.staynas_create_public_channel_quote(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text,text,integer)')))>0,
+    AND position('route_path<>''/book''' in pg_get_functiondef(to_regprocedure('public.staynas_create_public_channel_quote(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text,text,integer)')))>0,
     false
   ),
-  'quote wrapper requires a verified domain, direct-web channel and explicit transaction currency'
+  'quote wrapper requires verified domain, published direct-web /book channel and transaction currency'
 );
 
 SELECT ok(
@@ -80,8 +80,8 @@ SELECT ok(
 
 SELECT ok(
   COALESCE(
-    position('pay_at_property' in pg_get_functiondef(to_regprocedure('public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid,text)')))>0
-    AND position('manual' in pg_get_functiondef(to_regprocedure('public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid,text)')))>0
+    position('pay_at_property' in pg_get_functiondef(to_regprocedure('public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)')))>0
+    AND position('manual' in pg_get_functiondef(to_regprocedure('public.create_booking_for_property(uuid,text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,text)')))>0
     AND EXISTS (
       SELECT 1 FROM information_schema.columns
       WHERE table_schema='public' AND table_name='bookings'
