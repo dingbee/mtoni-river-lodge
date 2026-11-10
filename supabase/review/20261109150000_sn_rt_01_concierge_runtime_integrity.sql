@@ -514,4 +514,49 @@ REVOKE ALL ON FUNCTION public.staynas_consume_public_rate_limit(text,integer,int
 GRANT EXECUTE ON FUNCTION public.staynas_consume_public_rate_limit(text,integer,integer)
   TO service_role;
 
+
+-- Founder-governed Concierge entitlements. No row means disabled; no quota,
+-- credit conversion, or price is assumed by the platform.
+CREATE TABLE IF NOT EXISTS public.ai_concierge_entitlements (
+  property_id uuid PRIMARY KEY REFERENCES public.staynas_properties(id) ON DELETE RESTRICT,
+  enabled boolean NOT NULL DEFAULT false,
+  updated_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.ai_concierge_entitlements ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.ai_concierge_entitlements FROM PUBLIC, anon;
+GRANT SELECT, INSERT, UPDATE ON public.ai_concierge_entitlements TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_concierge_entitlements TO service_role;
+DROP POLICY IF EXISTS "Founder manages Concierge entitlements" ON public.ai_concierge_entitlements;
+CREATE POLICY "Founder manages Concierge entitlements"
+  ON public.ai_concierge_entitlements FOR ALL TO authenticated
+  USING (public.is_staynas_founder_ai_admin())
+  WITH CHECK (public.is_staynas_founder_ai_admin());
+
+-- Append-only, property-scoped provider usage evidence. Token values are nullable
+-- because some compatible providers do not return usage in every response.
+CREATE TABLE IF NOT EXISTS public.ai_concierge_usage_ledger (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id uuid NOT NULL REFERENCES public.staynas_properties(id) ON DELETE RESTRICT,
+  session_id uuid NOT NULL,
+  message_id uuid NOT NULL REFERENCES public.ai_concierge_messages(id) ON DELETE RESTRICT,
+  request_id uuid NOT NULL UNIQUE,
+  provider text NOT NULL,
+  model text NOT NULL,
+  prompt_tokens bigint CHECK (prompt_tokens IS NULL OR prompt_tokens >= 0),
+  completion_tokens bigint CHECK (completion_tokens IS NULL OR completion_tokens >= 0),
+  total_tokens bigint CHECK (total_tokens IS NULL OR total_tokens >= 0),
+  latency_ms integer NOT NULL CHECK (latency_ms >= 0),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT ai_concierge_usage_session_property_fkey
+    FOREIGN KEY (session_id, property_id)
+    REFERENCES public.ai_concierge_sessions(id, property_id)
+    ON DELETE RESTRICT
+);
+CREATE INDEX IF NOT EXISTS ai_concierge_usage_property_created_idx
+  ON public.ai_concierge_usage_ledger(property_id, created_at DESC);
+ALTER TABLE public.ai_concierge_usage_ledger ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.ai_concierge_usage_ledger FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT ON public.ai_concierge_usage_ledger TO service_role;
+
 COMMIT;
