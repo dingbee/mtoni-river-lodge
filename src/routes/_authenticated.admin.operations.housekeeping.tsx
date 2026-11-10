@@ -616,7 +616,7 @@ function HousekeepingPage() {
       {exceptionRoom && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
           <div className="w-full rounded-t-2xl border bg-card p-5 shadow-xl sm:max-w-xl sm:rounded-2xl">
-            <div className="flex items-start justify-between"><div><div className="text-xl font-semibold">Report issue — {exceptionRoom.unit_label}</div><div className="text-sm text-muted-foreground">{exceptionRoom.room_name}</div></div><button className="rounded-lg border p-2" onClick={() => setExceptionRoom(null)}><XCircle className="h-5 w-5" /></button></div>
+            <div className="flex items-start justify-between"><div><div className="text-xl font-semibold">Report issue — {exceptionRoom.unit_label}</div><div className="text-sm text-muted-foreground">{exceptionRoom.room_name}</div></div><button className="rounded-lg border p-2" onClick={async () => { if (exceptionEvidence.length) await supabase.storage.from("housekeeping-evidence").remove(exceptionEvidence.map((item) => item.path)); setExceptionEvidence([]); setExceptionRoom(null); }}><XCircle className="h-5 w-5" /></button></div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <select className="rounded-lg border bg-background p-3 text-sm" value={exceptionType} onChange={(e) => setExceptionType(e.target.value as typeof exceptionType)}><option value="">Choose issue type…</option>
                     <option value="maintenance">Maintenance</option><option value="dnd">Do Not Disturb</option><option value="discrepancy">Room discrepancy</option><option value="damage">Damage</option><option value="lost_found">Lost & found</option><option value="linen_amenity">Linen / amenity</option></select>
