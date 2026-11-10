@@ -542,7 +542,7 @@ CREATE TABLE IF NOT EXISTS public.ai_concierge_usage_ledger (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   property_id uuid NOT NULL REFERENCES public.staynas_properties(id) ON DELETE RESTRICT,
   session_id uuid NOT NULL,
-  message_id uuid NOT NULL,
+  user_message_id uuid NOT NULL,
   request_id uuid NOT NULL UNIQUE,
   provider text NOT NULL,
   model text NOT NULL,
@@ -556,7 +556,7 @@ CREATE TABLE IF NOT EXISTS public.ai_concierge_usage_ledger (
     REFERENCES public.ai_concierge_sessions(id, property_id)
     ON DELETE RESTRICT,
   CONSTRAINT ai_concierge_usage_message_session_fkey
-    FOREIGN KEY (message_id, session_id)
+    FOREIGN KEY (user_message_id, session_id)
     REFERENCES public.ai_concierge_messages(id, session_id)
     ON DELETE RESTRICT
 );
