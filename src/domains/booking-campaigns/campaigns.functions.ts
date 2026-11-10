@@ -480,7 +480,7 @@ export const getMyBookingCampaignAnalytics = createServerFn({ method: "GET" })
         completedBookings: item.completedBookings, uniqueBookings: item.uniqueBookings.size,
         clickThroughRate: item.pageViews ? item.bookingClicks / item.pageViews : 0,
         bookingConversionRate: item.bookingClicks ? item.uniqueBookings.size / item.bookingClicks : 0,
-        ...(advanced.allowed ? { sources: Array.from(item.sources.entries()).map(([source, count]) => ({ source, count })) } : {}),
+        ...(advanced.allowed ? { sources: Array.from(item.sources.entries() as Iterable<[string, number]>).map(([source, count]) => ({ source, count })) as Array<{ source: string; count: number }> } : {}),
       })),
     };
   });
