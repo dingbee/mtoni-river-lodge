@@ -21,7 +21,8 @@ type PublicRoom = {
 function RoomsIndexPage() {
   const navigate = useNavigate();
   const [rooms,setRooms] = useState<PublicRoom[]>([]);
-  const [loading,setLoading] = useState(true);\n  const [loadError,setLoadError] = useState<string | null>(null);
+  const [loading,setLoading] = useState(true);
+  const [loadError,setLoadError] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -41,9 +42,16 @@ function RoomsIndexPage() {
   }, [navigate]);
   useEffect(() => {
     fetch("/api/public/rooms/catalog", { cache: "no-store" })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => setRooms(d.rooms ?? []))
-      .catch(() => setRooms([]))
+      .then(async (r) => {
+        const payload = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(payload.error ?? "Room catalogue could not be loaded");
+        return payload;
+      })
+      .then((d) => { setRooms(d.rooms ?? []); setLoadError(null); })
+      .catch((error: Error) => {
+        setRooms([]);
+        setLoadError(error.message || "Room catalogue could not be loaded");
+      })
       .finally(() => setLoading(false));
   }, []);
   return <div className="min-h-screen bg-background text-foreground"><SiteHeader/><main>
