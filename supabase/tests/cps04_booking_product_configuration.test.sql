@@ -29,7 +29,9 @@ INSERT INTO public.staynas_rate_plan_publications
   (id, property_id, rate_plan_id, publication_number, currency, room_type_assignments) VALUES
   ('70000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', '60000000-0000-4000-8000-000000000001', 1, 'TZS', '[{"room_type_id":"50000000-0000-4000-8000-000000000001"}]'),
   ('70000000-0000-4000-8000-000000000002', '20000000-0000-4000-8000-000000000001', '60000000-0000-4000-8000-000000000001', 2, 'TZS', '[{"room_type_id":"50000000-0000-4000-8000-000000000001"}]'),
-  ('70000000-0000-4000-8000-000000000003', '20000000-0000-4000-8000-000000000002', '60000000-0000-4000-8000-000000000002', 1, 'KES', '[{"room_type_id":"50000000-0000-4000-8000-000000000002"}]');
+  ('70000000-0000-4000-8000-000000000003', '20000000-0000-4000-8000-000000000002', '60000000-0000-4000-8000-000000000002', 1, 'KES', '[{"room_type_id":"50000000-0000-4000-8000-000000000002"}]'),
+  ('70000000-0000-4000-8000-000000000004', '20000000-0000-4000-8000-000000000001', '60000000-0000-4000-8000-000000000001', 3, 'EUR', '[{"room_type_id":"50000000-0000-4000-8000-000000000001"}]'),
+  ('70000000-0000-4000-8000-000000000005', '20000000-0000-4000-8000-000000000001', '60000000-0000-4000-8000-000000000001', 4, 'TZS', '[{"room_type_id":"50000000-0000-4000-8000-000000000099"}]');
 
 DO $test$
 BEGIN
@@ -57,12 +59,19 @@ BEGIN
 END
 $test$;
 
--- Service-role fixtures exercise the actual trigger validation, not just schema shape.
+-- Valid permanent product uses the latest property-currency publication.
 INSERT INTO public.staynas_booking_product_configurations
   (property_id, room_id, rate_plan_publication_id, channel, publication_status)
 VALUES
   ('20000000-0000-4000-8000-000000000001', '40000000-0000-4000-8000-000000000001',
    '70000000-0000-4000-8000-000000000002', 'permanent', 'draft');
+
+-- Valid campaign configuration is persisted independently, with no client price override.
+INSERT INTO public.staynas_booking_product_configurations
+  (property_id, room_id, rate_plan_publication_id, channel, campaign_slug, offer_code, offer_name)
+VALUES
+  ('20000000-0000-4000-8000-000000000001', '40000000-0000-4000-8000-000000000001',
+   '70000000-0000-4000-8000-000000000002', 'campaign', 'summer-escape', 'SUMMER', 'Summer Escape');
 
 DO $test$
 BEGIN
@@ -90,18 +99,56 @@ BEGIN
 
   BEGIN
     INSERT INTO public.staynas_booking_product_configurations
-      (property_id, room_id, rate_plan_publication_id, channel, campaign_slug, offer_code, offer_name)
+      (property_id, room_id, rate_plan_publication_id, channel)
     VALUES
       ('20000000-0000-4000-8000-000000000001', '40000000-0000-4000-8000-000000000001',
-       '70000000-0000-4000-8000-000000000002', 'campaign', 'bad-offer', 'BAD', 'Bad offer');
-    RAISE EXCEPTION 'Valid campaign fixture setup failed unexpectedly';
-  EXCEPTION WHEN unique_violation THEN
-    NULL;
+       '70000000-0000-4000-8000-000000000004', 'permanent');
+    RAISE EXCEPTION 'Currency mismatch fixture unexpectedly succeeded';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM = 'Currency mismatch fixture unexpectedly succeeded' THEN RAISE; END IF;
+  END;
+
+  BEGIN
+    INSERT INTO public.staynas_booking_product_configurations
+      (property_id, room_id, rate_plan_publication_id, channel)
+    VALUES
+      ('20000000-0000-4000-8000-000000000001', '40000000-0000-4000-8000-000000000001',
+       '70000000-0000-4000-8000-000000000005', 'permanent');
+    RAISE EXCEPTION 'Room-type assignment fixture unexpectedly succeeded';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM = 'Room-type assignment fixture unexpectedly succeeded' THEN RAISE; END IF;
   END;
 END
 $test$;
 
--- Content edits to a published configuration must unpublish and increment its version.
+-- Tenant A can see its own configuration but not Tenant B's.
+INSERT INTO public.staynas_booking_product_configurations
+  (property_id, room_id, rate_plan_publication_id, channel)
+VALUES
+  ('20000000-0000-4000-8000-000000000002', '40000000-0000-4000-8000-000000000002',
+   '70000000-0000-4000-8000-000000000003', 'permanent');
+
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', '30000000-0000-4000-8000-000000000001', true);
+DO $test$
+DECLARE
+  own_count integer;
+  foreign_count integer;
+BEGIN
+  SELECT count(*) INTO own_count
+  FROM public.staynas_booking_product_configurations
+  WHERE property_id = '20000000-0000-4000-8000-000000000001';
+  SELECT count(*) INTO foreign_count
+  FROM public.staynas_booking_product_configurations
+  WHERE property_id = '20000000-0000-4000-8000-000000000002';
+  IF own_count <> 2 OR foreign_count <> 0 THEN
+    RAISE EXCEPTION 'Tenant RLS isolation failed (own %, foreign %)', own_count, foreign_count;
+  END IF;
+END
+$test$;
+RESET ROLE;
+
+-- Published edits must become a new hidden draft version.
 UPDATE public.staynas_booking_product_configurations
 SET publication_status = 'published', public_visible = true;
 UPDATE public.staynas_booking_product_configurations
@@ -109,17 +156,13 @@ SET display_order = display_order + 1;
 
 DO $test$
 DECLARE
-  v_status text;
-  v_visible boolean;
-  v_version integer;
+  v_count integer;
 BEGIN
-  SELECT publication_status, public_visible, configuration_version
-    INTO v_status, v_visible, v_version
+  SELECT count(*) INTO v_count
   FROM public.staynas_booking_product_configurations
-  WHERE channel = 'permanent';
-
-  IF v_status <> 'draft' OR v_visible OR v_version <> 2 THEN
-    RAISE EXCEPTION 'Published configuration edit did not create a hidden draft version';
+  WHERE publication_status = 'draft' AND public_visible = false AND configuration_version = 2;
+  IF v_count <> 3 THEN
+    RAISE EXCEPTION 'Published configuration edits did not create hidden draft versions';
   END IF;
 END
 $test$;
