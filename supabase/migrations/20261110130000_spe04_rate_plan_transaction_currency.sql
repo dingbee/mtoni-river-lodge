@@ -191,7 +191,7 @@ BEGIN
     RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH',
       'message','Published rate-plan and immutable publication currencies do not match');
   END IF;
-  IF v_transaction_currency !~ '^[A-Z]{3}
+  IF length(v_transaction_currency)<>3 OR v_transaction_currency !~ '^[A-Z]{3}' THEN
     RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH',
       'message','Published rate-plan transaction currency must be a valid ISO 4217 code');
   END IF;
