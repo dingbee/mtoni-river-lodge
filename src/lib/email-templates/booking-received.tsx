@@ -52,7 +52,7 @@ const Email = (props: BookingEmailProps) => {
 
 export const template = {
   component: Email,
-  subject: (data: Record<string, any>) =>
+  subject: (data: Record<string, unknown>) =>
     `Mtoni River Lodge — Reservation received (${data.reference ?? ''})`.trim(),
   displayName: 'Booking Received',
   previewData: {
