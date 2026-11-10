@@ -68,7 +68,6 @@ BEGIN
       'capacity_children',r.capacity_children,
       'max_occupancy',r.max_occupancy,
       'total_units',r.total_units,
-      'base_price',r.base_price,
       'currency',r.currency,
       'included_guests',r.included_guests,
       'extra_guest_fee',r.extra_guest_fee,
