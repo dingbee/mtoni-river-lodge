@@ -58,7 +58,7 @@ export const Route = createFileRoute("/api/public/availability/search")({
           _rate_plan_id: ratePlanId,
         });
         if (error) return Response.json({ error: error.message }, { status: 500 });
-        const availabilityRows = availabilityRows as unknown as PublicAvailabilityRow[];
+        const availabilityRows = (data ?? []) as unknown as PublicAvailabilityRow[];
         if ((data ?? []).some((r) => String(r.currency ?? "").toUpperCase() !== channel.currency)) {
           return Response.json({ error: "Room currency does not match the published direct-booking transaction currency" }, { status: 409 });
         }
@@ -66,7 +66,7 @@ export const Route = createFileRoute("/api/public/availability/search")({
           .filter((r) => r.pricing_quote?.ok === false && r.pricing_quote?.error_code !== "RATE_PLAN_REQUIRED")
           .map((r) => ({ room_id: r.room_id, slug: r.slug, error_code: r.pricing_quote.error_code, message: r.pricing_quote.message }));
         const planChoices = await Promise.all((data ?? []).filter((r) => r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" || r.pricing_quote?.pricing_evidence?.rate_plan_id).map(async (r) => {
-          const { data: discovery, error: discoveryError } = await (supabaseAdmin as unknown as SupabaseClient).rpc("discover_staynas_public_rate_plans", {
+          const { data: discovery, error: discoveryError } = await supabaseAdmin.rpc("discover_staynas_public_rate_plans", {
             _property_id: propertyId, _room_id: r.room_id, _check_in: checkIn, _check_out: checkOut, _adults: guests, _children_below_6: 0, _children_7_plus: 0,
           });
           return { room_id: r.room_id, plans: (!discoveryError && discovery?.ok ? discovery.plans : []) as PublicRatePlanOption[] };
