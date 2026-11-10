@@ -21,7 +21,7 @@ type PublicRoom = {
 function RoomsIndexPage() {
   const navigate = useNavigate();
   const [rooms,setRooms] = useState<PublicRoom[]>([]);
-  const [loading,setLoading] = useState(true);
+  const [loading,setLoading] = useState(true);\n  const [loadError,setLoadError] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -49,7 +49,7 @@ function RoomsIndexPage() {
   return <div className="min-h-screen bg-background text-foreground"><SiteHeader/><main>
     <section className="border-b bg-muted/30 px-6 py-14 lg:px-10 lg:py-20"><div className="mx-auto max-w-7xl"><p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Accommodation</p><h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">Rooms designed for the stay.</h1><p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground">Explore rooms configured by the property in StayNas. Availability, pricing and guest-facing specifications come from live property configuration.</p></div></section>
     <section className="mx-auto max-w-7xl px-6 py-12 lg:px-10 lg:py-16">
-      {loading ? <p className="text-sm text-muted-foreground">Loading rooms…</p> : rooms.length === 0 ? <div className="rounded-2xl border border-dashed p-10 text-center"><h2 className="text-xl font-semibold">No rooms configured yet.</h2><p className="mt-2 text-sm text-muted-foreground">Configure room types and categories in StayNas.</p></div> : <div className="grid gap-6 lg:grid-cols-3">{rooms.map(room => <RoomCard key={room.slug} room={room}/>)}</div>}
+      {loading ? <p className="text-sm text-muted-foreground">Loading rooms…</p> : loadError ? <div role="alert" className="rounded-2xl border border-destructive/30 p-10 text-center"><h2 className="text-xl font-semibold">Rooms are temporarily unavailable.</h2><p className="mt-2 text-sm text-muted-foreground">{loadError}</p></div> : rooms.length === 0 ? <div className="rounded-2xl border border-dashed p-10 text-center"><h2 className="text-xl font-semibold">No rooms configured yet.</h2><p className="mt-2 text-sm text-muted-foreground">Configure room types and categories in StayNas.</p></div> : <div className="grid gap-6 lg:grid-cols-3">{rooms.map(room => <RoomCard key={room.slug} room={room}/>)}</div>}
     </section>
   </main><SiteFooter/><ConciergeWidget/></div>;
 }
