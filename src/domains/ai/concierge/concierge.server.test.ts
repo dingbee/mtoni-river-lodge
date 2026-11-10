@@ -54,7 +54,7 @@ describe("Concierge runtime governance", () => {
     await persistConciergeUsage(client, {
       propertyId: "property-a",
       sessionId: "session-a",
-      messageId: "message-a",
+      userMessageId: "message-a",
       gateway,
     });
 
@@ -62,7 +62,7 @@ describe("Concierge runtime governance", () => {
     expect(insert).toHaveBeenCalledWith({
       property_id: "property-a",
       session_id: "session-a",
-      message_id: "message-a",
+      user_message_id: "message-a",
       request_id: "request-123",
       provider: "openai-compatible",
       model: "test-model",
@@ -89,7 +89,7 @@ describe("Concierge runtime governance", () => {
     await expect(persistConciergeUsage(client, {
       propertyId: "property-a",
       sessionId: "session-a",
-      messageId: "message-a",
+      userMessageId: "message-a",
       gateway,
     })).rejects.toThrow("AI usage evidence could not be recorded.");
   });
