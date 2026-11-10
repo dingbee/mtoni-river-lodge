@@ -17,6 +17,9 @@ import {
   setPlatformPaymentProviderStatus,
   setPropertyPaymentProviderStatus,
   setPropertyGuestCheckoutProvider,
+  listFounderGuestPaymentProviders,
+  saveFounderPropertyPaymentProviderConfig,
+  setFounderGuestCheckoutProvider,
 } from "@/domains/payments/payment-provider-management.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/settings/payment-providers")({
@@ -60,8 +63,14 @@ function PaymentProviderSettings() {
   const setPlatformStatusFn = useServerFn(setPlatformPaymentProviderStatus);
   const setPropertyStatusFn = useServerFn(setPropertyPaymentProviderStatus);
   const setGuestCheckoutProviderFn = useServerFn(setPropertyGuestCheckoutProvider);
+  const founderGuestListFn = useServerFn(listFounderGuestPaymentProviders);
+  const saveFounderPropertyFn = useServerFn(saveFounderPropertyPaymentProviderConfig);
+  const setFounderGuestCheckoutFn = useServerFn(setFounderGuestCheckoutProvider);
   const founderStatus = useQuery({ queryKey: ["settings.founder-admin-status"], queryFn: () => founderStatusFn() });
   const isFounder = founderStatus.data?.isFounderAdmin === true;
+  const [selectedPropertyId, setSelectedPropertyId] = useState(\"\");
+  const founderGuestQuery = useQuery({ queryKey: [\"payments.founder-guest-provider-configs\"], queryFn: () => founderGuestListFn(), enabled: founderStatus.isSuccess && isFounder });
+  const selectedFounderProperty = founderGuestQuery.data?.find((property) => property.id === selectedPropertyId) ?? founderGuestQuery.data?.[0];
   const platformQuery = useQuery({
     queryKey: ["payments.platform-provider-configs"],
     queryFn: () => platformListFn(),
@@ -72,7 +81,7 @@ function PaymentProviderSettings() {
     queryFn: () => propertyListFn(),
     enabled: founderStatus.isSuccess && !isFounder,
   });
-  const rows = (isFounder ? platformQuery.data : propertyQuery.data) as ProviderRow[] | undefined;
+  const rows = (isFounder ? selectedFounderProperty?.providers : propertyQuery.data) as ProviderRow[] | undefined;
 
   const [provider, setProvider] = useState<string>("mpesa");
   const [accountReference, setAccountReference] = useState("");
@@ -101,7 +110,7 @@ function PaymentProviderSettings() {
         credentialsJson: credentialsJson || undefined,
       };
       return isFounder
-        ? savePlatformFn({ data: common })
+        ? selectedFounderProperty ? saveFounderPropertyFn({ data: { ...common, propertyId: selectedFounderProperty.id } }) : Promise.reject(new Error(\"Select a property first.\"))
         : savePropertyFn({ data: common });
     },
     onSuccess: () => {
@@ -115,7 +124,9 @@ function PaymentProviderSettings() {
 
 
   const guestCheckoutMutation = useMutation({
-    mutationFn: (providerConfigId: string | null) => setGuestCheckoutProviderFn({ data: { providerConfigId } }),
+    mutationFn: (providerConfigId: string | null) => isFounder
+      ? selectedFounderProperty ? setFounderGuestCheckoutFn({ data: { propertyId: selectedFounderProperty.id, providerConfigId } }) : Promise.reject(new Error(\"Select a property first.\"))
+      : setGuestCheckoutProviderFn({ data: { providerConfigId } }),
     onSuccess: () => {
       toast.success("Guest checkout settings updated.");
       queryClient.invalidateQueries({ queryKey: ["payments.property-provider-configs"] });
@@ -222,7 +233,7 @@ function PaymentProviderSettings() {
 
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-muted-foreground">New or updated configurations are saved as inactive.</p>
-            <Button type="submit" disabled={save.isPending || !accountReference.trim() || !currencies.length}>
+            <Button type="submit" disabled={save.isPending || !accountReference.trim() || !currencies.length || (isFounder && !selectedFounderProperty)}>
               {save.isPending ? "Saving securely…" : "Save provider configuration"}
             </Button>
           </div>
