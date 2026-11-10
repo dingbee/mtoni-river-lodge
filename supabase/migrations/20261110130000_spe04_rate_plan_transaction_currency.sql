@@ -573,7 +573,7 @@ COMMIT;
       RETURN jsonb_build_object('ok',false,'error_code','RATE_SOURCE_MISSING',
         'message',format('No valid published rate source for %s',v_day));
     END IF;
-    IF v_rate->>'currency' IS DISTINCT FROM v_property_currency THEN
+    IF upper(v_rate->>'currency') IS DISTINCT FROM v_transaction_currency THEN
       RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH',
         'message',format('Rate currency mismatch on %s',v_day));
     END IF;
@@ -611,7 +611,7 @@ COMMIT;
     'publication_number',v_publication.publication_number,
     'rate_plan_version',v_publication.rate_plan_version,
     'snapshot_hash',v_publication.snapshot_hash,
-    'currency',v_property_currency,'timezone',v_timezone,
+    'currency',v_transaction_currency,'operating_currency',v_property_currency,'timezone',v_timezone,
     'check_in',_check_in,'check_out',_check_out,'nights',v_nights,
     'minimum_stay',v_min_los,
     'adults',_adults,'children_below_6',COALESCE(_children_below_6,0),
