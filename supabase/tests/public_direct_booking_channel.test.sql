@@ -90,19 +90,25 @@ BEGIN
     RAISE EXCEPTION 'Domain, quote and booking channel/property composite foreign keys are required';
   END IF;
 
-  IF NOT EXISTS (
-    SELECT 1
-    FROM public.staynas_public_booking_channels ch
-    JOIN public.staynas_properties p ON p.id=ch.property_id
-    JOIN public.staynas_property_domains d ON d.id=ch.domain_id
-    WHERE p.slug='mtoni-river-lodge'
-      AND lower(d.hostname)='mtoniriverlodge.com'
-      AND ch.channel_code='direct_web'
-      AND ch.route_path='/book'
-      AND ch.transaction_currency='USD'
-      AND ch.status='draft'
-  ) THEN
-    RAISE EXCEPTION 'Mtoni direct-booking channel must be prepared as draft at /book';
+  IF pg_get_functiondef(
+       'public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamp with time zone)'::regprocedure
+     ) NOT LIKE '%upper(v_plan.currency)%'
+     OR pg_get_functiondef(
+       'public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamp with time zone)'::regprocedure
+     ) LIKE '%Room currency does not match property currency%' THEN
+    RAISE EXCEPTION 'Published room pricing must use rate-plan transaction currency, not property operating currency';
+  END IF;
+
+  IF pg_get_functiondef(
+       'public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid,text)'::regprocedure
+     ) NOT LIKE '%v_payment_method=''pay_at_property'' THEN ''manual''%'
+     OR NOT EXISTS (
+       SELECT 1 FROM information_schema.columns
+       WHERE table_schema='public' AND table_name='bookings'
+         AND column_name='payment_status'
+         AND column_default LIKE '%unpaid%'
+     ) THEN
+    RAISE EXCEPTION 'Pay-at-property reservations must remain manual and unpaid';
   END IF;
 END;
 $test$;
