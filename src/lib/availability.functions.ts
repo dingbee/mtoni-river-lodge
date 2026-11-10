@@ -4,7 +4,6 @@
 // Staff-only RPCs: room blocks, calendar events, unified calendar payload.
 
 import { createServerFn } from "@tanstack/react-start";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
@@ -162,7 +161,6 @@ export const listActiveHolds = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
-    const sb = context.supabase as unknown as SupabaseClient;
     let q = sb.from("booking_holds")
       .select("id, room_id, check_in, check_out, expires_at, guest_email, status, session_id, created_at")
       .eq("status", "active")
@@ -259,8 +257,8 @@ export const suggestRoomAssignment = createServerFn({ method: "POST" })
       climber: b.guest_type === "climber" || /kilimanjaro|climb|trek/.test(hay),
     };
 
-    const scored = ((avail ?? []) as Array<{ id: string; slug: string; name: string; is_available: boolean; max_occupancy: number; min_available: number; base_price: number }>)
-      .filter((r) => r.is_available && r.id !== b.room_id && occupants <= r.max_occupancy)
+    const scored = (avail ?? [])
+      .filter((r) => r.is_available && r.room_id !== b.room_id && occupants <= r.max_occupancy)
       .map((r) => {
         const n = `${r.name} ${r.slug}`.toLowerCase();
         let score = 0;
@@ -273,7 +271,7 @@ export const suggestRoomAssignment = createServerFn({ method: "POST" })
         score += Math.max(0, 3 - (r.max_occupancy - occupants));
         // Price proximity — penalise big price jumps.
         return {
-          room_id: r.id as string,
+          room_id: r.room_id,
           slug: r.slug as string,
           name: r.name as string,
           base_price: Number(r.base_price),
