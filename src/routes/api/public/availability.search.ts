@@ -11,7 +11,8 @@ export const Route = createFileRoute("/api/public/availability/search")({
         const url = new URL(request.url);
         const checkIn = url.searchParams.get("check_in");
         const checkOut = url.searchParams.get("check_out");
-        const guests = Math.max(1, Math.min(20, Number(url.searchParams.get("guests") ?? "1")));
+        const guests = Number(url.searchParams.get("guests") ?? "1");
+        if (!Number.isInteger(guests) || guests < 1 || guests > 20) return Response.json({ error: "guests must be an integer from 1 to 20" }, { status: 400 });
         const ratePlanId = url.searchParams.get("rate_plan_id");
         if (ratePlanId && !/^[0-9a-f-]{36}$/i.test(ratePlanId)) return Response.json({ error: "rate_plan_id must be a UUID" }, { status: 400 });
         if (!checkIn || !checkOut || !/^\d{4}-\d{2}-\d{2}$/.test(checkIn) || !/^\d{4}-\d{2}-\d{2}$/.test(checkOut)) {
@@ -33,6 +34,9 @@ export const Route = createFileRoute("/api/public/availability/search")({
           _rate_plan_id: ratePlanId,
         });
         if (error) return Response.json({ error: error.message }, { status: 500 });
+        if ((data ?? []).some((r: any) => String(r.currency ?? "").toUpperCase() !== channel.currency)) {
+          return Response.json({ error: "Room currency does not match the published direct-booking transaction currency" }, { status: 409 });
+        }
         const pricing_errors = (data ?? [])
           .filter((r: any) => r.pricing_quote?.ok === false && r.pricing_quote?.error_code !== "RATE_PLAN_REQUIRED")
           .map((r: any) => ({ room_id: r.room_id, slug: r.slug, error_code: r.pricing_quote.error_code, message: r.pricing_quote.message }));
@@ -42,6 +46,9 @@ export const Route = createFileRoute("/api/public/availability/search")({
           });
           return { room_id: r.room_id, plans: !discoveryError && discovery?.ok ? discovery.plans : [] };
         }));
+        if (planChoices.some((x: any) => (x.plans ?? []).some((plan: any) => String(plan.currency ?? "").toUpperCase() !== channel.currency))) {
+          return Response.json({ error: "Published rate-plan currency does not match the direct-booking channel" }, { status: 409 });
+        }
         const planOptionsByRoom = new Map(planChoices.map((x: any) => [x.room_id, x.plans]));
         const rooms = (data ?? [])
           .filter((r: any) => r.pricing_quote?.ok !== false || r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED")
@@ -61,7 +68,7 @@ export const Route = createFileRoute("/api/public/availability/search")({
             rate_plan_options: planOptionsByRoom.get(r.room_id) ?? [],
           }))
           .filter((r: any) => r.is_available && r.fits_guests)
-          .sort((a: any, b: any) => a.nightly_total - b.nightly_total);
+          .sort((a: any, b: any) => (a.nightly_total ?? Number.POSITIVE_INFINITY) - (b.nightly_total ?? Number.POSITIVE_INFINITY));
         return Response.json(
           { check_in: checkIn, check_out: checkOut, guests, rate_plan_id: ratePlanId, rooms, pricing_errors },
           { headers: { "cache-control": "no-store" } },
