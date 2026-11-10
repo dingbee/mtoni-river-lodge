@@ -556,7 +556,10 @@ CREATE TABLE IF NOT EXISTS public.ai_concierge_usage_ledger (
 CREATE INDEX IF NOT EXISTS ai_concierge_usage_property_created_idx
   ON public.ai_concierge_usage_ledger(property_id, created_at DESC);
 ALTER TABLE public.ai_concierge_usage_ledger ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.ai_concierge_usage_ledger FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.ai_concierge_usage_ledger FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT, INSERT ON public.ai_concierge_usage_ledger TO service_role;
+REVOKE UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
+  ON TABLE public.ai_concierge_usage_ledger
+  FROM PUBLIC, anon, authenticated, service_role;
 
 COMMIT;
