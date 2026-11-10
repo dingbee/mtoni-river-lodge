@@ -127,7 +127,9 @@ BEGIN
     'authorizationReference',v_operation.authorization_reference,
     'requestReference',v_operation.request_id,'decisionAt',v_operation.authorized_at,
     'expiresAt',v_operation.expires_at,'correlationId',v_operation.correlation_id,
-    'postingReference',v_operation.posting_reference);
+    'postingId',v_operation.posting_id,'postingReference',v_operation.posting_reference,
+    'amount',v_operation.amount,'currency',v_operation.currency,
+    'folioReference',(SELECT b.reference FROM public.bookings b WHERE b.id=v_operation.booking_id));
  END IF;
 
  SELECT * INTO v_connection FROM public.staynas_product_connections
