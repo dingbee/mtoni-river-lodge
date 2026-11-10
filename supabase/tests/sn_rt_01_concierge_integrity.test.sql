@@ -459,8 +459,11 @@ BEGIN
     RAISE EXCEPTION 'public and tenant roles must not access internal AI entitlements or usage ledger';
   END IF;
   IF NOT has_table_privilege('service_role','public.ai_concierge_usage_ledger','INSERT')
-     OR NOT has_table_privilege('service_role','public.ai_concierge_usage_ledger','SELECT') THEN
-    RAISE EXCEPTION 'server role must be able to write and reconcile AI usage evidence';
+     OR NOT has_table_privilege('service_role','public.ai_concierge_usage_ledger','SELECT')
+     OR has_table_privilege('service_role','public.ai_concierge_usage_ledger','UPDATE')
+     OR has_table_privilege('service_role','public.ai_concierge_usage_ledger','DELETE')
+     OR has_table_privilege('service_role','public.ai_concierge_usage_ledger','TRUNCATE') THEN
+    RAISE EXCEPTION 'usage ledger must be writable and readable by server role but append-only';
   END IF;
 END
 $ai_privilege_tests$;
