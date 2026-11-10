@@ -36,20 +36,20 @@ BEGIN
     (v_room_a,v_property_a,'room-a-01'),
     (v_room_b,v_property_b,'room-b-01');
 
-  IF public.staynas_resolve_public_property('tenant-a.example') IS DISTINCT FROM v_property_a THEN
+  IF public.staynas_resolve_public_property('nolmarkcdma.staynas.com') IS DISTINCT FROM v_property_a THEN
     RAISE EXCEPTION 'Verified hostname did not resolve to its property';
   END IF;
   IF public.staynas_resolve_public_property('unknown.example') IS NOT NULL THEN
     RAISE EXCEPTION 'Unknown hostname unexpectedly resolved';
   END IF;
-  IF jsonb_array_length(public.staynas_get_public_room_catalog('tenant-a.example')->'rooms') <> 1
-     OR public.staynas_get_public_room_catalog('tenant-a.example')->'rooms'->0->>'slug' <> 'room-a' THEN
+  IF jsonb_array_length(public.staynas_get_public_room_catalog('nolmarkcdma.staynas.com')->'rooms') <> 1
+     OR public.staynas_get_public_room_catalog('nolmarkcdma.staynas.com')->'rooms'->0->>'slug' <> 'room-a' THEN
     RAISE EXCEPTION 'Public catalogue crossed tenant boundaries';
   END IF;
-  IF jsonb_array_length(public.staynas_get_public_room_status('tenant-a.example',CURRENT_DATE)->'rooms') <> 1 THEN
+  IF jsonb_array_length(public.staynas_get_public_room_status('nolmarkcdma.staynas.com',CURRENT_DATE)->'rooms') <> 1 THEN
     RAISE EXCEPTION 'Public room status crossed tenant boundaries';
   END IF;
-  IF jsonb_array_length(public.staynas_get_public_room_pricing('tenant-a.example',CURRENT_DATE,CURRENT_DATE+1)->'rooms') <> 1 THEN
+  IF jsonb_array_length(public.staynas_get_public_room_pricing('nolmarkcdma.staynas.com',CURRENT_DATE,CURRENT_DATE+1)->'rooms') <> 1 THEN
     RAISE EXCEPTION 'Public published pricing crossed tenant boundaries';
   END IF;
   IF has_table_privilege('anon','public.rooms','SELECT')
