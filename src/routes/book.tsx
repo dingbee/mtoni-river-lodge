@@ -158,7 +158,7 @@ function BookPage() {
       };
     } else {
       bootstrapRef.current = {
-        sessionId: incomingSession!,
+        sessionId: validIncomingSession!,
         state: stored,
       };
     }
