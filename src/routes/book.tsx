@@ -31,17 +31,10 @@ import { newBookingSessionId } from "@/lib/booking-session";
 import { createBookingHold, releaseBookingHold } from "@/lib/availability.functions";
 import { getBookingQuote, type BookingPricingQuote } from "@/lib/booking.functions";
 import { DatePickerField } from "@/components/os/DatePickerField";
+import { validateBookingSearch } from "@/lib/booking-search";
 
 export const Route = createFileRoute("/book")({
-  validateSearch: (
-    search: Record<string, unknown>
-  ): { step?: 1 | 2 | 3 | 4; session?: string; room?: string } => {
-    const raw = Number(search.step);
-    const step = raw === 2 || raw === 3 || raw === 4 ? raw : 1;
-    const session = typeof search.session === "string" ? search.session : undefined;
-    const room = typeof search.room === "string" ? search.room : undefined;
-    return { step: step as 1 | 2 | 3 | 4, session, room };
-  },
+  validateSearch: validateBookingSearch,
   head: () => ({
     meta: [
       { title: "Reserve Your Stay — StayNas" },
@@ -115,7 +108,16 @@ function readPersisted(): Partial<PersistedState> {
 function BookPage() {
   // Step + session live in the URL so back/forward is always explicit
   // routing, never a browser-history pop into a different session.
-  const { step: stepNum, session: incomingSession, room: incomingRoom } = Route.useSearch();
+  const {
+    step: stepNum = 1,
+    session: incomingSession,
+    room: incomingRoom,
+    check_in: incomingCheckIn,
+    check_out: incomingCheckOut,
+    adults: incomingAdults,
+    children_below_6: incomingChildrenBelow6,
+    children_7_plus: incomingChildren7Plus,
+  } = Route.useSearch();
   const navigate = Route.useNavigate();
   const step: Step = NUM_TO_STEP[stepNum as 1 | 2 | 3 | 4];
 
@@ -163,11 +165,11 @@ function BookPage() {
   const p = bootstrapRef.current.state;
 
   const [sessionId, setSessionId] = useState<string>(bootstrapRef.current.sessionId);
-  const [checkIn, setCheckIn] = useState(p.checkIn ?? "");
-  const [checkOut, setCheckOut] = useState(p.checkOut ?? "");
-  const [adults, setAdults] = useState(p.adults ?? 2);
-  const [childrenBelow6, setChildrenBelow6] = useState(p.childrenBelow6 ?? 0);
-  const [children7Plus, setChildren7Plus] = useState(p.children7Plus ?? 0);
+  const [checkIn, setCheckIn] = useState(p.checkIn || incomingCheckIn || "");
+  const [checkOut, setCheckOut] = useState(p.checkOut || incomingCheckOut || "");
+  const [adults, setAdults] = useState(p.adults ?? incomingAdults ?? 2);
+  const [childrenBelow6, setChildrenBelow6] = useState(p.childrenBelow6 ?? incomingChildrenBelow6 ?? 0);
+  const [children7Plus, setChildren7Plus] = useState(p.children7Plus ?? incomingChildren7Plus ?? 0);
   const [results, setResults] = useState<AvailabilityResult>(p.results ?? []);
   const [selectedRoom, setSelectedRoom] = useState<AvailabilityRoom | null>(p.selectedRoom ?? null);
   const [extras, setExtras] = useState<Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>>(p.extras ?? []);

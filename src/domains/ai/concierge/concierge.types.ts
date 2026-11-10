@@ -24,6 +24,8 @@ export interface ConciergeIntentSignal {
     check_out?: string | null;
     adults?: number | null;
     children?: number | null;
+    children_below_6?: number | null;
+    children_7_plus?: number | null;
     nights?: number | null;
     country?: string | null;
     interests?: string[];
@@ -38,8 +40,6 @@ export interface ConciergeRoomCatalogItem {
   capacity_adults: number;
   capacity_children: number;
   max_occupancy: number;
-  base_price: number;
-  currency: string;
 }
 
 export interface ConciergeExperienceCatalogItem {
@@ -57,8 +57,6 @@ export interface ConciergeRoomRecommendation {
   name: string;
   reasoning: string[];
   confidence: number;
-  from_price: number;
-  currency: string;
 }
 
 export interface ConciergeExperienceRecommendation {
@@ -76,10 +74,12 @@ export type ConciergeRecommendation =
   | ConciergeRoomRecommendation
   | ConciergeExperienceRecommendation;
 
+export type ConciergeAvailabilityOutcome = "available" | "unavailable" | "invalid_search" | "property_resolution_failure" | "inventory_service_failure" | "pricing_service_failure" | "child_age_breakdown_required" | "temporary_failure";
+
 export interface ConciergeAvailabilityRoom {
   slug: string;
   name: string;
-  base_price: number;
+  /** Currency returned by the authoritative SPE quote, never a fallback. */
   currency: string;
   max_occupancy: number;
   is_available: boolean;
@@ -112,6 +112,7 @@ export interface ConciergeMessage {
   intent?: ConciergeIntentLevel;
   recommendations?: ConciergeRecommendation[];
   availability?: ConciergeAvailabilityRoom[];
+  availability_outcome?: ConciergeAvailabilityOutcome;
   plan?: ConciergeBookingPlan;
   created_at?: string;
 }
@@ -134,6 +135,7 @@ export interface ConciergeChatInput {
 
 export interface ConciergeLeadInput {
   session_token?: string | null;
+  consent?: boolean;
   name?: string | null;
   email?: string | null;
   phone?: string | null;
