@@ -153,5 +153,15 @@ export const getPublicBookingProducts = createServerFn({method:"GET"})
       const assignments=Array.isArray(publication.room_type_assignments)?publication.room_type_assignments:[];
       return assignments.some((a:any)=>a.room_type_id===room.catalogue_type_id);
     });
-    return {currency:property.currency,products};
+    return {
+      currency: property.currency,
+      products: products.map((row: any) => {
+        const publication: any = publicationById.get(row.rate_plan_publication_id);
+        return {
+          ...row,
+          rate_plan_id: publication.rate_plan_id,
+          publication_number: publication.publication_number,
+        };
+      }),
+    };
   });
