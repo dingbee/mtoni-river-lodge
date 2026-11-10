@@ -86,30 +86,37 @@ export const savePlatformRoomType = createServerFn({ method: "POST" })
     await requireRoomAdmin(context.supabase, context.userId);
     const propertyId = await activePropertyId(context.supabase, context.userId);
     const sb: any = context.supabase;
-    if (data.categoryId) {
-      const { data: category, error } = await sb.from("room_categories").select("id").eq("id", data.categoryId).eq("property_id", propertyId).maybeSingle();
-      if (error || !category) throw new Error("Selected category does not belong to the active property");
-    }
-    const { data: existing, error: existingError } = data.id ? await sb.from("rooms").select("total_units,base_price,currency,included_guests,extra_guest_fee").eq("id",data.id).eq("property_id",propertyId).single() : { data:null, error:null };
-    if (existingError) throw new Error(existingError.message);
-    const { data: property, error: propertyError } = await sb.from("staynas_properties").select("currency").eq("id",propertyId).single();
-    if (propertyError) throw new Error(propertyError.message);
-    if (!existing && !property.currency) throw new Error("Configure the property currency before creating room types");
     const payload = {
-      property_id:propertyId, category_id:data.categoryId ?? null, slug:data.slug, name:data.name,
-      short_name:data.shortName || null, room_number_label:data.roomNumberLabel || null,
-      short_description:data.shortDescription || null, description:data.description, details:data.details,
-      cta_line:data.ctaLine || null, capacity_adults:data.capacityAdults, capacity_children:data.capacityChildren,
-      max_occupancy:data.maxOccupancy, hero_line:data.heroLine || null, image_url:data.imageUrl || null,
-      gallery_urls:data.galleryUrls, size_label:data.sizeLabel || null, view_label:data.viewLabel || null,
-      bed_label:data.bedLabel || null, bathroom_label:data.bathroomLabel || null, amenities:data.amenities,
-      status:data.status === "archived" ? "inactive" : "active", sort_order:data.sortOrder,
-      total_units:data.totalUnits, base_price:data.basePrice,
-      currency:existing?.currency ?? property.currency, included_guests:data.includedGuests,
-      extra_guest_fee:data.extraGuestFee,
+      id: data.id ?? null,
+      property_id: propertyId,
+      category_id: data.categoryId ?? null,
+      slug: data.slug,
+      name: data.name,
+      short_name: data.shortName,
+      room_number_label: data.roomNumberLabel,
+      short_description: data.shortDescription,
+      description: data.description,
+      details: data.details,
+      cta_line: data.ctaLine,
+      capacity_adults: data.capacityAdults,
+      capacity_children: data.capacityChildren,
+      max_occupancy: data.maxOccupancy,
+      total_units: data.totalUnits,
+      base_price: data.basePrice,
+      included_guests: data.includedGuests,
+      extra_guest_fee: data.extraGuestFee,
+      status: data.status,
+      sort_order: data.sortOrder,
+      hero_line: data.heroLine,
+      image_url: data.imageUrl,
+      gallery_urls: data.galleryUrls,
+      size_label: data.sizeLabel,
+      view_label: data.viewLabel,
+      bed_label: data.bedLabel,
+      bathroom_label: data.bathroomLabel,
+      amenities: data.amenities,
     };
-    const q = data.id ? sb.from("rooms").update(payload).eq("id",data.id).eq("property_id",propertyId).select("id").single() : sb.from("rooms").insert(payload).select("id").single();
-    const { data: row, error } = await q;
+    const { data: roomId, error } = await sb.rpc("staynas_save_room_type_configuration", { _room: payload });
     if (error) throw new Error(error.message);
-    return row;
+    return { id: roomId };
   });
