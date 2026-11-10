@@ -4,6 +4,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { bookingRpc } from "@/lib/booking-rpc";
 import { resolvePublicDirectBookingChannel } from "@/lib/public-booking-channel.server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const Route = createFileRoute("/api/public/rooms/status")({
   server: {
@@ -23,11 +24,11 @@ export const Route = createFileRoute("/api/public/rooms/status")({
         const propertyId = channel.propertyId;
         const [{ data, error }, { data: catalog, error: catalogError }] = await Promise.all([
           bookingRpc(sb).rpc("get_room_availability", { _check_in: date, _check_out: nextIso, _property_id: propertyId }),
-          (sb as any).from("rooms").select("slug,total_units").eq("status", "active").eq("property_id", propertyId),
+          (sb as unknown as SupabaseClient).from("rooms").select("slug,total_units").eq("status", "active").eq("property_id", propertyId),
         ]);
         if (error) return Response.json({ error: error.message }, { status: 500 });
         if (catalogError) return Response.json({ error: catalogError.message }, { status: 500 });
-        const totals = new Map((catalog ?? []).map((r: any) => [r.slug as string, Number(r.total_units ?? 0)]));
+        const totals = new Map((catalog ?? []).map((r) => [r.slug as string, Number(r.total_units ?? 0)]));
 
         return Response.json(
           {
