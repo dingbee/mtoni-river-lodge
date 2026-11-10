@@ -447,7 +447,7 @@ BEGIN
     provider_transaction_ref,idempotency_key,amount_minor,currency,payment_method,
     status,confirmed_at,provider_verified_at,verification_source,created_by
   ) VALUES (
-    v_payment,v_customer_org,v_account,v_invoice,v_customer_provider,'manual',
+    v_payment,v_customer_org,v_account,NULL,v_customer_provider,'manual',
     'cc07-revenue-payment-ref','cc07-revenue-payment-key',100000,'TZS','bank_transfer',
     'successful',now(),now(),'authorized_manual_verification',v_user
   );
