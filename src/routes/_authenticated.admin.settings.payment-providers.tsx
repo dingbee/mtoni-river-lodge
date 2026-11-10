@@ -68,8 +68,8 @@ function PaymentProviderSettings() {
   const setFounderGuestCheckoutFn = useServerFn(setFounderGuestCheckoutProvider);
   const founderStatus = useQuery({ queryKey: ["settings.founder-admin-status"], queryFn: () => founderStatusFn() });
   const isFounder = founderStatus.data?.isFounderAdmin === true;
-  const [selectedPropertyId, setSelectedPropertyId] = useState(\"\");
-  const founderGuestQuery = useQuery({ queryKey: [\"payments.founder-guest-provider-configs\"], queryFn: () => founderGuestListFn(), enabled: founderStatus.isSuccess && isFounder });
+  const [selectedPropertyId, setSelectedPropertyId] = useState("");
+  const founderGuestQuery = useQuery({ queryKey: ["payments.founder-guest-provider-configs"], queryFn: () => founderGuestListFn(), enabled: founderStatus.isSuccess && isFounder });
   const selectedFounderProperty = founderGuestQuery.data?.find((property) => property.id === selectedPropertyId) ?? founderGuestQuery.data?.[0];
   const platformQuery = useQuery({
     queryKey: ["payments.platform-provider-configs"],
@@ -110,14 +110,14 @@ function PaymentProviderSettings() {
         credentialsJson: credentialsJson || undefined,
       };
       return isFounder
-        ? selectedFounderProperty ? saveFounderPropertyFn({ data: { ...common, propertyId: selectedFounderProperty.id } }) : Promise.reject(new Error(\"Select a property first.\"))
+        ? selectedFounderProperty ? saveFounderPropertyFn({ data: { ...common, propertyId: selectedFounderProperty.id } }) : Promise.reject(new Error("Select a property first."))
         : savePropertyFn({ data: common });
     },
     onSuccess: () => {
       toast.success("Provider configuration saved in Supabase Vault. It remains inactive until its adapter is certified.");
       setCredentialsJson("");
       setAccountReference("");
-      queryClient.invalidateQueries({ queryKey: [isFounder ? "payments.platform-provider-configs" : "payments.property-provider-configs"] });
+      queryClient.invalidateQueries({ queryKey: [isFounder ? "payments.founder-guest-provider-configs" : "payments.property-provider-configs"] });
     },
     onError: (error: unknown) => toast.error((error as Error).message),
   });
@@ -125,7 +125,7 @@ function PaymentProviderSettings() {
 
   const guestCheckoutMutation = useMutation({
     mutationFn: (providerConfigId: string | null) => isFounder
-      ? selectedFounderProperty ? setFounderGuestCheckoutFn({ data: { propertyId: selectedFounderProperty.id, providerConfigId } }) : Promise.reject(new Error(\"Select a property first.\"))
+      ? selectedFounderProperty ? setFounderGuestCheckoutFn({ data: { propertyId: selectedFounderProperty.id, providerConfigId } }) : Promise.reject(new Error("Select a property first."))
       : setGuestCheckoutProviderFn({ data: { providerConfigId } }),
     onSuccess: () => {
       toast.success("Guest checkout settings updated.");
