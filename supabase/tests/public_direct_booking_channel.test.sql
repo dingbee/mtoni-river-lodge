@@ -44,7 +44,7 @@ SELECT ok(
   COALESCE(
     position('verification_status<>''verified''' in pg_get_functiondef(to_regprocedure('public.staynas_create_public_channel_quote(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text,text,integer)')))>0
     AND position('channel_code<>''direct_web''' in pg_get_functiondef(to_regprocedure('public.staynas_create_public_channel_quote(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text,text,integer)')))>0
-    AND position('transaction_currency' in pg_get_functiondef(to_regprocedure('public.staynas_create_public_channel_quote(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text,text,integer')))>0,
+    AND position('transaction_currency' in pg_get_functiondef(to_regprocedure('public.staynas_create_public_channel_quote(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text,text,integer)')))>0,
     false
   ),
   'quote wrapper requires a verified domain, direct-web channel and explicit transaction currency'
