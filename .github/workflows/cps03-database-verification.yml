@@ -71,6 +71,7 @@ jobs:
             currency text NOT NULL DEFAULT 'TZS',
             timezone text NOT NULL DEFAULT 'Africa/Dar_es_Salaam'
           );
+          GRANT ALL ON public.staynas_properties TO service_role;
           CREATE TABLE public.staynas_property_members (
             property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
             user_id uuid NOT NULL REFERENCES auth.users(id),
