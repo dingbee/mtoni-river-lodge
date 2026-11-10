@@ -201,6 +201,9 @@ BEGIN
   IF current_setting('request.jwt.claim.role',true) IS DISTINCT FROM 'service_role' THEN
     RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='Public channel reservation creation is server-only';
   END IF;
+  IF _payment_method IS DISTINCT FROM 'pay_at_property' THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='PAYMENT_NOT_CONFIGURED';
+  END IF;
   SELECT * INTO v_channel
   FROM public.staynas_public_booking_channels
   WHERE id=_sales_channel_id AND status='published'
