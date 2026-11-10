@@ -12,8 +12,8 @@ ALTER TABLE public.bookings
 ALTER TABLE public.extras
   ALTER COLUMN currency DROP DEFAULT;
 
--- Existing StayNas properties in Tanzania use TZS as their operating/reporting
--- currency. Their existing USD room prices and published USD plans are retained.
+-- Mtoni River Lodge uses TZS as its operating/reporting currency. Its existing
+-- USD room prices and published USD plans are retained.
 UPDATE public.staynas_properties
 SET currency = 'TZS'
 WHERE slug = 'mtoni-river-lodge'
