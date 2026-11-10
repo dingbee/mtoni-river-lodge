@@ -43,7 +43,8 @@ export async function getPublicBookingPropertyId(
     { _hostname: normalizedHostname },
   );
   if (error) {
-    throw new BookingPropertyError(`Public booking property resolution failed: ${error.message}`);
+    console.error("[public booking] Hostname property resolver failed", { code: (error as any).code, message: error.message });
+    throw new BookingPropertyError("Public booking is not configured for this domain");
   }
   if (!data) {
     throw new BookingPropertyError("No published direct booking channel is configured for this hostname");
