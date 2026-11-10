@@ -181,7 +181,7 @@ const createBookingSchema = z.object({
   visitPurpose: z.string().trim().max(80).optional().or(z.literal("")),
   extras: z.array(extraSchema).max(20).default([]),
   holdId: z.string().uuid().optional(),
-  sessionId: z.string().min(6).max(120).optional(),
+  sessionId: z.string().min(24).max(120).optional(),
 });
 
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
