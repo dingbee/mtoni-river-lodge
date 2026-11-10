@@ -4,6 +4,7 @@
 // Staff-only RPCs: room blocks, calendar events, unified calendar payload.
 
 import { createServerFn } from "@tanstack/react-start";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
@@ -132,7 +133,7 @@ export const listCalendarEvents = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
-    let q: any = context.supabase.from("calendar_events").select(
+    let q = context.supabase.from("calendar_events").select(
       "id, event_type, room_id, booking_id, hold_id, date_from, date_to, actor_id, payload, created_at",
     );
     if (data.from) q = q.gte("created_at", `${data.from}T00:00:00Z`);
@@ -161,7 +162,7 @@ export const listActiveHolds = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
-    const sb: any = context.supabase;
+    const sb = context.supabase as unknown as SupabaseClient;
     let q = sb.from("booking_holds")
       .select("id, room_id, check_in, check_out, expires_at, guest_email, status, session_id, created_at")
       .eq("status", "active")
@@ -181,7 +182,7 @@ export const releaseHoldStaff = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ holdId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
-    const sb: any = context.supabase;
+    const sb = context.supabase as unknown as SupabaseClient;
     const { data: row, error: e1 } = await sb
       .from("booking_holds")
       .select("session_id")
@@ -232,7 +233,7 @@ export const suggestRoomAssignment = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ bookingId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
-    const sb: any = context.supabase;
+    const sb = context.supabase as unknown as SupabaseClient;
     const { data: b, error: be } = await sb
       .from("bookings")
       .select("id, room_id, check_in, check_out, adults, children, special_requests, visit_purpose, guest_type")
@@ -258,7 +259,7 @@ export const suggestRoomAssignment = createServerFn({ method: "POST" })
       climber: b.guest_type === "climber" || /kilimanjaro|climb|trek/.test(hay),
     };
 
-    const scored = ((avail ?? []) as any[])
+    const scored = ((avail ?? []) as Array<{ id: string; slug: string; name: string; is_available: boolean; max_occupancy: number; min_available: number; base_price: number }>)
       .filter((r) => r.is_available && r.id !== b.room_id && occupants <= r.max_occupancy)
       .map((r) => {
         const n = `${r.name} ${r.slug}`.toLowerCase();
