@@ -9,9 +9,14 @@ CREATE TABLE auth.users(id uuid PRIMARY KEY);
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$
   SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
 $$;
-CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$
+CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $
   SELECT nullif(current_setting('request.jwt.claim.role', true), '')
-$$;
+$;
+CREATE FUNCTION public.is_staynas_founder_ai_admin()
+RETURNS boolean LANGUAGE sql STABLE AS $
+  SELECT COALESCE(current_setting('request.jwt.claim.role', true), '') = 'founder'
+$;
+GRANT EXECUTE ON FUNCTION public.is_staynas_founder_ai_admin() TO authenticated;
 
 CREATE TYPE public.app_role AS ENUM ('owner','manager','admin','reservations','reception','marketing');
 CREATE TYPE public.ops_task_status AS ENUM ('pending','in_progress','completed','cancelled');
@@ -441,5 +446,108 @@ BEGIN
   END IF;
 END
 $handoff_tests$;
+
+
+-- Entitlement and usage-ledger security contracts.
+DO $ai_privilege_tests$
+BEGIN
+  IF has_table_privilege('anon','public.ai_concierge_entitlements','SELECT')
+     OR has_table_privilege('anon','public.ai_concierge_entitlements','INSERT')
+     OR has_table_privilege('anon','public.ai_concierge_usage_ledger','SELECT')
+     OR has_table_privilege('authenticated','public.ai_concierge_usage_ledger','SELECT')
+     OR has_table_privilege('authenticated','public.ai_concierge_usage_ledger','INSERT') THEN
+    RAISE EXCEPTION 'public and tenant roles must not access internal AI entitlements or usage ledger';
+  END IF;
+  IF NOT has_table_privilege('service_role','public.ai_concierge_usage_ledger','INSERT')
+     OR NOT has_table_privilege('service_role','public.ai_concierge_usage_ledger','SELECT') THEN
+    RAISE EXCEPTION 'server role must be able to write and reconcile AI usage evidence';
+  END IF;
+END
+$ai_privilege_tests$;
+
+SET request.jwt.claim.role = 'service_role';
+SET ROLE service_role;
+DO $ai_usage_tests$
+DECLARE message_key uuid;
+BEGIN
+  INSERT INTO public.ai_concierge_entitlements(property_id,enabled)
+  VALUES ('11111111-1111-4111-8111-111111111111',true);
+
+  INSERT INTO public.ai_concierge_messages(session_id,role,content,model,latency_ms)
+  VALUES ('11111111-1111-4111-8111-111111111112','assistant','Test response','test-model',25)
+  RETURNING id INTO message_key;
+
+  INSERT INTO public.ai_concierge_usage_ledger(
+    property_id,session_id,message_id,request_id,provider,model,
+    prompt_tokens,completion_tokens,total_tokens,latency_ms
+  ) VALUES (
+    '11111111-1111-4111-8111-111111111111',
+    '11111111-1111-4111-8111-111111111112',
+    message_key,'sn-rt-02-test-request','test-provider','test-model',10,5,15,25
+  );
+
+  IF (SELECT count(*) FROM public.ai_concierge_usage_ledger
+      WHERE property_id='11111111-1111-4111-8111-111111111111'
+        AND total_tokens=15) <> 1 THEN
+    RAISE EXCEPTION 'provider usage must be durably recorded against its property and message';
+  END IF;
+
+  BEGIN
+    INSERT INTO public.ai_concierge_usage_ledger(
+      property_id,session_id,message_id,request_id,provider,model,latency_ms
+    ) VALUES (
+      '11111111-1111-4111-8111-111111111111',
+      '11111111-1111-4111-8111-111111111112',
+      message_key,'sn-rt-02-test-request','test-provider','test-model',25
+    );
+    RAISE EXCEPTION 'duplicate provider request usage must be rejected';
+  EXCEPTION WHEN unique_violation THEN
+    NULL;
+  END;
+END
+$ai_usage_tests$;
+RESET ROLE;
+RESET request.jwt.claim.role;
+
+SET request.jwt.claim.role = 'authenticated';
+SET request.jwt.claim.sub = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+SET ROLE authenticated;
+DO $tenant_entitlement_tests$
+BEGIN
+  IF (SELECT count(*) FROM public.ai_concierge_entitlements) <> 0 THEN
+    RAISE EXCEPTION 'tenant owner must not read founder-controlled AI entitlements';
+  END IF;
+  BEGIN
+    INSERT INTO public.ai_concierge_entitlements(property_id,enabled)
+    VALUES ('22222222-2222-4222-8222-222222222222',true);
+    RAISE EXCEPTION 'tenant owner must not grant AI entitlement';
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL;
+  END;
+END
+$tenant_entitlement_tests$;
+RESET ROLE;
+RESET request.jwt.claim.role;
+RESET request.jwt.claim.sub;
+
+SET request.jwt.claim.role = 'founder';
+SET ROLE authenticated;
+DO $founder_entitlement_tests$
+BEGIN
+  IF (SELECT count(*) FROM public.ai_concierge_entitlements
+      WHERE property_id='11111111-1111-4111-8111-111111111111' AND enabled) <> 1 THEN
+    RAISE EXCEPTION 'founder administrator must be able to inspect enabled entitlements';
+  END IF;
+  UPDATE public.ai_concierge_entitlements
+  SET enabled=false
+  WHERE property_id='11111111-1111-4111-8111-111111111111';
+  IF (SELECT enabled FROM public.ai_concierge_entitlements
+      WHERE property_id='11111111-1111-4111-8111-111111111111') IS DISTINCT FROM false THEN
+    RAISE EXCEPTION 'founder administrator must be able to suspend Concierge entitlement';
+  END IF;
+END
+$founder_entitlement_tests$;
+RESET ROLE;
+RESET request.jwt.claim.role;
 
 SELECT 'SN-RT-01 database contracts passed' AS result;
