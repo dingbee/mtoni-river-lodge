@@ -14,12 +14,44 @@ import { combinedRecommendations } from "./concierge.recommendations";
 import type { ConciergeRoomCatalogItem, ConciergeExperienceCatalogItem } from "./concierge.types";
 import { searchAvailability, buildBookingPlan } from "./concierge.tools";
 import { loadConciergeMemoryContext, suggestMemoriesFromMessage } from "./memory.context";
-import { AI_GATEWAY_DEFAULT_MODEL, callAiGateway, parseAiJson } from "@/lib/ai-gateway.server";
+import { AI_GATEWAY_DEFAULT_MODEL, callAiGateway, parseAiJson, type AiGatewayResult } from "@/lib/ai-gateway.server";
 
 const MODEL = AI_GATEWAY_DEFAULT_MODEL;
 const MAX_MESSAGE_LEN = 1000;
 const HISTORY_LIMIT = 10;
 const LOW_CONFIDENCE = 0.5;
+
+export async function assertConciergeEntitlement(supabaseAdmin: any, propertyId: string): Promise<void> {
+  const { data, error } = await supabaseAdmin
+    .from("ai_concierge_entitlements")
+    .select("enabled")
+    .eq("property_id", propertyId)
+    .maybeSingle();
+  if (error) throw new Error("Concierge entitlement could not be verified.");
+  if (data?.enabled !== true) throw new Error("AI Concierge is not enabled for this property.");
+}
+
+export async function persistConciergeUsage(
+  supabaseAdmin: any,
+  input: { propertyId: string; sessionId: string; messageId: string; gateway: AiGatewayResult },
+): Promise<void> {
+  const { error } = await supabaseAdmin.from("ai_concierge_usage_ledger").insert({
+    property_id: input.propertyId,
+    session_id: input.sessionId,
+    message_id: input.messageId,
+    request_id: input.gateway.requestId,
+    provider: input.gateway.provider,
+    model: input.gateway.model,
+    prompt_tokens: input.gateway.usage?.prompt_tokens ?? null,
+    completion_tokens: input.gateway.usage?.completion_tokens ?? null,
+    total_tokens: input.gateway.usage?.total_tokens ?? null,
+    latency_ms: input.gateway.latencyMs,
+  });
+  if (error) {
+    console.error("[concierge] durable AI usage write failed", { code: error.code ?? "unknown" });
+    throw new Error("AI usage evidence could not be recorded. Please retry.");
+  }
+}
 
 function newToken() {
   // Session tokens are bearer credentials; use cryptographic entropy rather
@@ -160,13 +192,7 @@ export async function handleConciergeChat(
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   if (!propertyId) throw new Error("Public property context is required.");
-  const { data: entitlement, error: entitlementError } = await (supabaseAdmin as any)
-    .from("ai_concierge_entitlements")
-    .select("enabled")
-    .eq("property_id", propertyId)
-    .maybeSingle();
-  if (entitlementError) throw new Error("Concierge entitlement could not be verified.");
-  if (entitlement?.enabled !== true) throw new Error("AI Concierge is not enabled for this property.");
+  await assertConciergeEntitlement(supabaseAdmin, propertyId);
   const [roomCatalog, experienceCatalog, propertyFacts] = await Promise.all([
     loadRoomCatalog(supabaseAdmin, propertyId),
     loadExperienceCatalog(supabaseAdmin, propertyId),
@@ -330,22 +356,12 @@ export async function handleConciergeChat(
   const assistantMessageId = assistantRow.id;
 
   if (gatewayResult) {
-    const { error: usageError } = await (supabaseAdmin as any).from("ai_concierge_usage_ledger").insert({
-      property_id: propertyId,
-      session_id: sessionId,
-      message_id: assistantMessageId,
-      request_id: gatewayResult.requestId,
-      provider: gatewayResult.provider,
-      model: gatewayResult.model,
-      prompt_tokens: gatewayResult.usage?.prompt_tokens ?? null,
-      completion_tokens: gatewayResult.usage?.completion_tokens ?? null,
-      total_tokens: gatewayResult.usage?.total_tokens ?? null,
-      latency_ms: gatewayResult.latencyMs,
+    await persistConciergeUsage(supabaseAdmin, {
+      propertyId,
+      sessionId,
+      messageId: assistantMessageId,
+      gateway: gatewayResult,
     });
-    if (usageError) {
-      console.error("[concierge] durable AI usage write failed", { code: usageError.code ?? "unknown" });
-      throw new Error("AI usage evidence could not be recorded. Please retry.");
-    }
   }
 
   if (shouldEscalate) {
@@ -463,9 +479,11 @@ export async function loadConciergeGuestUpdates(token: string, propertyId: strin
 export async function loadConciergeSession(token: string, propertyId: string): Promise<{ token: string; messages: ConciergeMessage[] } | null> {
   if (!propertyId || !/^cnc_[A-Za-z0-9_-]{43}$/.test(token)) return null;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: session } = await (supabaseAdmin as any).from("ai_concierge_sessions").select("id, session_token").eq("session_token", token).eq("property_id", propertyId).maybeSingle();
+  const { data: session, error: sessionError } = await (supabaseAdmin as any).from("ai_concierge_sessions").select("id, session_token").eq("session_token", token).eq("property_id", propertyId).maybeSingle();
+  if (sessionError) throw new Error("Conversation session is temporarily unavailable.");
   if (!session) return null;
-  const { data: rows } = await supabaseAdmin.from("ai_concierge_messages").select("id, role, content, citations, confidence, escalated, created_at").eq("session_id", session.id).order("created_at", { ascending: true }).limit(50);
+  const { data: rows, error: messagesError } = await supabaseAdmin.from("ai_concierge_messages").select("id, role, content, citations, confidence, escalated, created_at").eq("session_id", session.id).order("created_at", { ascending: true }).limit(50);
+  if (messagesError) throw new Error("Conversation messages are temporarily unavailable.");
   return {
     token: session.session_token,
     messages: (rows ?? []).map((r) => ({
