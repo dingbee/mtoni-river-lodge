@@ -8,7 +8,7 @@ async function activePropertyId(supabase: any, userId: string) {
   if (error || !data) throw new Error(error?.message ?? "No active property selected");
   return data as string;
 }
-async function requireRoomAdmin(supabase: any, userId: string, propertyId: string) {
+async function requireRoomAdmin(supabase: any, userId: string) {
   await requireStayNasModuleAccess(supabase, userId, "rooms.configure");
 }
 const categorySchema = z.object({
@@ -54,12 +54,12 @@ export const getPlatformRoomConfiguration = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const propertyId = await activePropertyId(context.supabase, context.userId);
-    await requireRoomAdmin(context.supabase, context.userId, propertyId);
+    await requireRoomAdmin(context.supabase, context.userId);
     const sb: any = context.supabase;
     const [property, categories, rooms] = await Promise.all([
       sb.from("staynas_properties").select("id,name,currency").eq("id", propertyId).single(),
-      sb.from("room_categories").select("id,slug,name,description,features,specifications,sort_order,status").eq("property_id", propertyId).order("sort_order").order("name"),
-      sb.from("rooms").select("id,slug,name,category_id,short_name,room_number_label,short_description,description,details,cta_line,capacity_adults,capacity_children,max_occupancy,total_units,base_price,currency,included_guests,extra_guest_fee,hero_line,image_url,gallery_urls,size_label,view_label,bed_label,bathroom_label,amenities,status,sort_order").eq("property_id", propertyId).order("sort_order").order("name"),
+      sb.from("room_categories").select("id,slug,name,description,features,specifications,sort_order,status").eq("property_id", propertyId).eq("configuration_source", "tenant_configured").order("sort_order").order("name"),
+      sb.from("rooms").select("id,slug,name,category_id,short_name,room_number_label,short_description,description,details,cta_line,capacity_adults,capacity_children,max_occupancy,total_units,base_price,currency,included_guests,extra_guest_fee,hero_line,image_url,gallery_urls,size_label,view_label,bed_label,bathroom_label,amenities,status,sort_order").eq("property_id", propertyId).eq("configuration_source", "tenant_configured").order("sort_order").order("name"),
     ]);
     if (property.error) throw new Error(property.error.message);
     if (categories.error) throw new Error(categories.error.message);
@@ -73,7 +73,7 @@ export const savePlatformRoomCategory = createServerFn({ method: "POST" })
     await requireRoomAdmin(context.supabase, context.userId);
     const propertyId = await activePropertyId(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const payload = { property_id: propertyId, slug:data.slug, name:data.name, description:data.description || null, features:data.features, specifications:data.specifications, sort_order:data.sortOrder, status:data.status };
+    const payload = { property_id: propertyId, configuration_source: "tenant_configured", slug:data.slug, name:data.name, description:data.description || null, features:data.features, specifications:data.specifications, sort_order:data.sortOrder, status:data.status };
     const q = data.id ? sb.from("room_categories").update(payload).eq("id",data.id).eq("property_id",propertyId).select("id").single() : sb.from("room_categories").insert(payload).select("id").single();
     const { data: row, error } = await q;
     if (error) throw new Error(error.message);
@@ -96,7 +96,7 @@ export const savePlatformRoomType = createServerFn({ method: "POST" })
     if (propertyError) throw new Error(propertyError.message);
     if (!existing && !property.currency) throw new Error("Configure the property currency before creating room types");
     const payload = {
-      property_id:propertyId, category_id:data.categoryId ?? null, slug:data.slug, name:data.name,
+      property_id:propertyId, configuration_source:"tenant_configured", category_id:data.categoryId ?? null, slug:data.slug, name:data.name,
       short_name:data.shortName || null, room_number_label:data.roomNumberLabel || null,
       short_description:data.shortDescription || null, description:data.description, details:data.details,
       cta_line:data.ctaLine || null, capacity_adults:data.capacityAdults, capacity_children:data.capacityChildren,
