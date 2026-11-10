@@ -21,9 +21,10 @@ export const Route=createFileRoute("/api/integrations/lb03/reversal-approval")({
    const {data,error}=await userDb.auth.getUser(match[1]);
    if(error||!data.user)return Response.json({error:"unauthorized"},{status:401});
    const body=schema.parse(await request.json());
+   const rpcClient=userDb as unknown as {rpc(name:string,args:Record<string,unknown>):Promise<{data:unknown;error:unknown}>};
    const result=body.action==="approve"
-    ? await userDb.rpc("lb03_approve_room_charge_reversal",{_request_id:body.requestId})
-    : await userDb.rpc("lb03_reject_room_charge_reversal",{_request_id:body.requestId,_reason:body.reason});
+    ? await rpcClient.rpc("lb03_approve_room_charge_reversal",{_request_id:body.requestId})
+    : await rpcClient.rpc("lb03_reject_room_charge_reversal",{_request_id:body.requestId,_reason:body.reason});
    if(result.error)return Response.json({error:"reversal_decision_rejected"},{status:403});
    return Response.json({result:result.data},{headers:{"Cache-Control":"no-store"}});
   }catch(error){
