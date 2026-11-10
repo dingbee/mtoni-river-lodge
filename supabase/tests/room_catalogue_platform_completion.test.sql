@@ -56,6 +56,21 @@ BEGIN
      OR has_table_privilege('anon','public.room_categories','SELECT') THEN
     RAISE EXCEPTION 'Anonymous direct table reads were not revoked';
   END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='rooms'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='room_states'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='room_categories'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='room_inventory'
+  ) THEN
+    RAISE EXCEPTION 'Room catalogue and operational tables are not enabled for realtime';
+  END IF;
   IF NOT has_function_privilege('anon','public.staynas_get_public_room_catalog(text,text)','EXECUTE')
      OR NOT has_function_privilege('anon','public.staynas_get_public_room_status(text,date)','EXECUTE') THEN
     RAISE EXCEPTION 'Anonymous public RPC grants are missing';
