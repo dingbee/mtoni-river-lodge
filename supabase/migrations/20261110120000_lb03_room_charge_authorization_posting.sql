@@ -440,6 +440,9 @@ COMMIT;
 CREATE INDEX IF NOT EXISTS pms_folio_adjustments_booking_idx
  ON public.pms_folio_adjustments(booking_id,created_at DESC);
 ALTER TABLE public.pms_folio_adjustments ENABLE ROW LEVEL SECURITY;
+DROP TRIGGER IF EXISTS pms_folio_adjustments_immutable ON public.pms_folio_adjustments;
+CREATE TRIGGER pms_folio_adjustments_immutable BEFORE UPDATE OR DELETE ON public.pms_folio_adjustments
+ FOR EACH ROW EXECUTE FUNCTION public.lb03_reject_audit_mutation();
 REVOKE ALL ON public.pms_folio_adjustments FROM PUBLIC,anon,authenticated;
 GRANT ALL ON public.pms_folio_adjustments TO service_role;
 
