@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS public.lb03_room_charge_operations (
   pos_transaction_id uuid NOT NULL,
   pos_tenant_id uuid NOT NULL,
   pos_property_id uuid NOT NULL,
+  integration_property_id uuid NOT NULL,
   outlet_reference uuid NOT NULL,
   guest_reference uuid NOT NULL,
   stay_reference uuid NOT NULL,
@@ -74,7 +75,7 @@ GRANT USAGE,SELECT ON SEQUENCE public.lb03_room_charge_audit_id_seq TO service_r
 
 CREATE OR REPLACE FUNCTION public.lb03_authorize_room_charge(
  _connection_id uuid,_request_id uuid,_idempotency_key text,_pos_transaction_id uuid,
- _pos_tenant_id uuid,_pos_property_id uuid,_outlet_reference uuid,_guest_reference uuid,
+ _pos_tenant_id uuid,_pos_property_id uuid,_integration_property_id uuid,_outlet_reference uuid,_guest_reference uuid,
  _stay_reference uuid,_currency text,_amount numeric,_tax_breakdown jsonb,
  _service_charge numeric,_discount_amount numeric,_correlation_id text
 ) RETURNS jsonb
@@ -90,7 +91,7 @@ DECLARE
 BEGIN
  IF coalesce(auth.role(),'')<>'service_role' THEN RAISE EXCEPTION 'Service authentication required' USING ERRCODE='42501'; END IF;
  IF _connection_id IS NULL OR _request_id IS NULL OR _pos_transaction_id IS NULL
-   OR _pos_tenant_id IS NULL OR _pos_property_id IS NULL OR _outlet_reference IS NULL
+   OR _pos_tenant_id IS NULL OR _pos_property_id IS NULL OR _integration_property_id IS NULL OR _outlet_reference IS NULL
    OR _guest_reference IS NULL OR _stay_reference IS NULL
    OR _idempotency_key IS NULL OR length(_idempotency_key) NOT BETWEEN 8 AND 200
    OR _correlation_id IS NULL OR length(_correlation_id) NOT BETWEEN 8 AND 128
@@ -101,7 +102,7 @@ BEGIN
 
  v_fingerprint:=encode(digest(jsonb_build_object(
    'connectionId',_connection_id,'posTransactionId',_pos_transaction_id,
-   'posTenantId',_pos_tenant_id,'posPropertyId',_pos_property_id,
+   'posTenantId',_pos_tenant_id,'posPropertyId',_pos_property_id,'integrationPropertyId',_integration_property_id,
    'outletReference',_outlet_reference,'guestReference',_guest_reference,
    'stayReference',_stay_reference,'currency',_currency,'amount',_amount,
    'taxBreakdown',_tax_breakdown,'serviceCharge',_service_charge,
@@ -126,15 +127,14 @@ BEGIN
   WHERE id=_connection_id FOR SHARE;
  IF NOT FOUND OR v_connection.remote_product<>'lexibite' OR v_connection.status<>'active'
    OR v_connection.local_approved_at IS NULL OR v_connection.remote_approved_at IS NULL
-   OR v_connection.integration_tenant_id<>_pos_tenant_id
-   OR v_connection.integration_property_id<>_pos_property_id
    OR v_connection.remote_tenant_id<>_pos_tenant_id
    OR v_connection.remote_property_id<>_pos_property_id
+   OR v_connection.integration_property_id<>_integration_property_id
    OR v_connection.correlation_id<>_correlation_id
  THEN RAISE EXCEPTION 'Integration connection, tenant or property scope rejected' USING ERRCODE='42501'; END IF;
 
  IF NOT EXISTS (SELECT 1 FROM public.lb02_outlet_projections o
-   WHERE o.connection_id=_connection_id AND o.integration_property_id=_pos_property_id
+   WHERE o.connection_id=_connection_id AND o.integration_property_id=_integration_property_id
     AND o.outlet_reference=_outlet_reference AND o.guest_visible_status='open' AND o.revoked_at IS NULL)
  THEN RAISE EXCEPTION 'Outlet is not authorized for room charges' USING ERRCODE='42501'; END IF;
 
@@ -157,12 +157,12 @@ BEGIN
  v_auth_ref:='LBA-'||upper(replace(gen_random_uuid()::text,'-',''));
  INSERT INTO public.lb03_room_charge_operations(
   connection_id,request_id,idempotency_key,request_fingerprint,pos_transaction_id,
-  pos_tenant_id,pos_property_id,outlet_reference,guest_reference,stay_reference,
+  pos_tenant_id,pos_property_id,integration_property_id,outlet_reference,guest_reference,stay_reference,
   booking_id,guest_id,currency,amount,tax_breakdown,service_charge,discount_amount,
   correlation_id,state,authorization_reference,expires_at
  ) VALUES (
   _connection_id,_request_id,_idempotency_key,v_fingerprint,_pos_transaction_id,
-  _pos_tenant_id,_pos_property_id,_outlet_reference,_guest_reference,_stay_reference,
+  _pos_tenant_id,_pos_property_id,_integration_property_id,_outlet_reference,_guest_reference,_stay_reference,
   v_booking.id,v_booking.guest_id,_currency,_amount,_tax_breakdown,
   coalesce(_service_charge,0),coalesce(_discount_amount,0),_correlation_id,
   'AUTHORIZED',v_auth_ref,clock_timestamp()+interval '5 minutes'
@@ -246,7 +246,7 @@ BEGIN
 END;
 $lb03$;
 
-REVOKE ALL ON FUNCTION public.lb03_authorize_room_charge(uuid,uuid,text,uuid,uuid,uuid,uuid,uuid,uuid,text,numeric,jsonb,numeric,numeric,text) FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.lb03_authorize_room_charge(uuid,uuid,text,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,numeric,jsonb,numeric,numeric,text) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.lb03_post_room_charge(uuid,text,text,text) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.lb03_authorize_room_charge(uuid,uuid,text,uuid,uuid,uuid,uuid,uuid,uuid,text,numeric,jsonb,numeric,numeric,text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.lb03_post_room_charge(uuid,text,text,text) TO service_role;
