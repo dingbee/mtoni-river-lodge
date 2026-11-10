@@ -231,7 +231,8 @@ BEGIN
     END IF;
   END IF;
   SELECT currency INTO v_currency FROM public.staynas_properties WHERE id=v_property_id;
-  IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}    RAISE EXCEPTION 'The property must have an explicit ISO currency before room configuration';
+  IF v_currency IS NULL OR v_currency !~ '^[A-Z]{3}$' THEN
+    RAISE EXCEPTION 'The property must have an explicit ISO currency before room configuration';
   END IF;
 
   IF v_room_id IS NULL THEN
