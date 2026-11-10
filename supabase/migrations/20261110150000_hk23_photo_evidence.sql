@@ -64,7 +64,7 @@ RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, storage
-AS $
+AS $$
 DECLARE
   _property_id uuid;
   _item jsonb;
@@ -98,7 +98,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$;
+$$;
 
 DROP TRIGGER IF EXISTS housekeeping_exception_evidence_validate ON public.housekeeping_exceptions;
 CREATE TRIGGER housekeeping_exception_evidence_validate
