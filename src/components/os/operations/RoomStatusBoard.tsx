@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { manageRoomUnit, updateRoomState } from "@/lib/operations.functions";
 import { RoomStateChip, ROOM_STATES, type RoomStateValue } from "./RoomStateChip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 type Room = { id: string; slug: string; name: string };
 type State = {
@@ -17,7 +18,22 @@ type State = {
   room: Room | undefined;
 };
 
-export function RoomStatusBoard({ states, rooms = [], canManageUnits = false }: { states: State[]; rooms?: Room[]; canManageUnits?: boolean }) {
+export function RoomStatusBoard({ states, rooms = [], canManageUnits = false, propertyId }: { states: State[]; rooms?: Room[]; canManageUnits?: boolean; propertyId?: string }) {
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!propertyId) return;
+    const channel = supabase.channel(`room-board:${propertyId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "room_states", filter: `property_id=eq.${propertyId}` }, () => {
+        qc.invalidateQueries({ queryKey: ["ops-room-board"] });
+        qc.invalidateQueries({ queryKey: ["ops-dashboard"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "rooms", filter: `property_id=eq.${propertyId}` }, () => {
+        qc.invalidateQueries({ queryKey: ["ops-room-board"] });
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [propertyId, qc]);
+
   const grouped = useMemo(() => {
     const map = new Map<string, { room: Room; units: State[] }>();
     for (const room of rooms) map.set(room.id, { room, units: [] });
