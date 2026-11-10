@@ -465,6 +465,17 @@ BEGIN
      OR has_table_privilege('service_role','public.ai_concierge_usage_ledger','TRUNCATE') THEN
     RAISE EXCEPTION 'usage ledger must be writable and readable by server role but append-only';
   END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='public.ai_concierge_usage_ledger'::regclass
+      AND conname='ai_concierge_usage_message_session_fkey'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='public.ai_concierge_usage_ledger'::regclass
+      AND conname='ai_concierge_usage_session_property_fkey'
+  ) THEN
+    RAISE EXCEPTION 'usage records must be bound to the same property, session and message';
+  END IF;
 END
 $ai_privilege_tests$;
 
