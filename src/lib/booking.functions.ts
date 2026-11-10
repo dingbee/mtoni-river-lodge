@@ -289,6 +289,7 @@ export const createBooking = createServerFn({ method: "POST" })
             deposit: full.deposit_amount,
             balance: full.balance_amount,
             currency: full.currency,
+            paymentState: "not_configured",
           },
         });
         if (!result.ok) console.error("booking email failed:", result);
