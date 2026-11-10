@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Plus, Archive, Copy, History, Pencil, Upload, PauseCircle, GitBranch, CalendarDays, Trash2, Eye } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
@@ -49,6 +49,7 @@ function RatePlans() {
   const [code,setCode]=useState(""); const [name,setName]=useState(""); const [description,setDescription]=useState("");
   const [category,setCategory]=useState("standard_flexible"); const [basis,setBasis]=useState("per_room");
   const [mealPlan,setMealPlan]=useState("room_only"); const [refundable,setRefundable]=useState(true);
+  const [currency,setCurrency]=useState("");
   const [from,setFrom]=useState(""); const [to,setTo]=useState(""); const [parent,setParent]=useState("");
   const [ratePlanDataText,setRatePlanDataText]=useState("{}");
   const [inheritancePreview,setInheritancePreview]=useState<Record<string,unknown>|null>(null);
@@ -80,10 +81,14 @@ function RatePlans() {
   const [restrictionReason,setRestrictionReason]=useState("");
   const [restrictionActive,setRestrictionActive]=useState(true);
 
-  const reset=()=>{setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(null);setCode("");setName("");setDescription("");setCategory("standard_flexible");setBasis("per_room");setMealPlan("room_only");setRefundable(true);setFrom("");setTo("");setParent("");setRatePlanDataText("{}");setInheritancePreview(null);};
-  const startEdit=(p:Plan)=>{setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(p);setCode(p.code);setName(p.name);setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));setInheritancePreview(null);};
+  useEffect(() => {
+    if (!currency && data?.property?.currency) setCurrency(String(data.property.currency).toUpperCase());
+  }, [data?.property?.currency, currency]);
+
+  const reset=()=>{setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(null);setCode("");setName("");setDescription("");setCategory("standard_flexible");setBasis("per_room");setMealPlan("room_only");setRefundable(true);setCurrency(String(data?.property?.currency??"USD").toUpperCase());setFrom("");setTo("");setParent("");setRatePlanDataText("{}");setInheritancePreview(null);};
+  const startEdit=(p:Plan)=>{setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(p);setCode(p.code);setName(p.name);setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setCurrency(p.currency);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));setInheritancePreview(null);};
   const save=useMutation({
-    mutationFn:()=>saveFn({data:{...(editing?{id:editing.id}:{}),code,name,description:description||null,category,pricing_basis:basis as "per_room"|"per_person"|"occupancy_based",meal_plan:mealPlan as "room_only"|"bed_breakfast"|"half_board"|"full_board"|"all_inclusive"|"custom",refundable,effective_from:from||null,effective_to:to||null,parent_rate_plan_id:parent||null,active:editing?.active??true,cancellation_policy:editing?.cancellation_policy??{},booking_conditions:editing?.booking_conditions??{},rate_plan_data:JSON.parse(ratePlanDataText||"{}")}}),
+    mutationFn:()=>saveFn({data:{...(editing?{id:editing.id}:{}),code,name,description:description||null,category,pricing_basis:basis as "per_room"|"per_person"|"occupancy_based",meal_plan:mealPlan as "room_only"|"bed_breakfast"|"half_board"|"full_board"|"all_inclusive"|"custom",currency,refundable,effective_from:from||null,effective_to:to||null,parent_rate_plan_id:parent||null,active:editing?.active??true,cancellation_policy:editing?.cancellation_policy??{},booking_conditions:editing?.booking_conditions??{},rate_plan_data:JSON.parse(ratePlanDataText||"{}")}}),
     onSuccess:()=>{toast.success("Rate plan saved");reset();qc.invalidateQueries({queryKey:["staynas.rate-plans"]});},
     onError:(e:unknown)=>toast.error((e as Error).message),
   });
@@ -107,7 +112,7 @@ function RatePlans() {
   };
   const inheritanceMutation=useMutation({mutationFn:(id:string)=>resolveInheritanceFn({data:{id}}),onSuccess:(value)=>setInheritancePreview(value && typeof value === "object" ? value as Record<string,unknown> : {result:value}),onError:(e:unknown)=>toast.error((e as Error).message)});
   const roomTypeMutation=useMutation({mutationFn:(v:{rate_plan_id:string;room_type_id:string;active:boolean})=>setRoomTypeFn({data:v}),onSuccess:()=>{qc.invalidateQueries({queryKey:["staynas.rate-plan-room-types"]});toast.success("Room-type assignment updated");},onError:(e:unknown)=>toast.error((e as Error).message)});
-  const duplicate=(p:Plan)=>{setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(null);setCode(p.code+"-COPY");setName(p.name+" copy");setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));window.scrollTo({top:0,behavior:"smooth"});};
+  const duplicate=(p:Plan)=>{setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(null);setCode(p.code+"-COPY");setName(p.name+" copy");setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setCurrency(p.currency);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));window.scrollTo({top:0,behavior:"smooth"});};
   const readSeasonalRates=():Record<string,Record<string,unknown>>=>{
     try {
       const parsed=JSON.parse(ratePlanDataText||"{}") as {seasonal_rates?:Record<string,Record<string,unknown>>};
@@ -136,7 +141,7 @@ function RatePlans() {
       const parsed=JSON.parse(ratePlanDataText||"{}") as Record<string,unknown>;
       const seasons=(parsed.seasonal_rates&&typeof parsed.seasonal_rates==="object"?parsed.seasonal_rates:{}) as Record<string,unknown>;
       if(seasons[seasonKey.trim()]){toast.error("A season with this key already exists. Edit the JSON entry or choose another key.");return;}
-      seasons[seasonKey.trim()]={name:seasonName.trim(),description:seasonDescription.trim(),season_type:seasonType,start_date:seasonStart,end_date:seasonEnd,room_type_ids:seasonRoomTypes,currency:String(data?.property?.currency??"").toUpperCase(),nightly_rate:nightlyRate,priority,active:seasonActive};
+      seasons[seasonKey.trim()]={name:seasonName.trim(),description:seasonDescription.trim(),season_type:seasonType,start_date:seasonStart,end_date:seasonEnd,room_type_ids:seasonRoomTypes,currency:currency || String(data?.property?.currency??"").toUpperCase(),nightly_rate:nightlyRate,priority,active:seasonActive};
       parsed.seasonal_rates=seasons;
       setRatePlanDataText(JSON.stringify(parsed,null,2));
       setSeasonKey("");setSeasonName("");setSeasonDescription("");setSeasonStart("");setSeasonEnd("");setSeasonRate("");setSeasonPriority("10");setSeasonRoomTypes([]);setSeasonActive(true);
@@ -169,7 +174,7 @@ function RatePlans() {
       const dates=(parsed.daily_rates&&typeof parsed.daily_rates==="object"?parsed.daily_rates:{}) as Record<string,Record<string,unknown>>;
       const rates={...(dates[dailyDate]??{})};
       if(rates[dailyRoomType]&&typeof rates[dailyRoomType]==="object"){toast.error("A daily rate already exists for this date and room type. Remove it first to replace it.");return;}
-      rates[dailyRoomType]={nightly_rate:amount,currency:String(data?.property?.currency??"").toUpperCase(),active:dailyActive};
+      rates[dailyRoomType]={nightly_rate:amount,currency:currency || String(data?.property?.currency??"").toUpperCase(),active:dailyActive};
       dates[dailyDate]=rates;parsed.daily_rates=dates;
       setRatePlanDataText(JSON.stringify(parsed,null,2));
       setDailyDate("");setDailyRate("");setDailyActive(true);
@@ -306,7 +311,7 @@ function RatePlans() {
   const restrictionEntries=Object.entries(readRestrictions());
   return <div className="w-full min-w-0 max-w-full space-y-6 overflow-x-clip">
     <div className="flex justify-end"><Link to="/admin/finance/pricing-adjustments" className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted">Taxes, fees & promotions →</Link></div>
-    <PageHeader title="Rate Plans" description="Manage property-scoped commercial accommodation products, room eligibility, seasonal pricing, daily rate overrides and publication." />
+    <PageHeader title="Rate Plans" description="Manage property-scoped commercial accommodation products. Property operating currency and guest transaction currency are configured separately." />
     {data?.property&&<div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><span className="font-medium text-foreground">{data.property.name}</span><Badge variant="outline">{String(data.property.currency).toUpperCase()}</Badge><span>{data.property.timezone}</span></div>}
     <SectionCard className="min-w-0" title={editing?"Edit rate plan":"Create rate plan"} description="A rate plan defines the commercial terms applied to one or more room types. Room assignments are managed separately.">
       <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -315,6 +320,7 @@ function RatePlans() {
         <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={category} onChange={e=>setCategory(e.target.value)}>{CATEGORIES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select>
         <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={basis} onChange={e=>setBasis(e.target.value)}><option value="per_room">Per room</option><option value="per_person">Per person</option><option value="occupancy_based">Occupancy-based</option></select>
         <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={mealPlan} onChange={e=>setMealPlan(e.target.value)}><option value="room_only">Room only</option><option value="bed_breakfast">Bed & Breakfast</option><option value="half_board">Half Board</option><option value="full_board">Full Board</option><option value="all_inclusive">All inclusive</option><option value="custom">Custom</option></select>
+        <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Guest transaction currency</span><Input value={currency} maxLength={3} onChange={e=>setCurrency(e.target.value.toUpperCase())} placeholder="USD" aria-label="Guest transaction currency"/><span className="block text-[11px]">Property operating currency: {String(data?.property?.currency??"—").toUpperCase()}</span></label>
         <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={parent} onChange={e=>setParent(e.target.value)}><option value="">No parent — standalone</option>{(data?.plans??[]).filter((p:Plan)=>p.id!==editing?.id).map((p:Plan)=><option key={p.id} value={p.id}>{p.name} ({p.code})</option>)}</select>
         <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Effective from</span><Input type="date" value={from} onChange={e=>setFrom(e.target.value)} aria-label="Effective from"/></label>
         <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Effective to</span><Input type="date" value={to} onChange={e=>setTo(e.target.value)} aria-label="Effective to"/></label>
@@ -414,8 +420,8 @@ function RatePlans() {
           <Button type="button" size="icon" variant="ghost" aria-label={"Clear restriction "+key} onClick={()=>removeRestriction(key)}><Trash2 className="h-4 w-4"/></Button>
         </div>)}</div>}
       </div>
-      <div className="mt-3 flex flex-wrap gap-2"><Button disabled={!code.trim()||!name.trim()||save.isPending} onClick={()=>save.mutate()}><Plus className="mr-2 h-4 w-4"/>{editing?"Save changes":"Create rate plan"}</Button>{editing&&<Button variant="outline" onClick={reset}>Cancel edit</Button>}</div>
-      <p className="mt-2 text-xs text-muted-foreground">Currency is inherited from the active property and cannot be overridden. New plans start as Draft. Missing rate-data keys inherit from the parent; matching child keys override parent values. Cancellation and refundability remain independent.</p>
+      <div className="mt-3 flex flex-wrap gap-2"><Button disabled={!code.trim()||!name.trim()||!/^[A-Z]{3}$/.test(currency)||save.isPending} onClick={()=>save.mutate()}><Plus className="mr-2 h-4 w-4"/>{editing?"Save changes":"Create rate plan"}</Button>{editing&&<Button variant="outline" onClick={reset}>Cancel edit</Button>}</div>
+      <p className="mt-2 text-xs text-muted-foreground">Rate-plan currency is the guest transaction currency and is independent of the property's operating currency. Base, seasonal and daily rates must use the selected rate-plan currency. New plans start as Draft.</p>
     </SectionCard>
 
     {isLoading?<LoadingState/>:<SectionCard title="Property rate plans" description="Drafts are private. Publishing creates an immutable, property-scoped rate snapshot; suspension removes it from authorized consumer results. Archived plans remain in history.">
