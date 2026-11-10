@@ -61,23 +61,24 @@ export const Route = createFileRoute("/api/public/availability/search")({
         });
         if (error) return Response.json({ error: error.message }, { status: 500 });
         const availabilityRows = (data ?? []) as PublicAvailabilityRow[];
-        if ((data ?? []).some((r) => String(r.currency ?? "").toUpperCase() !== channel.currency)) {
+        if (availabilityRows.some((r) => String(r.currency ?? "").toUpperCase() !== channel.currency)) {
           return Response.json({ error: "Room currency does not match the published direct-booking transaction currency" }, { status: 409 });
         }
-        const pricing_errors = (data ?? [])
+        const pricing_errors = availabilityRows
           .filter((r) => r.pricing_quote?.ok === false && r.pricing_quote?.error_code !== "RATE_PLAN_REQUIRED")
           .map((r) => ({ room_id: r.room_id, slug: r.slug, error_code: r.pricing_quote.error_code, message: r.pricing_quote.message }));
-        const planChoices = await Promise.all((data ?? []).filter((r) => r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" || r.pricing_quote?.pricing_evidence?.rate_plan_id).map(async (r) => {
-          const { data: discovery, error: discoveryError } = await publicRpc.rpc("discover_staynas_public_rate_plans", {
+        const planChoices = await Promise.all(availabilityRows.filter((r) => r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" || r.pricing_quote?.pricing_evidence?.rate_plan_id).map(async (r) => {
+          const { data: discoveryData, error: discoveryError } = await publicRpc.rpc("discover_staynas_public_rate_plans", {
             _property_id: propertyId, _room_id: r.room_id, _check_in: checkIn, _check_out: checkOut, _adults: guests, _children_below_6: 0, _children_7_plus: 0,
           });
-          return { room_id: r.room_id, plans: (!discoveryError && discovery?.ok ? discovery.plans : []) as PublicRatePlanOption[] };
+          const discovery = discoveryData as { ok?: boolean; plans?: PublicRatePlanOption[] } | null;
+          return { room_id: r.room_id, plans: (!discoveryError && discovery?.ok ? discovery.plans ?? [] : []) };
         }));
         if (planChoices.some((x) => (x.plans ?? []).some((plan) => String(plan.currency ?? "").toUpperCase() !== channel.currency))) {
           return Response.json({ error: "Published rate-plan currency does not match the direct-booking channel" }, { status: 409 });
         }
         const planOptionsByRoom = new Map<string, PublicRatePlanOption[]>(planChoices.map((x) => [x.room_id, x.plans]));
-        const rooms = (data ?? [])
+        const rooms = availabilityRows
           .filter((r) => r.pricing_quote?.ok !== false || r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED")
           .map((r) => ({
             slug: r.slug,
