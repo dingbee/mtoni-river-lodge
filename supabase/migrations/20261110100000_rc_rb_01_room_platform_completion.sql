@@ -1330,3 +1330,25 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.staynas_get_public_room_pricing(text,date,date,integer,integer,integer) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.staynas_get_public_room_pricing(text,date,date,integer,integer,integer) TO anon,authenticated;
+
+
+-- Keep the operational Room Board live across staff sessions. RLS remains the
+-- authorization boundary for every Postgres Changes subscription.
+DO $realtime$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname='supabase_realtime') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='rooms') THEN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.rooms;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='room_states') THEN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.room_states;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='room_categories') THEN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.room_categories;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='room_inventory') THEN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.room_inventory;
+    END IF;
+  END IF;
+END;
+$realtime$;
