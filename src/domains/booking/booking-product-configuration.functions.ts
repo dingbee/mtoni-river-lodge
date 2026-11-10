@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Supabase booking configuration tables are not yet in generated database types. */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -125,5 +126,32 @@ export const getPublicBookingProducts = createServerFn({method:"GET"})
     else query=query.is("campaign_slug",null);
     const {data:rows,error}=await query;
     if(error) throw new Error("Published booking products could not be resolved.");
-    return {currency:property.currency,products:rows??[]};
+    const roomIds=[...new Set((rows??[]).map((x:any)=>x.room_id))];
+    const publicationIds=[...new Set((rows??[]).map((x:any)=>x.rate_plan_publication_id))];
+    if(!roomIds.length||!publicationIds.length) return {currency:property.currency,products:[]};
+    const [{data:rooms,error:roomsError},{data:publications,error:publicationsError}]=await Promise.all([
+      sb.from("rooms").select("id,catalogue_type_id,status").eq("property_id",data.propertyId).in("id",roomIds),
+      sb.from("staynas_rate_plan_publications").select("id,rate_plan_id,publication_number,currency,effective_from,effective_to,room_type_assignments").eq("property_id",data.propertyId).in("id",publicationIds),
+    ]);
+    if(roomsError||publicationsError) throw new Error("Published room and rate evidence could not be verified.");
+    const roomById=new Map((rooms??[]).map((x:any)=>[x.id,x]));
+    const publicationById=new Map((publications??[]).map((x:any)=>[x.id,x]));
+    const planIds=[...new Set((publications??[]).map((x:any)=>x.rate_plan_id))];
+    const [{data:plans,error:plansError},{data:latestRows,error:latestError}]=await Promise.all([
+      sb.from("staynas_rate_plans").select("id,active,publication_status,currency").eq("property_id",data.propertyId).in("id",planIds),
+      sb.from("staynas_rate_plan_publications").select("id,rate_plan_id,publication_number").eq("property_id",data.propertyId).in("rate_plan_id",planIds).order("publication_number",{ascending:false}),
+    ]);
+    if(plansError||latestError) throw new Error("Current published rate-plan status could not be verified.");
+    const activePlanIds=new Set((plans??[]).filter((x:any)=>x.active&&x.publication_status==="published"&&x.currency===property.currency).map((x:any)=>x.id));
+    const latestByPlan=new Map<string,string>();
+    for(const p of latestRows??[]) if(!latestByPlan.has(p.rate_plan_id)) latestByPlan.set(p.rate_plan_id,p.id);
+    const products=(rows??[]).filter((row:any)=>{
+      const room:any=roomById.get(row.room_id);
+      const publication:any=publicationById.get(row.rate_plan_publication_id);
+      if(!room||room.status!=="active"||!publication||publication.currency!==property.currency) return false;
+      if(!activePlanIds.has(publication.rate_plan_id)||latestByPlan.get(publication.rate_plan_id)!==publication.id) return false;
+      const assignments=Array.isArray(publication.room_type_assignments)?publication.room_type_assignments:[];
+      return assignments.some((a:any)=>a.room_type_id===room.catalogue_type_id);
+    });
+    return {currency:property.currency,products};
   });
