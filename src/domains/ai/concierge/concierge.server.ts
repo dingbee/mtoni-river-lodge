@@ -143,7 +143,7 @@ async function callModel(system: string, history: ConciergeMessage[], userText: 
     })),
     jsonMode: true,
   });
-  return { raw: result.content, latency: result.latencyMs };
+  return result;
 }
 
 const tryJson = parseAiJson;
@@ -160,6 +160,13 @@ export async function handleConciergeChat(
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   if (!propertyId) throw new Error("Public property context is required.");
+  const { data: entitlement, error: entitlementError } = await (supabaseAdmin as any)
+    .from("ai_concierge_entitlements")
+    .select("enabled")
+    .eq("property_id", propertyId)
+    .maybeSingle();
+  if (entitlementError) throw new Error("Concierge entitlement could not be verified.");
+  if (entitlement?.enabled !== true) throw new Error("AI Concierge is not enabled for this property.");
   const [roomCatalog, experienceCatalog, propertyFacts] = await Promise.all([
     loadRoomCatalog(supabaseAdmin, propertyId),
     loadExperienceCatalog(supabaseAdmin, propertyId),
@@ -274,10 +281,11 @@ export async function handleConciergeChat(
   let raw = "";
   let latency = 0;
   let inferenceFailed = false;
+  let gatewayResult: Awaited<ReturnType<typeof callAiGateway>> | null = null;
   try {
-    const result = await callModel(system, history, message);
-    raw = result.raw;
-    latency = result.latency;
+    gatewayResult = await callModel(system, history, message);
+    raw = gatewayResult.content;
+    latency = gatewayResult.latencyMs;
   } catch {
     inferenceFailed = true;
     raw = JSON.stringify({
@@ -315,11 +323,30 @@ export async function handleConciergeChat(
 
   const { data: assistantRow, error: assistantMessageError } = await supabaseAdmin.from("ai_concierge_messages").insert({
     session_id: sessionId, role: "assistant", content: answer, citations: citations as any,
-    confidence, escalated: shouldEscalate, model: MODEL, latency_ms: latency,
+    confidence, escalated: shouldEscalate, model: gatewayResult?.model ?? MODEL, latency_ms: latency,
   }).select("id, created_at").single();
   if (assistantMessageError || !assistantRow?.id) throw new Error("The Concierge response could not be saved. Please retry.");
 
   const assistantMessageId = assistantRow.id;
+
+  if (gatewayResult) {
+    const { error: usageError } = await (supabaseAdmin as any).from("ai_concierge_usage_ledger").insert({
+      property_id: propertyId,
+      session_id: sessionId,
+      message_id: assistantMessageId,
+      request_id: gatewayResult.requestId,
+      provider: gatewayResult.provider,
+      model: gatewayResult.model,
+      prompt_tokens: gatewayResult.usage?.prompt_tokens ?? null,
+      completion_tokens: gatewayResult.usage?.completion_tokens ?? null,
+      total_tokens: gatewayResult.usage?.total_tokens ?? null,
+      latency_ms: gatewayResult.latencyMs,
+    });
+    if (usageError) {
+      console.error("[concierge] durable AI usage write failed", { code: usageError.code ?? "unknown" });
+      throw new Error("AI usage evidence could not be recorded. Please retry.");
+    }
+  }
 
   if (shouldEscalate) {
     const reason = /complaint|unhappy|refund|unsafe|medical|emergency/i.test(message)
