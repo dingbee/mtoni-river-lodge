@@ -41,7 +41,8 @@ export function RoomStatusBoard({ states }: { states: State[] }) {
 }
 
 function RoomStateCard({ unit }: { unit: State }) {
-  const [state, setState] = useState<RoomStateValue>(unit.state);\n  useEffect(() => setState(unit.state), [unit.state]);
+  const [state, setState] = useState<RoomStateValue>(unit.state);
+  useEffect(() => setState(unit.state), [unit.state]);
   const qc = useQueryClient();
   const fn = useServerFn(updateRoomState);
   const m = useMutation({
