@@ -57,7 +57,27 @@ jobs:
           cat /tmp/lb03-race-b.log
       - name: Assert exactly one concurrent folio posting
         run: |
-          psql -v ON_ERROR_STOP=1 -c "DO \\$\\$ BEGIN IF (SELECT count(*) FROM public.pms_folio_postings WHERE source_order_id='b0000000-0000-4000-8000-000000000002' AND source_system='lexibite')<>1 THEN RAISE EXCEPTION 'Concurrent POS delivery created zero or multiple folio postings'; END IF; IF (SELECT state FROM public.lb03_room_charge_operations WHERE idempotency_key='uat-idem-0002')<>'POSTED' THEN RAISE EXCEPTION 'Concurrent posting operation did not reach POSTED'; END IF; END \\$\\$;"
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          DO $
+          BEGIN
+            IF (SELECT count(*) FROM public.pms_folio_postings WHERE source_order_id='b0000000-0000-4000-8000-000000000002' AND source_system='lexibite')<>1 THEN
+              RAISE EXCEPTION 'Concurrent POS delivery created zero or multiple folio postings';
+            END IF;
+            IF (SELECT state FROM public.lb03_room_charge_operations WHERE idempotency_key='uat-idem-0002')<>'POSTED' THEN
+              RAISE EXCEPTION 'Concurrent posting operation did not reach POSTED';
+            END IF;
+          END $;
+          SQL
       - name: Verify immutable financial evidence
         run: |
-          psql -v ON_ERROR_STOP=1 -c "DO \\$\\$ BEGIN IF (SELECT count(*) FROM public.lb03_room_charge_audit WHERE event_type IN ('room_charge.authorized','room_charge.posted'))<3 THEN RAISE EXCEPTION 'Missing authorization/posting audit evidence'; END IF; IF (SELECT count(*) FROM public.pms_folio_adjustments WHERE source_transaction_id='b0000000-0000-4000-8000-000000000001')<>2 THEN RAISE EXCEPTION 'Expected two compensating folio adjustments'; END IF; END \\$\\$;"
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          DO $
+          BEGIN
+            IF (SELECT count(*) FROM public.lb03_room_charge_audit WHERE event_type IN ('room_charge.authorized','room_charge.posted'))<3 THEN
+              RAISE EXCEPTION 'Missing authorization/posting audit evidence';
+            END IF;
+            IF (SELECT count(*) FROM public.pms_folio_adjustments WHERE source_transaction_id='b0000000-0000-4000-8000-000000000001')<>2 THEN
+              RAISE EXCEPTION 'Expected two compensating folio adjustments';
+            END IF;
+          END $;
+          SQL
