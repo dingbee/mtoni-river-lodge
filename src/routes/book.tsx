@@ -422,8 +422,8 @@ function BookPage() {
         reference: res.reference,
         total: res.total,
         currency: res.currency,
-        paymentStatus: "unpaid",
-        paymentState: "not_configured",
+        paymentStatus: res.paymentStatus,
+        paymentState: res.paymentState,
       });
       try { window.sessionStorage.removeItem(STORAGE_KEY); } catch { /* sessionStorage can be unavailable in private browsing contexts */ }
       goToStep("confirmation", "booking_submit_success");
@@ -925,8 +925,6 @@ function GuestStep(props: {
   onBack: () => void; onSubmit: () => void;
 }) {
   const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: props.room.currency, maximumFractionDigits: 0 }).format(n);
-  const deposit = Number(props.breakdown?.deposit_amount ?? Math.round(props.grandTotal * 0.5));
-  const balance = Number(props.breakdown?.balance_due ?? (props.grandTotal - deposit));
   const toggleExtra = (slug: string) => {
     const existing = props.selectedExtras.find((s) => s.slug === slug);
     const extra = props.extras.find((e) => e.slug === slug);
@@ -1104,7 +1102,7 @@ function GuestStep(props: {
 }
 
 function ConfirmationStep({ confirmation, room, checkIn, checkOut, nights, guestName, guestEmail }: {
-  confirmation: { reference: string; total: number; currency: string };
+  confirmation: { reference: string; total: number; currency: string; paymentStatus: "unpaid"; paymentState: "not_configured" };
   room: AvailabilityRoom;
   checkIn: string; checkOut: string; nights: number;
   guestName: string; guestEmail: string;
@@ -1124,7 +1122,7 @@ function ConfirmationStep({ confirmation, room, checkIn, checkOut, nights, guest
         <div className="mt-2 flex justify-between"><span className="text-charcoal/60">Check-out</span><span>{checkOut}</span></div>
         <div className="mt-2 flex justify-between"><span className="text-charcoal/60">Nights</span><span>{nights}</span></div>
         <div className="mt-3 flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(confirmation.total)}</span></div>
-        <div className="mt-2 flex justify-between text-charcoal/70"><span>Payment status</span><span>Unpaid · Not configured</span></div>
+        <div className="mt-2 flex justify-between text-charcoal/70"><span>Payment status</span><span>{confirmation.paymentStatus === "unpaid" && confirmation.paymentState === "not_configured" ? "Unpaid · Not configured" : "Pending"}</span></div>
       </div>
       <p className="mt-6 text-xs leading-5 text-charcoal/55">Reservation status: <span className="font-medium text-charcoal">Pending</span>. Payment is not configured and no payment has been collected. Mtoni’s reservations team will contact you to arrange the next step.</p>
     </div>
