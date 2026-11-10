@@ -19,6 +19,7 @@ async function getActivePropertyId(supabase: any, userId: string): Promise<strin
 
 const ratePlanSchema = z.object({
   id: z.string().uuid().optional(),
+  currency: z.string().trim().regex(/^[A-Za-z]{3}$/).transform((value) => value.toUpperCase()).optional(),
   code: z.string().trim().min(2).max(40).regex(/^[A-Za-z0-9_-]+$/),
   name: z.string().trim().min(2).max(120),
   description: z.string().max(2000).nullable().optional(),
@@ -68,13 +69,23 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
     const sb: any = context.supabase;
     const { data: property, error: propertyError } = await sb.from("staynas_properties")
       .select("currency").eq("id",propertyId).single();
-    if (propertyError || !property?.currency) throw new Error("Property currency must be configured before managing rate plans.");
+    if (propertyError || !property?.currency) throw new Error("Property operating currency must be configured before managing rate plans.");
+    let ratePlanCurrency = String(data.currency ?? property.currency).toUpperCase();
     if (data.id) {
       const { data: existing, error: existingError } = await sb.from("staynas_rate_plans")
-        .select("publication_status").eq("id",data.id).eq("property_id",propertyId).maybeSingle();
+        .select("publication_status,currency").eq("id",data.id).eq("property_id",propertyId).maybeSingle();
       if (existingError || !existing) throw new Error("Rate plan is not part of the active property.");
+      if (!data.currency) ratePlanCurrency = String(existing.currency ?? property.currency).toUpperCase();
       if (existing.publication_status === "archived") throw new Error("Archived rate plans are read-only. Duplicate the plan to create a new version.");
       if (existing.publication_status === "published") throw new Error("Suspend the rate plan before editing its commercial terms.");
+    }
+    if (!/^[A-Z]{3}$/.test(ratePlanCurrency)) throw new Error("Rate-plan transaction currency must be a valid ISO 4217 code.");
+    for (const [roomTypeId, rawRate] of Object.entries(data.rate_plan_data.base_rates ?? {})) {
+      if (!rawRate || typeof rawRate !== "object" || Array.isArray(rawRate)) continue;
+      const rateCurrency = (rawRate as Record<string, unknown>).currency;
+      if (rateCurrency && String(rateCurrency).toUpperCase() !== ratePlanCurrency) {
+        throw new Error(`Base rate for room type ${roomTypeId} must use rate-plan currency ${ratePlanCurrency}.`);
+      }
     }
     let inheritedSeasonalRates: Record<string, unknown> = {};
     let inheritedDailyRates: Record<string, unknown> = {};
@@ -100,7 +111,7 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
     const effectiveSeasonalRates = seasonalRatesSchema.parse(
       Object.fromEntries(Object.entries(mergedSeasonalRates).filter(([, value]) => value !== null)),
     );
-    validateSeasonalRateCurrency(effectiveSeasonalRates, String(property.currency));
+    validateSeasonalRateCurrency(effectiveSeasonalRates, ratePlanCurrency);
     if (Object.keys(effectiveSeasonalRates).length) {
       const { data: roomTypes, error: roomTypesError } = await sb.rpc(
         "get_staynas_rate_plan_room_types", { _property_id: propertyId },
@@ -125,7 +136,7 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
         .filter(([, roomRates]) => Object.keys(roomRates as Record<string, unknown>).length > 0),
     );
     const effectiveDailyRates = dailyRatesSchema.parse(normalizedDailyRates);
-    validateDailyRateCurrency(effectiveDailyRates, String(property.currency));
+    validateDailyRateCurrency(effectiveDailyRates, ratePlanCurrency);
     if (Object.keys(effectiveDailyRates).length) {
       const { data: roomTypes, error: roomTypesError } = await sb.rpc(
         "get_staynas_rate_plan_room_types", { _property_id: propertyId },
@@ -152,7 +163,7 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
     const payload = {
       ...data,
       property_id: propertyId,
-      currency: String(property.currency).toUpperCase(),
+      currency: ratePlanCurrency,
       code: data.code.toUpperCase(),
       updated_by: context.userId,
       ...(data.id ? {} : { created_by: context.userId }),
