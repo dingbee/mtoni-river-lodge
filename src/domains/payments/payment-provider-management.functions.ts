@@ -382,14 +382,16 @@ export const listFounderGuestPaymentProviders = createServerFn({ method: "GET" }
     const { data: properties, error: propertiesError } = await admin.from("staynas_properties")
       .select("id,organisation_id,name,status").order("name", { ascending: true });
     if (propertiesError) throw new Error("Property directory could not be loaded.");
-    const { data: organisations, error: organisationsError } = await admin.from("staynas_organisations")
-      .select("id,name,slug");
-    if (organisationsError) throw new Error("Organisation directory could not be loaded.");
+    const [{ data: organisations, error: organisationsError }, { data: founderConfig, error: founderConfigError }] = await Promise.all([
+      admin.from("staynas_organisations").select("id,name,slug"),
+      admin.from("commercial_founder_tenant_config").select("founder_organisation_id").eq("singleton", true).maybeSingle(),
+    ]);
+    if (organisationsError || founderConfigError || !founderConfig?.founder_organisation_id) throw new Error("Organisation directory could not be loaded.");
     const { data: configs, error: configsError } = await admin.from("staynas_guest_payment_provider_accounts")
       .select("*").order("provider", { ascending: true });
     if (configsError) throw new Error("Guest payment provider configurations could not be loaded.");
     const organisationById = new Map((organisations ?? []).map((row: {id:string;name:string;slug:string}) => [row.id,row]));
-    return (properties ?? []).map((property: {id:string;organisation_id:string;name:string;status:string}) => ({
+    return (properties ?? []).filter((property: {organisation_id:string}) => property.organisation_id !== founderConfig.founder_organisation_id).map((property: {id:string;organisation_id:string;name:string;status:string}) => ({
       id: property.id,
       name: property.name,
       status: property.status,
