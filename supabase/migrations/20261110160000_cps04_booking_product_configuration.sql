@@ -133,8 +133,8 @@ SET search_path=pg_catalog,public
 AS $function$
 BEGIN
   IF OLD.publication_status='published'
-     AND (to_jsonb(OLD)-'updated_at'-'updated_by') IS DISTINCT FROM
-         (to_jsonb(NEW)-'updated_at'-'updated_by') THEN
+     AND (to_jsonb(OLD)-'updated_at'-'updated_by'-'publication_status'-'published_at'-'published_by') IS DISTINCT FROM
+         (to_jsonb(NEW)-'updated_at'-'updated_by'-'publication_status'-'published_at'-'published_by') THEN
     NEW.configuration_version := OLD.configuration_version + 1;
     NEW.publication_status := 'draft';
     NEW.public_visible := false;
