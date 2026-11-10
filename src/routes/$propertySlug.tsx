@@ -23,8 +23,8 @@ export const Route = createFileRoute("/$propertySlug")({
     session: typeof search.session === "string" ? search.session : undefined,
   }),
   loader: async ({ params, location }) => {
+    const query = new URLSearchParams(location.searchStr);
     try {
-      const query = new URLSearchParams(location.searchStr);
       const campaignSlug = query.get("campaign") || undefined;
       const propertyData = await getPublicDemoProperty({ data: { propertySlug: params.propertySlug, campaignSlug } });
       return { propertyData, pageError: "" };
