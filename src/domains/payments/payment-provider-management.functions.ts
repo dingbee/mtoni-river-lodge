@@ -361,8 +361,8 @@ export const setPropertyPaymentProviderStatus = createServerFn({ method: "POST" 
       .select("id,integration_status,status").eq("id", data.providerConfigId)
       .eq("organisation_id", actor.organisationId).eq("property_id", actor.propertyId).maybeSingle();
     if (lookupError || !provider) throw new Error("Property provider configuration was not found.");
-    if (data.status === "active" && provider.integration_status !== "ready") {
-      throw new Error("Provider activation is blocked until its property guest-payment adapter passes certification.");
+    if (data.status === "active") {
+      throw new Error("Select a property guest-checkout provider through the atomic Guest Checkout control.");
     }
     const { error } = await admin.from("staynas_guest_payment_provider_accounts")
       .update({ status: data.status, updated_at: new Date().toISOString() })
