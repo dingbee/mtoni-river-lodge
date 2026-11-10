@@ -7,6 +7,7 @@ import { SectionCard } from "@/components/os/SectionCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { listFounderProviderBindings, listFounderProviderProperties, saveFounderProviderBinding } from "@/domains/ai/concierge/founder-provider-settings.functions";
+import { listFounderConciergeEntitlements, setFounderConciergeEntitlement } from "@/domains/ai/concierge/concierge.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/concierge/providers")({
   head: () => ({ meta: [{ title: "Provider Routing — Founder Admin" }, { name: "robots", content: "noindex,nofollow" }] }),
@@ -17,9 +18,16 @@ function FounderProviderSettings() {
   const bindingsFn = useServerFn(listFounderProviderBindings);
   const propertiesFn = useServerFn(listFounderProviderProperties);
   const saveFn = useServerFn(saveFounderProviderBinding);
+  const entitlementsFn = useServerFn(listFounderConciergeEntitlements);
+  const setEntitlementFn = useServerFn(setFounderConciergeEntitlement);
   const qc = useQueryClient();
   const bindings = useQuery({ queryKey: ["founder.provider-bindings"], queryFn: () => bindingsFn() });
   const properties = useQuery({ queryKey: ["founder.provider-properties"], queryFn: () => propertiesFn() });
+  const entitlements = useQuery({ queryKey: ["founder.concierge-entitlements"], queryFn: () => entitlementsFn() });
+  const entitlementMutation = useMutation({
+    mutationFn: (input: { property_id: string; enabled: boolean }) => setEntitlementFn({ data: input }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["founder.concierge-entitlements"] }),
+  });
   const [provider, setProvider] = useState<"meta_cloud_api" | "resend">("meta_cloud_api");
   const [accountId, setAccountId] = useState("");
   const [endpointId, setEndpointId] = useState("");
@@ -31,6 +39,22 @@ function FounderProviderSettings() {
   });
   return <div className="space-y-6">
     <PageHeader title="Provider Routing" description="Founder Admin · Nolmark CDMA. Map verified provider endpoints to one StayNas property." />
+    <SectionCard title="AI Concierge property entitlements">
+      <p className="mb-3 text-sm text-muted-foreground">Only Nolmark founder administrators can grant or suspend AI Concierge access. Properties without an explicit enabled entitlement are denied by the public runtime. Usage is recorded in tokens returned by the provider; no price, credit conversion or quota is assumed here.</p>
+      <div className="space-y-2">
+        {entitlements.data?.map((property: any) => <div key={property.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3 text-sm">
+          <div><div className="font-medium">{property.name}</div><div className="text-xs text-muted-foreground">{property.status}</div></div>
+          <div className="flex items-center gap-2">
+            <Badge variant={property.enabled ? "default" : "secondary"}>{property.enabled ? "Enabled" : "Not entitled"}</Badge>
+            <Button size="sm" variant={property.enabled ? "outline" : "default"} disabled={entitlementMutation.isPending || property.status !== "active"} onClick={() => entitlementMutation.mutate({ property_id: property.id, enabled: !property.enabled })}>{property.enabled ? "Suspend" : "Enable"}</Button>
+          </div>
+        </div>)}
+        {entitlements.isLoading && <p className="text-sm text-muted-foreground">Loading entitlement settings…</p>}
+        {entitlements.isError && <p className="text-sm text-destructive">Unable to load founder AI entitlements.</p>}
+        {!entitlements.isLoading && !entitlements.data?.length && <p className="text-sm text-muted-foreground">No properties found.</p>}
+        {entitlementMutation.isError && <p className="text-sm text-destructive">Unable to update the entitlement. Verify founder access and database schema.</p>}
+      </div>
+    </SectionCard>
     <SectionCard title="Add or update provider mapping">
       <div className="grid gap-3 md:grid-cols-2">
         <label className="space-y-1 text-sm"><span>Provider</span><select className="w-full rounded-md border bg-background p-2" value={provider} onChange={e => setProvider(e.target.value as typeof provider)}><option value="meta_cloud_api">Meta WhatsApp Cloud API</option><option value="resend">Resend Email</option></select></label>
