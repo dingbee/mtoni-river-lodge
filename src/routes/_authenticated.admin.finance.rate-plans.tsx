@@ -369,7 +369,7 @@ function RatePlans() {
             <div><h4 className="text-sm font-medium">Bulk editor</h4><p className="text-xs text-muted-foreground">Applies only to selected existing exact-date overrides. It does not generate date ranges or recurring entries.</p></div>
             <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
               <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={bulkMode} onChange={e=>setBulkMode(e.target.value as typeof bulkMode)}>
-                <option value="percent">Adjust by percent (%)</option><option value="amount">Adjust by amount ({String(data?.property?.currency??"").toUpperCase()})</option><option value="set">Set exact nightly rate ({String(data?.property?.currency??"").toUpperCase()})</option>
+                <option value="percent">Adjust by percent (%)</option><option value="amount">Adjust by amount ({currency || String(data?.property?.currency??"").toUpperCase()})</option><option value="set">Set exact nightly rate ({currency || String(data?.property?.currency??"").toUpperCase()})</option>
               </select>
               <Input type="number" step="0.01" placeholder={bulkMode==="percent"?"e.g. 10 or -5":"Nightly rate adjustment"} value={bulkValue} onChange={e=>setBulkValue(e.target.value)}/>
               <Button type="button" variant="outline" disabled={!selectedDailyEntries.length||!bulkValue} onClick={applyBulkDailyRate}>Apply rate change</Button>
