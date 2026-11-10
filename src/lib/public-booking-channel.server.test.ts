@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolvePublicDirectBookingChannel } from "./public-booking-channel.server";
+import { newBookingSessionId } from "./booking-session";
 
 type Fixture = {
   domain?: Record<string, unknown> | null;
@@ -124,6 +125,15 @@ describe("Mtoni payment-pending booking contract", () => {
     expect(booking).not.toContain("getActivePropertyPesapalAccount");
     expect(booking).toContain('_payment_method: "pay_at_property"');
     expect(booking).toContain('paymentState: "not_configured"');
+  });
+
+
+  it("uses a high-entropy session token accepted by the inventory hold RPC", () => {
+    expect(newBookingSessionId().length).toBeGreaterThanOrEqual(24);
+    const session = readFileSync(new URL("./booking-session.tsx", import.meta.url), "utf8");
+    const route = readFileSync(new URL("../routes/book.tsx", import.meta.url), "utf8");
+    expect(session).not.toContain("Math.random");
+    expect(route).toContain("/^[a-zA-Z0-9_-]{24,120}$/");
   });
 
   it("does not cache TanStack server-function responses in the service worker", () => {
