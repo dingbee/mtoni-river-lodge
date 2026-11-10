@@ -1,4 +1,5 @@
 \set ON_ERROR_STOP on
+CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 DO $$ BEGIN CREATE ROLE anon NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE ROLE authenticated NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
@@ -131,3 +132,59 @@ BEGIN
  );
 END $lb03concurrent$;
 RESET ROLE;
+
+-- Hotel-side approval is required before any folio credit adjustment is posted.
+SET ROLE service_role;
+SELECT set_config('request.test_role','service_role',false);
+DO $lb03reversal$
+DECLARE r jsonb;
+BEGIN
+ r:=public.lb03_request_room_charge_reversal('40000000-0000-4000-8000-000000000001',
+  (SELECT posting_reference FROM public.lb03_room_charge_operations WHERE idempotency_key='uat-idem-0001'),
+  'uat-reversal-001',10,'incorrect_amount','Correcting the first portion of the POS charge');
+ IF r->>'status'<>'PENDING_APPROVAL' THEN RAISE EXCEPTION 'Reversal did not enter hotel approval: %',r; END IF;
+END $lb03reversal$;
+RESET ROLE;
+SET ROLE authenticated;
+SELECT set_config('request.test_role','authenticated',false);
+SELECT set_config('request.test_uid','90000000-0000-4000-8000-000000000001',false);
+DO $lb03approval$
+DECLARE r jsonb;
+BEGIN
+ r:=public.lb03_approve_room_charge_reversal((SELECT id FROM public.lb03_room_charge_reversal_requests WHERE idempotency_key='uat-reversal-001'));
+ IF r->>'status'<>'PARTIALLY_REVERSED' THEN RAISE EXCEPTION 'Partial folio adjustment was not posted: %',r; END IF;
+END $lb03approval$;
+RESET ROLE;
+SET ROLE service_role;
+SELECT set_config('request.test_role','service_role',false);
+DO $lb03reversal2$
+DECLARE r jsonb;
+BEGIN
+ r:=public.lb03_request_room_charge_reversal('40000000-0000-4000-8000-000000000001',
+  (SELECT posting_reference FROM public.lb03_room_charge_operations WHERE idempotency_key='uat-idem-0001'),
+  'uat-reversal-002',90,'incorrect_amount','Complete the approved POS transaction correction');
+ IF r->>'status'<>'PENDING_APPROVAL' THEN RAISE EXCEPTION 'Second reversal did not enter approval: %',r; END IF;
+END $lb03reversal2$;
+RESET ROLE;
+SET ROLE authenticated;
+SELECT set_config('request.test_role','authenticated',false);
+SELECT set_config('request.test_uid','90000000-0000-4000-8000-000000000001',false);
+DO $lb03approval2$
+DECLARE r jsonb;
+BEGIN
+ r:=public.lb03_approve_room_charge_reversal((SELECT id FROM public.lb03_room_charge_reversal_requests WHERE idempotency_key='uat-reversal-002'));
+ IF r->>'status'<>'REVERSED' THEN RAISE EXCEPTION 'Full folio reversal was not posted: %',r; END IF;
+END $lb03approval2$;
+RESET ROLE;
+DO $lb03assert$
+BEGIN
+ IF (SELECT count(*) FROM public.pms_folio_adjustments WHERE source_transaction_id='b0000000-0000-4000-8000-000000000001')<>2 THEN
+  RAISE EXCEPTION 'Expected two immutable compensating folio adjustments';
+ END IF;
+ IF (SELECT state FROM public.lb03_room_charge_operations WHERE idempotency_key='uat-idem-0001')<>'REVERSED' THEN
+  RAISE EXCEPTION 'Original room charge did not reach REVERSED state';
+ END IF;
+ IF (SELECT total FROM public.bookings WHERE id='70000000-0000-4000-8000-000000000001')<>500 THEN
+  RAISE EXCEPTION 'Compensating adjustments did not restore the folio total';
+ END IF;
+END $lb03assert$;
