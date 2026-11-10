@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, Bell, CheckCircle2, CheckSquare2, Clock3, Play, UserRound, WandSparkles, XCircle } from "lucide-react";
+import { AlertTriangle, Bell, Camera, CheckCircle2, CheckSquare2, Clock3, ImagePlus, Play, Trash2, UserRound, WandSparkles, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { useCurrentUserRoles } from "@/lib/permissions";
 import { useHousekeepingRealtime } from "@/lib/housekeeping-realtime";
@@ -20,6 +20,7 @@ import {
   listHousekeepingInspectionQueue,
   submitHousekeepingInspection,
 } from "@/lib/housekeeping-inspection.functions";
+import { supabase } from "@/integrations/supabase/client";
 import {
   listHousekeepingExceptions,
   reportHousekeepingException,
@@ -94,6 +95,8 @@ function HousekeepingPage() {
   const [exceptionTitle, setExceptionTitle] = useState("");
   const [exceptionNotes, setExceptionNotes] = useState("");
   const [exceptionSeverity, setExceptionSeverity] = useState(2);
+  const [exceptionEvidence, setExceptionEvidence] = useState<Array<{ path: string; signedUrl: string; name: string; contentType: string; size: number }>>([]);
+  const [evidenceBusy, setEvidenceBusy] = useState(false);
   const [mineOnly, setMineOnly] = useState(true);
   const [noteTask, setNoteTask] = useState<string | null>(null);
   const [note, setNote] = useState("");
@@ -168,6 +171,35 @@ function HousekeepingPage() {
   const exceptionRows = useMemo(() => (exceptions.data ?? []) as Array<any>, [exceptions.data]);
   const selectedInspection = inspectionRows.find((row) => row.inspection_id === inspectionId);
   const allPassed = CHECKLIST.every(([key]) => inspectionChecks[key]);
+
+  async function addExceptionPhotos(files: FileList | null) {
+    if (!files?.length || !exceptionRoom) return;
+    setError(null);
+    const selected = Array.from(files);
+    if (exceptionEvidence.length + selected.length > 6) { setError("Attach up to 6 photographs per report."); return; }
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    if (selected.some((file) => !allowed.includes(file.type))) { setError("Use JPEG, PNG or WebP photographs."); return; }
+    if (selected.some((file) => file.size > 8 * 1024 * 1024)) { setError("Each photograph must be 8 MB or smaller."); return; }
+    setEvidenceBusy(true);
+    const uploaded: Array<{ path: string; signedUrl: string; name: string; contentType: string; size: number }> = [];
+    try {
+      const { data: roomState, error: roomError } = await supabase.from("room_states").select("property_id").eq("id", exceptionRoom.room_state_id).single();
+      if (roomError || !roomState?.property_id) throw new Error("Could not verify the room property. Refresh the task and try again.");
+      for (const file of selected) {
+        const ext = file.type === "image/jpeg" ? "jpg" : file.type === "image/png" ? "png" : "webp";
+        const path = `${roomState.property_id}/${exceptionRoom.room_state_id}/${crypto.randomUUID()}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from("housekeeping-evidence").upload(path, file, { contentType: file.type, cacheControl: "3600", upsert: false });
+        if (uploadError) throw uploadError;
+        const { data: signed, error: signedError } = await supabase.storage.from("housekeeping-evidence").createSignedUrl(path, 3600);
+        if (signedError || !signed?.signedUrl) throw signedError ?? new Error("Photo uploaded but preview could not be prepared.");
+        uploaded.push({ path, signedUrl: signed.signedUrl, name: file.name, contentType: file.type, size: file.size });
+      }
+      setExceptionEvidence((current) => [...current, ...uploaded]);
+    } catch (e) {
+      if (uploaded.length) await supabase.storage.from("housekeeping-evidence").remove(uploaded.map((item) => item.path));
+      setError(e instanceof Error ? e.message : "Photograph upload failed.");
+    } finally { setEvidenceBusy(false); }
+  }
 
   const refresh = async () => {
     await Promise.all([
@@ -371,7 +403,7 @@ function HousekeepingPage() {
                         <Play className="h-4 w-4" /> Start cleaning
                       </button>
                     )}
-                    <button className="rounded-lg border px-3 py-2 text-sm" onClick={() => { setExceptionRoom(task); setExceptionTitle(""); setExceptionNotes(""); setError(null); }}>Report issue</button>                    {task.status === "in_progress" && (
+                    <button className="rounded-lg border px-3 py-2 text-sm" onClick={() => { setExceptionRoom(task); setExceptionTitle(""); setExceptionNotes(""); setExceptionEvidence([]); setExceptionType(""); setError(null); }}>Report issue</button>                    {task.status === "in_progress" && (
                       <button className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground" onClick={() => setNoteTask(task.id)}>
                         <CheckCircle2 className="h-4 w-4" /> Complete cleaning
                       </button>
@@ -572,6 +604,7 @@ function HousekeepingPage() {
                 <div className="flex items-start justify-between gap-3"><div><div className="text-lg font-semibold">{row.unit_label}</div><div className="text-sm text-muted-foreground">{row.room_name}</div></div><span className="rounded-full border px-2 py-1 text-[11px] font-medium capitalize">{row.exception_type.replace("_"," ")}</span></div>
                 <div className="mt-3 font-medium">{row.title}</div>
                 {row.notes && <div className="mt-1 text-sm text-muted-foreground">{row.notes}</div>}
+                <HousekeepingEvidenceGallery evidence={row.evidence} />
                 <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground"><span>Severity {row.severity}</span><span>{new Date(row.created_at).toLocaleString()}</span></div>
                 <button className="mt-3 w-full rounded-lg border px-3 py-2 text-sm" onClick={() => run(() => resolveExceptionFn({ data: { exceptionId: row.id, resolution: "Resolved from Housekeeping." } }))}>Mark resolved</button>
               </article>
@@ -583,7 +616,7 @@ function HousekeepingPage() {
       {exceptionRoom && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
           <div className="w-full rounded-t-2xl border bg-card p-5 shadow-xl sm:max-w-xl sm:rounded-2xl">
-            <div className="flex items-start justify-between"><div><div className="text-xl font-semibold">Report issue — {exceptionRoom.unit_label}</div><div className="text-sm text-muted-foreground">{exceptionRoom.room_name}</div></div><button className="rounded-lg border p-2" onClick={() => setExceptionRoom(null)}><XCircle className="h-5 w-5" /></button></div>
+            <div className="flex items-start justify-between"><div><div className="text-xl font-semibold">Report issue — {exceptionRoom.unit_label}</div><div className="text-sm text-muted-foreground">{exceptionRoom.room_name}</div></div><button className="rounded-lg border p-2" onClick={async () => { if (exceptionEvidence.length) await supabase.storage.from("housekeeping-evidence").remove(exceptionEvidence.map((item) => item.path)); setExceptionEvidence([]); setExceptionRoom(null); }}><XCircle className="h-5 w-5" /></button></div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <select className="rounded-lg border bg-background p-3 text-sm" value={exceptionType} onChange={(e) => setExceptionType(e.target.value as typeof exceptionType)}><option value="">Choose issue type…</option>
                     <option value="maintenance">Maintenance</option><option value="dnd">Do Not Disturb</option><option value="discrepancy">Room discrepancy</option><option value="damage">Damage</option><option value="lost_found">Lost & found</option><option value="linen_amenity">Linen / amenity</option></select>
@@ -591,7 +624,29 @@ function HousekeepingPage() {
             </div>
             <input value={exceptionTitle} onChange={(e) => setExceptionTitle(e.target.value)} className="mt-3 w-full rounded-lg border bg-background p-3 text-sm" placeholder="Issue title" />
             <textarea value={exceptionNotes} onChange={(e) => setExceptionNotes(e.target.value)} className="mt-3 min-h-28 w-full rounded-lg border bg-background p-3 text-sm" placeholder="Details, location, missing item, damage description, or re-clean instructions…" />
-            <button disabled={exceptionTitle.trim().length < 2} className="mt-3 w-full rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground disabled:opacity-50" onClick={() => run(async () => { await reportExceptionFn({ data: { roomStateId: exceptionRoom.room_state_id, taskId: exceptionRoom.id, exceptionType, title: exceptionTitle, notes: exceptionNotes || undefined, severity: exceptionSeverity, evidence: [] } }); setExceptionRoom(null); })}>Report exception</button>
+            <div className="mt-4 space-y-3 rounded-lg border p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div><div className="text-sm font-medium">Photographic evidence</div><div className="text-xs text-muted-foreground">Up to 6 photos · JPEG, PNG or WebP · 8 MB each</div></div>
+                {evidenceBusy && <span className="text-xs text-muted-foreground">Uploading…</span>}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 py-3 text-sm hover:bg-accent">
+                  <Camera className="h-4 w-4" /> Take photo
+                  <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="sr-only" disabled={evidenceBusy || exceptionEvidence.length >= 6} onChange={(e) => { void addExceptionPhotos(e.currentTarget.files); e.currentTarget.value = ""; }} />
+                </label>
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 py-3 text-sm hover:bg-accent">
+                  <ImagePlus className="h-4 w-4" /> Choose photos
+                  <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" disabled={evidenceBusy || exceptionEvidence.length >= 6} onChange={(e) => { void addExceptionPhotos(e.currentTarget.files); e.currentTarget.value = ""; }} />
+                </label>
+              </div>
+              {exceptionEvidence.length > 0 && <div className="grid grid-cols-3 gap-2">{exceptionEvidence.map((item) => (
+                <div key={item.path} className="relative">
+                  <img src={item.signedUrl} alt={item.name} className="aspect-square w-full rounded-md border object-cover" />
+                  <button type="button" aria-label="Remove photograph" className="absolute right-1 top-1 rounded-full bg-background/90 p-1 shadow" onClick={async () => { await supabase.storage.from("housekeeping-evidence").remove([item.path]); setExceptionEvidence((current) => current.filter((photo) => photo.path !== item.path)); }}><Trash2 className="h-3.5 w-3.5" /></button>
+                </div>
+              ))}</div>}
+            </div>
+            <button disabled={exceptionTitle.trim().length < 2 || !exceptionType || evidenceBusy} className="mt-3 w-full rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground disabled:opacity-50" onClick={() => run(async () => { await reportExceptionFn({ data: { roomStateId: exceptionRoom.room_state_id, taskId: exceptionRoom.id, exceptionType, title: exceptionTitle, notes: exceptionNotes || undefined, severity: exceptionSeverity, evidence: exceptionEvidence.map(({ path, name, contentType, size }) => ({ path, name, contentType, size })) } }); setExceptionRoom(null); setExceptionEvidence([]); })}>Report exception</button>
           </div>
         </div>
       )}
@@ -601,4 +656,21 @@ function HousekeepingPage() {
       </div>
     </div>
   );
+}
+
+
+function HousekeepingEvidenceGallery({ evidence }: { evidence: unknown }) {
+  const [photos, setPhotos] = useState<Array<{ path: string; name: string; url: string }>>([]);
+  useEffect(() => {
+    let active = true;
+    const items = Array.isArray(evidence) ? evidence.filter((item): item is { path: string; name?: string } => !!item && typeof item === "object" && typeof (item as any).path === "string") : [];
+    if (!items.length) { setPhotos([]); return; }
+    void Promise.all(items.map(async (item) => {
+      const { data, error } = await supabase.storage.from("housekeeping-evidence").createSignedUrl(item.path, 3600);
+      return !error && data?.signedUrl ? { path: item.path, name: item.name ?? "Housekeeping evidence", url: data.signedUrl } : null;
+    })).then((results) => { if (active) setPhotos(results.filter((item): item is { path: string; name: string; url: string } => item !== null)); });
+    return () => { active = false; };
+  }, [evidence]);
+  if (!photos.length) return null;
+  return <div className="mt-3 grid grid-cols-3 gap-2">{photos.map((photo) => <a key={photo.path} href={photo.url} target="_blank" rel="noreferrer" className="block"><img src={photo.url} alt={photo.name} className="aspect-square w-full rounded-md border object-cover" /></a>)}</div>;
 }
