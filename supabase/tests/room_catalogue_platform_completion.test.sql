@@ -4,6 +4,7 @@
 DO $test$
 DECLARE
   v_user uuid := '10000000-0000-0000-0000-000000000001';
+  v_org uuid := '50000000-0000-0000-0000-000000000001';
   v_property_a uuid := 'f44ff48a-5449-4464-b0cb-83295fadb468';
   v_property_b uuid := '20000000-0000-0000-0000-000000000002';
   v_category_a uuid := '30000000-0000-0000-0000-000000000001';
@@ -17,9 +18,11 @@ DECLARE
   v_failed boolean;
 BEGIN
   INSERT INTO auth.users(id) VALUES (v_user);
-  INSERT INTO public.staynas_properties(id,name,status,currency) VALUES
-    (v_property_a,'Nolmark CDMA','active','TZS'),
-    (v_property_b,'Tenant B','active','USD');
+  INSERT INTO public.staynas_organisations(id,slug,name) VALUES
+    (v_org,'rc-rb-01-test-organisation','RC-RB-01 Test Organisation');
+  INSERT INTO public.staynas_properties(id,organisation_id,slug,code,name,status,currency) VALUES
+    (v_property_a,v_org,'rc-rb-01-nolmark-property','RC-RB-01-A','Nolmark CDMA','active','TZS'),
+    (v_property_b,v_org,'rc-rb-01-tenant-b-property','RC-RB-01-B','Tenant B','active','USD');
   INSERT INTO public.staynas_property_members(property_id,user_id,status) VALUES
     (v_property_a,v_user,'active');
   INSERT INTO public.staynas_property_domains(property_id,hostname,verification_status,verified_at) VALUES
