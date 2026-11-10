@@ -55,7 +55,7 @@ DROP POLICY IF EXISTS "Public read active room categories" ON public.room_catego
 
 CREATE POLICY "Property members read active rooms"
   ON public.rooms FOR SELECT TO authenticated
-  USING (status = 'active' AND public.staynas_user_has_property_access(auth.uid(), property_id));
+  USING (public.staynas_user_has_property_access(auth.uid(), property_id));
 
 CREATE POLICY "Property members read active room categories"
   ON public.room_categories FOR SELECT TO authenticated
