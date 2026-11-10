@@ -187,7 +187,12 @@ BEGIN
       'message','Eligible rate plan and latest publication could not be resolved consistently');
   END IF;
   v_transaction_currency := upper(COALESCE(v_plan.currency,''));
-  IF v_transaction_currency !~ '^[A-Z]{3}  v_data := v_publication.resolved_data;
+  IF v_transaction_currency !~ '^[A-Z]{3}$' THEN
+    RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH',
+      'message','Published rate-plan transaction currency must be a valid ISO 4217 code');
+  END IF;
+
+  v_data := v_publication.resolved_data;
   v_base := COALESCE(v_data->'base_rates','{}'::jsonb);
   v_daily := COALESCE(v_data->'daily_rates','{}'::jsonb);
   v_seasons := COALESCE(v_data->'seasonal_rates','{}'::jsonb);
