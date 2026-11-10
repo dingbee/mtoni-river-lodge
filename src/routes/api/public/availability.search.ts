@@ -55,7 +55,7 @@ export const Route = createFileRoute("/api/public/availability/search")({
           .map((r: any) => ({
             slug: r.slug,
             name: r.name,
-            base_price: Number(r.base_price),
+            base_price: r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" ? null : Number(r.base_price),
             currency: r.currency,
             max_occupancy: r.max_occupancy,
             nights: r.nights,
