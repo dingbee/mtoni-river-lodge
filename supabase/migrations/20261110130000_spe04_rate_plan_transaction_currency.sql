@@ -141,7 +141,7 @@ BEGIN
     END IF;
     IF upper(COALESCE(v_room.currency,''))<>v_property_currency THEN
       RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH',
-        'message','Legacy room currency does not match property currency');
+        'message','Legacy room currency is inconsistent with property operating currency');
     END IF;
     RETURN jsonb_build_object(
       'ok',true,'mode','legacy','rate_plan_id',NULL,'publication_id',NULL,
