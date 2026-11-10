@@ -2,6 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolvePublicDirectBookingChannel } from "./public-booking-channel.server";
 import { newBookingSessionId } from "./booking-session";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+type QueryMock = {
+  select: ReturnType<typeof vi.fn>;
+  eq: ReturnType<typeof vi.fn>;
+  not: ReturnType<typeof vi.fn>;
+  maybeSingle: ReturnType<typeof vi.fn>;
+};
 
 type Fixture = {
   domain?: Record<string, unknown> | null;
@@ -18,12 +26,13 @@ function fakeSupabase(fixture: Fixture) {
   };
   const client = {
     from: vi.fn((table: string) => {
-      const query: any = {
+      const query = {} as QueryMock;
+      Object.assign(query, {
         select: vi.fn(() => query),
         eq: vi.fn(() => query),
         not: vi.fn(() => query),
         maybeSingle: vi.fn(async () => ({ data: rows[table] ?? null, error: null })),
-      };
+      });
       queries.set(table, query);
       return query;
     }),
@@ -58,7 +67,7 @@ const validFixture: Fixture = {
 describe("resolvePublicDirectBookingChannel", () => {
   it("resolves only the exact verified Nolmark CDMA host and published /book channel", async () => {
     const { client, queries } = fakeSupabase(validFixture);
-    const result = await resolvePublicDirectBookingChannel(client as any, "CDMA-UAT.EXAMPLE.TEST:443");
+    const result = await resolvePublicDirectBookingChannel(client as unknown as SupabaseClient, "CDMA-UAT.EXAMPLE.TEST:443");
 
     expect(result).toEqual({
       propertyId: validFixture.domain?.property_id,
