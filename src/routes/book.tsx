@@ -115,6 +115,10 @@ function BookPage() {
   // Step + session live in the URL so back/forward is always explicit
   // routing, never a browser-history pop into a different session.
   const { step: stepNum, session: incomingSession, room: incomingRoom } = Route.useSearch();
+  const validIncomingSession =
+    typeof incomingSession === "string" && /^[a-zA-Z0-9_-]{24,120}$/.test(incomingSession)
+      ? incomingSession
+      : undefined;
   const navigate = Route.useNavigate();
   const step: Step = NUM_TO_STEP[stepNum as 1 | 2 | 3 | 4];
 
@@ -137,7 +141,7 @@ function BookPage() {
     const storedRoomSlug = stored.selectedRoom?.slug;
 
     const sessionMatches =
-      !!incomingSession && !!stored.sessionId && stored.sessionId === incomingSession;
+      !!validIncomingSession && !!stored.sessionId && stored.sessionId === validIncomingSession;
     const roomMatches = !incomingRoom
       ? true
       : !!storedRoomSlug && storedRoomSlug === incomingRoom;
@@ -149,7 +153,7 @@ function BookPage() {
         if (typeof window !== "undefined") window.sessionStorage.removeItem(STORAGE_KEY);
       } catch { /* sessionStorage can be unavailable in private browsing contexts */ }
       bootstrapRef.current = {
-        sessionId: incomingSession ?? newBookingSessionId(),
+        sessionId: validIncomingSession ?? newBookingSessionId(),
         state: {},
       };
     } else {
@@ -223,11 +227,11 @@ function BookPage() {
   // clicks "Check Availability" from a different room without a full reload),
   // wipe all wizard state and adopt the new session.
   useEffect(() => {
-    if (!incomingSession || incomingSession === sessionId) return;
+    if (!validIncomingSession || validIncomingSession === sessionId) return;
     try {
       if (typeof window !== "undefined") window.sessionStorage.removeItem(STORAGE_KEY);
     } catch { /* sessionStorage can be unavailable in private browsing contexts */ }
-    setSessionId(incomingSession);
+    setSessionId(validIncomingSession);
     setCheckIn("");
     setCheckOut("");
     setAdults(2);
@@ -240,7 +244,7 @@ function BookPage() {
     setSelectedExtras([]);
     setGuest({ name: "", email: "", phone: "", country: "", requests: "", purpose: "" });
     setConfirmation(null);
-  }, [incomingSession, sessionId, incomingRoom]);
+  }, [validIncomingSession, sessionId, incomingRoom]);
 
   // Single source of truth for step transitions — writes the step to the URL
   // via navigate(). Never relies on window.history.back / navigate(-1), so
