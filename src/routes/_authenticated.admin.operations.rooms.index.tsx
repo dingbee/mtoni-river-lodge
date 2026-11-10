@@ -36,7 +36,13 @@ function RoomBoardPage() {
           ) : undefined
         }
       />
-      {q.isLoading ? <p className="text-sm text-muted-foreground">Loading…</p> : (
+      {q.isLoading ? <p className="text-sm text-muted-foreground">Loading…</p> : q.isError ? (
+        <div role="alert" className="rounded-lg border border-destructive/30 p-6">
+          <p className="text-sm font-medium">Room Board could not be loaded.</p>
+          <p className="mt-1 text-sm text-muted-foreground">{q.error instanceof Error ? q.error.message : "Please retry the room inventory query."}</p>
+          <Button className="mt-3" variant="outline" onClick={() => q.refetch()}>Retry</Button>
+        </div>
+      ) : (
         <RoomStatusBoard states={d.states} />
       )}
     </div>
