@@ -371,3 +371,103 @@ export const setPropertyPaymentProviderStatus = createServerFn({ method: "POST" 
     await auditProviderChange(admin, actor, "provider.property_status_changed", provider.id, { status: data.status });
     return { id: provider.id, status: data.status };
   });
+
+
+/** Founder-only property directory and guest-payment configurations for the founder console. */
+export const listFounderGuestPaymentProviders = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await resolveVerifiedFounderActor(context);
+    const admin = await getAdmin();
+    const { data: properties, error: propertiesError } = await admin.from("staynas_properties")
+      .select("id,organisation_id,name,status").order("name", { ascending: true });
+    if (propertiesError) throw new Error("Property directory could not be loaded.");
+    const { data: organisations, error: organisationsError } = await admin.from("staynas_organisations")
+      .select("id,name,slug");
+    if (organisationsError) throw new Error("Organisation directory could not be loaded.");
+    const { data: configs, error: configsError } = await admin.from("staynas_guest_payment_provider_accounts")
+      .select("*").order("provider", { ascending: true });
+    if (configsError) throw new Error("Guest payment provider configurations could not be loaded.");
+    const organisationById = new Map((organisations ?? []).map((row: {id:string;name:string;slug:string}) => [row.id,row]));
+    return (properties ?? []).map((property: {id:string;organisation_id:string;name:string;status:string}) => ({
+      id: property.id,
+      name: property.name,
+      status: property.status,
+      organisationId: property.organisation_id,
+      organisationName: organisationById.get(property.organisation_id)?.name ?? "Organisation",
+      providers: ((configs ?? []) as ProviderConfigRow[])
+        .filter((row) => (row as ProviderConfigRow & {organisation_id?:string;property_id?:string}).property_id === property.id
+          && (row as ProviderConfigRow & {organisation_id?:string}).organisation_id === property.organisation_id)
+        .map((row) => safeProviderRow(row, "property_guest")),
+    }));
+  });
+
+export const saveFounderPropertyPaymentProviderConfig = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => saveProviderInput.extend({ propertyId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const actor = await resolveVerifiedFounderActor(context);
+    const admin = await getAdmin();
+    const { data: property, error: propertyError } = await admin.from("staynas_properties")
+      .select("id,organisation_id").eq("id", data.propertyId).maybeSingle();
+    if (propertyError || !property) throw new Error("Selected property was not found.");
+    const publicConfiguration = validatePublicConfiguration(data.publicConfiguration);
+    const { data: existing, error: lookupError } = await admin.from("staynas_guest_payment_provider_accounts")
+      .select("id,credential_secret_ref").eq("organisation_id", property.organisation_id)
+      .eq("property_id", property.id).eq("provider", data.provider)
+      .eq("provider_account_ref", data.accountReference).maybeSingle();
+    if (lookupError) throw new Error("Existing property provider configuration could not be checked.");
+    const credentialSecretRef = data.credentialsJson
+      ? await storeProviderCredentials(admin, data.credentialsJson, `staynas-property-${property.id}-${data.provider}-${data.accountReference}`)
+      : null;
+    if (!existing && !credentialSecretRef && !["bank_transfer", "manual"].includes(data.provider)) {
+      throw new Error("Credentials are required when first configuring this provider.");
+    }
+    const values = {
+      organisation_id: property.organisation_id,
+      property_id: property.id,
+      provider: data.provider,
+      provider_account_ref: data.accountReference,
+      environment: data.environment,
+      supported_currencies: [...new Set(data.supportedCurrencies)],
+      public_configuration: publicConfiguration,
+      ...(credentialSecretRef ? { credential_secret_ref: credentialSecretRef, credential_updated_at: new Date().toISOString() } : {}),
+      integration_status: "adapter_pending",
+      status: "inactive",
+      updated_at: new Date().toISOString(),
+      ...(!existing ? { created_by: actor.userId } : {}),
+    };
+    const query = existing
+      ? admin.from("staynas_guest_payment_provider_accounts").update(values).eq("id", existing.id).select("*").single()
+      : admin.from("staynas_guest_payment_provider_accounts").insert(values).select("*").single();
+    const { data: saved, error } = await query;
+    if (error || !saved) throw new Error("Property guest-payment provider configuration could not be saved.");
+    await auditProviderChange(admin, actor, "provider.property_configured", saved.id, {
+      propertyId: property.id, organisationId: property.organisation_id,
+      provider: data.provider, environment: data.environment, status: "inactive",
+      credentialsUpdated: Boolean(credentialSecretRef),
+    });
+    return safeProviderRow(saved as ProviderConfigRow, "property_guest");
+  });
+
+export const setFounderGuestCheckoutProvider = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ propertyId: z.string().uuid(), providerConfigId: z.string().uuid().nullable() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const actor = await resolveVerifiedFounderActor(context);
+    const admin = await getAdmin();
+    const { data: property, error: propertyError } = await admin.from("staynas_properties")
+      .select("id,organisation_id").eq("id", data.propertyId).maybeSingle();
+    if (propertyError || !property) throw new Error("Selected property was not found.");
+    const { data: selectedId, error } = await admin.rpc("staynas_set_guest_checkout_provider", {
+      _organisation_id: property.organisation_id,
+      _property_id: property.id,
+      _provider_config_id: data.providerConfigId,
+    });
+    if (error) throw new Error(error.message || "Guest checkout provider could not be updated.");
+    await auditProviderChange(admin, actor,
+      data.providerConfigId ? "provider.guest_checkout_enabled" : "provider.guest_checkout_disabled",
+      data.providerConfigId ?? property.id,
+      { propertyId: property.id, organisationId: property.organisation_id, selectedProviderConfigId: selectedId });
+    return { selectedProviderConfigId: selectedId as string | null };
+  });
