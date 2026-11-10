@@ -229,7 +229,7 @@ function PaymentProviderSettings() {
 
 
       {!isFounder && (
-        <SectionCard title="Guest checkout controls" description="Choose the single certified provider guests can use at this property. Turning online payments off leaves Pay at Property as the checkout method.">
+        <SectionCard title="Guest checkout controls" description="Select one certified provider account for this property, or leave online payments disabled. Pay at Property remains available as the fallback.">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-3">
               <div>
@@ -255,7 +255,7 @@ function PaymentProviderSettings() {
                   <Button size="sm" variant={row.status === "active" ? "default" : "outline"}
                     disabled={guestCheckoutMutation.isPending || row.status === "active" || row.integrationStatus !== "ready"}
                     onClick={() => guestCheckoutMutation.mutate(row.id)}>
-                    {row.status === "active" ? "Selected" : row.integrationStatus === "ready" ? "Use for checkout" : "Adapter not certified"}
+                    {row.status === "active" ? "Selected" : row.integrationStatus === "ready" ? "Select provider" : "Adapter not certified"}
                   </Button>
                 </div>
               ))}
