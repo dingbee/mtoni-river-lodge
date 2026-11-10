@@ -11,6 +11,8 @@ on:
       - "src/routes/book.tsx"
       - "src/routes/api/public/**"
       - "src/lib/email-templates/**"
+      - "src/domains/finance/rate-plans.functions.ts"
+      - "src/routes/_authenticated.admin.finance.rate-plans.tsx"
       - "vite.config.ts"
       - "supabase/migrations/**"
       - "supabase/tests/**"
@@ -54,6 +56,8 @@ jobs:
           src/routes/api/public/rooms.status.ts
           src/lib/email-templates/_shared.tsx
           src/lib/email-templates/booking-received.tsx
+          src/domains/finance/rate-plans.functions.ts
+          src/routes/_authenticated.admin.finance.rate-plans.tsx
           vite.config.ts
           --rule 'prettier/prettier: off'
 
