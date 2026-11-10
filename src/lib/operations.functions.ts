@@ -105,6 +105,7 @@ export const getRoomBoard = createServerFn({ method: "GET" })
     ]);
     const rooms = new Map<string, any>((roomsRes.data ?? []).map((r: any) => [r.id, r]));
     return {
+      propertyId,
       rooms: roomsRes.data ?? [],
       states: (statesRes.data ?? []).map((s: any) => ({
         ...s,
