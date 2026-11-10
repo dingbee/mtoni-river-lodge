@@ -91,7 +91,8 @@ export const savePlatformRoomType = createServerFn({ method: "POST" })
       if (error || !category) throw new Error("Selected category does not belong to the active property");
     }
     const { data: existing, error: existingError } = data.id ? await sb.from("rooms").select("total_units,base_price,currency,included_guests,extra_guest_fee,configuration_source").eq("id",data.id).eq("property_id",propertyId).single() : { data:null, error:null };
-    if (existingError) throw new Error(existingError.message);\n    if (data.id && existing?.configuration_source !== "tenant_configured") throw new Error("Legacy or unverified room records cannot be adopted or edited as tenant configuration.");
+    if (existingError) throw new Error(existingError.message);
+    if (data.id && existing?.configuration_source !== "tenant_configured") throw new Error("Legacy or unverified room records cannot be adopted or edited as tenant configuration.");
     const { data: property, error: propertyError } = await sb.from("staynas_properties").select("currency").eq("id",propertyId).single();
     if (propertyError) throw new Error(propertyError.message);
     if (!existing && !property.currency) throw new Error("Configure the property currency before creating room types");
