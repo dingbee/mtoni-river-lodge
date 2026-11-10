@@ -212,9 +212,14 @@ BEGIN
    'folioReference',v_booking.reference,'amount',v_op.amount,'currency',v_op.currency);
  END IF;
  IF v_op.state<>'AUTHORIZED' OR v_op.expires_at<=clock_timestamp() THEN
-  UPDATE public.lb03_room_charge_operations SET state='EXPIRED',updated_at=now()
-   WHERE id=v_op.id AND state='AUTHORIZED';
-  RAISE EXCEPTION 'Authorization is not active' USING ERRCODE='22023';
+  IF v_op.state='AUTHORIZED' THEN
+   UPDATE public.lb03_room_charge_operations SET state='EXPIRED',last_error_code='authorization_expired',
+    last_error_at=now(),updated_at=now() WHERE id=v_op.id;
+   INSERT INTO public.lb03_room_charge_audit(operation_id,event_type,prior_state,next_state,actor_product,correlation_id,evidence)
+    VALUES(v_op.id,'room_charge.authorization_expired','AUTHORIZED','EXPIRED','system',v_op.correlation_id,'{}'::jsonb);
+  END IF;
+  RETURN jsonb_build_object('status',CASE WHEN v_op.expires_at<=clock_timestamp() THEN 'EXPIRED' ELSE v_op.state END,
+   'duplicate',true,'authorizationReference',v_op.authorization_reference);
  END IF;
  PERFORM pg_advisory_xact_lock(hashtextextended(v_op.connection_id::text||':'||v_op.pos_transaction_id::text,0));
  SELECT * INTO v_booking FROM public.bookings WHERE id=v_op.booking_id FOR UPDATE;
@@ -222,7 +227,23 @@ BEGIN
    OR v_booking.check_out<=current_date OR upper(v_booking.currency)<>v_op.currency THEN
   UPDATE public.lb03_room_charge_operations SET state='POSTING_FAILED',
    last_error_code='stay_or_currency_changed',last_error_at=now(),updated_at=now() WHERE id=v_op.id;
-  RAISE EXCEPTION 'Stay or folio currency is no longer eligible' USING ERRCODE='22023';
+  INSERT INTO public.lb03_room_charge_audit(operation_id,event_type,prior_state,next_state,actor_product,correlation_id,evidence)
+   VALUES(v_op.id,'room_charge.posting_rejected','AUTHORIZED','POSTING_FAILED','system',v_op.correlation_id,
+    jsonb_build_object('reason','stay_or_currency_changed'));
+  RETURN jsonb_build_object('status','POSTING_FAILED','duplicate',false,'failureCode','stay_or_currency_changed');
+ END IF;
+ SELECT * INTO v_posting FROM public.pms_folio_postings
+  WHERE source_system='lexibite' AND source_tenant_id=v_op.pos_tenant_id
+   AND source_order_id=v_op.pos_transaction_id AND status='posted'
+  FOR UPDATE;
+ IF FOUND THEN
+  UPDATE public.lb03_room_charge_operations SET state='RECONCILIATION_REQUIRED',
+   last_error_code='preexisting_folio_posting',last_error_at=now(),updated_at=now() WHERE id=v_op.id;
+  INSERT INTO public.lb03_room_charge_audit(operation_id,event_type,prior_state,next_state,actor_product,correlation_id,evidence)
+   VALUES(v_op.id,'room_charge.preexisting_posting_detected','AUTHORIZED','RECONCILIATION_REQUIRED','system',v_op.correlation_id,
+    jsonb_build_object('existingPostingId',v_posting.id,'existingPostingReference',v_posting.posting_reference));
+  RETURN jsonb_build_object('status','RECONCILIATION_REQUIRED','duplicate',false,
+   'existingPostingReference',v_posting.posting_reference);
  END IF;
  v_ref:='FOL-LB03-'||upper(substr(replace(gen_random_uuid()::text,'-',''),1,20));
  INSERT INTO public.pms_folio_postings(
