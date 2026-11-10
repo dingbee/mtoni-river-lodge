@@ -15,7 +15,8 @@ import {
   savePlatformPaymentProviderConfig,
   savePropertyPaymentProviderConfig,
   setPlatformPaymentProviderStatus,
-  setPropertyPaymentProviderStatus,\n  setPropertyGuestCheckoutProvider,
+  setPropertyPaymentProviderStatus,
+  setPropertyGuestCheckoutProvider,
 } from "@/domains/payments/payment-provider-management.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/settings/payment-providers")({
@@ -57,7 +58,8 @@ function PaymentProviderSettings() {
   const savePlatformFn = useServerFn(savePlatformPaymentProviderConfig);
   const savePropertyFn = useServerFn(savePropertyPaymentProviderConfig);
   const setPlatformStatusFn = useServerFn(setPlatformPaymentProviderStatus);
-  const setPropertyStatusFn = useServerFn(setPropertyPaymentProviderStatus);\n  const setGuestCheckoutProviderFn = useServerFn(setPropertyGuestCheckoutProvider);
+  const setPropertyStatusFn = useServerFn(setPropertyPaymentProviderStatus);
+  const setGuestCheckoutProviderFn = useServerFn(setPropertyGuestCheckoutProvider);
   const founderStatus = useQuery({ queryKey: ["settings.founder-admin-status"], queryFn: () => founderStatusFn() });
   const isFounder = founderStatus.data?.isFounderAdmin === true;
   const platformQuery = useQuery({
