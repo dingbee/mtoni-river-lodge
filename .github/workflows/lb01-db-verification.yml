@@ -31,3 +31,7 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql -h localhost -U postgres -d staynas_lb01_test -v ON_ERROR_STOP=1 -f supabase/verification/lb01_product_connection_persistence.sql
+      - name: Apply and verify the complete StayNas LB-02 migration chain
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d staynas_lb01_test -v ON_ERROR_STOP=1 -f supabase/verification/lb02_stay_outbox.sql
