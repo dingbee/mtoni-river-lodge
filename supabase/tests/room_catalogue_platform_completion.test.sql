@@ -28,9 +28,11 @@ BEGIN
   INSERT INTO public.staynas_property_domains(property_id,hostname,verification_status,verified_at) VALUES
     (v_property_a,'nolmarkcdma.staynas.com','verified',now()),
     (v_property_b,'tenant-b.example','verified',now());
+  -- Keep fixture slugs distinct: clean CI retains a legacy global slug
+  -- constraint, while deployed schemas use the property-scoped unique index.
   INSERT INTO public.room_categories(id,property_id,slug,name,status) VALUES
-    (v_category_a,v_property_a,'standard','Standard','active'),
-    (v_category_b,v_property_b,'standard','Standard','active');
+    (v_category_a,v_property_a,'standard-a','Standard','active'),
+    (v_category_b,v_property_b,'standard-b','Standard','active');
   INSERT INTO public.rooms(id,property_id,category_id,slug,name,total_units,base_price,currency,status)
   VALUES
     (v_room_a,v_property_a,v_category_a,'room-a','Tenant A Room',1,120,'TZS','active'),
