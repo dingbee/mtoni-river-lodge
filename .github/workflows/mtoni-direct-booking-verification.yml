@@ -1,4 +1,4 @@
-name: Mtoni direct booking connection verification
+name: StayNas tenant-neutral direct booking verification
 
 on:
   pull_request:
