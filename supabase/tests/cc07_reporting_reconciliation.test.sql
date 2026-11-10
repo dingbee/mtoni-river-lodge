@@ -422,8 +422,8 @@ BEGIN
     pricing_snapshot,tax_snapshot
   ) VALUES (
     v_invoice,v_customer_org,v_account,v_old_sub,'CC07-TEST-INV-001','cc07-invoice-test-key',
-    now()-interval '20 days',now()+interval '10 days','TZS','monthly','issued',
-    now()-interval '20 days',now()+interval '10 days',100000,0,0,100000,100000,
+    now()-interval '20 days',now()+interval '10 days','TZS','monthly','draft',
+    NULL,NULL,100000,0,0,100000,0,
     '{"test":true}'::jsonb,'{"test":true}'::jsonb
   );
   INSERT INTO public.commercial_invoice_lines(
@@ -431,6 +431,9 @@ BEGIN
   ) VALUES
     (v_invoice,'cc07-base-line','plan_base','Recurring plan base',1,95000,95000,'{"chargeModel":"recurring"}'::jsonb),
     (v_invoice,'cc07-one-time-line','adjustment','One-time onboarding charge',1,5000,5000,'{"chargeModel":"one_time"}'::jsonb);
+  PERFORM public.commercial_issue_draft_invoice(
+    v_invoice,now()+interval '10 days','CC07-ISSUE-001',v_user
+  );
   PERFORM public.commercial_post_invoice_adjustment(
     v_invoice,'CC07-DEBIT-001','debit_note',50000,'TZS',
     'approved_plan_expansion','CC07-APPROVAL-001',v_user
