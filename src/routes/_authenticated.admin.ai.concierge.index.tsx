@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { StatCard } from "@/components/os/StatCard";
 import { Badge } from "@/components/ui/badge";
+import { GuestRequestsPanel } from "@/domains/ai/concierge/GuestRequestsPanel";
 import {
   listConciergeSessions,
   getConciergeSession,
@@ -109,6 +110,8 @@ function ConciergePage() {
           )}
         </SectionCard>
       </div>
+
+      <GuestRequestsPanel />
     </div>
   );
 }

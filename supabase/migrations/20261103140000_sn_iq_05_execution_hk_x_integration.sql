@@ -185,7 +185,7 @@ BEGIN
     UPDATE public.ops_tasks SET assignee_id = _assignee_id, status = 'pending' WHERE id = _task_id;
   ELSIF _action = 'accept' OR _action = 'start' THEN
     IF _task.assignee_id IS DISTINCT FROM _uid THEN RAISE EXCEPTION 'Only assigned staff can execute this task'; END IF;
-    IF _task.status NOT IN ('pending','assigned','in_progress') THEN RAISE EXCEPTION 'Task cannot be started from its current state'; END IF;
+    IF _task.status NOT IN ('pending','in_progress') THEN RAISE EXCEPTION 'Task cannot be started from its current state'; END IF;
     UPDATE public.ops_tasks SET status = 'in_progress',
       accepted_at = CASE WHEN _action = 'accept' THEN COALESCE(accepted_at,now()) ELSE accepted_at END,
       accepted_by = CASE WHEN _action = 'accept' THEN COALESCE(accepted_by,_uid) ELSE accepted_by END,
@@ -195,7 +195,7 @@ BEGIN
     IF _task.assignee_id IS DISTINCT FROM _uid AND NOT public.has_any_role(_uid, ARRAY['owner','manager','admin']::public.app_role[]) THEN
       RAISE EXCEPTION 'Only assigned staff or a supervisor can complete this task';
     END IF;
-    IF _task.status NOT IN ('pending','assigned','in_progress') THEN RAISE EXCEPTION 'Task is already closed'; END IF;
+    IF _task.status NOT IN ('pending','in_progress') THEN RAISE EXCEPTION 'Task is already closed'; END IF;
     UPDATE public.ops_tasks SET status = 'completed', completed_at = now(),
       execution_notes = COALESCE(NULLIF(_note,''),execution_notes), execution_updated_at = now()
     WHERE id = _task_id;

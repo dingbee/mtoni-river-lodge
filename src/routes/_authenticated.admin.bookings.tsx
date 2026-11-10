@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { NewReservationDialog } from "@/components/os/reservations/NewReservationDialog";
 import { CheckinAccessPanel } from "@/components/os/reservations/CheckinAccessPanel";
 import { ReservationFinancialSummary } from "@/components/os/finance/ReservationFinancialSummary";
+import { GuestPortalAccessPanel } from "@/domains/hospitality/guest-portal";
 
 export const Route = createFileRoute("/_authenticated/admin/bookings")({
   head: () => ({
@@ -364,6 +365,7 @@ function AdminBookings() {
                 )}
 
                 <CheckinAccessPanel bookingId={detail.data.booking.id} />
+                <GuestPortalAccessPanel bookingId={detail.data.booking.id} bookingStatus={detail.data.booking.status} />
 
                 <div className="mt-5">
                   <p className="text-[0.65rem] uppercase tracking-[0.22em] text-muted-foreground">

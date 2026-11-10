@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -15,9 +16,12 @@ export const updateGuestTaskExecution = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => executionSchema.parse(input))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
-    const db = context.supabase as any;
+    const db = context.supabase as unknown as SupabaseClient;
     const { data: result, error } = await db.rpc("staynas_update_guest_task_execution", {
-      _task_id: data.task_id, _action: data.action, _assignee_id: data.assignee_id ?? null, _note: data.note ?? null,
+      _task_id: data.task_id,
+      _action: data.action,
+      _assignee_id: data.assignee_id ?? null,
+      _note: data.note ?? null,
     });
     if (error) throw new Error(error.message);
     const row = Array.isArray(result) ? result[0] : result;
@@ -27,7 +31,15 @@ export const updateGuestTaskExecution = createServerFn({ method: "POST" })
 
 const requestStatusSchema = z.object({
   request_id: z.string().uuid(),
-  status: z.enum(["received", "triaged", "assigned", "in_progress", "fulfilled", "cancelled", "escalated"]),
+  status: z.enum([
+    "received",
+    "triaged",
+    "assigned",
+    "in_progress",
+    "fulfilled",
+    "cancelled",
+    "escalated",
+  ]),
   note: z.string().trim().max(2000).nullable().optional(),
 });
 
@@ -36,9 +48,11 @@ export const updateGuestRequestStatus = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => requestStatusSchema.parse(input))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.concierge");
-    const db = context.supabase as any;
+    const db = context.supabase as unknown as SupabaseClient;
     const { data: result, error } = await db.rpc("staynas_update_guest_request_status", {
-      _request_id: data.request_id, _status: data.status, _note: data.note ?? null,
+      _request_id: data.request_id,
+      _status: data.status,
+      _note: data.note ?? null,
     });
     if (error) throw new Error(error.message);
     const row = Array.isArray(result) ? result[0] : result;
