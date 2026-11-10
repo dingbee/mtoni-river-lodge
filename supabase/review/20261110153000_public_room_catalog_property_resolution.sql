@@ -61,7 +61,7 @@ CREATE POLICY "Property members read active room categories"
   ON public.room_categories FOR SELECT TO authenticated
   USING (status = 'active' AND public.staynas_user_has_property_access(auth.uid(), property_id));
 
-REVOKE SELECT ON TABLE public.rooms, public.room_categories FROM PUBLIC, anon;
+REVOKE ALL PRIVILEGES ON TABLE public.rooms, public.room_categories FROM PUBLIC, anon;
 GRANT SELECT ON TABLE public.rooms, public.room_categories TO authenticated, service_role;
 
 
