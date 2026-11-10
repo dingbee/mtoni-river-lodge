@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { updateRoomState } from "@/lib/operations.functions";
@@ -41,7 +41,7 @@ export function RoomStatusBoard({ states }: { states: State[] }) {
 }
 
 function RoomStateCard({ unit }: { unit: State }) {
-  const [state, setState] = useState<RoomStateValue>(unit.state);
+  const [state, setState] = useState<RoomStateValue>(unit.state);\n  useEffect(() => setState(unit.state), [unit.state]);
   const qc = useQueryClient();
   const fn = useServerFn(updateRoomState);
   const m = useMutation({
@@ -51,7 +51,7 @@ function RoomStateCard({ unit }: { unit: State }) {
       qc.invalidateQueries({ queryKey: ["ops-room-board"] });
       qc.invalidateQueries({ queryKey: ["ops-dashboard"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => { setState(unit.state); toast.error(e.message); },
   });
   return (
     <div className="rounded-lg border bg-card p-3">
@@ -60,7 +60,7 @@ function RoomStateCard({ unit }: { unit: State }) {
         <RoomStateChip state={state} />
       </div>
       <Select value={state} onValueChange={(v) => { setState(v as RoomStateValue); m.mutate(v as RoomStateValue); }}>
-        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+        <SelectTrigger className="h-8 text-xs" disabled={m.isPending}><SelectValue /></SelectTrigger>
         <SelectContent>
           {ROOM_STATES.map((s) => (<SelectItem key={s} value={s} className="text-xs">{s.replace(/_/g, " ")}</SelectItem>))}
         </SelectContent>
