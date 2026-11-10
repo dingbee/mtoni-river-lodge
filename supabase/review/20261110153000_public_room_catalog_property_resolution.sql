@@ -76,7 +76,7 @@ CREATE OR REPLACE FUNCTION public.save_platform_room_type_configuration(
   _short_name text,
   _room_number_label text,
   _short_description text,
-  _description jsonb,
+  _description text[],
   _details jsonb,
   _cta_line text,
   _capacity_adults integer,
@@ -173,7 +173,7 @@ COMMIT;
     ) VALUES (
       _property_id, _category_id, _slug, btrim(_name), NULLIF(btrim(_short_name),''),
       NULLIF(btrim(_room_number_label),''), NULLIF(btrim(_short_description),''),
-      COALESCE(_description,'[]'::jsonb), COALESCE(_details,'[]'::jsonb),
+      COALESCE(_description,'{}'::text[]), COALESCE(_details,'[]'::jsonb),
       NULLIF(btrim(_cta_line),''), _capacity_adults, _capacity_children,
       _max_occupancy, _total_units, _base_price, _currency, _included_guests,
       _extra_guest_fee, _status, COALESCE(_sort_order,0), NULLIF(btrim(_hero_line),''),
@@ -258,7 +258,7 @@ END;
 $;
 
 REVOKE ALL ON FUNCTION public.save_platform_room_type_configuration(
-  uuid,uuid,text,text,uuid,text,text,text,jsonb,jsonb,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text,text[]
+  uuid,uuid,text,text,uuid,text,text,text,text[],jsonb,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text,text[]
 ) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.save_platform_room_type_configuration(
   uuid,uuid,text,text,uuid,text,text,text,jsonb,jsonb,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text,text[]
