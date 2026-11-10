@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/admin/operations/rooms/")(
 
 function RoomBoardPage() {
   const fn = useServerFn(getRoomBoard);
-  const q = useQuery({ queryKey: ["ops-room-board"], queryFn: () => fn(), staleTime: 30_000 });
+  const q = useQuery({ queryKey: ["ops-room-board"], queryFn: () => fn(), staleTime: 0, refetchOnMount: "always", refetchOnWindowFocus: true });
   const rolesQ = useCurrentUserRoles();
   const d: any = q.data ?? { states: [] };
   const canConfigure = canAccessModule("rooms.configure", rolesQ.data ?? []);
