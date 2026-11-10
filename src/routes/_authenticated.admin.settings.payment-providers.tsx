@@ -15,7 +15,7 @@ import {
   savePlatformPaymentProviderConfig,
   savePropertyPaymentProviderConfig,
   setPlatformPaymentProviderStatus,
-  setPropertyPaymentProviderStatus,
+  setPropertyPaymentProviderStatus,\n  setPropertyGuestCheckoutProvider,
 } from "@/domains/payments/payment-provider-management.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/settings/payment-providers")({
@@ -57,7 +57,7 @@ function PaymentProviderSettings() {
   const savePlatformFn = useServerFn(savePlatformPaymentProviderConfig);
   const savePropertyFn = useServerFn(savePropertyPaymentProviderConfig);
   const setPlatformStatusFn = useServerFn(setPlatformPaymentProviderStatus);
-  const setPropertyStatusFn = useServerFn(setPropertyPaymentProviderStatus);
+  const setPropertyStatusFn = useServerFn(setPropertyPaymentProviderStatus);\n  const setGuestCheckoutProviderFn = useServerFn(setPropertyGuestCheckoutProvider);
   const founderStatus = useQuery({ queryKey: ["settings.founder-admin-status"], queryFn: () => founderStatusFn() });
   const isFounder = founderStatus.data?.isFounderAdmin === true;
   const platformQuery = useQuery({
@@ -107,6 +107,16 @@ function PaymentProviderSettings() {
       setCredentialsJson("");
       setAccountReference("");
       queryClient.invalidateQueries({ queryKey: [isFounder ? "payments.platform-provider-configs" : "payments.property-provider-configs"] });
+    },
+    onError: (error: unknown) => toast.error((error as Error).message),
+  });
+
+
+  const guestCheckoutMutation = useMutation({
+    mutationFn: (providerConfigId: string | null) => setGuestCheckoutProviderFn({ data: { providerConfigId } }),
+    onSuccess: () => {
+      toast.success("Guest checkout settings updated.");
+      queryClient.invalidateQueries({ queryKey: ["payments.property-provider-configs"] });
     },
     onError: (error: unknown) => toast.error((error as Error).message),
   });
@@ -216,6 +226,46 @@ function PaymentProviderSettings() {
           </div>
         </form>
       </SectionCard>
+
+
+      {!isFounder && (
+        <SectionCard title="Guest checkout controls" description="Choose the single certified provider guests can use at this property. Turning online payments off leaves Pay at Property as the checkout method.">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-3">
+              <div>
+                <p className="text-sm font-medium">Online guest payments</p>
+                <p className="text-xs text-muted-foreground">
+                  {rows?.some((row) => row.status === "active") ? "Enabled — one provider is selected." : "Disabled — guests can pay at the property."}
+                </p>
+              </div>
+              <Button size="sm" variant="outline"
+                disabled={guestCheckoutMutation.isPending || !rows?.some((row) => row.status === "active")}
+                onClick={() => guestCheckoutMutation.mutate(null)}>
+                Disable online payments
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Select checkout provider</p>
+              {(rows ?? []).map((row) => (
+                <div key={row.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-3">
+                  <div>
+                    <p className="text-sm font-medium">{providers.find((item) => item.value === row.provider)?.label ?? row.provider}</p>
+                    <p className="text-xs text-muted-foreground">{row.accountReference} · {row.environment.toUpperCase()} · {row.integrationStatus.replaceAll("_", " ")}</p>
+                  </div>
+                  <Button size="sm" variant={row.status === "active" ? "default" : "outline"}
+                    disabled={guestCheckoutMutation.isPending || row.status === "active" || row.integrationStatus !== "ready"}
+                    onClick={() => guestCheckoutMutation.mutate(row.id)}>
+                    {row.status === "active" ? "Selected" : row.integrationStatus === "ready" ? "Use for checkout" : "Adapter not certified"}
+                  </Button>
+                </div>
+              ))}
+              {!rows?.some((row) => row.integrationStatus === "ready") && (
+                <p className="text-xs text-muted-foreground">No certified property guest-payment adapter is available yet. Provider credentials can be prepared above, but checkout activation remains blocked until certification.</p>
+              )}
+            </div>
+          </div>
+        </SectionCard>
+      )}
 
       <SectionCard title="Configured providers" description="Credentials are never displayed after saving. Activation is withheld until an approved adapter is available.">
         {isLoading ? (
