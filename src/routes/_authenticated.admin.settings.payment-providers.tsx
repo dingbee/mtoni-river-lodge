@@ -288,12 +288,16 @@ function PaymentProviderSettings() {
                   <p className="mt-1 text-xs text-muted-foreground">{row.hasCredentials ? "Vault credentials saved" : "No credentials saved"}{row.credentialUpdatedAt ? ` · Updated ${new Date(row.credentialUpdatedAt).toLocaleString()}` : ""}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  {row.status === "active" ? (
-                    <Button size="sm" variant="outline" disabled={statusMutation.isPending} onClick={() => statusMutation.mutate({ providerConfigId: row.id, status: "suspended" })}>Suspend</Button>
-                  ) : (
-                    <Button size="sm" variant="outline" disabled={statusMutation.isPending || row.integrationStatus !== "ready"} onClick={() => statusMutation.mutate({ providerConfigId: row.id, status: "active" })}>Activate</Button>
-                  )}
-                  {row.status !== "inactive" && <Button size="sm" variant="ghost" disabled={statusMutation.isPending} onClick={() => statusMutation.mutate({ providerConfigId: row.id, status: "inactive" })}>Set inactive</Button>}
+                  {isFounder ? (
+                    row.status === "active" ? (
+                      <Button size="sm" variant="outline" disabled={statusMutation.isPending} onClick={() => statusMutation.mutate({ providerConfigId: row.id, status: "suspended" })}>Suspend</Button>
+                    ) : (
+                      <Button size="sm" variant="outline" disabled={statusMutation.isPending || row.integrationStatus !== "ready"} onClick={() => statusMutation.mutate({ providerConfigId: row.id, status: "active" })}>Activate</Button>
+                    )
+                  ) : row.status === "active" ? (
+                    <Button size="sm" variant="outline" disabled={guestCheckoutMutation.isPending} onClick={() => guestCheckoutMutation.mutate(null)}>Disable checkout</Button>
+                  ) : null}
+                  {isFounder && row.status !== "inactive" && <Button size="sm" variant="ghost" disabled={statusMutation.isPending} onClick={() => statusMutation.mutate({ providerConfigId: row.id, status: "inactive" })}>Set inactive</Button>}
                 </div>
               </div>
             ))}
