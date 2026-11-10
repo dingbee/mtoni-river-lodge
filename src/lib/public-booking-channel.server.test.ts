@@ -136,6 +136,16 @@ describe("Mtoni payment-pending booking contract", () => {
     expect(route).toContain("/^[a-zA-Z0-9_-]{24,120}$/");
   });
 
+  it("keeps rate-plan transaction currency independent of property operating currency", () => {
+    const ratePlanFunctions = readFileSync(new URL("../domains/finance/rate-plans.functions.ts", import.meta.url), "utf8");
+    const ratePlanPage = readFileSync(new URL("../routes/_authenticated.admin.finance.rate-plans.tsx", import.meta.url), "utf8");
+    expect(ratePlanFunctions).toContain("let ratePlanCurrency = String(data.currency ?? property.currency).toUpperCase()");
+    expect(ratePlanFunctions).toContain("validateSeasonalRateCurrency(effectiveSeasonalRates, ratePlanCurrency)");
+    expect(ratePlanFunctions).toContain("currency: ratePlanCurrency");
+    expect(ratePlanPage).toContain("Guest transaction currency");
+    expect(ratePlanPage).not.toContain("Currency is inherited from the active property and cannot be overridden");
+  });
+
   it("does not cache TanStack server-function responses in the service worker", () => {
     const vite = readFileSync(new URL("../../vite.config.ts", import.meta.url), "utf8");
     expect(vite).toContain('url.pathname.startsWith("/_serverFn")');
