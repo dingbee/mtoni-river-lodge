@@ -64,45 +64,26 @@ CREATE POLICY "Property members read active room categories"
 REVOKE SELECT ON TABLE public.rooms, public.room_categories FROM PUBLIC, anon;
 GRANT SELECT ON TABLE public.rooms, public.room_categories TO authenticated, service_role;
 
+
 -- Room configuration persistence and physical inventory reconciliation.
--- This replaces the app's non-atomic direct rooms-table write with one
--- property-authorized transaction that also reconciles room_states.
+-- One property-authorized transaction writes the room definition and reconciles
+-- its physical room units. Existing occupied/booked/blocked units are protected.
 CREATE OR REPLACE FUNCTION public.save_platform_room_type_configuration(
-  _property_id uuid,
-  _id uuid,
-  _slug text,
-  _name text,
-  _category_id uuid,
-  _short_name text,
-  _room_number_label text,
-  _short_description text,
-  _description text[],
-  _details jsonb,
-  _cta_line text,
-  _capacity_adults integer,
-  _capacity_children integer,
-  _max_occupancy integer,
-  _total_units integer,
-  _base_price numeric,
-  _currency text,
-  _included_guests integer,
-  _extra_guest_fee numeric,
-  _status text,
-  _sort_order integer,
-  _hero_line text,
-  _image_url text,
-  _gallery_urls text[],
-  _size_label text,
-  _view_label text,
-  _bed_label text,
-  _bathroom_label text,
+  _property_id uuid, _id uuid, _slug text, _name text, _category_id uuid,
+  _short_name text, _room_number_label text, _short_description text,
+  _description text[], _details jsonb, _cta_line text,
+  _capacity_adults integer, _capacity_children integer, _max_occupancy integer,
+  _total_units integer, _base_price numeric, _currency text,
+  _included_guests integer, _extra_guest_fee numeric, _status text,
+  _sort_order integer, _hero_line text, _image_url text, _gallery_urls text[],
+  _size_label text, _view_label text, _bed_label text, _bathroom_label text,
   _amenities text[]
 )
 RETURNS uuid
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
-AS $
+AS $func$
 DECLARE
   _room_id uuid;
   _old_units integer := 0;
@@ -117,11 +98,7 @@ BEGIN
       USING ERRCODE = '42501';
   END IF;
 
-  IF _slug IS NULL OR _slug !~ '^[a-z0-9]+(?:-[a-z0-9]+)* IS
-  'Resolves a public booking property only from an exact verified hostname with a published direct_web channel.';
-
-COMMIT;
- THEN
+  IF _slug IS NULL OR _slug !~ '^[a-z0-9]+(-[a-z0-9]+)*$' THEN
     RAISE EXCEPTION 'Invalid room slug' USING ERRCODE = '22023';
   END IF;
   IF _name IS NULL OR btrim(_name) = '' THEN
@@ -137,11 +114,7 @@ COMMIT;
      OR _capacity_children < 0 OR _included_guests < 1 OR _included_guests > _max_occupancy THEN
     RAISE EXCEPTION 'Invalid occupancy configuration' USING ERRCODE = '22023';
   END IF;
-  IF _currency IS NULL OR _currency !~ '^[A-Z]{3} IS
-  'Resolves a public booking property only from an exact verified hostname with a published direct_web channel.';
-
-COMMIT;
- THEN
+  IF _currency IS NULL OR _currency !~ '^[A-Z]{3}$' THEN
     RAISE EXCEPTION 'Currency must be a 3-letter ISO code' USING ERRCODE = '22023';
   END IF;
   IF _status NOT IN ('active','inactive') THEN
@@ -192,32 +165,22 @@ COMMIT;
     END IF;
 
     UPDATE public.rooms SET
-      category_id = _category_id,
-      slug = _slug,
-      name = btrim(_name),
+      category_id = _category_id, slug = _slug, name = btrim(_name),
       short_name = NULLIF(btrim(_short_name),''),
       room_number_label = NULLIF(btrim(_room_number_label),''),
       short_description = NULLIF(btrim(_short_description),''),
-      description = COALESCE(_description,'[]'::jsonb),
+      description = COALESCE(_description,'{}'::text[]),
       details = COALESCE(_details,'[]'::jsonb),
       cta_line = NULLIF(btrim(_cta_line),''),
-      capacity_adults = _capacity_adults,
-      capacity_children = _capacity_children,
-      max_occupancy = _max_occupancy,
-      total_units = _total_units,
-      base_price = _base_price,
-      currency = _currency,
-      included_guests = _included_guests,
-      extra_guest_fee = _extra_guest_fee,
-      status = _status,
-      sort_order = COALESCE(_sort_order,0),
-      hero_line = NULLIF(btrim(_hero_line),''),
-      image_url = NULLIF(btrim(_image_url),''),
+      capacity_adults = _capacity_adults, capacity_children = _capacity_children,
+      max_occupancy = _max_occupancy, total_units = _total_units,
+      base_price = _base_price, currency = _currency,
+      included_guests = _included_guests, extra_guest_fee = _extra_guest_fee,
+      status = _status, sort_order = COALESCE(_sort_order,0),
+      hero_line = NULLIF(btrim(_hero_line),''), image_url = NULLIF(btrim(_image_url),''),
       gallery_urls = COALESCE(_gallery_urls,'{}'),
-      size_label = NULLIF(btrim(_size_label),''),
-      view_label = NULLIF(btrim(_view_label),''),
-      bed_label = NULLIF(btrim(_bed_label),''),
-      bathroom_label = NULLIF(btrim(_bathroom_label),''),
+      size_label = NULLIF(btrim(_size_label),''), view_label = NULLIF(btrim(_view_label),''),
+      bed_label = NULLIF(btrim(_bed_label),''), bathroom_label = NULLIF(btrim(_bathroom_label),''),
       amenities = COALESCE(_amenities,'{}')
     WHERE id = _id AND property_id = _property_id
     RETURNING id INTO _room_id;
@@ -229,13 +192,10 @@ COMMIT;
     FROM generate_series(_old_units + 1, _total_units) AS gs;
   ELSIF _total_units < _old_units THEN
     _remove_count := _old_units - _total_units;
-
     SELECT count(*) INTO _removable_units
     FROM public.room_states
-    WHERE property_id = _property_id
-      AND room_id = _room_id
-      AND booking_id IS NULL
-      AND state IN ('vacant_clean','vacant_dirty');
+    WHERE property_id = _property_id AND room_id = _room_id
+      AND booking_id IS NULL AND state IN ('vacant_clean','vacant_dirty');
 
     IF _removable_units < _remove_count THEN
       RAISE EXCEPTION 'Cannot reduce quantity: physical room units are booked, occupied, blocked or otherwise protected';
@@ -244,10 +204,8 @@ COMMIT;
     DELETE FROM public.room_states
     WHERE id IN (
       SELECT id FROM public.room_states
-      WHERE property_id = _property_id
-        AND room_id = _room_id
-        AND booking_id IS NULL
-        AND state IN ('vacant_clean','vacant_dirty')
+      WHERE property_id = _property_id AND room_id = _room_id
+        AND booking_id IS NULL AND state IN ('vacant_clean','vacant_dirty')
       ORDER BY unit_label DESC
       LIMIT _remove_count
     );
@@ -255,13 +213,13 @@ COMMIT;
 
   RETURN _room_id;
 END;
-$;
+$func$;
 
 REVOKE ALL ON FUNCTION public.save_platform_room_type_configuration(
   uuid,uuid,text,text,uuid,text,text,text,text[],jsonb,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text,text[]
 ) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.save_platform_room_type_configuration(
-  uuid,uuid,text,text,uuid,text,text,text,jsonb,jsonb,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text,text[]
+  uuid,uuid,text,text,uuid,text,text,text,text[],jsonb,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text,text[]
 ) TO authenticated, service_role;
 
 COMMENT ON FUNCTION public.staynas_public_booking_property_id(text) IS
