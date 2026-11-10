@@ -166,6 +166,7 @@ export interface BookingEmailProps {
   deposit?: number | string
   balance?: number | string
   currency?: string
+  paymentState?: "not_configured" | "payment_pending"
 }
 
 export function guestsLine(adults?: number, children?: number): string {

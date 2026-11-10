@@ -7,17 +7,26 @@ export async function requireStayNasModuleAccess(
   userId: string,
   moduleId: StayNasModuleId,
 ): Promise<void> {
-  // userId remains part of the authorization contract; the RPC derives the
-  // roles from the authenticated caller rather than relying on a direct
-  // user_roles SELECT, which is intentionally blocked by RLS.
-  void userId;
+  // Resolve authorization from the tenant the user is actively operating,
+  // never from global legacy user_roles shared across properties.
+  const { data: propertyId, error: propertyError } = await supabase.rpc(
+    "staynas_active_property_id",
+    { _uid: userId },
+  );
+  if (propertyError || !propertyId) throw new Error("Select an active property.");
 
-  const { data, error } = await supabase.rpc("current_user_roles");
+  const { data: membership, error: membershipError } = await (supabase as any)
+    .from("staynas_property_members")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("property_id", propertyId)
+    .eq("status", "active")
+    .maybeSingle();
 
-  if (error) throw new Error(error.message);
+  if (membershipError) throw new Error("Unable to verify property membership.");
+  if (!membership?.role) throw new Error("No active membership for the selected property.");
 
-  const roles = (data ?? []).map((role) => String(role));
-  if (!hasStayNasEntitlement(moduleId, roles)) {
+  if (!hasStayNasEntitlement(moduleId, [String(membership.role)])) {
     throw new Error("Forbidden");
   }
 }

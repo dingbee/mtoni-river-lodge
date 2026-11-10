@@ -4,21 +4,14 @@
 // Staff-only RPCs: room blocks, calendar events, unified calendar payload.
 
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { Database } from "@/integrations/supabase/types";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 import { bookingRpc } from "@/lib/booking-rpc";
 import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
+import { resolvePublicDirectBookingChannel } from "@/lib/public-booking-channel.server";
 
-function publicClient() {
-  return createClient<Database>(
-    process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-  );
-}
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date");
 
@@ -28,7 +21,7 @@ const createHoldSchema = z.object({
   roomSlug: z.string().min(1).max(80),
   checkIn: dateStr,
   checkOut: dateStr,
-  sessionId: z.string().min(6).max(120),
+  sessionId: z.string().min(24).max(120),
   guestEmail: z.string().email().max(255).optional(),
   ttlSeconds: z.number().int().min(60).max(3600).optional(),
 });
@@ -37,8 +30,9 @@ export const createBookingHold = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => createHoldSchema.parse(d))
   .handler(async ({ data }) => {
     if (data.checkOut <= data.checkIn) throw new Error("Check-out must be after check-in");
-    const sb = publicClient();
-    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { supabaseAdmin: sb } = await import("@/integrations/supabase/client.server");
+    const channel = await resolvePublicDirectBookingChannel(sb);
+    const propertyId = channel.propertyId;
     const { data: rows, error } = await bookingRpc(sb).rpc("create_booking_hold", {
       _room_slug: data.roomSlug,
       _check_in: data.checkIn,
@@ -60,11 +54,12 @@ export const createBookingHold = createServerFn({ method: "POST" })
 
 export const releaseBookingHold = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
-    z.object({ holdId: z.string().uuid(), sessionId: z.string().min(6) }).parse(d),
+    z.object({ holdId: z.string().uuid(), sessionId: z.string().min(24) }).parse(d),
   )
   .handler(async ({ data }) => {
-    const sb = publicClient();
-    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { supabaseAdmin: sb } = await import("@/integrations/supabase/client.server");
+    const channel = await resolvePublicDirectBookingChannel(sb);
+    const propertyId = channel.propertyId;
     const { data: ok, error } = await bookingRpc(sb).rpc("release_booking_hold", {
       _hold_id: data.holdId,
       _session_id: data.sessionId,
@@ -76,11 +71,12 @@ export const releaseBookingHold = createServerFn({ method: "POST" })
 
 export const getBookingHold = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
-    z.object({ holdId: z.string().uuid(), sessionId: z.string().min(6) }).parse(d),
+    z.object({ holdId: z.string().uuid(), sessionId: z.string().min(24) }).parse(d),
   )
   .handler(async ({ data }) => {
-    const sb = publicClient();
-    const propertyId = await getConfiguredBookingPropertyId(sb);
+    const { supabaseAdmin: sb } = await import("@/integrations/supabase/client.server");
+    const channel = await resolvePublicDirectBookingChannel(sb);
+    const propertyId = channel.propertyId;
     const { data: rows, error } = await bookingRpc(sb).rpc("get_booking_hold_for_session", {
       _hold_id: data.holdId,
       _session_id: data.sessionId,
@@ -137,7 +133,7 @@ export const listCalendarEvents = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
-    let q: any = context.supabase.from("calendar_events").select(
+    let q = context.supabase.from("calendar_events").select(
       "id, event_type, room_id, booking_id, hold_id, date_from, date_to, actor_id, payload, created_at",
     );
     if (data.from) q = q.gte("created_at", `${data.from}T00:00:00Z`);
@@ -166,7 +162,7 @@ export const listActiveHolds = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
-    const sb: any = context.supabase;
+    const sb = context.supabase as unknown as SupabaseClient;
     let q = sb.from("booking_holds")
       .select("id, room_id, check_in, check_out, expires_at, guest_email, status, session_id, created_at")
       .eq("status", "active")
@@ -186,7 +182,7 @@ export const releaseHoldStaff = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ holdId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
-    const sb: any = context.supabase;
+    const sb = context.supabase as unknown as SupabaseClient;
     const { data: row, error: e1 } = await sb
       .from("booking_holds")
       .select("session_id")
@@ -237,7 +233,7 @@ export const suggestRoomAssignment = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ bookingId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
-    const sb: any = context.supabase;
+    const sb = context.supabase as unknown as SupabaseClient;
     const { data: b, error: be } = await sb
       .from("bookings")
       .select("id, room_id, check_in, check_out, adults, children, special_requests, visit_purpose, guest_type")
@@ -263,8 +259,8 @@ export const suggestRoomAssignment = createServerFn({ method: "POST" })
       climber: b.guest_type === "climber" || /kilimanjaro|climb|trek/.test(hay),
     };
 
-    const scored = ((avail ?? []) as any[])
-      .filter((r) => r.is_available && r.id !== b.room_id && occupants <= r.max_occupancy)
+    const scored = (avail ?? [])
+      .filter((r) => r.is_available && r.room_id !== b.room_id && occupants <= r.max_occupancy)
       .map((r) => {
         const n = `${r.name} ${r.slug}`.toLowerCase();
         let score = 0;
@@ -277,7 +273,7 @@ export const suggestRoomAssignment = createServerFn({ method: "POST" })
         score += Math.max(0, 3 - (r.max_occupancy - occupants));
         // Price proximity — penalise big price jumps.
         return {
-          room_id: r.id as string,
+          room_id: r.room_id,
           slug: r.slug as string,
           name: r.name as string,
           base_price: Number(r.base_price),

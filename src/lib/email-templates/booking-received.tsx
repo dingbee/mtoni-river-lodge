@@ -16,16 +16,19 @@ const Email = (props: BookingEmailProps) => {
     total,
     deposit,
     currency = 'USD',
+    paymentState = 'payment_pending',
   } = props
+  const paymentNotConfigured = paymentState === 'not_configured'
   return (
-    <Shell preheader={`Your reservation ${reference} is held pending payment.`}>
+    <Shell preheader={paymentNotConfigured ? `Reservation ${reference} received; payment is not configured.` : `Your reservation ${reference} is held pending payment.`}>
       <Heading as="h1" style={styles.h1}>
         Karibu, {guestName}
       </Heading>
       <Text style={styles.p}>
-        We've received your reservation request for <strong>Mtoni River Lodge</strong>. Your
-        booking is held pending payment of the deposit. Once the deposit clears we'll send your
-        full confirmation.
+        We've received your reservation request for <strong>Mtoni River Lodge</strong>.{' '}
+        {paymentNotConfigured
+          ? 'No payment has been collected. Payment is not configured for this booking, and our reservations team will contact you to arrange the next step.'
+          : 'Your booking is held pending payment of the deposit. Once the deposit clears we will send your full confirmation.'}
       </Text>
       <Hr style={styles.divider} />
       <Row label="Reference" value={reference} />
@@ -35,11 +38,12 @@ const Email = (props: BookingEmailProps) => {
       <Row label="Nights" value={String(nights)} />
       <Row label="Guests" value={guestsLine(adults, children)} />
       {total !== undefined ? <Row label="Total" value={money(total, currency)} /> : null}
-      {deposit !== undefined ? <Row label="Deposit due" value={money(deposit, currency)} /> : null}
+      {!paymentNotConfigured && deposit !== undefined ? <Row label="Deposit due" value={money(deposit, currency)} /> : null}
       <Hr style={styles.divider} />
       <Text style={styles.p}>
-        If you haven't completed payment yet, you can resume from your booking link. Replies to
-        this email reach our reservations team directly.
+        {paymentNotConfigured
+          ? 'Your reservation remains pending until the property confirms the next step. Replies to this email reach our reservations team directly.'
+          : "If you haven't completed payment yet, you can resume from your booking link. Replies to this email reach our reservations team directly."}
       </Text>
       <Text style={styles.signoff}>— The Mtoni River Lodge Reservations Team</Text>
     </Shell>
@@ -48,7 +52,7 @@ const Email = (props: BookingEmailProps) => {
 
 export const template = {
   component: Email,
-  subject: (data: Record<string, any>) =>
+  subject: (data: Record<string, unknown>) =>
     `Mtoni River Lodge — Reservation received (${data.reference ?? ''})`.trim(),
   displayName: 'Booking Received',
   previewData: {
@@ -63,5 +67,6 @@ export const template = {
     total: 930,
     deposit: 279,
     currency: 'USD',
+    paymentState: 'payment_pending',
   } as BookingEmailProps,
 } satisfies TemplateEntry

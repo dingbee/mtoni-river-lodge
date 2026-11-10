@@ -2,7 +2,32 @@
 // GET /api/public/availability/search?check_in=YYYY-MM-DD&check_out=YYYY-MM-DD[&guests=2]
 
 import { createFileRoute } from "@tanstack/react-router";
-import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
+import { resolvePublicDirectBookingChannel } from "@/lib/public-booking-channel.server";
+
+interface PublicPricingQuote {
+  ok?: boolean;
+  error_code?: string;
+  message?: string;
+  total?: number;
+  nightly?: Array<{ nightly_rate?: number }>;
+  pricing_evidence?: { rate_plan_id?: string | null };
+}
+interface PublicAvailabilityRow {
+  room_id: string;
+  slug: string;
+  name: string;
+  base_price: number;
+  currency: string;
+  max_occupancy: number;
+  nights: number;
+  nightly_total: number;
+  min_available: number;
+  is_available: boolean;
+  fits_occupancy: boolean;
+  pricing_quote?: PublicPricingQuote | null;
+}
+interface PublicRatePlanOption { currency?: string | null; [key: string]: unknown; }
+interface PublicRpcClient { rpc(name: string, args: Record<string, unknown>): Promise<{ data: unknown; error: { message: string } | null }>; }
 
 export const Route = createFileRoute("/api/public/availability/search")({
   server: {
@@ -11,7 +36,8 @@ export const Route = createFileRoute("/api/public/availability/search")({
         const url = new URL(request.url);
         const checkIn = url.searchParams.get("check_in");
         const checkOut = url.searchParams.get("check_out");
-        const guests = Math.max(1, Math.min(20, Number(url.searchParams.get("guests") ?? "1")));
+        const guests = Number(url.searchParams.get("guests") ?? "1");
+        if (!Number.isInteger(guests) || guests < 1 || guests > 20) return Response.json({ error: "guests must be an integer from 1 to 20" }, { status: 400 });
         const ratePlanId = url.searchParams.get("rate_plan_id");
         if (ratePlanId && !/^[0-9a-f-]{36}$/i.test(ratePlanId)) return Response.json({ error: "rate_plan_id must be a UUID" }, { status: 400 });
         if (!checkIn || !checkOut || !/^\d{4}-\d{2}-\d{2}$/.test(checkIn) || !/^\d{4}-\d{2}-\d{2}$/.test(checkOut)) {
@@ -21,8 +47,10 @@ export const Route = createFileRoute("/api/public/availability/search")({
           return Response.json({ error: "check_out must be after check_in" }, { status: 400 });
         }
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
-        const { data, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced_with_rate_plan", {
+        const channel = await resolvePublicDirectBookingChannel(supabaseAdmin, request.headers.get("host") ?? url.host);
+        const propertyId = channel.propertyId;
+        const publicRpc = supabaseAdmin as unknown as PublicRpcClient;
+        const { data, error } = await publicRpc.rpc("get_staynas_room_availability_priced_with_rate_plan", {
           _check_in: checkIn,
           _check_out: checkOut,
           _property_id: propertyId,
@@ -32,22 +60,30 @@ export const Route = createFileRoute("/api/public/availability/search")({
           _rate_plan_id: ratePlanId,
         });
         if (error) return Response.json({ error: error.message }, { status: 500 });
-        const pricing_errors = (data ?? [])
-          .filter((r: any) => r.pricing_quote?.ok === false && r.pricing_quote?.error_code !== "RATE_PLAN_REQUIRED")
-          .map((r: any) => ({ room_id: r.room_id, slug: r.slug, error_code: r.pricing_quote.error_code, message: r.pricing_quote.message }));
-        const planChoices = await Promise.all((data ?? []).filter((r: any) => r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" || r.pricing_quote?.pricing_evidence?.rate_plan_id).map(async (r: any) => {
-          const { data: discovery, error: discoveryError } = await (supabaseAdmin as any).rpc("discover_staynas_public_rate_plans", {
+        const availabilityRows = (data ?? []) as PublicAvailabilityRow[];
+        if (availabilityRows.some((r) => String(r.currency ?? "").toUpperCase() !== channel.currency)) {
+          return Response.json({ error: "Room currency does not match the published direct-booking transaction currency" }, { status: 409 });
+        }
+        const pricing_errors = availabilityRows
+          .filter((r) => r.pricing_quote?.ok === false && r.pricing_quote?.error_code !== "RATE_PLAN_REQUIRED")
+          .map((r) => ({ room_id: r.room_id, slug: r.slug, error_code: r.pricing_quote?.error_code, message: r.pricing_quote?.message }));
+        const planChoices = await Promise.all(availabilityRows.filter((r) => r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" || r.pricing_quote?.pricing_evidence?.rate_plan_id).map(async (r) => {
+          const { data: discoveryData, error: discoveryError } = await publicRpc.rpc("discover_staynas_public_rate_plans", {
             _property_id: propertyId, _room_id: r.room_id, _check_in: checkIn, _check_out: checkOut, _adults: guests, _children_below_6: 0, _children_7_plus: 0,
           });
-          return { room_id: r.room_id, plans: !discoveryError && discovery?.ok ? discovery.plans : [] };
+          const discovery = discoveryData as { ok?: boolean; plans?: PublicRatePlanOption[] } | null;
+          return { room_id: r.room_id, plans: (!discoveryError && discovery?.ok ? discovery.plans ?? [] : []) };
         }));
-        const planOptionsByRoom = new Map(planChoices.map((x: any) => [x.room_id, x.plans]));
-        const rooms = (data ?? [])
-          .filter((r: any) => r.pricing_quote?.ok !== false || r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED")
-          .map((r: any) => ({
+        if (planChoices.some((x) => (x.plans ?? []).some((plan) => String(plan.currency ?? "").toUpperCase() !== channel.currency))) {
+          return Response.json({ error: "Published rate-plan currency does not match the direct-booking channel" }, { status: 409 });
+        }
+        const planOptionsByRoom = new Map<string, PublicRatePlanOption[]>(planChoices.map((x) => [x.room_id, x.plans]));
+        const rooms = availabilityRows
+          .filter((r) => r.pricing_quote?.ok !== false || r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED")
+          .map((r) => ({
             slug: r.slug,
             name: r.name,
-            base_price: Number(r.base_price),
+            base_price: r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" ? null : Number(r.base_price),
             currency: r.currency,
             max_occupancy: r.max_occupancy,
             nights: r.nights,
@@ -59,8 +95,8 @@ export const Route = createFileRoute("/api/public/availability/search")({
             pricing_quote: r.pricing_quote,
             rate_plan_options: planOptionsByRoom.get(r.room_id) ?? [],
           }))
-          .filter((r: any) => r.is_available && r.fits_guests)
-          .sort((a: any, b: any) => a.nightly_total - b.nightly_total);
+          .filter((r) => r.is_available && r.fits_guests)
+          .sort((a, b) => (a.nightly_total ?? Number.POSITIVE_INFINITY) - (b.nightly_total ?? Number.POSITIVE_INFINITY));
         return Response.json(
           { check_in: checkIn, check_out: checkOut, guests, rate_plan_id: ratePlanId, rooms, pricing_errors },
           { headers: { "cache-control": "no-store" } },

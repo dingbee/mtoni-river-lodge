@@ -2,10 +2,9 @@
 // Returns: {rooms: [{slug, name, total, available, blocked, held}]}.
 
 import { createFileRoute } from "@tanstack/react-router";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
 import { bookingRpc } from "@/lib/booking-rpc";
-import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
+import { resolvePublicDirectBookingChannel } from "@/lib/public-booking-channel.server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const Route = createFileRoute("/api/public/rooms/status")({
   server: {
@@ -20,25 +19,21 @@ export const Route = createFileRoute("/api/public/rooms/status")({
         next.setUTCDate(next.getUTCDate() + 1);
         const nextIso = next.toISOString().slice(0, 10);
 
-        const sb = createClient<Database>(
-          process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL!,
-          process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY!,
-          { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-        );
-        // Scope every inventory read to the configured booking property.
-        const propertyId = await getConfiguredBookingPropertyId(sb);
+        const { supabaseAdmin: sb } = await import("@/integrations/supabase/client.server");
+        const channel = await resolvePublicDirectBookingChannel(sb, request.headers.get("host") ?? url.host);
+        const propertyId = channel.propertyId;
         const [{ data, error }, { data: catalog, error: catalogError }] = await Promise.all([
           bookingRpc(sb).rpc("get_room_availability", { _check_in: date, _check_out: nextIso, _property_id: propertyId }),
-          (sb as any).from("rooms").select("slug,total_units").eq("status", "active").eq("property_id", propertyId),
+          (sb as unknown as SupabaseClient).from("rooms").select("slug,total_units").eq("status", "active").eq("property_id", propertyId),
         ]);
         if (error) return Response.json({ error: error.message }, { status: 500 });
         if (catalogError) return Response.json({ error: catalogError.message }, { status: 500 });
-        const totals = new Map((catalog ?? []).map((r: any) => [r.slug as string, Number(r.total_units ?? 0)]));
+        const totals = new Map((catalog ?? []).map((r) => [r.slug as string, Number(r.total_units ?? 0)]));
 
         return Response.json(
           {
             date,
-            rooms: (data ?? []).map((r: any) => ({
+            rooms: (data ?? []).map((r) => ({
               slug: r.slug,
               name: r.name,
               total_units: totals.get(r.slug) ?? 0,
@@ -46,7 +41,7 @@ export const Route = createFileRoute("/api/public/rooms/status")({
               is_available: r.is_available,
             })),
           },
-          { headers: { "cache-control": "public, max-age=30" } },
+          { headers: { "cache-control": "no-store" } },
         );
       },
     },
