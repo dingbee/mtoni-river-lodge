@@ -23,8 +23,8 @@ BEGIN
   INSERT INTO public.staynas_properties(id,organisation_id,slug,code,name,status,currency) VALUES
     (v_property_a,v_org,'rc-rb-01-nolmark-property','RC-RB-01-A','Nolmark CDMA','active','TZS'),
     (v_property_b,v_org,'rc-rb-01-tenant-b-property','RC-RB-01-B','Tenant B','active','USD');
-  INSERT INTO public.staynas_property_members(property_id,user_id,status) VALUES
-    (v_property_a,v_user,'active');
+  INSERT INTO public.staynas_property_members(property_id,user_id,status,role) VALUES
+    (v_property_a,v_user,'active','owner');
   INSERT INTO public.staynas_property_domains(property_id,hostname,verification_status,verified_at) VALUES
     (v_property_a,'nolmarkcdma.staynas.com','verified',now()),
     (v_property_b,'tenant-b.example','verified',now());
