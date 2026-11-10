@@ -1,0 +1,158 @@
+name: RC-RB-01 Room Catalogue and Room Board verification
+
+on:
+  push:
+    branches:
+      - feat/rc-rb-01-*
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "supabase/migrations/*rc_rb_01*"
+      - "supabase/tests/room_catalogue_platform_completion.test.sql"
+      - "src/routes/api/public/rooms.*"
+      - "src/routes/rooms.*"
+      - "src/lib/platform-room-configuration.server.ts"
+      - "src/lib/operations.functions.ts"
+      - "src/components/os/operations/RoomStatusBoard.tsx"
+      - ".github/workflows/rc-rb-01-database.yml"
+
+jobs:
+  database-contract:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: staynas_rc_rb_01
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d staynas_rc_rb_01"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: staynas_rc_rb_01
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Bootstrap isolated Supabase-compatible room schema
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE anon NOLOGIN;
+          CREATE ROLE authenticated NOLOGIN;
+          CREATE ROLE service_role NOLOGIN BYPASSRLS;
+          CREATE SCHEMA auth;
+          CREATE TABLE auth.users(id uuid PRIMARY KEY);
+          CREATE FUNCTION auth.uid() RETURNS uuid
+          LANGUAGE sql STABLE
+          AS $function$
+            SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid
+          $function$;
+          CREATE TYPE public.app_role AS ENUM ('owner','manager','admin');
+          CREATE TYPE public.room_state AS ENUM ('vacant_clean','vacant_dirty','occupied','reserved','inspection','maintenance','out_of_service');
+          CREATE TABLE public.staynas_properties(
+            id uuid PRIMARY KEY, name text NOT NULL, status text NOT NULL, currency text
+          );
+          CREATE TABLE public.staynas_property_members(
+            property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+            user_id uuid NOT NULL REFERENCES auth.users(id),
+            status text NOT NULL DEFAULT 'active',
+            PRIMARY KEY(property_id,user_id)
+          );
+          CREATE TABLE public.staynas_property_domains(
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+            hostname text NOT NULL UNIQUE,
+            verification_status text NOT NULL DEFAULT 'pending',
+            verified_at timestamptz
+          );
+          CREATE TABLE public.room_categories(
+            id uuid PRIMARY KEY, property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+            slug text NOT NULL, name text NOT NULL, description text,
+            features text[] NOT NULL DEFAULT '{}', specifications jsonb NOT NULL DEFAULT '{}',
+            sort_order integer NOT NULL DEFAULT 0, status text NOT NULL DEFAULT 'active'
+          );
+          CREATE TABLE public.rooms(
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+            category_id uuid REFERENCES public.room_categories(id),
+            slug text NOT NULL, name text NOT NULL, short_name text, room_number_label text,
+            short_description text, description text[] NOT NULL DEFAULT '{}', details jsonb NOT NULL DEFAULT '[]',
+            cta_line text, capacity_adults integer NOT NULL DEFAULT 2, capacity_children integer NOT NULL DEFAULT 0,
+            max_occupancy integer NOT NULL DEFAULT 2, total_units integer NOT NULL DEFAULT 1,
+            base_price numeric NOT NULL DEFAULT 0, currency text NOT NULL, included_guests integer NOT NULL DEFAULT 2,
+            extra_guest_fee numeric NOT NULL DEFAULT 0, status text NOT NULL DEFAULT 'active',
+            sort_order integer NOT NULL DEFAULT 0, hero_line text, image_url text,
+            gallery_urls text[] NOT NULL DEFAULT '{}', size_label text, view_label text, bed_label text,
+            bathroom_label text, amenities text[] NOT NULL DEFAULT '{}'
+          );
+          CREATE TABLE public.room_states(
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            room_id uuid NOT NULL REFERENCES public.rooms(id),
+            property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+            unit_label text NOT NULL, state public.room_state NOT NULL DEFAULT 'vacant_clean',
+            booking_id uuid, created_at timestamptz NOT NULL DEFAULT now()
+          );
+          CREATE UNIQUE INDEX room_states_room_id_unit_label_key ON public.room_states(room_id,unit_label);
+          CREATE TABLE public.room_inventory(
+            room_id uuid NOT NULL REFERENCES public.rooms(id), date date NOT NULL,
+            available_units integer, is_blocked boolean NOT NULL DEFAULT false,
+            PRIMARY KEY(room_id,date)
+          );
+          CREATE TABLE public.booking_holds(
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(), room_id uuid NOT NULL REFERENCES public.rooms(id),
+            status text NOT NULL, expires_at timestamptz NOT NULL, check_in date NOT NULL, check_out date NOT NULL
+          );
+          CREATE TABLE public.bookings(
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(), room_id uuid NOT NULL REFERENCES public.rooms(id),
+            check_out date NOT NULL, status text NOT NULL
+          );
+          CREATE FUNCTION public.staynas_user_has_property_access(_uid uuid,_property_id uuid)
+          RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $function$
+            SELECT EXISTS(SELECT 1 FROM public.staynas_property_members m
+              WHERE m.user_id=_uid AND m.property_id=_property_id AND m.status='active')
+          $function$;
+          CREATE FUNCTION public.staynas_active_property_id(_uid uuid DEFAULT auth.uid())
+          RETURNS uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $function$
+            SELECT property_id FROM public.staynas_property_members
+            WHERE user_id=_uid AND status='active' ORDER BY property_id LIMIT 1
+          $function$;
+          CREATE FUNCTION public.has_any_role(_uid uuid,_roles public.app_role[])
+          RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $function$
+            SELECT _uid IS NOT NULL AND 'owner'::public.app_role=ANY(_roles)
+          $function$;
+          CREATE FUNCTION public.get_staynas_room_availability_priced(
+            _check_in date,_check_out date,_property_id uuid,_adults integer DEFAULT 2,
+            _children_below_6 integer DEFAULT 0,_children_7_plus integer DEFAULT 0
+          )
+          RETURNS TABLE(
+            room_id uuid,slug text,name text,base_price numeric,currency text,
+            capacity_adults integer,capacity_children integer,max_occupancy integer,
+            included_guests integer,extra_guest_fee numeric,nights integer,nightly_total numeric,
+            min_available integer,is_available boolean,fits_occupancy boolean,pricing_quote jsonb
+          )
+          LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $function$
+            SELECT r.id,r.slug,r.name,r.base_price,r.currency,r.capacity_adults,r.capacity_children,
+              r.max_occupancy,r.included_guests,r.extra_guest_fee,(_check_out-_check_in),
+              r.base_price,r.total_units,true,true,jsonb_build_object('mode','isolated-test')
+            FROM public.rooms r WHERE r.property_id=_property_id AND r.status='active'
+          $function$;
+          ALTER TABLE public.rooms ENABLE ROW LEVEL SECURITY;
+          ALTER TABLE public.room_categories ENABLE ROW LEVEL SECURITY;
+          ALTER TABLE public.room_states ENABLE ROW LEVEL SECURITY;
+          SQL
+      - name: Apply RC-RB-01 migration to isolated PostgreSQL 17
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261110100000_rc_rb_01_room_platform_completion.sql
+      - name: Verify public isolation, published pricing and physical-unit lifecycle
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/room_catalogue_platform_completion.test.sql
