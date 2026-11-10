@@ -6,6 +6,8 @@ import { validatePackageComposition } from "./package-composition-contract";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { resolveVerifiedFounderActor } from "./subscription.functions";
 
+type SupabaseAdminClient = typeof import("@/integrations/supabase/client.server").supabaseAdmin;
+
 type Row = Record<string, unknown>;
 type MoneyByCurrency = { TZS: string; USD: string };
 const emptyMoney = (): MoneyByCurrency => ({ TZS: "0", USD: "0" });
@@ -256,7 +258,7 @@ export const getFounderTenantCommercialProfile = createServerFn({ method: "GET" 
 
 const founderNotificationInput = z.object({ notificationId: z.string().uuid() });
 
-async function writeFounderNotificationAudit(admin: any, actor: { userId: string; organisationId: string }, action: string, notificationId: string) {
+async function writeFounderNotificationAudit(admin: SupabaseAdminClient, actor: { userId: string; organisationId: string }, action: string, notificationId: string) {
   const { error } = await admin.from("commercial_audit_events").insert({
     request_id: globalThis.crypto.randomUUID(),
     actor_user_id: actor.userId,
@@ -448,7 +450,7 @@ export const registerFounderCommercialAccount = createServerFn({ method: "POST" 
     return {accountId:String(result.accountId),organisationId:data.organisationId,replayed:result.replayed===true};
   });
 
-async function loadFounderSubscriptionPolicies(admin: any) {
+async function loadFounderSubscriptionPolicies(admin: SupabaseAdminClient) {
   const {data:currentRows,error:currentError}=await admin.from("commercial_policy_config_current")
     .select("policy_type,version_id").in("policy_type",["catalogue","pricing","composition"]);
   if(currentError) throw new Error("Published commercial policy pointers could not be loaded.");
