@@ -1,0 +1,63 @@
+name: LB-03 financial integrity verification
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/*lb03*"
+      - "supabase/tests/lb03_financial_integrity.test.sql"
+      - "src/routes/api/integrations.lb03.*"
+      - ".github/workflows/lb03-financial-integrity.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  lb03-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: staynas_lb03_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d staynas_lb03_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGPASSWORD: postgres
+      PGHOST: localhost
+      PGUSER: postgres
+      PGDATABASE: staynas_lb03_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Apply isolated LB-03 schema and run authorization, posting and reversal assertions
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/lb03_financial_integrity.test.sql
+      - name: Race two independent posting sessions against the same authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          sql="SET ROLE service_role; SELECT set_config('request.test_role','service_role',false); SELECT public.lb03_post_room_charge('40000000-0000-4000-8000-000000000001',(SELECT authorization_reference FROM public.lb03_room_charge_operations WHERE idempotency_key='uat-idem-0002'),'uat-idem-0002','UAT concurrent POS transaction 2');"
+          psql -v ON_ERROR_STOP=1 -c "$sql" > /tmp/lb03-race-a.log &
+          a=$!
+          psql -v ON_ERROR_STOP=1 -c "$sql" > /tmp/lb03-race-b.log &
+          b=$!
+          wait "$a"
+          wait "$b"
+          cat /tmp/lb03-race-a.log
+          cat /tmp/lb03-race-b.log
+      - name: Assert exactly one concurrent folio posting
+        run: |
+          psql -v ON_ERROR_STOP=1 -c "DO \\$\\$ BEGIN IF (SELECT count(*) FROM public.pms_folio_postings WHERE source_order_id='b0000000-0000-4000-8000-000000000002' AND source_system='lexibite')<>1 THEN RAISE EXCEPTION 'Concurrent POS delivery created zero or multiple folio postings'; END IF; IF (SELECT state FROM public.lb03_room_charge_operations WHERE idempotency_key='uat-idem-0002')<>'POSTED' THEN RAISE EXCEPTION 'Concurrent posting operation did not reach POSTED'; END IF; END \\$\\$;"
+      - name: Verify immutable financial evidence
+        run: |
+          psql -v ON_ERROR_STOP=1 -c "DO \\$\\$ BEGIN IF (SELECT count(*) FROM public.lb03_room_charge_audit WHERE event_type IN ('room_charge.authorized','room_charge.posted'))<3 THEN RAISE EXCEPTION 'Missing authorization/posting audit evidence'; END IF; IF (SELECT count(*) FROM public.pms_folio_adjustments WHERE source_transaction_id='b0000000-0000-4000-8000-000000000001')<>2 THEN RAISE EXCEPTION 'Expected two compensating folio adjustments'; END IF; END \\$\\$;"
