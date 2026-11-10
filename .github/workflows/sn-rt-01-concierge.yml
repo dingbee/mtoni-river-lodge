@@ -1,0 +1,130 @@
+name: SN-RT-01 Concierge runtime integrity
+
+on:
+  push:
+    branches:
+      - sn-rt-01/*
+    paths:
+      - "src/lib/ai-gateway.server.ts"
+      - "src/lib/ai-gateway.server.test.ts"
+      - "src/lib/public-property.server.ts"
+      - "src/lib/public-property.server.test.ts"
+      - "src/lib/public-rate-limit.server.ts"
+      - "src/domains/ai/concierge/**"
+      - "src/components/site/ConciergeWidget.tsx"
+      - "src/routes/api/public/concierge.*"
+      - "src/routes/book.tsx"
+      - "src/lib/booking-search.ts"
+      - "src/lib/booking-search.test.ts"
+      - "supabase/review/20261109150000_sn_rt_01_concierge_runtime_integrity.sql"
+      - "supabase/tests/sn_rt_01_concierge_integrity.test.sql"
+      - ".github/workflows/sn-rt-01-concierge.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/lib/ai-gateway.server.ts"
+      - "src/lib/ai-gateway.server.test.ts"
+      - "src/lib/public-property.server.ts"
+      - "src/lib/public-property.server.test.ts"
+      - "src/lib/public-rate-limit.server.ts"
+      - "src/domains/ai/concierge/**"
+      - "src/components/site/ConciergeWidget.tsx"
+      - "src/routes/api/public/concierge.*"
+      - "src/routes/book.tsx"
+      - "src/lib/booking-search.ts"
+      - "src/lib/booking-search.test.ts"
+      - "supabase/review/20261109150000_sn_rt_01_concierge_runtime_integrity.sql"
+      - "supabase/tests/sn_rt_01_concierge_integrity.test.sql"
+      - ".github/workflows/sn-rt-01-concierge.yml"
+
+jobs:
+  concierge-contracts:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Verify AI gateway, public property, lead and availability contracts
+        run: >-
+          bunx vitest run
+          src/lib/ai-gateway.server.test.ts
+          src/lib/booking-search.test.ts
+          src/lib/public-property.server.test.ts
+          src/lib/public-rate-limit.server.test.ts
+          src/domains/ai/concierge/concierge.leads.test.ts
+          src/domains/ai/concierge/concierge.tools.test.ts
+          src/domains/ai/concierge/concierge.intent.test.ts
+          src/domains/ai/concierge/concierge.recommendations.test.ts
+          src/domains/ai/concierge/concierge.server.test.ts
+          src/domains/ai/concierge/omnichannel.contracts.test.ts
+          src/domains/ai/concierge/webhooks/webhook-processor.server.test.ts
+      - name: Generate routes and verify production build
+        run: bun run build
+      - name: TypeScript verification
+        run: bunx tsc --noEmit
+      - name: Lint changed Concierge runtime contracts
+        run: >-
+          bunx eslint
+          src/lib/ai-gateway.server.ts
+          src/lib/ai-gateway.server.test.ts
+          src/lib/booking-search.ts
+          src/lib/booking-search.test.ts
+          src/lib/public-property.server.ts
+          src/lib/public-property.server.test.ts
+          src/lib/public-rate-limit.server.ts
+          src/lib/public-rate-limit.server.test.ts
+          src/domains/ai/concierge/concierge.server.ts
+          src/domains/ai/concierge/concierge.server.test.ts
+          src/domains/ai/concierge/concierge.functions.ts
+          src/domains/ai/concierge/analytics.functions.ts
+          src/domains/ai/concierge/proactive.functions.ts
+          src/domains/ai/concierge/concierge.intent.ts
+          src/domains/ai/concierge/concierge.intent.test.ts
+          src/domains/ai/concierge/concierge.types.ts
+          src/domains/ai/concierge/concierge.recommendations.ts
+          src/domains/ai/concierge/concierge.recommendations.test.ts
+          src/domains/ai/concierge/concierge.tools.ts
+          src/domains/ai/concierge/concierge.tools.test.ts
+          src/domains/ai/concierge/concierge.leads.ts
+          src/domains/ai/concierge/concierge.leads.test.ts
+          src/domains/ai/concierge/omnichannel.functions.ts
+          src/components/site/ConciergeWidget.tsx
+          src/routes/api/public/concierge.chat.ts
+          src/routes/api/public/concierge.lead.ts
+          src/routes/api/public/concierge.session.ts
+          src/routes/book.tsx
+          --rule 'prettier/prettier: off'
+
+  concierge-database:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Execute isolated Concierge migration, RLS, escalation and rate-limit tests
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/sn_rt_01_concierge_integrity.test.sql

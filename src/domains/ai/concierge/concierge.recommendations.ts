@@ -18,9 +18,10 @@ export function recommendRooms(
   const party = adults + children;
   return catalog
     .filter((room) =>
-      Number.isFinite(room.base_price) &&
+      room.slug.trim().length > 0 &&
+      room.name.trim().length > 0 &&
       Number.isFinite(room.max_occupancy) &&
-      /^[A-Z]{3}$/.test(room.currency),
+      room.max_occupancy > 0,
     )
     .map((room) => {
       let score = 0.5;
@@ -44,12 +45,10 @@ export function recommendRooms(
         name: room.name,
         reasoning,
         confidence: Math.max(0.05, Math.min(0.95, score)),
-        from_price: Number(room.base_price),
-        currency: room.currency,
       };
     })
     .filter((room) => room.reasoning[0] !== "Does not fit the requested party configuration.")
-    .sort((a, b) => b.confidence - a.confidence || a.from_price - b.from_price)
+    .sort((a, b) => b.confidence - a.confidence || a.name.localeCompare(b.name))
     .slice(0, 2);
 }
 

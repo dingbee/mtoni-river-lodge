@@ -11,7 +11,6 @@ import {
   listConciergeConversations,
   getOmnichannelAnalytics,
 } from "@/domains/ai/concierge/omnichannel.functions";
-import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/admin/ai/concierge/conversations")({
   head: () => ({
@@ -24,12 +23,6 @@ export const Route = createFileRoute("/_authenticated/admin/ai/concierge/convers
 });
 
 type ChannelFilter = "all" | "web" | "whatsapp" | "email";
-type ConversationRow = Pick<
-  Tables<"ai_concierge_sessions">,
-  "id" | "channel" | "guest_name" | "guest_email" | "session_token" |
-  "message_count" | "last_active_at" | "escalated" | "identity_confidence"
->;
-
 function ConversationsPage() {
   const listFn = useServerFn(listConciergeConversations);
   const statsFn = useServerFn(getOmnichannelAnalytics);
@@ -88,11 +81,11 @@ function ConversationsPage() {
           {list.data?.length === 0 && (
             <p className="p-3 text-sm text-muted-foreground">No conversations yet.</p>
           )}
-          {list.data?.map((s: ConversationRow) => (
+          {list.data?.map((s) => (
             <div key={s.id} className="flex items-center justify-between px-3 py-2 text-sm">
               <div className="min-w-0">
                 <p className="truncate font-medium">
-                  {s.guest_name || s.guest_email || s.session_token}
+                  {s.guest_name || s.guest_email || `Session ${s.id.slice(0, 8)}`}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {s.message_count} msgs ·{" "}
