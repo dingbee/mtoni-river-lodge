@@ -18,10 +18,22 @@ type Room = {
 function RoomDetailPage() {
   const {slug}=Route.useParams();
   const [room,setRoom]=useState<Room|null>(null);
-  const [loading,setLoading]=useState(true);
-  useEffect(()=>{fetch("/api/public/rooms/catalog?slug="+encodeURIComponent(slug),{cache:"no-store"}).then(r=>r.ok?r.json():Promise.reject()).then(d=>setRoom(d.rooms?.[0]??null)).catch(()=>setRoom(null)).finally(()=>setLoading(false));},[slug]);
+  const [loading,setLoading]=useState(true);\n  const [loadError,setLoadError]=useState<string|null>(null);
+  useEffect(()=>{
+    let cancelled=false;
+    fetch("/api/public/rooms/catalog?slug="+encodeURIComponent(slug),{cache:"no-store"})
+      .then(async r=>{
+        const payload=await r.json().catch(()=>({}));
+        if(!r.ok) throw new Error(payload.error??"Room details could not be loaded");
+        return payload;
+      })
+      .then(d=>{if(!cancelled){setRoom(d.rooms?.[0]??null);setLoadError(null);}})
+      .catch((error:Error)=>{if(!cancelled){setRoom(null);setLoadError(error.message||"Room details could not be loaded");}})
+      .finally(()=>{if(!cancelled)setLoading(false);});
+    return ()=>{cancelled=true;};
+  },[slug]);
   if(loading) return <div className="min-h-screen bg-background"><SiteHeader/><main className="mx-auto max-w-7xl px-6 py-20"><p>Loading room…</p></main><SiteFooter/></div>;
-  if(!room) return <div className="min-h-screen bg-background"><SiteHeader/><main className="mx-auto max-w-7xl px-6 py-20"><h1 className="text-2xl font-semibold">Room not found</h1><Link className="mt-4 inline-flex items-center gap-2" to="/rooms"><ArrowLeft className="h-4 w-4"/>Back to rooms</Link></main><SiteFooter/></div>;
+  if(!room) return <div className="min-h-screen bg-background"><SiteHeader/><main className="mx-auto max-w-7xl px-6 py-20"><h1 className="text-2xl font-semibold">{loadError?"Room details are temporarily unavailable":"Room not found"}</h1>{loadError&&<p role="alert" className="mt-3 text-sm text-muted-foreground">{loadError}</p>}<Link className="mt-4 inline-flex items-center gap-2" to="/rooms"><ArrowLeft className="h-4 w-4"/>Back to rooms</Link></main><SiteFooter/></div>;
   const fmt=new Intl.NumberFormat("en-US",{style:"currency",currency:room.currency,maximumFractionDigits:0});
   const amenities=(room.amenities??[]).filter(Boolean);
   const descriptions=(room.description??[]).filter(Boolean);
