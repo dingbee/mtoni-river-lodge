@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/lb-01-*
+      - feat/lb02-mainline-implementation
   pull_request:
     branches:
       - main
