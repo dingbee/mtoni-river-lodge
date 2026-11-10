@@ -37,7 +37,7 @@ function RoomBoardPage() {
         }
       />
       {q.isLoading ? <p className="text-sm text-muted-foreground">Loading…</p> : (
-        <RoomStatusBoard states={d.states} />
+        <RoomStatusBoard states={d.states} rooms={d.rooms} />
       )}
     </div>
   );
