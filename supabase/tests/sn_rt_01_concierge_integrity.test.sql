@@ -488,11 +488,11 @@ BEGIN
   VALUES ('11111111-1111-4111-8111-111111111111',true);
 
   INSERT INTO public.ai_concierge_messages(session_id,role,content,model,latency_ms)
-  VALUES ('11111111-1111-4111-8111-111111111112','assistant','Test response','test-model',25)
+  VALUES ('11111111-1111-4111-8111-111111111112','user','Test guest request','test-model',25)
   RETURNING id INTO message_key;
 
   INSERT INTO public.ai_concierge_usage_ledger(
-    property_id,session_id,message_id,request_id,provider,model,
+    property_id,session_id,user_message_id,request_id,provider,model,
     prompt_tokens,completion_tokens,total_tokens,latency_ms
   ) VALUES (
     '11111111-1111-4111-8111-111111111111',
