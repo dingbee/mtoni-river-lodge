@@ -72,7 +72,16 @@ jobs:
         run: python3 scripts/ci/normalize-optional-legacy-revokes.py
       - name: Start isolated Supabase database
         run: supabase start --exclude studio,inbucket,storage-api,imgproxy,vector
-      - name: Apply all migrations and run database contracts
+      - name: Apply migrations and review-only schemas required by database contracts
         run: |
           supabase db reset
-          supabase test db
+          for migration in \
+            supabase/review/20261107100000_staynas_website_demo_requests.sql \
+            supabase/review/20261109130000_cc06_founder_notifications.sql \
+            supabase/review/20261109140000_cc06_commercial_account_contacts.sql \
+            supabase/review/20261109150000_cc06_founder_subscription_creation.sql
+          do
+            psql "postgresql://postgres:postgres@localhost:54322/postgres" -v ON_ERROR_STOP=1 -f "$migration"
+          done
+      - name: Run database contracts
+        run: supabase test db
