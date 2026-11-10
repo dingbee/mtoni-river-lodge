@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { resolvePublicDirectBookingChannel } from "@/lib/public-booking-channel.server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const Route = createFileRoute("/api/public/rooms/catalog")({
   server: { handlers: { GET: async ({ request }) => {
@@ -13,7 +14,7 @@ export const Route = createFileRoute("/api/public/rooms/catalog")({
       // Public catalogues fail closed: no cross-tenant or founder/UAT fallback.
       return Response.json({ rooms: [] }, { headers: { "cache-control": "no-store" } });
     }
-    let query = (sb as any).from("rooms")
+    let query = (sb as unknown as SupabaseClient).from("rooms")
       .select("id,slug,name,short_name,room_number_label,short_description,description,details,cta_line,capacity_adults,capacity_children,max_occupancy,total_units,base_price,currency,included_guests,extra_guest_fee,hero_line,image_url,gallery_urls,size_label,view_label,bed_label,bathroom_label,amenities,category:room_categories(id,slug,name,description,features,specifications)")
       .eq("status","active")
       .eq("property_id",channel.propertyId)
