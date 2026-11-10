@@ -80,11 +80,14 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
       if (existing.publication_status === "published") throw new Error("Suspend the rate plan before editing its commercial terms.");
     }
     if (!/^[A-Z]{3}$/.test(ratePlanCurrency)) throw new Error("Rate-plan transaction currency must be a valid ISO 4217 code.");
-    for (const [roomTypeId, rawRate] of Object.entries(data.rate_plan_data.base_rates ?? {})) {
-      if (!rawRate || typeof rawRate !== "object" || Array.isArray(rawRate)) continue;
-      const rateCurrency = (rawRate as Record<string, unknown>).currency;
-      if (rateCurrency && String(rateCurrency).toUpperCase() !== ratePlanCurrency) {
-        throw new Error(`Base rate for room type ${roomTypeId} must use rate-plan currency ${ratePlanCurrency}.`);
+    const baseRates = data.rate_plan_data.base_rates;
+    if (baseRates && typeof baseRates === "object" && !Array.isArray(baseRates)) {
+      for (const [roomTypeId, rawRate] of Object.entries(baseRates as Record<string, unknown>)) {
+        if (!rawRate || typeof rawRate !== "object" || Array.isArray(rawRate)) continue;
+        const rateCurrency = (rawRate as Record<string, unknown>).currency;
+        if (rateCurrency && String(rateCurrency).toUpperCase() !== ratePlanCurrency) {
+          throw new Error(`Base rate for room type ${roomTypeId} must use rate-plan currency ${ratePlanCurrency}.`);
+        }
       }
     }
     let inheritedSeasonalRates: Record<string, unknown> = {};
