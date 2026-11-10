@@ -535,11 +535,14 @@ CREATE POLICY "Founder manages Concierge entitlements"
 
 -- Append-only, property-scoped provider usage evidence. Token values are nullable
 -- because some compatible providers do not return usage in every response.
+CREATE UNIQUE INDEX IF NOT EXISTS ai_concierge_messages_id_session_uidx
+  ON public.ai_concierge_messages(id, session_id);
+
 CREATE TABLE IF NOT EXISTS public.ai_concierge_usage_ledger (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   property_id uuid NOT NULL REFERENCES public.staynas_properties(id) ON DELETE RESTRICT,
   session_id uuid NOT NULL,
-  message_id uuid NOT NULL REFERENCES public.ai_concierge_messages(id) ON DELETE RESTRICT,
+  message_id uuid NOT NULL,
   request_id uuid NOT NULL UNIQUE,
   provider text NOT NULL,
   model text NOT NULL,
@@ -551,6 +554,10 @@ CREATE TABLE IF NOT EXISTS public.ai_concierge_usage_ledger (
   CONSTRAINT ai_concierge_usage_session_property_fkey
     FOREIGN KEY (session_id, property_id)
     REFERENCES public.ai_concierge_sessions(id, property_id)
+    ON DELETE RESTRICT,
+  CONSTRAINT ai_concierge_usage_message_session_fkey
+    FOREIGN KEY (message_id, session_id)
+    REFERENCES public.ai_concierge_messages(id, session_id)
     ON DELETE RESTRICT
 );
 CREATE INDEX IF NOT EXISTS ai_concierge_usage_property_created_idx
