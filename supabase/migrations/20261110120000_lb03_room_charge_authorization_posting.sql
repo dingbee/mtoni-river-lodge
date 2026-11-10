@@ -205,9 +205,9 @@ BEGIN
   WHERE connection_id=_connection_id AND authorization_reference=_authorization_reference
    AND idempotency_key=_idempotency_key FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'Authorization not found' USING ERRCODE='P0002'; END IF;
- IF v_op.state='POSTED' THEN
+ IF v_op.state IN ('POSTED','PARTIALLY_REVERSED','REVERSED') THEN
   SELECT * INTO v_booking FROM public.bookings WHERE id=v_op.booking_id;
-  RETURN jsonb_build_object('status','POSTED','duplicate',true,
+  RETURN jsonb_build_object('status',v_op.state,'duplicate',true,
    'postingId',v_op.posting_id,'postingReference',v_op.posting_reference,
    'folioReference',v_booking.reference,'amount',v_op.amount,'currency',v_op.currency);
  END IF;
