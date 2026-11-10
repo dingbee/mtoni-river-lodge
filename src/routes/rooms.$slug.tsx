@@ -18,7 +18,8 @@ type Room = {
 function RoomDetailPage() {
   const {slug}=Route.useParams();
   const [room,setRoom]=useState<Room|null>(null);
-  const [loading,setLoading]=useState(true);\n  const [loadError,setLoadError]=useState<string|null>(null);
+  const [loading,setLoading]=useState(true);
+  const [loadError,setLoadError]=useState<string|null>(null);
   useEffect(()=>{
     let cancelled=false;
     fetch("/api/public/rooms/catalog?slug="+encodeURIComponent(slug),{cache:"no-store"})
