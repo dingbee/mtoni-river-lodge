@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { assertSameProperty } from "@/lib/booking-property";
 import { resolvePublicDirectBookingChannel } from "@/lib/public-booking-channel.server";
+import { getPublicBookingProducts } from "@/domains/booking/booking-product-configuration.functions";
 
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date");
@@ -96,6 +97,16 @@ export const checkAvailability = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
     const propertyId = channel.propertyId;
+    const configured = await getPublicBookingProducts({
+      data: { propertyId, channel: "permanent" },
+    });
+    const allowedPlansByRoom = new Map<string, Set<string>>();
+    for (const product of configured.products as Array<{ room_id: string; rate_plan_id: string }>) {
+      const allowed = allowedPlansByRoom.get(product.room_id) ?? new Set<string>();
+      allowed.add(product.rate_plan_id);
+      allowedPlansByRoom.set(product.room_id, allowed);
+    }
+    if (allowedPlansByRoom.size === 0) return [];
     const { data: rows, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced_with_rate_plan", {
       _check_in: data.checkIn,
       _check_out: data.checkOut,
@@ -103,10 +114,14 @@ export const checkAvailability = createServerFn({ method: "POST" })
       _adults: data.adults,
       _children_below_6: data.childrenBelow6,
       _children_7_plus: data.children7Plus,
-      _rate_plan_id: data.ratePlanId ?? null,
+      _rate_plan_id: selectedRatePlanId,
     });
     if (error) throw new Error(error.message);
     const mapped = await Promise.all(((rows ?? []) as any[]).map(async (r) => {
+      const allowedPlanIds = allowedPlansByRoom.get(String(r.room_id));
+      if (!allowedPlanIds?.size || (data.ratePlanId && !allowedPlanIds.has(data.ratePlanId))) {
+        return null;
+      }
       if (String(r.currency ?? "").toUpperCase() !== channel.currency) {
         throw new Error("Room currency does not match the published direct-booking channel");
       }
@@ -117,7 +132,9 @@ export const checkAvailability = createServerFn({ method: "POST" })
           _adults: data.adults, _children_below_6: data.childrenBelow6, _children_7_plus: data.children7Plus,
         });
         if (!discoveryError && discovery?.ok) {
-          ratePlanOptions = (discovery.plans ?? []) as PublicRatePlanOption[];
+          ratePlanOptions = ((discovery.plans ?? []) as PublicRatePlanOption[]).filter(
+            (plan) => allowedPlanIds.has(plan.rate_plan_id),
+          );
           if (ratePlanOptions.some((plan) => plan.currency !== channel.currency)) {
             throw new Error("Published rate-plan currency does not match the direct-booking channel");
           }
@@ -132,7 +149,7 @@ export const checkAvailability = createServerFn({ method: "POST" })
       pricing_quote: r.pricing_quote as BookingPricingQuote | null,
     };
     }));
-    return mapped;
+    return mapped.filter((room): room is NonNullable<typeof room> => room !== null);
   });
 
 export const listExtras = createServerFn({ method: "GET" }).handler(async () => {
@@ -202,6 +219,29 @@ export const getBookingQuote = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
+    const { data: room, error: roomError } = await (supabaseAdmin as any)
+      .from("rooms")
+      .select("id")
+      .eq("property_id", channel.propertyId)
+      .eq("slug", data.roomSlug)
+      .eq("status", "active")
+      .maybeSingle();
+    if (roomError || !room) throw new Error("Selected room is not available for this booking property.");
+
+    const configured = await getPublicBookingProducts({
+      data: { propertyId: channel.propertyId, channel: "permanent" },
+    });
+    const roomProducts = (configured.products as Array<{ room_id: string; rate_plan_id: string }>)
+      .filter((product) => product.room_id === room.id);
+    const eligiblePlanIds = new Set(roomProducts.map((product) => product.rate_plan_id));
+    if (eligiblePlanIds.size === 0) {
+      throw new Error("This room is not published for permanent direct booking.");
+    }
+    const selectedRatePlanId = data.ratePlanId ?? (eligiblePlanIds.size === 1 ? [...eligiblePlanIds][0] : null);
+    if (!selectedRatePlanId || !eligiblePlanIds.has(selectedRatePlanId)) {
+      throw new Error("Select a rate plan published for this room on the permanent booking channel.");
+    }
+
     const { data: quote, error } = await (supabaseAdmin as any).rpc("staynas_create_public_channel_quote", {
       _sales_channel_id: channel.channelId,
       _room_slug: data.roomSlug,
