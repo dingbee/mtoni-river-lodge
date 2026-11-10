@@ -35,7 +35,7 @@ const validFixture: Fixture = {
   domain: {
     id: "11111111-1111-4111-8111-111111111111",
     property_id: "22222222-2222-4222-8222-222222222222",
-    hostname: "mtoniriverlodge.com",
+    hostname: "cdma-uat.example.test",
     verification_status: "verified",
     verified_at: "2026-11-10T06:00:00.000Z",
   },
@@ -56,9 +56,9 @@ const validFixture: Fixture = {
 };
 
 describe("resolvePublicDirectBookingChannel", () => {
-  it("resolves only the exact verified Mtoni host and published /book channel", async () => {
+  it("resolves only the exact verified Nolmark CDMA host and published /book channel", async () => {
     const { client, queries } = fakeSupabase(validFixture);
-    const result = await resolvePublicDirectBookingChannel(client as any, "MTONIRIVERLODGE.COM:443");
+    const result = await resolvePublicDirectBookingChannel(client as any, "CDMA-UAT.EXAMPLE.TEST:443");
 
     expect(result).toEqual({
       propertyId: validFixture.domain?.property_id,
@@ -67,9 +67,9 @@ describe("resolvePublicDirectBookingChannel", () => {
       channelCode: "direct_web",
       currency: "USD",
       domainId: validFixture.domain?.id,
-      hostname: "mtoniriverlodge.com",
+      hostname: "cdma-uat.example.test",
     });
-    expect(queries.get("staynas_property_domains")?.eq).toHaveBeenCalledWith("hostname", "mtoniriverlodge.com");
+    expect(queries.get("staynas_property_domains")?.eq).toHaveBeenCalledWith("hostname", "cdma-uat.example.test");
     expect(queries.get("staynas_property_domains")?.eq).toHaveBeenCalledWith("verification_status", "verified");
     expect(queries.get("staynas_property_domains")?.not).toHaveBeenCalledWith("verified_at", "is", null);
     expect(queries.get("staynas_public_booking_channels")?.eq).toHaveBeenCalledWith("route_path", "/book");
@@ -78,7 +78,7 @@ describe("resolvePublicDirectBookingChannel", () => {
 
   it("rejects malformed hosts before querying the database", async () => {
     const { client } = fakeSupabase(validFixture);
-    await expect(resolvePublicDirectBookingChannel(client as any, "https://mtoniriverlodge.com"))
+    await expect(resolvePublicDirectBookingChannel(client as any, "https://cdma-uat.example.test"))
       .rejects.toThrow("Public booking host is invalid");
     expect(client.from).not.toHaveBeenCalled();
   });
@@ -93,7 +93,7 @@ describe("resolvePublicDirectBookingChannel", () => {
 
   it("rejects a missing or unpublished direct-booking channel", async () => {
     const { client } = fakeSupabase({ ...validFixture, channel: null });
-    await expect(resolvePublicDirectBookingChannel(client as any, "mtoniriverlodge.com"))
+    await expect(resolvePublicDirectBookingChannel(client as any, "cdma-uat.example.test"))
       .rejects.toThrow("The official direct-booking channel is not published");
   });
 
@@ -102,7 +102,7 @@ describe("resolvePublicDirectBookingChannel", () => {
       ...validFixture,
       property: { ...validFixture.property, status: "setup" },
     });
-    await expect(resolvePublicDirectBookingChannel(client as any, "mtoniriverlodge.com"))
+    await expect(resolvePublicDirectBookingChannel(client as any, "cdma-uat.example.test"))
       .rejects.toThrow("The property is not accepting public bookings");
   });
 
@@ -111,12 +111,12 @@ describe("resolvePublicDirectBookingChannel", () => {
       ...validFixture,
       channel: { ...validFixture.channel, transaction_currency: "USDX" },
     });
-    await expect(resolvePublicDirectBookingChannel(client as any, "mtoniriverlodge.com"))
+    await expect(resolvePublicDirectBookingChannel(client as any, "cdma-uat.example.test"))
       .rejects.toThrow("Public booking channel has no valid transaction currency");
   });
 });
 
-describe("Mtoni payment-pending booking contract", () => {
+describe("Tenant-neutral payment-pending booking contract", () => {
   it("does not invoke Pesapal from the direct booking route or reservation server function", () => {
     const route = readFileSync(new URL("../routes/book.tsx", import.meta.url), "utf8");
     const booking = readFileSync(new URL("./booking.functions.ts", import.meta.url), "utf8");
