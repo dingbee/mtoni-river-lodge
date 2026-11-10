@@ -1,3 +1,81 @@
+-- The hostname registry was historically provisioned outside the tracked migration
+-- chain. Make the canonical registry a reproducible prerequisite for clean installs.
+-- Existing installations retain their verified records; no tenant rows are seeded.
+CREATE TABLE IF NOT EXISTS public.staynas_property_domains (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id uuid NOT NULL REFERENCES public.staynas_properties(id) ON DELETE CASCADE,
+  hostname text NOT NULL UNIQUE,
+  is_primary boolean NOT NULL DEFAULT false,
+  verified_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  verification_token text,
+  verification_method text NOT NULL DEFAULT 'dns_txt',
+  verification_status text NOT NULL DEFAULT 'pending',
+  last_checked_at timestamptz,
+  last_verification_error text,
+  verified_by uuid,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.staynas_property_domains
+  ADD COLUMN IF NOT EXISTS is_primary boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS verified_at timestamptz,
+  ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS verification_token text,
+  ADD COLUMN IF NOT EXISTS verification_method text NOT NULL DEFAULT 'dns_txt',
+  ADD COLUMN IF NOT EXISTS verification_status text NOT NULL DEFAULT 'pending',
+  ADD COLUMN IF NOT EXISTS last_checked_at timestamptz,
+  ADD COLUMN IF NOT EXISTS last_verification_error text,
+  ADD COLUMN IF NOT EXISTS verified_by uuid,
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+
+DO $domain_constraints$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='public.staynas_property_domains'::regclass
+      AND conname='staynas_property_domains_hostname_normalized'
+  ) THEN
+    ALTER TABLE public.staynas_property_domains
+      ADD CONSTRAINT staynas_property_domains_hostname_normalized
+      CHECK (hostname=lower(btrim(hostname)) AND hostname !~ '[:/[:space:]]');
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='public.staynas_property_domains'::regclass
+      AND conname='staynas_property_domains_verification_status_check'
+  ) THEN
+    ALTER TABLE public.staynas_property_domains
+      ADD CONSTRAINT staynas_property_domains_verification_status_check
+      CHECK (verification_status IN ('pending','verified','failed','revoked'));
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='public.staynas_property_domains'::regclass
+      AND conname='staynas_property_domains_id_property_uidx'
+  ) THEN
+    ALTER TABLE public.staynas_property_domains
+      ADD CONSTRAINT staynas_property_domains_id_property_uidx UNIQUE (id,property_id);
+  END IF;
+END
+$domain_constraints$;
+
+CREATE INDEX IF NOT EXISTS idx_staynas_property_domains_property
+  ON public.staynas_property_domains(property_id);
+CREATE UNIQUE INDEX IF NOT EXISTS staynas_property_domains_hostname_unique
+  ON public.staynas_property_domains(lower(hostname));
+
+ALTER TABLE public.staynas_property_domains ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.staynas_property_domains FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.staynas_property_domains TO service_role;
+
+COMMENT ON TABLE public.staynas_property_domains IS
+  'Private property hostname registry. Public resolution is through verified, hostname-bound SECURITY DEFINER RPCs.';
+COMMENT ON COLUMN public.staynas_property_domains.verified_at IS
+  'Set only after the server-side DNS ownership challenge succeeds.';
+COMMENT ON COLUMN public.staynas_property_domains.verification_token IS
+  'Server-generated DNS challenge token; never proof of ownership until the challenge is checked.';
+
 -- RC-RB-01: platform-safe public room catalogue and transactional room inventory.
 -- This migration is additive. It does not seed or modify any tenant/property records.
 
