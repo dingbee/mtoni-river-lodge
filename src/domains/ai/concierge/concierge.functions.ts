@@ -146,7 +146,11 @@ export const listFounderConciergeEntitlements = createServerFn({ method: "GET" }
       admin.from("ai_concierge_entitlements").select("property_id,enabled,updated_by,updated_at"),
     ]);
     if (propertiesError || entitlementsError) throw new Error("Unable to load Concierge entitlement settings.");
-    const byProperty = new Map((entitlements ?? []).map((row: { property_id: string }) => [row.property_id, row]));
+    const byProperty = new Map<string, { property_id: string; enabled: boolean; updated_by: string | null; updated_at: string }>(
+      (entitlements ?? []).map((row: { property_id: string; enabled: boolean; updated_by: string | null; updated_at: string }) =>
+        [row.property_id, row] as const
+      ),
+    );
     return (properties ?? []).map((property: { id: string; name: string; status: string }) => ({
       ...property,
       entitlement: byProperty.get(property.id) ?? null,
