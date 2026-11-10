@@ -87,7 +87,7 @@ export const savePlatformRoomType = createServerFn({ method: "POST" })
     const propertyId = await activePropertyId(context.supabase, context.userId);
     const sb: any = context.supabase;
     if (data.categoryId) {
-      const { data: category, error } = await sb.from("room_categories").select("id").eq("id", data.categoryId).eq("property_id", propertyId).maybeSingle();
+      const { data: category, error } = await sb.from("room_categories").select("id").eq("id", data.categoryId).eq("property_id", propertyId).eq("configuration_source", "tenant_configured").maybeSingle();
       if (error || !category) throw new Error("Selected category does not belong to the active property");
     }
     const { data: existing, error: existingError } = data.id ? await sb.from("rooms").select("total_units,base_price,currency,included_guests,extra_guest_fee,configuration_source").eq("id",data.id).eq("property_id",propertyId).single() : { data:null, error:null };
