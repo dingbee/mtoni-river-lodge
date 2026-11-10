@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
@@ -7,7 +8,7 @@ import { dailyRatesSchema, mergeDailyRateRecords, validateDailyRateCurrency, val
 import { restrictionRulesSchema, mergeRestrictionRecords, validateRestrictionRoomTypes, type RestrictionRule } from "@/domains/finance/rate-plan-restrictions";
 import { assertRatePlanRoomTypeAssignments } from "@/domains/finance/rate-plan-publication";
 
-async function getActivePropertyId(supabase: any, userId: string): Promise<string> {
+async function getActivePropertyId(supabase: SupabaseClient, userId: string): Promise<string> {
   const { data, error } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
   if (error || !data) throw new Error("Active property context is required.");
   const { data: allowed, error: accessError } = await supabase.rpc(
@@ -50,7 +51,7 @@ export const listStayNasRatePlans = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
-    const sb: any = context.supabase;
+    const sb = context.supabase as unknown as SupabaseClient;
     const [propertyResult, plansResult] = await Promise.all([
       sb.from("staynas_properties").select("id,name,currency,timezone").eq("id",propertyId).single(),
       sb.from("staynas_rate_plans").select("*").eq("property_id",propertyId).order("name"),
@@ -66,7 +67,7 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
-    const sb: any = context.supabase;
+    const sb = context.supabase as unknown as SupabaseClient;
     const { data: property, error: propertyError } = await sb.from("staynas_properties")
       .select("currency").eq("id",propertyId).single();
     if (propertyError || !property?.currency) throw new Error("Property operating currency must be configured before managing rate plans.");
@@ -191,7 +192,7 @@ export const setStayNasRatePlanPublication = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
-    const sb: any = context.supabase;
+    const sb = context.supabase as unknown as SupabaseClient;
     if (data.publication_status === "published") {
       const { data: resolved, error: resolveError } = await sb.rpc(
         "resolve_staynas_rate_plan_inheritance",
@@ -226,7 +227,7 @@ export const listStayNasRatePlanVersions = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
-    const sb: any = context.supabase;
+    const sb = context.supabase as unknown as SupabaseClient;
     const { data: rows, error } = await sb.from("staynas_rate_plan_versions")
       .select("id,rate_plan_id,version,snapshot,change_reason,created_at")
       .eq("rate_plan_id",data.id).eq("property_id",propertyId).order("version",{ascending:false});
@@ -241,7 +242,7 @@ export const listStayNasRatePlanPublicationEvents = createServerFn({ method: "PO
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
-    const { data: rows, error } = await (context.supabase as any).from("staynas_rate_plan_publication_events")
+    const { data: rows, error } = await (context.supabase as unknown as SupabaseClient).from("staynas_rate_plan_publication_events")
       .select("id,rate_plan_id,rate_plan_version,previous_status,new_status,previous_active,new_active,event_type,actor_id,change_reason,created_at")
       .eq("rate_plan_id",data.id).eq("property_id",propertyId).order("created_at",{ascending:false});
     if (error) throw new Error(error.message);
@@ -252,7 +253,7 @@ export const listStayNasPublishedRatePlans = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
-    const { data, error } = await (context.supabase as any).rpc(
+    const { data, error } = await (context.supabase as unknown as SupabaseClient).rpc(
       "get_staynas_published_rate_plans", { _property_id: propertyId },
     );
     if (error) throw new Error(error.message);
@@ -265,7 +266,7 @@ export const listStayNasRatePlanRoomTypes = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
-    const sb: any = context.supabase;
+    const sb = context.supabase as unknown as SupabaseClient;
     const [roomTypesResult, assignmentsResult] = await Promise.all([
       sb.rpc("get_staynas_rate_plan_room_types",{_property_id:propertyId}),
       sb.from("staynas_rate_plan_room_types")
@@ -287,7 +288,7 @@ export const setStayNasRatePlanRoomType = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
-    const sb: any = context.supabase;
+    const sb = context.supabase as unknown as SupabaseClient;
     const { data: plan, error: planError } = await sb.from("staynas_rate_plans")
       .select("id,publication_status").eq("id",data.rate_plan_id).eq("property_id",propertyId).maybeSingle();
     if (planError || !plan) throw new Error("Rate plan is not part of the active property.");
@@ -325,7 +326,7 @@ export const resolveStayNasRatePlanInheritance = createServerFn({ method: "POST"
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
-    const { data: resolved, error } = await (context.supabase as any).rpc(
+    const { data: resolved, error } = await (context.supabase as unknown as SupabaseClient).rpc(
       "resolve_staynas_rate_plan_inheritance",
       { _property_id: propertyId, _rate_plan_id: data.id },
     );
@@ -340,7 +341,7 @@ export const createStayNasRatePlanInheritanceSnapshot = createServerFn({ method:
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await getActivePropertyId(context.supabase, context.userId);
-    const { data: snapshot, error } = await (context.supabase as any).rpc(
+    const { data: snapshot, error } = await (context.supabase as unknown as SupabaseClient).rpc(
       "create_staynas_rate_plan_inheritance_snapshot",
       { _property_id: propertyId, _rate_plan_id: data.id },
     );
