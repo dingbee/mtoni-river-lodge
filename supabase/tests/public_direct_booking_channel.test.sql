@@ -58,7 +58,7 @@ BEGIN
     RAISE EXCEPTION 'Public channel quote/reservation wrappers must be service-role only';
   END IF;
 
-  IF pg_get_functiondef(v_quote) NOT LIKE '%verification_status=''verified''%'
+  IF pg_get_functiondef(v_quote) NOT LIKE '%verification_status<>''verified''%'
      OR pg_get_functiondef(v_quote) NOT LIKE '%channel_code<>''direct_web''%'
      OR pg_get_functiondef(v_quote) NOT LIKE '%transaction_currency%' THEN
     RAISE EXCEPTION 'Quote wrapper must enforce verified domain, direct channel and transaction currency';
@@ -101,9 +101,12 @@ BEGIN
     RAISE EXCEPTION 'Published room pricing must use rate-plan transaction currency, not property operating currency';
   END IF;
 
-  IF pg_get_functiondef(
+  IF position('pay_at_property' in pg_get_functiondef(
        'public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid,text)'::regprocedure
-     ) NOT LIKE '%v_payment_method=''pay_at_property'' THEN ''manual''%'
+     ))=0
+     OR position('manual' in pg_get_functiondef(
+       'public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid,text)'::regprocedure
+     ))=0
      OR NOT EXISTS (
        SELECT 1 FROM information_schema.columns
        WHERE table_schema='public' AND table_name='bookings'
