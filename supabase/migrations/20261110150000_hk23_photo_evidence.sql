@@ -19,8 +19,8 @@ USING (
   AND split_part(name, '/', 2) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
   AND EXISTS (
     SELECT 1 FROM public.room_states rs
-    WHERE rs.id = split_part(name, '/', 2)::uuid
-      AND rs.property_id = split_part(name, '/', 1)::uuid
+    WHERE rs.id::text = split_part(name, '/', 2)
+      AND rs.property_id::text = split_part(name, '/', 1)
       AND public.staynas_user_has_property_access(auth.uid(), rs.property_id)
   )
 );
@@ -35,8 +35,8 @@ WITH CHECK (
   AND split_part(name, '/', 2) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
   AND EXISTS (
     SELECT 1 FROM public.room_states rs
-    WHERE rs.id = split_part(name, '/', 2)::uuid
-      AND rs.property_id = split_part(name, '/', 1)::uuid
+    WHERE rs.id::text = split_part(name, '/', 2)
+      AND rs.property_id::text = split_part(name, '/', 1)
       AND public.staynas_user_has_property_access(auth.uid(), rs.property_id)
   )
 );
@@ -51,8 +51,8 @@ USING (
   AND split_part(name, '/', 2) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
   AND EXISTS (
     SELECT 1 FROM public.room_states rs
-    WHERE rs.id = split_part(name, '/', 2)::uuid
-      AND rs.property_id = split_part(name, '/', 1)::uuid
+    WHERE rs.id::text = split_part(name, '/', 2)
+      AND rs.property_id::text = split_part(name, '/', 1)
       AND public.staynas_user_has_property_access(auth.uid(), rs.property_id)
   )
 );
