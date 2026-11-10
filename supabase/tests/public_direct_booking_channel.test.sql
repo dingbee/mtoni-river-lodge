@@ -1,119 +1,96 @@
--- Connection-first public direct booking channel contract.
--- The test is read-only and validates schema/security definitions; UAT fixtures
--- and live booking writes are handled in the isolated UAT database branch.
+BEGIN;
+SELECT plan(11);
 
-DO $test$
-DECLARE
-  v_quote regprocedure;
-  v_reservation regprocedure;
-  v_domain_fk boolean;
-  v_quote_fk boolean;
-  v_booking_fk boolean;
-BEGIN
-  IF to_regclass('public.staynas_public_booking_channels') IS NULL THEN
-    RAISE EXCEPTION 'Public direct-booking channel registry is missing';
-  END IF;
+SELECT ok(
+  to_regclass('public.staynas_public_booking_channels') IS NOT NULL,
+  'public direct-booking channel registry exists'
+);
 
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='staynas_reservation_quotes'
-      AND column_name='sales_channel_id'
-  ) OR NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='bookings'
-      AND column_name='sales_channel_id'
-  ) THEN
-    RAISE EXCEPTION 'Quotes and bookings must persist their sales channel';
-  END IF;
+SELECT ok(
+  EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='staynas_reservation_quotes' AND column_name='sales_channel_id')
+  AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='bookings' AND column_name='sales_channel_id'),
+  'quotes and bookings persist their direct sales channel'
+);
 
-  IF NOT (
-    SELECT relrowsecurity FROM pg_class
-    WHERE oid='public.staynas_public_booking_channels'::regclass
-  ) THEN
-    RAISE EXCEPTION 'Public booking channel registry must have RLS enabled';
-  END IF;
+SELECT ok(
+  COALESCE((SELECT relrowsecurity FROM pg_class WHERE oid=to_regclass('public.staynas_public_booking_channels')), false),
+  'direct-booking channel registry has row-level security enabled'
+);
 
-  IF has_table_privilege('anon','public.staynas_public_booking_channels','SELECT')
-     OR has_table_privilege('authenticated','public.staynas_public_booking_channels','SELECT')
-     OR NOT has_table_privilege('service_role','public.staynas_public_booking_channels','SELECT') THEN
-    RAISE EXCEPTION 'Channel registry must be server-role only';
-  END IF;
+SELECT ok(
+  COALESCE(NOT has_table_privilege('anon',to_regclass('public.staynas_public_booking_channels'),'SELECT'),false)
+  AND COALESCE(NOT has_table_privilege('authenticated',to_regclass('public.staynas_public_booking_channels'),'SELECT'),false)
+  AND COALESCE(has_table_privilege('service_role',to_regclass('public.staynas_public_booking_channels'),'SELECT'),false),
+  'channel registry is accessible only through the server role'
+);
 
-  v_quote := to_regprocedure(
-    'public.staynas_create_public_channel_quote(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text,text,integer)'
-  );
-  v_reservation := to_regprocedure(
-    'public.staynas_create_public_channel_reservation(uuid,uuid,text,text,text,text,text,text,text,text,uuid,text,text,uuid,text,text)'
-  );
-  IF v_quote IS NULL OR v_reservation IS NULL THEN
-    RAISE EXCEPTION 'Server-only quote and reservation wrappers are required';
-  END IF;
+SELECT ok(
+  to_regprocedure('public.staynas_create_public_channel_quote(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text,text,integer)') IS NOT NULL
+  AND to_regprocedure('public.staynas_create_public_channel_reservation(uuid,uuid,text,text,text,text,text,text,text,text,uuid,text,text,uuid,text,text)') IS NOT NULL,
+  'server-only channel quote and reservation wrappers exist'
+);
 
-  IF has_function_privilege('anon',v_quote,'EXECUTE')
-     OR has_function_privilege('authenticated',v_quote,'EXECUTE')
-     OR NOT has_function_privilege('service_role',v_quote,'EXECUTE')
-     OR has_function_privilege('anon',v_reservation,'EXECUTE')
-     OR has_function_privilege('authenticated',v_reservation,'EXECUTE')
-     OR NOT has_function_privilege('service_role',v_reservation,'EXECUTE') THEN
-    RAISE EXCEPTION 'Public channel quote/reservation wrappers must be service-role only';
-  END IF;
+SELECT ok(
+  COALESCE(NOT has_function_privilege('anon',to_regprocedure('public.staynas_create_public_channel_quote(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text,text,integer)'),'EXECUTE'),false)
+  AND COALESCE(NOT has_function_privilege('authenticated',to_regprocedure('public.staynas_create_public_channel_quote(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text,text,integer)'),'EXECUTE'),false)
+  AND COALESCE(has_function_privilege('service_role',to_regprocedure('public.staynas_create_public_channel_quote(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text,text,integer)'),'EXECUTE'),false)
+  AND COALESCE(NOT has_function_privilege('anon',to_regprocedure('public.staynas_create_public_channel_reservation(uuid,uuid,text,text,text,text,text,text,text,text,uuid,text,text,uuid,text,text)'),'EXECUTE'),false)
+  AND COALESCE(NOT has_function_privilege('authenticated',to_regprocedure('public.staynas_create_public_channel_reservation(uuid,uuid,text,text,text,text,text,text,text,text,uuid,text,text,uuid,text,text)'),'EXECUTE'),false)
+  AND COALESCE(has_function_privilege('service_role',to_regprocedure('public.staynas_create_public_channel_reservation(uuid,uuid,text,text,text,text,text,text,text,text,uuid,text,text,uuid,text,text)'),'EXECUTE'),false),
+  'public channel quote and reservation RPCs are service-role only'
+);
 
-  IF pg_get_functiondef(v_quote) NOT LIKE '%verification_status<>''verified''%'
-     OR pg_get_functiondef(v_quote) NOT LIKE '%channel_code<>''direct_web''%'
-     OR pg_get_functiondef(v_quote) NOT LIKE '%transaction_currency%' THEN
-    RAISE EXCEPTION 'Quote wrapper must enforce verified domain, direct channel and transaction currency';
-  END IF;
+SELECT ok(
+  COALESCE(
+    position('verification_status<>''verified''' in pg_get_functiondef(to_regprocedure('public.staynas_create_public_channel_quote(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text,text,integer)')))>0
+    AND position('channel_code<>''direct_web''' in pg_get_functiondef(to_regprocedure('public.staynas_create_public_channel_quote(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text,text,integer)')))>0
+    AND position('transaction_currency' in pg_get_functiondef(to_regprocedure('public.staynas_create_public_channel_quote(uuid,text,date,date,integer,integer,integer,jsonb,uuid,text,text,integer')))>0,
+    false
+  ),
+  'quote wrapper requires a verified domain, direct-web channel and explicit transaction currency'
+);
 
-  IF pg_get_functiondef(v_reservation) NOT LIKE '%QUOTE_CHANNEL_MISMATCH%'
-     OR pg_get_functiondef(v_reservation) NOT LIKE '%sales_channel_id%'
-     OR pg_get_functiondef(v_reservation) NOT LIKE '%FOR UPDATE%'
-     OR pg_get_functiondef(v_reservation) NOT LIKE '%PAYMENT_NOT_CONFIGURED%'
-     OR pg_get_functiondef(v_reservation) NOT LIKE '%pay_at_property%' THEN
-    RAISE EXCEPTION 'Reservation wrapper must lock and bind the quote to the exact channel';
-  END IF;
+SELECT ok(
+  COALESCE(
+    position('QUOTE_CHANNEL_MISMATCH' in pg_get_functiondef(to_regprocedure('public.staynas_create_public_channel_reservation(uuid,uuid,text,text,text,text,text,text,text,text,uuid,text,text,uuid,text,text)')))>0
+    AND position('sales_channel_id' in pg_get_functiondef(to_regprocedure('public.staynas_create_public_channel_reservation(uuid,uuid,text,text,text,text,text,text,text,text,uuid,text,text,uuid,text,text)')))>0
+    AND position('FOR UPDATE' in pg_get_functiondef(to_regprocedure('public.staynas_create_public_channel_reservation(uuid,uuid,text,text,text,text,text,text,text,text,uuid,text,text,uuid,text,text)')))>0
+    AND position('PAYMENT_NOT_CONFIGURED' in pg_get_functiondef(to_regprocedure('public.staynas_create_public_channel_reservation(uuid,uuid,text,text,text,text,text,text,text,text,uuid,text,text,uuid,text,text)')))>0
+    AND position('pay_at_property' in pg_get_functiondef(to_regprocedure('public.staynas_create_public_channel_reservation(uuid,uuid,text,text,text,text,text,text,text,text,uuid,text,text,uuid,text,text)')))>0,
+    false
+  ),
+  'reservation wrapper locks the quote, binds the channel and rejects online payment'
+);
 
-  SELECT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conrelid='public.staynas_public_booking_channels'::regclass
-      AND conname='staynas_public_booking_channels_domain_property_fk'
-  ) INTO v_domain_fk;
-  SELECT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conrelid='public.staynas_reservation_quotes'::regclass
-      AND conname='staynas_reservation_quotes_channel_property_fk'
-  ) INTO v_quote_fk;
-  SELECT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conrelid='public.bookings'::regclass
-      AND conname='bookings_channel_property_fk'
-  ) INTO v_booking_fk;
+SELECT ok(
+  EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid=to_regclass('public.staynas_public_booking_channels') AND conname='staynas_public_booking_channels_domain_property_fk')
+  AND EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid=to_regclass('public.staynas_reservation_quotes') AND conname='staynas_reservation_quotes_channel_property_fk')
+  AND EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid=to_regclass('public.bookings') AND conname='bookings_channel_property_fk'),
+  'domain, quote and booking rows have composite property/channel foreign keys'
+);
 
-  IF NOT v_domain_fk OR NOT v_quote_fk OR NOT v_booking_fk THEN
-    RAISE EXCEPTION 'Domain, quote and booking channel/property composite foreign keys are required';
-  END IF;
+SELECT ok(
+  COALESCE(
+    position('upper(v_plan.currency)' in pg_get_functiondef(to_regprocedure('public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamp with time zone)')))>0
+    AND position('Room currency does not match property currency' in pg_get_functiondef(to_regprocedure('public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamp with time zone)')))=0,
+    false
+  ),
+  'published rate-plan transaction currency is independent of property operating currency'
+);
 
-  IF pg_get_functiondef(
-       'public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamp with time zone)'::regprocedure
-     ) NOT LIKE '%upper(v_plan.currency)%'
-     OR pg_get_functiondef(
-       'public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamp with time zone)'::regprocedure
-     ) LIKE '%Room currency does not match property currency%' THEN
-    RAISE EXCEPTION 'Published room pricing must use rate-plan transaction currency, not property operating currency';
-  END IF;
+SELECT ok(
+  COALESCE(
+    position('pay_at_property' in pg_get_functiondef(to_regprocedure('public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid,text)')))>0
+    AND position('manual' in pg_get_functiondef(to_regprocedure('public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid,text)')))>0
+    AND EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='bookings'
+        AND column_name='payment_status' AND column_default LIKE '%unpaid%'
+    ),
+    false
+  ),
+  'pay-at-property reservations use the manual provider and remain unpaid by default'
+);
 
-  IF position('pay_at_property' in pg_get_functiondef(
-       'public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid,text)'::regprocedure
-     ))=0
-     OR position('manual' in pg_get_functiondef(
-       'public.create_booking(text,date,date,integer,integer,text,text,text,text,text,jsonb,integer,integer,uuid,text,uuid,text)'::regprocedure
-     ))=0
-     OR NOT EXISTS (
-       SELECT 1 FROM information_schema.columns
-       WHERE table_schema='public' AND table_name='bookings'
-         AND column_name='payment_status'
-         AND column_default LIKE '%unpaid%'
-     ) THEN
-    RAISE EXCEPTION 'Pay-at-property reservations must remain manual and unpaid';
-  END IF;
-END;
-$test$;
+SELECT * FROM finish();
+ROLLBACK;
