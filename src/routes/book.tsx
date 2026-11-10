@@ -26,7 +26,6 @@ import {
   listExtras,
   type AvailabilityRoom,
 } from "@/lib/booking.functions";
-import { initiatePayment } from "@/lib/payments.functions";
 import { newBookingSessionId } from "@/lib/booking-session";
 import { createBookingHold, releaseBookingHold } from "@/lib/availability.functions";
 import { getBookingQuote, type BookingPricingQuote } from "@/lib/booking.functions";
@@ -173,7 +172,7 @@ function BookPage() {
   const [extras, setExtras] = useState<Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>>(p.extras ?? []);
   const [selectedExtras, setSelectedExtras] = useState<SelectedExtra[]>(p.selectedExtras ?? []);
   const [guest, setGuest] = useState(p.guest ?? { name: "", email: "", phone: "", country: "", requests: "", purpose: "" });
-  const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string } | null>(null);
+  const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string; paymentStatus: "unpaid"; paymentState: "not_configured" } | null>(null);
   const [bookingQuote, setBookingQuote] = useState<BookingPricingQuote | null>(p.selectedRoom?.pricing_quote ?? null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [promoCodeInput, setPromoCodeInput] = useState("");
@@ -349,7 +348,6 @@ function BookPage() {
   const getBookingQuoteFn = useServerFn(getBookingQuote);
   const listExtrasFn = useServerFn(listExtras);
   const createBookingFn = useServerFn(createBooking);
-  const initiatePaymentFn = useServerFn(initiatePayment);
   const createHoldFn = useServerFn(createBookingHold);
   const releaseHoldFn = useServerFn(releaseBookingHold);
 
@@ -412,28 +410,26 @@ function BookPage() {
           sessionId,
         },
       });
-      trackGAEvent("begin_payment", {
+      trackGAEvent("reservation_request_submitted", {
         transaction_id: created.reference,
         currency: created.currency,
-        value: Math.round((created.total / 2) * 100) / 100,
+        value: created.total,
       });
-      const payment = await initiatePaymentFn({
-        data: { reference: created.reference, email: guest.email },
-      });
-      return { ...created, redirectUrl: payment.redirectUrl };
+      return created;
     },
     onSuccess: (res) => {
-      setConfirmation({ reference: res.reference, total: res.total, currency: res.currency });
-      // Redirect to Pesapal for deposit payment.
-      if (res.redirectUrl) {
-        try { window.sessionStorage.removeItem(STORAGE_KEY); } catch { /* sessionStorage can be unavailable in private browsing contexts */ }
-        window.location.href = res.redirectUrl;
-        return;
-      }
+      setConfirmation({
+        reference: res.reference,
+        total: res.total,
+        currency: res.currency,
+        paymentStatus: "unpaid",
+        paymentState: "not_configured",
+      });
+      try { window.sessionStorage.removeItem(STORAGE_KEY); } catch { /* sessionStorage can be unavailable in private browsing contexts */ }
       goToStep("confirmation", "booking_submit_success");
     },
     onError: async (err: Error) => {
-      console.error("[book] booking submit / payment init failed", err);
+      console.error("[book] reservation submission failed", err);
       if (err.message.includes("[QUOTE_STALE]") || err.message.includes("[QUOTE_EXPIRED]")) {
         try {
           const refreshed = await getBookingQuoteFn({
@@ -1090,8 +1086,8 @@ function GuestStep(props: {
             </>
           )}
           <div className="flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(props.grandTotal)}</span></div>
-          <div className="flex justify-between text-charcoal/70"><span>Deposit now (50%)</span><span>{fmt(deposit)}</span></div>
-          <div className="flex justify-between text-charcoal/70"><span>Balance at check-in (50%)</span><span>{fmt(balance)}</span></div>
+          <div className="flex justify-between text-charcoal/70"><span>Payment status</span><span>Not configured</span></div>
+          <p className="text-xs leading-5 text-charcoal/60">No payment will be collected during this booking flow. Your reservation will remain pending and Mtoni will contact you about payment arrangements.</p>
         </div>
         <button
           onClick={props.onSubmit} disabled={props.submitting || props.pricingLoading || !props.breakdown}
@@ -1099,9 +1095,9 @@ function GuestStep(props: {
           style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
         >
           {props.submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          {props.submitting ? "Redirecting to payment…" : props.pricingLoading ? "Updating quote…" : "Pay 50% Deposit & Confirm"}
+          {props.submitting ? "Submitting reservation…" : props.pricingLoading ? "Updating quote…" : "Submit Reservation Request"}
         </button>
-        <p className="text-[0.65rem] text-charcoal/55">You will be securely redirected to Pesapal to pay the 50% deposit. The remaining balance is payable on arrival.</p>
+        <p className="text-[0.65rem] leading-5 text-charcoal/55">Payment is not configured for this UAT connection. No payment will be taken or marked as paid.</p>
       </aside>
     </div>
   );
@@ -1120,7 +1116,7 @@ function ConfirmationStep({ confirmation, room, checkIn, checkOut, nights, guest
         <Check className="h-7 w-7" style={{ color: "#0F3D3A" }} />
       </div>
       <h2 className="mt-5 font-display text-3xl">Booking received</h2>
-      <p className="mt-2 text-sm text-charcoal/70">Thank you, {guestName}. We have sent a confirmation receipt to {guestEmail}.</p>
+      <p className="mt-2 text-sm text-charcoal/70">Thank you, {guestName}. Your reservation request has been recorded for {guestEmail}.</p>
       <div className="mx-auto mt-8 max-w-sm rounded-xl border border-charcoal/10 bg-bone/40 p-6 text-left text-sm">
         <div className="flex justify-between"><span className="text-charcoal/60">Reference</span><span className="font-mono font-medium">{confirmation.reference}</span></div>
         <div className="mt-2 flex justify-between"><span className="text-charcoal/60">Room</span><span>{room.name}</span></div>
@@ -1128,10 +1124,9 @@ function ConfirmationStep({ confirmation, room, checkIn, checkOut, nights, guest
         <div className="mt-2 flex justify-between"><span className="text-charcoal/60">Check-out</span><span>{checkOut}</span></div>
         <div className="mt-2 flex justify-between"><span className="text-charcoal/60">Nights</span><span>{nights}</span></div>
         <div className="mt-3 flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(confirmation.total)}</span></div>
-        <div className="mt-2 flex justify-between text-charcoal/70"><span>Deposit (50%)</span><span>{fmt(Math.round(confirmation.total * 0.5))}</span></div>
-        <div className="mt-1 flex justify-between text-charcoal/70"><span>Balance at check-in</span><span>{fmt(confirmation.total - Math.round(confirmation.total * 0.5))}</span></div>
+        <div className="mt-2 flex justify-between text-charcoal/70"><span>Payment status</span><span>Unpaid · Not configured</span></div>
       </div>
-      <p className="mt-6 text-xs text-charcoal/55">Status: <span className="font-medium text-charcoal">Pending</span> — our team will reach out within 24 hours to finalise payment.</p>
+      <p className="mt-6 text-xs leading-5 text-charcoal/55">Reservation status: <span className="font-medium text-charcoal">Pending</span>. Payment is not configured and no payment has been collected. Mtoni’s reservations team will contact you to arrange the next step.</p>
     </div>
   );
 }
