@@ -1,6 +1,6 @@
--- Public direct-booking channel binding.
--- Creates an explicit host -> verified property domain -> published sales channel contract.
--- Does not activate Mtoni or publish its channel.
+-- Reusable public direct-booking channel binding.
+-- Resolves a trusted hostname to one verified property domain and published
+-- sales channel. No property, tenant, hostname or currency is hardcoded here.
 BEGIN;
 
 -- Older installations may have property-domain records managed outside the
@@ -83,18 +83,6 @@ $constraints$;
 
 CREATE INDEX IF NOT EXISTS staynas_public_booking_channels_domain_status_idx
   ON public.staynas_public_booking_channels(domain_id,status,route_path);
-
--- Prepare the Mtoni direct-web channel as draft only. It cannot resolve publicly
--- until the property domain is verified, the property is active and the founder
--- explicitly publishes the channel after UAT.
-INSERT INTO public.staynas_public_booking_channels(
-  property_id,domain_id,channel_code,display_name,route_path,transaction_currency,status
-)
-SELECT p.id,d.id,'direct_web','Mtoni official direct booking','/book','USD','draft'
-FROM public.staynas_properties p
-JOIN public.staynas_property_domains d ON d.property_id=p.id
-WHERE p.slug='mtoni-river-lodge' AND d.hostname='mtoniriverlodge.com'
-ON CONFLICT(property_id,channel_code) DO NOTHING;
 
 CREATE OR REPLACE FUNCTION public.staynas_create_public_channel_quote(
   _sales_channel_id uuid,
