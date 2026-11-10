@@ -151,6 +151,7 @@ jobs:
           ALTER TABLE public.rooms ENABLE ROW LEVEL SECURITY;
           ALTER TABLE public.room_categories ENABLE ROW LEVEL SECURITY;
           ALTER TABLE public.room_states ENABLE ROW LEVEL SECURITY;
+          CREATE PUBLICATION supabase_realtime;
           SQL
       - name: Apply RC-RB-01 migration to isolated PostgreSQL 17
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261110100000_rc_rb_01_room_platform_completion.sql
