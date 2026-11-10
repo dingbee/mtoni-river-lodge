@@ -4,7 +4,7 @@
 DO $test$
 DECLARE
   v_user uuid := '10000000-0000-0000-0000-000000000001';
-  v_property_a uuid := '20000000-0000-0000-0000-000000000001';
+  v_property_a uuid := 'f44ff48a-5449-4464-b0cb-83295fadb468';
   v_property_b uuid := '20000000-0000-0000-0000-000000000002';
   v_category_a uuid := '30000000-0000-0000-0000-000000000001';
   v_category_b uuid := '30000000-0000-0000-0000-000000000002';
@@ -18,12 +18,12 @@ DECLARE
 BEGIN
   INSERT INTO auth.users(id) VALUES (v_user);
   INSERT INTO public.staynas_properties(id,name,status,currency) VALUES
-    (v_property_a,'Tenant A','active','TZS'),
+    (v_property_a,'Nolmark CDMA','active','TZS'),
     (v_property_b,'Tenant B','active','USD');
   INSERT INTO public.staynas_property_members(property_id,user_id,status) VALUES
     (v_property_a,v_user,'active');
   INSERT INTO public.staynas_property_domains(property_id,hostname,verification_status,verified_at) VALUES
-    (v_property_a,'tenant-a.example','verified',now()),
+    (v_property_a,'nolmarkcdma.staynas.com','verified',now()),
     (v_property_b,'tenant-b.example','verified',now());
   INSERT INTO public.room_categories(id,property_id,slug,name,status) VALUES
     (v_category_a,v_property_a,'standard','Standard','active'),
