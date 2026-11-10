@@ -33,7 +33,7 @@ export const Route = createFileRoute("/api/public/rooms/status")({
         return Response.json(
           {
             date,
-            rooms: (data ?? []).map((r: any) => ({
+            rooms: (data ?? []).map((r) => ({
               slug: r.slug,
               name: r.name,
               total_units: totals.get(r.slug) ?? 0,
