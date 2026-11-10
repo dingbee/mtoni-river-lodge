@@ -3,13 +3,13 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 
-async function requireRoomAdmin(supabase: any, userId: string) {
-  await requireStayNasModuleAccess(supabase, userId, "rooms.configure");
-}
 async function activePropertyId(supabase: any, userId: string) {
   const { data, error } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
   if (error || !data) throw new Error(error?.message ?? "No active property selected");
   return data as string;
+}
+async function requireRoomAdmin(supabase: any, userId: string, propertyId: string) {
+  await requireStayNasModuleAccess(supabase, userId, "rooms.configure");
 }
 const categorySchema = z.object({
   id: z.string().uuid().optional(),
@@ -53,8 +53,8 @@ const roomSchema = z.object({
 export const getPlatformRoomConfiguration = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await requireRoomAdmin(context.supabase, context.userId);
     const propertyId = await activePropertyId(context.supabase, context.userId);
+    await requireRoomAdmin(context.supabase, context.userId, propertyId);
     const sb: any = context.supabase;
     const [property, categories, rooms] = await Promise.all([
       sb.from("staynas_properties").select("id,name,currency").eq("id", propertyId).single(),
