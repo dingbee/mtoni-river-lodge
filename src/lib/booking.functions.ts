@@ -26,7 +26,7 @@ export type AvailabilityRoom = {
   room_id: string;
   slug: string;
   name: string;
-  base_price: number;
+  base_price: number | null;
   currency: string;
   capacity_adults: number;
   capacity_children: number;
@@ -34,7 +34,7 @@ export type AvailabilityRoom = {
   included_guests: number;
   extra_guest_fee: number;
   nights: number;
-  nightly_total: number;
+  nightly_total: number | null;
   min_available: number;
   is_available: boolean;
   fits_occupancy: boolean;
@@ -126,8 +126,8 @@ export const checkAvailability = createServerFn({ method: "POST" })
       return {
       ...r,
       rate_plan_options: ratePlanOptions,
-      nightly_total: Number(r.nightly_total),
-      base_price: Number(r.base_price),
+      nightly_total: r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" ? null : Number(r.nightly_total),
+      base_price: r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" ? null : Number(r.base_price),
       extra_guest_fee: Number(r.extra_guest_fee),
       pricing_quote: r.pricing_quote as BookingPricingQuote | null,
     };
