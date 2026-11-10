@@ -52,16 +52,12 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
             },
           },
-          // TanStack server functions / dynamic JSON — NetworkFirst.
+          // TanStack server functions include availability, quotes and booking
+          // mutations. Never cache them: stale quotes or booking responses can
+          // break inventory integrity and expose guest-specific data.
           {
             urlPattern: ({ url }) => url.pathname.startsWith("/_serverFn"),
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "mtoni-server-fn",
-              networkTimeoutSeconds: 6,
-              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
+            handler: "NetworkOnly",
           },
           // Google Fonts stylesheet — SWR.
           {
