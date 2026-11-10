@@ -35,12 +35,22 @@ import { DatePickerField } from "@/components/os/DatePickerField";
 export const Route = createFileRoute("/book")({
   validateSearch: (
     search: Record<string, unknown>
-  ): { step?: 1 | 2 | 3 | 4; session?: string; room?: string } => {
+  ): {
+    step?: 1 | 2 | 3 | 4; session?: string; room?: string;
+    property?: string; campaign?: string; offer?: string; ratePlan?: string; campaignSession?: string;
+    utmSource?: string; utmMedium?: string; utmCampaign?: string; utmContent?: string; utmTerm?: string; referrer?: string;
+  } => {
     const raw = Number(search.step);
     const step = raw === 2 || raw === 3 || raw === 4 ? raw : 1;
     const session = typeof search.session === "string" ? search.session : undefined;
     const room = typeof search.room === "string" ? search.room : undefined;
-    return { step: step as 1 | 2 | 3 | 4, session, room };
+    const read = (key: string) => typeof search[key] === "string" ? search[key] as string : undefined;
+    return {
+      step: step as 1 | 2 | 3 | 4, session, room,
+      property: read("property"), campaign: read("campaign"), offer: read("offer"), ratePlan: read("ratePlan"), campaignSession: read("campaignSession"),
+      utmSource: read("utmSource"), utmMedium: read("utmMedium"), utmCampaign: read("utmCampaign"),
+      utmContent: read("utmContent"), utmTerm: read("utmTerm"), referrer: read("referrer"),
+    };
   },
   head: () => ({
     meta: [
@@ -115,7 +125,11 @@ function readPersisted(): Partial<PersistedState> {
 function BookPage() {
   // Step + session live in the URL so back/forward is always explicit
   // routing, never a browser-history pop into a different session.
-  const { step: stepNum, session: incomingSession, room: incomingRoom } = Route.useSearch();
+  const {
+    step: stepNum, session: incomingSession, room: incomingRoom,
+    property: campaignProperty, campaign, offer, ratePlan, campaignSession,
+    utmSource, utmMedium, utmCampaign, utmContent, utmTerm, referrer,
+  } = Route.useSearch();
   const navigate = Route.useNavigate();
   const step: Step = NUM_TO_STEP[stepNum as 1 | 2 | 3 | 4];
 
@@ -262,7 +276,7 @@ function BookPage() {
       void navigate({
         // Preserve session/room so the bootstrap + validation guards keep
         // recognising this as the same booking flow across step changes.
-        search: (prev: Record<string, unknown>) => ({ ...prev, step: STEP_TO_NUM[next] }),
+        search: (prev) => ({ ...prev, step: STEP_TO_NUM[next] }),
         replace: false,
         // Step transitions happen in-place — never scroll to top, the user
         // is mid-form and expects to stay where they are.
@@ -332,7 +346,7 @@ function BookPage() {
 
       if (target && target !== step) {
         void navigate({
-          search: (prev: Record<string, unknown>) => ({ ...prev, step: STEP_TO_NUM[target!] }),
+          search: (prev) => ({ ...prev, step: STEP_TO_NUM[target!] }),
           replace: true,
           resetScroll: false,
         });
@@ -357,7 +371,12 @@ function BookPage() {
     mutationFn: async () => {
       if (nights < 1) throw new Error("Pick a check-in and check-out date");
       const [rooms, extrasList] = await Promise.all([
-        checkAvailabilityFn({ data: { checkIn, checkOut, guests: totalOccupants, adults, childrenBelow6, children7Plus } }),
+        checkAvailabilityFn({ data: {
+          checkIn, checkOut, guests: totalOccupants, adults, childrenBelow6, children7Plus,
+          propertySlug: campaignProperty, campaignSlug: campaign, offerId: offer, ratePlanId: ratePlan,
+          sessionKey: campaign ? (campaignSession ?? sessionId) : undefined,
+          utmSource, utmMedium, utmCampaign, utmContent, utmTerm, referrer,
+        } }),
         listExtrasFn(),
       ]);
       return { rooms, extrasList };
@@ -410,6 +429,9 @@ function BookPage() {
           extras: selectedExtras,
           holdId: hold && hold.roomSlug === selectedRoom.slug ? hold.id : undefined,
           sessionId,
+          propertySlug: campaignProperty, campaignSlug: campaign, offerId: offer,
+          sessionKey: campaign ? (campaignSession ?? sessionId) : undefined,
+          utmSource, utmMedium, utmCampaign, utmContent, utmTerm, referrer,
         },
       });
       trackGAEvent("begin_payment", {
@@ -444,6 +466,9 @@ function BookPage() {
               guestEmail: validGuestEmailForQuote || undefined,
               checkIn, checkOut, adults, childrenBelow6, children7Plus,
               extras: selectedExtras,
+              propertySlug: campaignProperty, campaignSlug: campaign, offerId: offer,
+              sessionKey: campaign ? (campaignSession ?? sessionId) : undefined,
+              utmSource, utmMedium, utmCampaign, utmContent, utmTerm, referrer,
             },
           });
           setBookingQuote(refreshed as BookingPricingQuote);
@@ -483,6 +508,9 @@ function BookPage() {
         childrenBelow6,
         children7Plus,
         extras: selectedExtras,
+        propertySlug: campaignProperty, campaignSlug: campaign, offerId: offer,
+        sessionKey: campaign ? (campaignSession ?? sessionId) : undefined,
+        utmSource, utmMedium, utmCampaign, utmContent, utmTerm, referrer,
       },
     }).then((quote) => {
       if (!cancelled) {
@@ -584,7 +612,7 @@ function BookPage() {
                   });
                   // Keep the URL ?room= in sync so refreshes stay consistent.
                   void navigate({
-                    search: { step: STEP_TO_NUM.guest, session: sessionId, room: r.slug },
+                    search: (prev) => ({ ...prev, step: STEP_TO_NUM.guest, session: sessionId, room: r.slug }),
                     resetScroll: false,
                   });
                   prevStepRef.current = "guest";
@@ -616,7 +644,7 @@ function BookPage() {
                 });
                 void navigate({
                   to: "/book",
-                  search: { step: 1, session: fresh, room: r.slug },
+                  search: (prev) => ({ ...prev, step: 1, session: fresh, room: r.slug }),
                 });
               }}
             />

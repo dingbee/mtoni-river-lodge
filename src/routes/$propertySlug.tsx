@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- existing public room catalog payload is dynamically shaped */
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -13,13 +13,30 @@ import {
   getPublicDemoProperty,
   searchPublicDemoAvailability,
 } from "@/lib/public-booking.functions";
+import { resolveConfiguredPropertyCampaignSlug } from "@/domains/booking-campaigns/campaigns.functions";
 
 export const Route = createFileRoute("/$propertySlug")({
-  loader: async ({ params }) => {
+  validateSearch: (search: Record<string, unknown>) => ({
+    campaign: typeof search.campaign === "string" ? search.campaign : undefined,
+    offer: typeof search.offer === "string" ? search.offer : undefined,
+    ratePlan: typeof search.ratePlan === "string" ? search.ratePlan : undefined,
+    session: typeof search.session === "string" ? search.session : undefined,
+  }),
+  loader: async ({ params, location }) => {
+    const query = new URLSearchParams(location.searchStr);
     try {
-      const propertyData = await getPublicDemoProperty({ data: { propertySlug: params.propertySlug } });
+      const campaignSlug = query.get("campaign") || undefined;
+      const propertyData = await getPublicDemoProperty({ data: { propertySlug: params.propertySlug, campaignSlug } });
       return { propertyData, pageError: "" };
     } catch (error) {
+      const campaign = await resolveConfiguredPropertyCampaignSlug({ data: { campaignSlug: params.propertySlug } }).catch(() => null);
+      if (campaign) {
+        throw redirect({
+          to: "/p/$propertySlug/campaign/$campaignSlug",
+          params: { propertySlug: campaign.propertySlug, campaignSlug: campaign.campaignSlug },
+          search: Object.fromEntries(query.entries()) as any,
+        });
+      }
       return {
         propertyData: null,
         pageError: error instanceof Error ? error.message : "This booking page is unavailable.",
@@ -93,6 +110,7 @@ const roomVisuals = [
 
 function PublicPropertyBookingPage() {
   const { propertySlug } = Route.useParams();
+  const { campaign, offer, ratePlan, session } = Route.useSearch();
   const { propertyData, pageError } = Route.useLoaderData();
   const searchAvailability = useServerFn(searchPublicDemoAvailability);
   const createBooking = useServerFn(createPublicDemoBooking);
@@ -104,7 +122,7 @@ function PublicPropertyBookingPage() {
   const [availableRooms, setAvailableRooms] = useState<AvailableRoom[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<AvailableRoom | null>(null);
-  const [selectedRatePlanId, setSelectedRatePlanId] = useState("");
+  const [selectedRatePlanId, setSelectedRatePlanId] = useState(ratePlan ?? "");
   const [selectedRatePlans, setSelectedRatePlans] = useState<Record<string, string>>({});
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
@@ -122,13 +140,15 @@ function PublicPropertyBookingPage() {
   }, [checkIn, checkOut]);
 
   const availabilityMutation = useMutation({
-    mutationFn: () => searchAvailability({ data: { propertySlug, checkIn, checkOut, guests } }),
+    mutationFn: () => searchAvailability({ data: { propertySlug, checkIn, checkOut, guests, campaignSlug: campaign, offerId: offer, ratePlanId: ratePlan, sessionKey: session } }),
     onSuccess: (rooms) => {
       setAvailableRooms(rooms as AvailableRoom[]);
       setHasSearched(true);
       setSelectedRoom(null);
-      setSelectedRatePlanId("");
-      setSelectedRatePlans({});
+      setSelectedRatePlanId(ratePlan ?? "");
+      setSelectedRatePlans(Object.fromEntries((rooms as AvailableRoom[]).filter((room) =>
+        !!ratePlan && room.rate_plan_options?.some((plan) => plan.rate_plan_id === ratePlan)
+      ).map((room) => [room.slug, ratePlan as string])));
       setBookingQuote(null);
       setQuoteError("");
       setConfirmation(null);
@@ -145,6 +165,7 @@ function PublicPropertyBookingPage() {
         data: {
           propertySlug, quoteId: bookingQuote.quote_id, roomSlug: selectedRoom.slug, ratePlanId: selectedRatePlanId || undefined, checkIn, checkOut,
           adults: guests, children: 0, guestName, guestEmail, guestPhone, country, specialRequests,
+          campaignSlug: campaign, offerId: offer, sessionKey: session,
         },
       });
     },
@@ -175,6 +196,7 @@ function PublicPropertyBookingPage() {
       adults: guests,
       ratePlanId: resolvedRatePlanId,
       guestEmail: validGuestEmail,
+      campaignSlug: campaign, offerId: offer, sessionKey: session,
     } }).then((quote) => {
       if (!cancelled) {
         setBookingQuote(quote as PublicBookingQuote);
@@ -199,7 +221,7 @@ function PublicPropertyBookingPage() {
   }
 
   const { property, rooms, branding } = propertyData;
-  const currency = property.currency || "USD";
+  const currency = property.currency;
   const brandStyle = {
     "--direct-primary": branding.primaryColor,
     "--direct-secondary": branding.secondaryColor,
@@ -303,7 +325,7 @@ function PublicPropertyBookingPage() {
                   <div className="flex items-center justify-between gap-2"><span className="text-[10px] font-medium text-[#4d7059]">{live.min_available} available</span><span className="text-xs font-semibold text-[#26382d]">{needsPlanChoice && planOptions.length === 0 ? "Rates unavailable" : needsPlanChoice && planOptions.length > 1 && !selectedPlanForRoom ? "Choose a rate plan" : money(Number(selectedPlanForRoom?.total ?? live.nightly_total ?? 0), selectedPlanForRoom?.currency ?? live.currency)} <span className="font-normal text-[#899188]">accommodation subtotal</span></span></div>
                   {planOptions.length > 1 && <div className="mt-3"><label className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[#718078]">Choose a rate plan</label><select value={selectedRatePlans[room.slug] ?? ""} onChange={(event) => { const nextPlanId = event.target.value; setSelectedRatePlans((current) => ({ ...current, [room.slug]: nextPlanId })); if (isSelected) setSelectedRatePlanId(nextPlanId); }} className="mt-1.5 h-10 w-full rounded-lg border border-[#e5e6df] bg-[#fcfcfa] px-3 text-xs text-[#253229]"><option value="">Select a rate plan</option>{planOptions.map((plan) => <option key={plan.rate_plan_id} value={plan.rate_plan_id}>{plan.name} — {money(Number(plan.total), plan.currency)}</option>)}</select>{selectedPlanForRoom && <p className="mt-1.5 text-[10px] text-[#7b877e]">{selectedPlanForRoom.description || selectedPlanForRoom.meal_plan || "Published rate plan"} · {selectedPlanForRoom.refundable ? "Refundable" : "Non-refundable"}</p>}</div>}
                   {planOptions.length === 1 && selectedPlanForRoom && <p className="mt-2 text-[10px] text-[#7b877e]">{selectedPlanForRoom.name} · {selectedPlanForRoom.meal_plan || "No meal plan"} · {selectedPlanForRoom.refundable ? "Refundable" : "Non-refundable"}</p>}
-                  <button type="button" disabled={needsPlanChoice && planOptions.length === 0 || planOptions.length > 1 && !selectedRatePlans[room.slug]} onClick={() => { setSelectedRoom(live); setSelectedRatePlanId(selectedRatePlans[room.slug] ?? ""); setConfirmation(null); window.setTimeout(() => document.getElementById("guest-details")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80); }} className={`mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${isSelected ? "bg-[#e5eee6] text-[#31523b]" : "bg-[var(--direct-primary)] text-white hover:opacity-90"}`}>{isSelected ? "Room selected" : "Choose this room"}<ArrowRight className="h-3.5 w-3.5"/></button>
+                  <button type="button" disabled={needsPlanChoice && planOptions.length === 0 || planOptions.length > 1 && !selectedRatePlans[room.slug]} onClick={() => { setSelectedRoom(live); setSelectedRatePlanId(selectedRatePlans[room.slug] ?? (ratePlan && planOptions.some((plan) => plan.rate_plan_id === ratePlan) ? ratePlan : "")); setConfirmation(null); window.setTimeout(() => document.getElementById("guest-details")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80); }} className={`mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${isSelected ? "bg-[#e5eee6] text-[#31523b]" : "bg-[var(--direct-primary)] text-white hover:opacity-90"}`}>{isSelected ? "Room selected" : "Choose this room"}<ArrowRight className="h-3.5 w-3.5"/></button>
                 </div> : notReturned ? <div className="mt-4 border-t border-[#f0f0eb] pt-3"><p className="text-xs text-[#8b7460]">Not available for these dates</p></div> : <p className="mt-4 border-t border-[#f0f0eb] pt-3 text-[10px] text-[#9a9f97]">Search dates to check availability</p>}
               </div>
             </article>;

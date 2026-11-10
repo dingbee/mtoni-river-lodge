@@ -100,6 +100,17 @@ export const NAV: NavEntry[] = [
   {
     kind: "group",
     group: {
+      id: "direct-booking",
+      label: "Direct Booking",
+      icon: Network,
+      items: [
+        { id: "direct-booking.campaigns", label: "Campaign Studio", href: "/admin/distribution/campaigns", icon: TrendingUp },
+      ],
+    },
+  },
+  {
+    kind: "group",
+    group: {
       id: "staynas-intelligence",
       label: "StayNas Intelligence",
       icon: Bot,
