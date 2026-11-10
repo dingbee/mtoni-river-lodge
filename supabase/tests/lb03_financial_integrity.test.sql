@@ -148,6 +148,16 @@ RESET ROLE;
 SET ROLE authenticated;
 SELECT set_config('request.test_role','authenticated',false);
 SELECT set_config('request.test_uid','90000000-0000-4000-8000-000000000001',false);
+DO $lb03queue$
+BEGIN
+ IF (SELECT count(*) FROM public.lb03_list_pending_room_charge_reversals())<>1 THEN
+  RAISE EXCEPTION 'Hotel reversal approval queue did not expose the pending property-scoped request';
+ END IF;
+END $lb03queue$;
+RESET ROLE;
+SET ROLE authenticated;
+SELECT set_config('request.test_role','authenticated',false);
+SELECT set_config('request.test_uid','90000000-0000-4000-8000-000000000001',false);
 DO $lb03approval$
 DECLARE r jsonb;
 BEGIN
