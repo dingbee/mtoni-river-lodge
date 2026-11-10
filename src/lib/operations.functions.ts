@@ -148,6 +148,29 @@ export const updateRoomState = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const roomUnitSchema = z.object({
+  action: z.enum(["create", "rename", "delete"]),
+  roomId: z.string().uuid(),
+  unitId: z.string().uuid().optional(),
+  unitLabel: z.string().trim().min(1).max(80).optional(),
+});
+
+export const manageRoomUnit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => roomUnitSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "rooms.configure");
+    const sb: any = context.supabase;
+    const { data: id, error } = await sb.rpc("staynas_manage_room_unit", {
+      _action: data.action,
+      _room_id: data.roomId,
+      _unit_id: data.unitId ?? null,
+      _unit_label: data.unitLabel ?? null,
+    });
+    if (error) throw new Error(error.message);
+    return { id };
+  });
+
 // -------------------------------------------------------------- Reservation workspace
 
 export const getReservationWorkspace = createServerFn({ method: "POST" })
