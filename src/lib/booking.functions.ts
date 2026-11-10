@@ -114,7 +114,7 @@ export const checkAvailability = createServerFn({ method: "POST" })
       _adults: data.adults,
       _children_below_6: data.childrenBelow6,
       _children_7_plus: data.children7Plus,
-      _rate_plan_id: selectedRatePlanId,
+      _rate_plan_id: data.ratePlanId ?? null,
     });
     if (error) throw new Error(error.message);
     const mapped = await Promise.all(((rows ?? []) as any[]).map(async (r) => {
@@ -251,7 +251,7 @@ export const getBookingQuote = createServerFn({ method: "POST" })
       _children_below_6: data.childrenBelow6,
       _children_7_plus: data.children7Plus,
       _extras: data.extras,
-      _rate_plan_id: data.ratePlanId ?? null,
+      _rate_plan_id: selectedRatePlanId,
       _promo_code: data.promoCode?.trim() || null,
       _guest_email: data.guestEmail?.trim() || null,
       _ttl_seconds: 600,
