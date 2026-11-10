@@ -10,16 +10,15 @@ SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
 DECLARE
-  _property_id uuid;
-  _matches integer;
+  _property_ids uuid[];
 BEGIN
   IF _hostname IS NULL OR length(btrim(_hostname)) < 3 OR length(btrim(_hostname)) > 253
      OR btrim(_hostname) !~ '^[A-Za-z0-9.-]+$' THEN
     RAISE EXCEPTION 'A valid booking hostname is required' USING ERRCODE = '22023';
   END IF;
 
-  SELECT count(DISTINCT d.property_id), min(d.property_id)
-    INTO _matches, _property_id
+  SELECT array_agg(DISTINCT d.property_id)
+    INTO _property_ids
   FROM public.staynas_property_domains d
   JOIN public.staynas_public_booking_channels c
     ON c.domain_id = d.id
@@ -33,15 +32,15 @@ BEGIN
     AND c.status = 'published'
     AND p.status = 'active';
 
-  IF _matches = 0 THEN
+  IF COALESCE(array_length(_property_ids, 1), 0) = 0 THEN
     RAISE EXCEPTION 'No published direct booking channel is configured for this hostname'
       USING ERRCODE = 'P0002';
-  ELSIF _matches > 1 THEN
+  ELSIF array_length(_property_ids, 1) > 1 THEN
     RAISE EXCEPTION 'Hostname maps to multiple booking properties'
       USING ERRCODE = '23505';
   END IF;
 
-  RETURN _property_id;
+  RETURN _property_ids[1];
 END;
 $$;
 
