@@ -40,7 +40,7 @@ export const Route = createFileRoute("/api/public/rooms/status")({
               is_available: r.is_available,
             })),
           },
-          { headers: { "cache-control": "public, max-age=30" } },
+          { headers: { "cache-control": "no-store" } },
         );
       },
     },
