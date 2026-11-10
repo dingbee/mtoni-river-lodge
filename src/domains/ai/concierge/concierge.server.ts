@@ -33,12 +33,12 @@ export async function assertConciergeEntitlement(supabaseAdmin: any, propertyId:
 
 export async function persistConciergeUsage(
   supabaseAdmin: any,
-  input: { propertyId: string; sessionId: string; messageId: string; gateway: AiGatewayResult },
+  input: { propertyId: string; sessionId: string; userMessageId: string; gateway: AiGatewayResult },
 ): Promise<void> {
   const { error } = await supabaseAdmin.from("ai_concierge_usage_ledger").insert({
     property_id: input.propertyId,
     session_id: input.sessionId,
-    message_id: input.messageId,
+    user_message_id: input.userMessageId,
     request_id: input.gateway.requestId,
     provider: input.gateway.provider,
     model: input.gateway.model,
@@ -233,8 +233,12 @@ export async function handleConciergeChat(
   if (historyError) throw new Error("Conversation history is temporarily unavailable.");
   const history = (historyRows ?? []).map((r): ConciergeMessage => ({ role: r.role as ConciergeMessage["role"], content: r.content }));
 
-  const { error: userMessageError } = await supabaseAdmin.from("ai_concierge_messages").insert({ session_id: sessionId, role: "user", content: message });
-  if (userMessageError) throw new Error("Your message could not be saved. Please try again.");
+  const { data: userMessageRow, error: userMessageError } = await supabaseAdmin
+    .from("ai_concierge_messages")
+    .insert({ session_id: sessionId, role: "user", content: message })
+    .select("id")
+    .single();
+  if (userMessageError || !userMessageRow?.id) throw new Error("Your message could not be saved. Please try again.");
 
   // Guest retrieval is feature-gated until SN-IQ-01 database isolation and
   // the property-scoped public search migration have been applied and verified.
@@ -321,6 +325,15 @@ export async function handleConciergeChat(
       citations: [],
     });
   }
+  if (gatewayResult) {
+    await persistConciergeUsage(supabaseAdmin, {
+      propertyId,
+      sessionId,
+      userMessageId: userMessageRow.id,
+      gateway: gatewayResult,
+    });
+  }
+
   const parsedValue = tryJson<{ answer?: string; confidence?: number; escalate?: boolean; citations?: unknown }>(raw);
   const parsed = parsedValue && typeof parsedValue === "object" && !Array.isArray(parsedValue) ? parsedValue : {};
   const malformedModelResponse = typeof parsed.answer !== "string" || !parsed.answer.trim();
@@ -354,15 +367,6 @@ export async function handleConciergeChat(
   if (assistantMessageError || !assistantRow?.id) throw new Error("The Concierge response could not be saved. Please retry.");
 
   const assistantMessageId = assistantRow.id;
-
-  if (gatewayResult) {
-    await persistConciergeUsage(supabaseAdmin, {
-      propertyId,
-      sessionId,
-      messageId: assistantMessageId,
-      gateway: gatewayResult,
-    });
-  }
 
   if (shouldEscalate) {
     const reason = /complaint|unhappy|refund|unsafe|medical|emergency/i.test(message)
