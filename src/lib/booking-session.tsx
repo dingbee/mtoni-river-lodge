@@ -10,7 +10,12 @@ export function newBookingSessionId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
   }
-  return `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+  throw new Error("Secure random generation is unavailable in this browser");
 }
 
 type StartBookingLinkProps = {
