@@ -63,7 +63,8 @@ function RoomsIndexPage() {
 }
 
 function RoomCard({room}:{room:PublicRoom}) {
-  const [availability,setAvailability] = useState<{available_units:number;total_units:number}|null>(null);\n  const [availabilityError,setAvailabilityError] = useState(false);
+  const [availability,setAvailability] = useState<{available_units:number;total_units:number}|null>(null);
+  const [availabilityError,setAvailabilityError] = useState(false);
   useEffect(() => {
     let cancelled=false;
     fetch("/api/public/rooms/status",{cache:"no-store"}).then(async r=>{
