@@ -579,7 +579,7 @@ function BookPage() {
                   trackRoomSelected({
                     room_slug: r.slug,
                     room_name: r.name,
-                    nightly_total: Number(r.pricing_quote?.nightly?.[0]?.nightly_rate ?? r.base_price),
+                    nightly_total: Number(roomWithPlan.selected_rate_plan?.total ?? r.pricing_quote?.total ?? 0) / Math.max(1, nights),
                     currency: r.currency,
                   });
                   // Keep the URL ?room= in sync so refreshes stay consistent.
@@ -709,7 +709,7 @@ function SelectedRoomCard({ room, inventory }: { room: AvailabilityRoom | null; 
     <div className="rounded-[24px] border border-charcoal/10 bg-bone p-7 shadow-deep">
       <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-burgundy">Selected room</p>
       <h2 className="mt-3 break-words font-display text-xl font-medium leading-snug sm:text-2xl">{room.name}</h2>
-      <p className="mt-3 text-sm text-charcoal/65">Sleeps up to {room.max_occupancy} · {room.currency} {Number(room.base_price).toLocaleString()} / night</p>
+      <p className="mt-3 text-sm text-charcoal/65">Sleeps up to {room.max_occupancy} · {room.selected_rate_plan ? `${room.selected_rate_plan.currency} ${(Number(room.selected_rate_plan.total) / Math.max(1, room.selected_rate_plan.nightly_breakdown?.length ?? 1)).toLocaleString()} / night` : room.pricing_quote?.ok ? `${room.currency} ${Number(room.pricing_quote.nightly?.[0]?.nightly_rate ?? 0).toLocaleString()} / night` : "Price confirmed from the selected published rate plan"}</p>
       <div className="mt-5 border-t border-charcoal/10 pt-5">
         <div className="flex items-end justify-between gap-3"><p className="font-display text-xl">{availability}</p>{inventory && <span className="text-[0.65rem] font-medium uppercase tracking-[0.16em] text-forest">Live</span>}</div>
         {inventory && inventory.total_units > 0 && <div className="mt-3 h-2 overflow-hidden rounded-full bg-charcoal/10"><div className="h-full rounded-full bg-forest transition-all duration-500" style={{ width: Math.max(0, Math.min(100, (inventory.available_units / inventory.total_units) * 100)) + "%" }} /></div>}
