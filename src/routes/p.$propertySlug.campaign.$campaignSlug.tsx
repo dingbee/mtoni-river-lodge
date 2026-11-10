@@ -37,7 +37,7 @@ function PublicCampaignPage() {
   const [tracking, setTracking] = useState<{ source?: string; medium?: string; utmCampaign?: string; utmContent?: string; utmTerm?: string; referrer?: string }>({});
   const [trackingReady, setTrackingReady] = useState(false);
   const [trackingError, setTrackingError] = useState("");
-  const selectedOffer = useMemo(() => data.offers.find((offer) => offer.id === selectedOfferId) as CampaignOffer | undefined, [data.offers, selectedOfferId]);
+  const selectedOffer = useMemo(() => data.offers.find((offer: CampaignOffer) => offer.id === selectedOfferId) as CampaignOffer | undefined, [data.offers, selectedOfferId]);
 
   useEffect(() => {
     const key = window.sessionStorage.getItem("staynas.campaign.session") || window.crypto.randomUUID();
@@ -150,7 +150,7 @@ function PublicCampaignPage() {
           <div className="space-y-8">
             {!!content.highlights?.length && <section><h2 className="text-xl font-semibold">Campaign highlights</h2><ul className="mt-4 grid gap-3 sm:grid-cols-2">{content.highlights.map((item, index) => <li key={index} className="flex gap-2 rounded-xl border border-black/10 bg-white p-4 text-sm"><CheckCircle2 className="h-4 w-4 shrink-0" />{item}</li>)}</ul></section>}
             {!!content.inclusions?.length && <section><h2 className="text-xl font-semibold">What is included</h2><ul className="mt-3 space-y-2">{content.inclusions.map((item, index) => <li key={index} className="flex gap-2 text-sm"><CheckCircle2 className="h-4 w-4 shrink-0" />{item}</li>)}</ul></section>}
-            <section><h2 className="text-xl font-semibold">Available accommodation</h2><div className="mt-4 grid gap-3 sm:grid-cols-2">{data.rooms.map((room) => <article key={room.id} className="rounded-xl border border-black/10 bg-white p-4"><h3 className="font-semibold">{room.name}</h3>{room.short_description && <p className="mt-1 text-sm text-muted-foreground">{room.short_description}</p>}<p className="mt-3 text-xs text-muted-foreground">Availability and final rates are confirmed for your dates.</p></article>)}</div></section>
+            <section><h2 className="text-xl font-semibold">Available accommodation</h2><div className="mt-4 grid gap-3 sm:grid-cols-2">{data.rooms.map((room: CampaignPageData["rooms"][number]) => <article key={room.id} className="rounded-xl border border-black/10 bg-white p-4"><h3 className="font-semibold">{room.name}</h3>{room.short_description && <p className="mt-1 text-sm text-muted-foreground">{room.short_description}</p>}<p className="mt-3 text-xs text-muted-foreground">Availability and final rates are confirmed for your dates.</p></article>)}</div></section>
             {!!content.terms?.length && <section><h2 className="text-xl font-semibold">Terms and conditions</h2><ul className="mt-3 list-disc space-y-2 pl-5 text-sm">{content.terms.map((item, index) => <li key={index}>{item}</li>)}</ul></section>}
             {!!content.faqs?.length && <section><h2 className="text-xl font-semibold">Frequently asked questions</h2><div className="mt-3 space-y-3">{content.faqs.map((faq, index) => <details key={index} className="rounded-xl border border-black/10 bg-white p-4"><summary className="cursor-pointer font-medium">{faq.question}</summary><p className="mt-3 text-sm leading-6 text-muted-foreground">{faq.answer}</p></details>)}</div></section>}
           </div>
@@ -159,7 +159,7 @@ function PublicCampaignPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Campaign offer</p>
             <h2 className="mt-2 text-xl font-semibold">{data.campaign.name}</h2>
             <p className="mt-2 text-sm text-muted-foreground">Property currency: {data.property.currency}. Final prices and availability are calculated by the StayNas Pricing Engine after your dates are selected.</p>
-            <div className="mt-5 space-y-2"><label htmlFor="campaign-offer" className="text-sm font-medium">Select an offer</label><select id="campaign-offer" value={selectedOfferId} onChange={(event) => setSelectedOfferId(event.target.value)} className="h-11 w-full rounded-lg border bg-white px-3 text-sm">{data.offers.map((offer) => <option key={offer.id} value={offer.id}>{offer.title}</option>)}</select></div>
+            <div className="mt-5 space-y-2"><label htmlFor="campaign-offer" className="text-sm font-medium">Select an offer</label><select id="campaign-offer" value={selectedOfferId} onChange={(event) => setSelectedOfferId(event.target.value)} className="h-11 w-full rounded-lg border bg-white px-3 text-sm">{data.offers.map((offer: CampaignOffer) => <option key={offer.id} value={offer.id}>{offer.title}</option>)}</select></div>
             {selectedOffer?.description && <p className="mt-3 text-sm text-muted-foreground">{selectedOffer.description}</p>}
             <button type="button" onClick={book} disabled={!selectedOffer || !trackingReady} className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--campaign-primary)] px-4 text-sm font-semibold text-white disabled:opacity-50">{content.ctaLabel || "Check availability and book"}<ArrowRight className="h-4 w-4" /></button>
             {trackingError && <p role="alert" className="mt-3 text-xs text-red-700">{trackingError}</p>}
