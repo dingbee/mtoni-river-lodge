@@ -108,5 +108,7 @@ jobs:
         run: |
           bun run build
           bunx tsc --noEmit
-      - name: Lint CPS-04 implementation
-        run: bunx eslint src/domains/booking/booking-product-configuration.functions.ts src/routes/_authenticated.admin.booking-products.tsx src/components/os/nav-config.ts
+      - name: Format and lint CPS-04 implementation
+        run: |
+          bunx prettier --write src/domains/booking/booking-product-configuration.functions.ts src/routes/_authenticated.admin.booking-products.tsx src/components/os/nav-config.ts
+          bunx eslint src/domains/booking/booking-product-configuration.functions.ts src/routes/_authenticated.admin.booking-products.tsx src/components/os/nav-config.ts
