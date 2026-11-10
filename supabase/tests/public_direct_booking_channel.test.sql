@@ -66,7 +66,9 @@ BEGIN
 
   IF pg_get_functiondef(v_reservation) NOT LIKE '%QUOTE_CHANNEL_MISMATCH%'
      OR pg_get_functiondef(v_reservation) NOT LIKE '%sales_channel_id%'
-     OR pg_get_functiondef(v_reservation) NOT LIKE '%FOR UPDATE%' THEN
+     OR pg_get_functiondef(v_reservation) NOT LIKE '%FOR UPDATE%'
+     OR pg_get_functiondef(v_reservation) NOT LIKE '%PAYMENT_NOT_CONFIGURED%'
+     OR pg_get_functiondef(v_reservation) NOT LIKE '%pay_at_property%' THEN
     RAISE EXCEPTION 'Reservation wrapper must lock and bind the quote to the exact channel';
   END IF;
 
