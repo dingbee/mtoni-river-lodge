@@ -61,13 +61,18 @@ jobs:
           $function$;
           CREATE TYPE public.app_role AS ENUM ('owner','manager','admin');
           CREATE TYPE public.room_state AS ENUM ('vacant_clean','vacant_dirty','occupied','reserved','inspection','maintenance','out_of_service');
+          CREATE TABLE public.staynas_organisations(
+            id uuid PRIMARY KEY, slug text NOT NULL UNIQUE, name text NOT NULL
+          );
           CREATE TABLE public.staynas_properties(
-            id uuid PRIMARY KEY, name text NOT NULL, status text NOT NULL, currency text
+            id uuid PRIMARY KEY, organisation_id uuid NOT NULL REFERENCES public.staynas_organisations(id),
+            slug text NOT NULL UNIQUE, code text NOT NULL UNIQUE,
+            name text NOT NULL, status text NOT NULL, currency text
           );
           CREATE TABLE public.staynas_property_members(
             property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
             user_id uuid NOT NULL REFERENCES auth.users(id),
-            status text NOT NULL DEFAULT 'active',
+            status text NOT NULL DEFAULT 'active', role public.app_role NOT NULL DEFAULT 'owner',
             PRIMARY KEY(property_id,user_id)
           );
           CREATE TABLE public.staynas_property_domains(
