@@ -451,3 +451,60 @@ GRANT EXECUTE ON FUNCTION public.staynas_get_public_room_catalog(text,text) TO a
 GRANT EXECUTE ON FUNCTION public.staynas_get_public_room_status(text,date) TO anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.staynas_save_room_type_configuration(jsonb) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.staynas_manage_room_unit(text,uuid,uuid,text) TO authenticated;
+
+
+CREATE OR REPLACE FUNCTION public.staynas_get_public_room_pricing(
+  _hostname text,
+  _check_in date,
+  _check_out date,
+  _adults integer DEFAULT 2,
+  _children_below_6 integer DEFAULT 0,
+  _children_7_plus integer DEFAULT 0
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_property_id uuid;
+  v_rooms jsonb;
+BEGIN
+  IF _check_in IS NULL OR _check_out IS NULL OR _check_out <= _check_in
+     OR COALESCE(_adults,0)<1 OR COALESCE(_children_below_6,0)<0 OR COALESCE(_children_7_plus,0)<0 THEN
+    RAISE EXCEPTION 'A valid stay and occupancy are required';
+  END IF;
+  v_property_id := public.staynas_resolve_public_property(_hostname);
+  IF v_property_id IS NULL THEN
+    RETURN jsonb_build_object('check_in',_check_in,'check_out',_check_out,'rooms','[]'::jsonb);
+  END IF;
+
+  SELECT COALESCE(jsonb_agg(jsonb_build_object(
+    'room_id',a.room_id,
+    'slug',a.slug,
+    'name',a.name,
+    'currency',a.currency,
+    'price_total',a.nightly_total,
+    'nights',a.nights,
+    'available_units',a.min_available,
+    'is_available',a.is_available,
+    'fits_occupancy',a.fits_occupancy,
+    'pricing',a.pricing_quote
+  ) ORDER BY a.slug),'[]'::jsonb)
+  INTO v_rooms
+  FROM public.get_staynas_room_availability_priced(
+    _check_in,_check_out,v_property_id,_adults,_children_below_6,_children_7_plus
+  ) a;
+
+  RETURN jsonb_build_object(
+    'property_id',v_property_id,
+    'check_in',_check_in,
+    'check_out',_check_out,
+    'rooms',v_rooms
+  );
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.staynas_get_public_room_pricing(text,date,date,integer,integer,integer) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.staynas_get_public_room_pricing(text,date,date,integer,integer,integer) TO anon,authenticated;
