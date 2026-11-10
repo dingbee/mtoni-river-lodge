@@ -524,9 +524,8 @@ CREATE TABLE IF NOT EXISTS public.ai_concierge_entitlements (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 ALTER TABLE public.ai_concierge_entitlements ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.ai_concierge_entitlements FROM PUBLIC, anon;
-GRANT SELECT, INSERT, UPDATE ON public.ai_concierge_entitlements TO authenticated;
-GRANT SELECT, INSERT, UPDATE ON public.ai_concierge_entitlements TO service_role;
+REVOKE ALL ON public.ai_concierge_entitlements FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE ON public.ai_concierge_entitlements TO authenticated, service_role;
 DROP POLICY IF EXISTS "Founder manages Concierge entitlements" ON public.ai_concierge_entitlements;
 CREATE POLICY "Founder manages Concierge entitlements"
   ON public.ai_concierge_entitlements FOR ALL TO authenticated
