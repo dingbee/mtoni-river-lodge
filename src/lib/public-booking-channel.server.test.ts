@@ -87,14 +87,14 @@ describe("resolvePublicDirectBookingChannel", () => {
 
   it("rejects malformed hosts before querying the database", async () => {
     const { client } = fakeSupabase(validFixture);
-    await expect(resolvePublicDirectBookingChannel(client as any, "https://cdma-uat.example.test"))
+    await expect(resolvePublicDirectBookingChannel(client as unknown as SupabaseClient, "https://cdma-uat.example.test"))
       .rejects.toThrow("Public booking host is invalid");
     expect(client.from).not.toHaveBeenCalled();
   });
 
   it("does not fall back to the founder or UAT tenant for an unknown host", async () => {
     const { client, queries } = fakeSupabase({});
-    await expect(resolvePublicDirectBookingChannel(client as any, "nolmarkcdma.staynas.com"))
+    await expect(resolvePublicDirectBookingChannel(client as unknown as SupabaseClient, "nolmarkcdma.staynas.com"))
       .rejects.toThrow("This domain is not verified for public booking");
     expect(client.from).toHaveBeenCalledTimes(1);
     expect(queries.has("staynas_properties")).toBe(false);
@@ -102,7 +102,7 @@ describe("resolvePublicDirectBookingChannel", () => {
 
   it("rejects a missing or unpublished direct-booking channel", async () => {
     const { client } = fakeSupabase({ ...validFixture, channel: null });
-    await expect(resolvePublicDirectBookingChannel(client as any, "cdma-uat.example.test"))
+    await expect(resolvePublicDirectBookingChannel(client as unknown as SupabaseClient, "cdma-uat.example.test"))
       .rejects.toThrow("The official direct-booking channel is not published");
   });
 
@@ -111,7 +111,7 @@ describe("resolvePublicDirectBookingChannel", () => {
       ...validFixture,
       property: { ...validFixture.property, status: "setup" },
     });
-    await expect(resolvePublicDirectBookingChannel(client as any, "cdma-uat.example.test"))
+    await expect(resolvePublicDirectBookingChannel(client as unknown as SupabaseClient, "cdma-uat.example.test"))
       .rejects.toThrow("The property is not accepting public bookings");
   });
 
@@ -120,7 +120,7 @@ describe("resolvePublicDirectBookingChannel", () => {
       ...validFixture,
       channel: { ...validFixture.channel, transaction_currency: "USDX" },
     });
-    await expect(resolvePublicDirectBookingChannel(client as any, "cdma-uat.example.test"))
+    await expect(resolvePublicDirectBookingChannel(client as unknown as SupabaseClient, "cdma-uat.example.test"))
       .rejects.toThrow("Public booking channel has no valid transaction currency");
   });
 });
