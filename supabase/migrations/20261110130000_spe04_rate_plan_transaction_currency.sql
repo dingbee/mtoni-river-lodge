@@ -186,12 +186,12 @@ BEGIN
     RETURN jsonb_build_object('ok',false,'error_code','RATE_SOURCE_MISSING',
       'message','Eligible rate plan and latest publication could not be resolved consistently');
   END IF;
-  v_transaction_currency := upper(COALESCE(v_plan.currency,''));
+  v_transaction_currency := upper(v_plan.currency);
   IF upper(COALESCE(v_publication.currency,''))<>v_transaction_currency THEN
     RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH',
       'message','Published rate-plan and immutable publication currencies do not match');
   END IF;
-  IF length(v_transaction_currency)<>3 OR v_transaction_currency !~ '^[A-Z]{3}' THEN
+  IF v_transaction_currency IS NULL OR length(v_transaction_currency)<>3 OR v_transaction_currency !~ '^[A-Z]{3}' THEN
     RETURN jsonb_build_object('ok',false,'error_code','CURRENCY_MISMATCH',
       'message','Published rate-plan transaction currency must be a valid ISO 4217 code');
   END IF;
