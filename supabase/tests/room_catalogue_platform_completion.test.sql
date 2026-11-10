@@ -93,7 +93,71 @@ BEGIN
   SELECT count(*) INTO v_count FROM public.room_states WHERE room_id=v_created AND property_id=v_property_a;
   IF v_count <> 2 THEN RAISE EXCEPTION 'Initial room save did not provision two physical units'; END IF;
 
-  v_payload := jsonb_set(jsonb_set(v_payload,'{id}',to_jsonb(v_created::text)),'{total_units}','3'::jsonb);
+  v_payload := jsonb_set(v_payload,'{id}',to_jsonb(v_created::text));
+
+  -- Eight requested guest-catalogue mutations are verified against the DB and
+  -- the public, hostname-bound catalogue/pricing contracts.
+  v_payload := jsonb_set(v_payload,'{name}',to_jsonb('Suite A Revised'::text));
+  PERFORM public.staynas_save_room_type_configuration(v_payload);
+  IF (SELECT name FROM public.rooms WHERE id=v_created) <> 'Suite A Revised' THEN
+    RAISE EXCEPTION 'Room name mutation did not persist';
+  END IF;
+
+  v_payload := jsonb_set(v_payload,'{description}',jsonb_build_array('Updated room description'));
+  PERFORM public.staynas_save_room_type_configuration(v_payload);
+  IF (SELECT description[1] FROM public.rooms WHERE id=v_created) <> 'Updated room description' THEN
+    RAISE EXCEPTION 'Room description mutation did not persist';
+  END IF;
+
+  v_payload := jsonb_set(jsonb_set(jsonb_set(v_payload,'{capacity_adults}','3'::jsonb),'{capacity_children}','2'::jsonb),'{max_occupancy}','5'::jsonb);
+  v_payload := jsonb_set(v_payload,'{included_guests}','3'::jsonb);
+  PERFORM public.staynas_save_room_type_configuration(v_payload);
+  IF NOT EXISTS (SELECT 1 FROM public.rooms WHERE id=v_created AND capacity_adults=3 AND capacity_children=2 AND max_occupancy=5) THEN
+    RAISE EXCEPTION 'Occupancy mutation did not persist';
+  END IF;
+
+  v_payload := jsonb_set(v_payload,'{bed_label}',to_jsonb('King bed'::text));
+  PERFORM public.staynas_save_room_type_configuration(v_payload);
+  IF (SELECT bed_label FROM public.rooms WHERE id=v_created) <> 'King bed' THEN
+    RAISE EXCEPTION 'Bed configuration mutation did not persist';
+  END IF;
+
+  v_payload := jsonb_set(v_payload,'{amenities}',jsonb_build_array('Wi-Fi','Air conditioning','Workspace'));
+  PERFORM public.staynas_save_room_type_configuration(v_payload);
+  IF (SELECT cardinality(amenities) FROM public.rooms WHERE id=v_created) <> 3 THEN
+    RAISE EXCEPTION 'Amenities mutation did not persist';
+  END IF;
+
+  v_payload := jsonb_set(jsonb_set(v_payload,'{image_url}',to_jsonb('https://example.com/hero-updated.jpg'::text)),
+    '{gallery_urls}',jsonb_build_array('https://example.com/gallery-updated.jpg'));
+  PERFORM public.staynas_save_room_type_configuration(v_payload);
+  IF NOT EXISTS (SELECT 1 FROM public.rooms WHERE id=v_created
+    AND image_url='https://example.com/hero-updated.jpg'
+    AND gallery_urls[1]='https://example.com/gallery-updated.jpg') THEN
+    RAISE EXCEPTION 'Image/gallery mutation did not persist';
+  END IF;
+
+  v_payload := jsonb_set(v_payload,'{status}',to_jsonb('archived'::text));
+  PERFORM public.staynas_save_room_type_configuration(v_payload);
+  IF (SELECT status FROM public.rooms WHERE id=v_created) <> 'inactive'
+     OR jsonb_array_length(public.staynas_get_public_room_catalog('nolmarkcdma.staynas.com')->'rooms') <> 1 THEN
+    RAISE EXCEPTION 'Publication mutation did not remove archived room from public catalogue';
+  END IF;
+  v_payload := jsonb_set(v_payload,'{status}',to_jsonb('active'::text));
+  PERFORM public.staynas_save_room_type_configuration(v_payload);
+
+  v_payload := jsonb_set(v_payload,'{base_price}','175'::jsonb);
+  PERFORM public.staynas_save_room_type_configuration(v_payload);
+  IF (SELECT currency FROM public.rooms WHERE id=v_created) <> 'TZS'
+     OR (SELECT (item->>'price_total')::numeric
+         FROM jsonb_array_elements(public.staynas_get_public_room_pricing(
+           'nolmarkcdma.staynas.com',CURRENT_DATE,CURRENT_DATE+1
+         )->'rooms') item
+         WHERE item->>'slug'='suite-a') <> 175 THEN
+    RAISE EXCEPTION 'Price mutation did not propagate through property-currency published pricing';
+  END IF;
+
+  v_payload := jsonb_set(v_payload,'{total_units}','3'::jsonb);
   v_created := public.staynas_save_room_type_configuration(v_payload);
   SELECT count(*) INTO v_count FROM public.room_states WHERE room_id=v_created AND property_id=v_property_a;
   IF v_count <> 3 THEN RAISE EXCEPTION 'Room quantity increase did not provision physical units'; END IF;
