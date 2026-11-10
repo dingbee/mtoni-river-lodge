@@ -497,7 +497,7 @@ BEGIN
   ) VALUES (
     '11111111-1111-4111-8111-111111111111',
     '11111111-1111-4111-8111-111111111112',
-    message_key,'sn-rt-02-test-request','test-provider','test-model',10,5,15,25
+    message_key,'33333333-3333-4333-8333-333333333333','test-provider','test-model',10,5,15,25
   );
 
   IF (SELECT count(*) FROM public.ai_concierge_usage_ledger
@@ -508,14 +508,27 @@ BEGIN
 
   BEGIN
     INSERT INTO public.ai_concierge_usage_ledger(
-      property_id,session_id,message_id,request_id,provider,model,latency_ms
+      property_id,session_id,user_message_id,request_id,provider,model,latency_ms
     ) VALUES (
       '11111111-1111-4111-8111-111111111111',
       '11111111-1111-4111-8111-111111111112',
-      message_key,'sn-rt-02-test-request','test-provider','test-model',25
+      message_key,'33333333-3333-4333-8333-333333333333','test-provider','test-model',25
     );
     RAISE EXCEPTION 'duplicate provider request usage must be rejected';
   EXCEPTION WHEN unique_violation THEN
+    NULL;
+  END;
+
+  BEGIN
+    INSERT INTO public.ai_concierge_usage_ledger(
+      property_id,session_id,user_message_id,request_id,provider,model,latency_ms
+    ) VALUES (
+      '22222222-2222-4222-8222-222222222222',
+      '22222222-2222-4222-8222-222222222223',
+      message_key,'44444444-4444-4444-8444-444444444444','test-provider','test-model',25
+    );
+    RAISE EXCEPTION 'usage record with a message from another property/session was accepted';
+  EXCEPTION WHEN foreign_key_violation THEN
     NULL;
   END;
 END
