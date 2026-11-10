@@ -59,6 +59,11 @@ BEGIN
      OR has_table_privilege('anon','public.room_categories','SELECT') THEN
     RAISE EXCEPTION 'Anonymous direct table reads were not revoked';
   END IF;
+  IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.staynas_property_domains'::regclass)
+     OR has_table_privilege('anon','public.staynas_property_domains','SELECT')
+     OR has_table_privilege('authenticated','public.staynas_property_domains','SELECT') THEN
+    RAISE EXCEPTION 'Property hostname registry is not private and RLS-protected';
+  END IF;
   IF NOT EXISTS (
     SELECT 1 FROM pg_publication_tables
     WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='rooms'
