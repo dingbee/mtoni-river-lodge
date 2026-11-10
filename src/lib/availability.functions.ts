@@ -162,6 +162,7 @@ export const listActiveHolds = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
+    const sb = context.supabase as unknown as SupabaseClient;
     let q = sb.from("booking_holds")
       .select("id, room_id, check_in, check_out, expires_at, guest_email, status, session_id, created_at")
       .eq("status", "active")
