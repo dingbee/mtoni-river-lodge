@@ -320,7 +320,7 @@ function CampaignStudioPage() {
               <div><p className="text-xs text-muted-foreground">Booking starts</p><p className="text-lg font-semibold tabular-nums">{item.bookingStarts}</p></div>
               <div><p className="text-xs text-muted-foreground">Conversion</p><p className="text-lg font-semibold tabular-nums">{(item.bookingConversionRate * 100).toFixed(1)}%</p></div>
             </div>
-            {item.sources?.length > 0 && <p className="mt-2 text-xs text-muted-foreground">Top sources: {item.sources.map((source) => `${source.source} (${source.count})`).join(" · ")}</p>}
+            {item.sources && item.sources.length > 0 && <p className="mt-2 text-xs text-muted-foreground">Top sources: {item.sources.map((source) => `${source.source} (${source.count})`).join(" · ")}</p>}
           </div>)}
         </div>}
       </SectionCard>
