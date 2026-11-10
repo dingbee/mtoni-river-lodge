@@ -453,6 +453,8 @@ DO $ai_privilege_tests$
 BEGIN
   IF has_table_privilege('anon','public.ai_concierge_entitlements','SELECT')
      OR has_table_privilege('anon','public.ai_concierge_entitlements','INSERT')
+     OR has_table_privilege('service_role','public.ai_concierge_entitlements','DELETE')
+     OR has_table_privilege('service_role','public.ai_concierge_entitlements','TRUNCATE')
      OR has_table_privilege('anon','public.ai_concierge_usage_ledger','SELECT')
      OR has_table_privilege('authenticated','public.ai_concierge_usage_ledger','SELECT')
      OR has_table_privilege('authenticated','public.ai_concierge_usage_ledger','INSERT') THEN
