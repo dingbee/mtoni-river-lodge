@@ -150,6 +150,6 @@ describe("Tenant-neutral payment-pending booking contract", () => {
     const vite = readFileSync(new URL("../../vite.config.ts", import.meta.url), "utf8");
     expect(vite).toContain('url.pathname.startsWith("/_serverFn")');
     expect(vite).toContain('handler: "NetworkOnly"');
-    expect(vite).not.toContain('cacheName: "mtoni-server-fn"');
+    expect(vite).not.toContain('cacheName: "staynas-server-fn"');
   });
 });
