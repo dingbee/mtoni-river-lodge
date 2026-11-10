@@ -69,7 +69,7 @@ jobs:
               WHERE m.user_id=_uid AND m.status='active' AND m.role=ANY(_roles)
             )
           $$;
-          CREATE TABLE public.rooms(id uuid PRIMARY KEY,property_id uuid NOT NULL REFERENCES public.staynas_properties(id),status text NOT NULL);
+          CREATE TABLE public.rooms(id uuid PRIMARY KEY,property_id uuid NOT NULL REFERENCES public.staynas_properties(id),catalogue_type_id uuid NOT NULL,status text NOT NULL);
           CREATE TABLE public.staynas_rate_plans(
             id uuid PRIMARY KEY,property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
             publication_status text NOT NULL,active boolean NOT NULL
@@ -77,7 +77,7 @@ jobs:
           CREATE TABLE public.staynas_rate_plan_publications(
             id uuid PRIMARY KEY,property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
             rate_plan_id uuid NOT NULL REFERENCES public.staynas_rate_plans(id),
-            publication_number integer NOT NULL,currency text NOT NULL
+            publication_number integer NOT NULL,currency text NOT NULL,room_type_assignments jsonb NOT NULL DEFAULT '[]'::jsonb
           );
           GRANT SELECT ON public.staynas_properties,public.rooms,public.staynas_rate_plans,public.staynas_rate_plan_publications TO authenticated,service_role;
           GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
