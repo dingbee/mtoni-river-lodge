@@ -1,9 +1,14 @@
 -- SN-IQ-05 workstream 2: dispatch guest requests into operational task queues.
 -- Dispatch is idempotent: one guest request can create at most one ops task.
+-- The existing StayNas baseline already has property_id on ops_tasks and
+-- granular property-scoped SELECT/INSERT/UPDATE/DELETE policies. Preserve them:
+-- do not replace them with a broad FOR ALL policy.
 
 ALTER TABLE public.ops_tasks
   ADD COLUMN IF NOT EXISTS property_id uuid REFERENCES public.staynas_properties(id) ON DELETE CASCADE;
 
+-- Backfill only genuinely unscoped tasks. This is safe for legacy installations;
+-- already-scoped live task rows are left unchanged.
 UPDATE public.ops_tasks t
 SET property_id = b.property_id
 FROM public.bookings b
@@ -16,18 +21,6 @@ WHERE t.room_state_id = rs.id AND t.property_id IS NULL;
 
 CREATE INDEX IF NOT EXISTS ops_tasks_property_status_idx
   ON public.ops_tasks(property_id, status, priority, due_at);
-
-DROP POLICY IF EXISTS "Staff manage ops_tasks" ON public.ops_tasks;
-CREATE POLICY "Property staff manage operational tasks" ON public.ops_tasks
-  FOR ALL TO authenticated
-  USING (
-    (property_id IS NOT NULL AND public.staynas_user_has_property_access(auth.uid(), property_id) AND public.is_any_staff(auth.uid()))
-    OR (property_id IS NULL AND public.has_any_role(auth.uid(), ARRAY['owner','admin']::public.app_role[]))
-  )
-  WITH CHECK (
-    (property_id IS NOT NULL AND public.staynas_user_has_property_access(auth.uid(), property_id) AND public.is_any_staff(auth.uid()))
-    OR (property_id IS NULL AND public.has_any_role(auth.uid(), ARRAY['owner','admin']::public.app_role[]))
-  );
 
 ALTER TABLE public.staynas_guest_requests
   ADD COLUMN IF NOT EXISTS dispatched_at timestamptz,
@@ -76,7 +69,8 @@ BEGIN
   IF _request.operational_task_id IS NOT NULL THEN
     RETURN QUERY
       SELECT _request.id, t.id, t.category, t.status::text
-      FROM public.ops_tasks t WHERE t.id = _request.operational_task_id;
+      FROM public.ops_tasks t
+      WHERE t.id = _request.operational_task_id AND t.property_id = _property_id;
     RETURN;
   END IF;
 
@@ -95,8 +89,13 @@ BEGIN
     RAISE EXCEPTION 'Assignee is not an active member of this property';
   END IF;
 
+  -- Housekeeping must use the dedicated HK-X dispatcher because the generic
+  -- task path cannot supply the required room_state_id.
+  IF _request.category = 'housekeeping' THEN
+    RAISE EXCEPTION 'Housekeeping requests must be dispatched through HK-X';
+  END IF;
+
   _task_category := CASE _request.category
-    WHEN 'housekeeping' THEN 'housekeeping'
     WHEN 'room_service' THEN 'fnb'
     WHEN 'dining' THEN 'fnb'
     WHEN 'private_dining' THEN 'fnb'
@@ -106,7 +105,6 @@ BEGIN
   END;
   _task_type := 'guest_request_' || _request.category;
   _title := CASE _request.category
-    WHEN 'housekeeping' THEN 'Guest housekeeping request'
     WHEN 'room_service' THEN 'Guest room service request'
     WHEN 'dining' THEN 'Guest dining request'
     WHEN 'private_dining' THEN 'Private dining arrangement'
@@ -143,4 +141,4 @@ REVOKE ALL ON FUNCTION public.staynas_dispatch_guest_request(uuid,uuid,timestamp
 GRANT EXECUTE ON FUNCTION public.staynas_dispatch_guest_request(uuid,uuid,timestamptz) TO authenticated, service_role;
 
 COMMENT ON FUNCTION public.staynas_dispatch_guest_request(uuid,uuid,timestamptz)
-IS 'Idempotently dispatches one active-property guest request into the matching operational task category.';
+IS 'Idempotently dispatches one active-property non-housekeeping guest request into the matching operational task category. Housekeeping is reserved for HK-X.';

@@ -9,6 +9,7 @@ export type NotificationKind =
   | "form_submission"
   | "room_maintenance"
   | "task_assigned"
+  | "guest_request"
   | "other";
 
 export type OsNotification = {
@@ -42,6 +43,7 @@ function eventTypeToKind(evt: string): NotificationKind {
   if (evt.startsWith("form")) return "form_submission";
   if (evt.startsWith("room") || evt.startsWith("maintenance")) return "room_maintenance";
   if (evt.startsWith("task")) return "task_assigned";
+  if (evt.startsWith("guest_request")) return "guest_request";
   return "other";
 }
 
