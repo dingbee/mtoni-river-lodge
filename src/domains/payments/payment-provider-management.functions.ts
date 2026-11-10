@@ -326,6 +326,27 @@ export const setPlatformPaymentProviderStatus = createServerFn({ method: "POST" 
     return { id: provider.id, status: data.status };
   });
 
+
+/** Atomically select one certified property guest-payment provider, or disable online checkout. */
+export const setPropertyGuestCheckoutProvider = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ providerConfigId: z.string().uuid().nullable() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const actor = await resolveVerifiedTenantActor(context);
+    if (actor.actorRole !== "tenant_admin") throw new Error("Property administrator authority is required.");
+    const admin = await getAdmin();
+    const { data: selectedId, error } = await admin.rpc("staynas_set_guest_checkout_provider", {
+      _organisation_id: actor.organisationId,
+      _property_id: actor.propertyId,
+      _provider_config_id: data.providerConfigId,
+    });
+    if (error) throw new Error(error.message || "Guest checkout provider could not be updated.");
+    await auditProviderChange(admin, actor, data.providerConfigId ? "provider.guest_checkout_enabled" : "provider.guest_checkout_disabled",
+      data.providerConfigId ?? "00000000-0000-0000-0000-000000000000",
+      { propertyId: actor.propertyId, selectedProviderConfigId: selectedId });
+    return { selectedProviderConfigId: selectedId as string | null };
+  });
+
 export const setPropertyPaymentProviderStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({
