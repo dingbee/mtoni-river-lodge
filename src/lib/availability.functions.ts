@@ -20,7 +20,7 @@ const createHoldSchema = z.object({
   roomSlug: z.string().min(1).max(80),
   checkIn: dateStr,
   checkOut: dateStr,
-  sessionId: z.string().min(6).max(120),
+  sessionId: z.string().min(24).max(120),
   guestEmail: z.string().email().max(255).optional(),
   ttlSeconds: z.number().int().min(60).max(3600).optional(),
 });
@@ -53,7 +53,7 @@ export const createBookingHold = createServerFn({ method: "POST" })
 
 export const releaseBookingHold = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
-    z.object({ holdId: z.string().uuid(), sessionId: z.string().min(6) }).parse(d),
+    z.object({ holdId: z.string().uuid(), sessionId: z.string().min(24) }).parse(d),
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin: sb } = await import("@/integrations/supabase/client.server");
@@ -70,7 +70,7 @@ export const releaseBookingHold = createServerFn({ method: "POST" })
 
 export const getBookingHold = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
-    z.object({ holdId: z.string().uuid(), sessionId: z.string().min(6) }).parse(d),
+    z.object({ holdId: z.string().uuid(), sessionId: z.string().min(24) }).parse(d),
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin: sb } = await import("@/integrations/supabase/client.server");
