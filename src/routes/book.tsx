@@ -26,7 +26,6 @@ import {
   listExtras,
   type AvailabilityRoom,
 } from "@/lib/booking.functions";
-import { initiatePayment } from "@/lib/payments.functions";
 import { newBookingSessionId } from "@/lib/booking-session";
 import { createBookingHold, releaseBookingHold } from "@/lib/availability.functions";
 import { getBookingQuote, type BookingPricingQuote } from "@/lib/booking.functions";
@@ -118,6 +117,10 @@ function BookPage() {
     children_below_6: incomingChildrenBelow6,
     children_7_plus: incomingChildren7Plus,
   } = Route.useSearch();
+  const validIncomingSession =
+    typeof incomingSession === "string" && /^[a-zA-Z0-9_-]{24,120}$/.test(incomingSession)
+      ? incomingSession
+      : undefined;
   const navigate = Route.useNavigate();
   const step: Step = NUM_TO_STEP[stepNum as 1 | 2 | 3 | 4];
 
@@ -140,7 +143,7 @@ function BookPage() {
     const storedRoomSlug = stored.selectedRoom?.slug;
 
     const sessionMatches =
-      !!incomingSession && !!stored.sessionId && stored.sessionId === incomingSession;
+      !!validIncomingSession && !!stored.sessionId && stored.sessionId === validIncomingSession;
     const roomMatches = !incomingRoom
       ? true
       : !!storedRoomSlug && storedRoomSlug === incomingRoom;
@@ -152,12 +155,12 @@ function BookPage() {
         if (typeof window !== "undefined") window.sessionStorage.removeItem(STORAGE_KEY);
       } catch { /* sessionStorage can be unavailable in private browsing contexts */ }
       bootstrapRef.current = {
-        sessionId: incomingSession ?? newBookingSessionId(),
+        sessionId: validIncomingSession ?? newBookingSessionId(),
         state: {},
       };
     } else {
       bootstrapRef.current = {
-        sessionId: incomingSession!,
+        sessionId: validIncomingSession!,
         state: stored,
       };
     }
@@ -175,7 +178,7 @@ function BookPage() {
   const [extras, setExtras] = useState<Array<{ slug: string; name: string; price: number; unit: string; description: string | null; category?: "transfers" | "experiences" }>>(p.extras ?? []);
   const [selectedExtras, setSelectedExtras] = useState<SelectedExtra[]>(p.selectedExtras ?? []);
   const [guest, setGuest] = useState(p.guest ?? { name: "", email: "", phone: "", country: "", requests: "", purpose: "" });
-  const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string } | null>(null);
+  const [confirmation, setConfirmation] = useState<{ reference: string; total: number; currency: string; paymentStatus: "unpaid"; paymentState: "not_configured" } | null>(null);
   const [bookingQuote, setBookingQuote] = useState<BookingPricingQuote | null>(p.selectedRoom?.pricing_quote ?? null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [promoCodeInput, setPromoCodeInput] = useState("");
@@ -226,11 +229,11 @@ function BookPage() {
   // clicks "Check Availability" from a different room without a full reload),
   // wipe all wizard state and adopt the new session.
   useEffect(() => {
-    if (!incomingSession || incomingSession === sessionId) return;
+    if (!validIncomingSession || validIncomingSession === sessionId) return;
     try {
       if (typeof window !== "undefined") window.sessionStorage.removeItem(STORAGE_KEY);
     } catch { /* sessionStorage can be unavailable in private browsing contexts */ }
-    setSessionId(incomingSession);
+    setSessionId(validIncomingSession);
     setCheckIn("");
     setCheckOut("");
     setAdults(2);
@@ -243,7 +246,7 @@ function BookPage() {
     setSelectedExtras([]);
     setGuest({ name: "", email: "", phone: "", country: "", requests: "", purpose: "" });
     setConfirmation(null);
-  }, [incomingSession, sessionId, incomingRoom]);
+  }, [validIncomingSession, sessionId, incomingRoom]);
 
   // Single source of truth for step transitions — writes the step to the URL
   // via navigate(). Never relies on window.history.back / navigate(-1), so
@@ -351,7 +354,6 @@ function BookPage() {
   const getBookingQuoteFn = useServerFn(getBookingQuote);
   const listExtrasFn = useServerFn(listExtras);
   const createBookingFn = useServerFn(createBooking);
-  const initiatePaymentFn = useServerFn(initiatePayment);
   const createHoldFn = useServerFn(createBookingHold);
   const releaseHoldFn = useServerFn(releaseBookingHold);
 
@@ -414,28 +416,26 @@ function BookPage() {
           sessionId,
         },
       });
-      trackGAEvent("begin_payment", {
+      trackGAEvent("reservation_request_submitted", {
         transaction_id: created.reference,
         currency: created.currency,
-        value: Math.round((created.total / 2) * 100) / 100,
+        value: created.total,
       });
-      const payment = await initiatePaymentFn({
-        data: { reference: created.reference, email: guest.email },
-      });
-      return { ...created, redirectUrl: payment.redirectUrl };
+      return created;
     },
     onSuccess: (res) => {
-      setConfirmation({ reference: res.reference, total: res.total, currency: res.currency });
-      // Redirect to Pesapal for deposit payment.
-      if (res.redirectUrl) {
-        try { window.sessionStorage.removeItem(STORAGE_KEY); } catch { /* sessionStorage can be unavailable in private browsing contexts */ }
-        window.location.href = res.redirectUrl;
-        return;
-      }
+      setConfirmation({
+        reference: res.reference,
+        total: res.total,
+        currency: res.currency,
+        paymentStatus: res.paymentStatus,
+        paymentState: res.paymentState,
+      });
+      try { window.sessionStorage.removeItem(STORAGE_KEY); } catch { /* sessionStorage can be unavailable in private browsing contexts */ }
       goToStep("confirmation", "booking_submit_success");
     },
     onError: async (err: Error) => {
-      console.error("[book] booking submit / payment init failed", err);
+      console.error("[book] reservation submission failed", err);
       if (err.message.includes("[QUOTE_STALE]") || err.message.includes("[QUOTE_EXPIRED]")) {
         try {
           const refreshed = await getBookingQuoteFn({
@@ -581,7 +581,7 @@ function BookPage() {
                   trackRoomSelected({
                     room_slug: r.slug,
                     room_name: r.name,
-                    nightly_total: Number(r.pricing_quote?.nightly?.[0]?.nightly_rate ?? r.base_price),
+                    nightly_total: Number(roomWithPlan.selected_rate_plan?.total ?? r.pricing_quote?.total ?? 0) / Math.max(1, nights),
                     currency: r.currency,
                   });
                   // Keep the URL ?room= in sync so refreshes stay consistent.
@@ -711,7 +711,7 @@ function SelectedRoomCard({ room, inventory }: { room: AvailabilityRoom | null; 
     <div className="rounded-[24px] border border-charcoal/10 bg-bone p-7 shadow-deep">
       <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-burgundy">Selected room</p>
       <h2 className="mt-3 break-words font-display text-xl font-medium leading-snug sm:text-2xl">{room.name}</h2>
-      <p className="mt-3 text-sm text-charcoal/65">Sleeps up to {room.max_occupancy} · {room.currency} {Number(room.base_price).toLocaleString()} / night</p>
+      <p className="mt-3 text-sm text-charcoal/65">Sleeps up to {room.max_occupancy} · {room.selected_rate_plan ? `${room.selected_rate_plan.currency} ${(Number(room.selected_rate_plan.total) / Math.max(1, room.selected_rate_plan.nightly_breakdown?.length ?? 1)).toLocaleString()} / night` : room.pricing_quote?.ok ? `${room.currency} ${Number(room.pricing_quote.nightly?.[0]?.nightly_rate ?? 0).toLocaleString()} / night` : "Price confirmed from the selected published rate plan"}</p>
       <div className="mt-5 border-t border-charcoal/10 pt-5">
         <div className="flex items-end justify-between gap-3"><p className="font-display text-xl">{availability}</p>{inventory && <span className="text-[0.65rem] font-medium uppercase tracking-[0.16em] text-forest">Live</span>}</div>
         {inventory && inventory.total_units > 0 && <div className="mt-3 h-2 overflow-hidden rounded-full bg-charcoal/10"><div className="h-full rounded-full bg-forest transition-all duration-500" style={{ width: Math.max(0, Math.min(100, (inventory.available_units / inventory.total_units) * 100)) + "%" }} /></div>}
@@ -931,8 +931,6 @@ function GuestStep(props: {
   onBack: () => void; onSubmit: () => void;
 }) {
   const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: props.room.currency, maximumFractionDigits: 0 }).format(n);
-  const deposit = Number(props.breakdown?.deposit_amount ?? Math.round(props.grandTotal * 0.5));
-  const balance = Number(props.breakdown?.balance_due ?? (props.grandTotal - deposit));
   const toggleExtra = (slug: string) => {
     const existing = props.selectedExtras.find((s) => s.slug === slug);
     const extra = props.extras.find((e) => e.slug === slug);
@@ -1092,8 +1090,8 @@ function GuestStep(props: {
             </>
           )}
           <div className="flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(props.grandTotal)}</span></div>
-          <div className="flex justify-between text-charcoal/70"><span>Deposit now (50%)</span><span>{fmt(deposit)}</span></div>
-          <div className="flex justify-between text-charcoal/70"><span>Balance at check-in (50%)</span><span>{fmt(balance)}</span></div>
+          <div className="flex justify-between text-charcoal/70"><span>Payment status</span><span>Not configured</span></div>
+          <p className="text-xs leading-5 text-charcoal/60">No payment will be collected during this booking flow. Your reservation will remain pending and Mtoni will contact you about payment arrangements.</p>
         </div>
         <button
           onClick={props.onSubmit} disabled={props.submitting || props.pricingLoading || !props.breakdown}
@@ -1101,16 +1099,16 @@ function GuestStep(props: {
           style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
         >
           {props.submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          {props.submitting ? "Redirecting to payment…" : props.pricingLoading ? "Updating quote…" : "Pay 50% Deposit & Confirm"}
+          {props.submitting ? "Submitting reservation…" : props.pricingLoading ? "Updating quote…" : "Submit Reservation Request"}
         </button>
-        <p className="text-[0.65rem] text-charcoal/55">You will be securely redirected to Pesapal to pay the 50% deposit. The remaining balance is payable on arrival.</p>
+        <p className="text-[0.65rem] leading-5 text-charcoal/55">Payment is not configured for this UAT connection. No payment will be taken or marked as paid.</p>
       </aside>
     </div>
   );
 }
 
 function ConfirmationStep({ confirmation, room, checkIn, checkOut, nights, guestName, guestEmail }: {
-  confirmation: { reference: string; total: number; currency: string };
+  confirmation: { reference: string; total: number; currency: string; paymentStatus: "unpaid"; paymentState: "not_configured" };
   room: AvailabilityRoom;
   checkIn: string; checkOut: string; nights: number;
   guestName: string; guestEmail: string;
@@ -1122,7 +1120,7 @@ function ConfirmationStep({ confirmation, room, checkIn, checkOut, nights, guest
         <Check className="h-7 w-7" style={{ color: "#0F3D3A" }} />
       </div>
       <h2 className="mt-5 font-display text-3xl">Booking received</h2>
-      <p className="mt-2 text-sm text-charcoal/70">Thank you, {guestName}. We have sent a confirmation receipt to {guestEmail}.</p>
+      <p className="mt-2 text-sm text-charcoal/70">Thank you, {guestName}. Your reservation request has been recorded for {guestEmail}.</p>
       <div className="mx-auto mt-8 max-w-sm rounded-xl border border-charcoal/10 bg-bone/40 p-6 text-left text-sm">
         <div className="flex justify-between"><span className="text-charcoal/60">Reference</span><span className="font-mono font-medium">{confirmation.reference}</span></div>
         <div className="mt-2 flex justify-between"><span className="text-charcoal/60">Room</span><span>{room.name}</span></div>
@@ -1130,10 +1128,9 @@ function ConfirmationStep({ confirmation, room, checkIn, checkOut, nights, guest
         <div className="mt-2 flex justify-between"><span className="text-charcoal/60">Check-out</span><span>{checkOut}</span></div>
         <div className="mt-2 flex justify-between"><span className="text-charcoal/60">Nights</span><span>{nights}</span></div>
         <div className="mt-3 flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(confirmation.total)}</span></div>
-        <div className="mt-2 flex justify-between text-charcoal/70"><span>Deposit (50%)</span><span>{fmt(Math.round(confirmation.total * 0.5))}</span></div>
-        <div className="mt-1 flex justify-between text-charcoal/70"><span>Balance at check-in</span><span>{fmt(confirmation.total - Math.round(confirmation.total * 0.5))}</span></div>
+        <div className="mt-2 flex justify-between text-charcoal/70"><span>Payment status</span><span>{confirmation.paymentStatus === "unpaid" && confirmation.paymentState === "not_configured" ? "Unpaid · Not configured" : "Pending"}</span></div>
       </div>
-      <p className="mt-6 text-xs text-charcoal/55">Status: <span className="font-medium text-charcoal">Pending</span> — our team will reach out within 24 hours to finalise payment.</p>
+      <p className="mt-6 text-xs leading-5 text-charcoal/55">Reservation status: <span className="font-medium text-charcoal">Pending</span>. Payment is not configured and no payment has been collected. Mtoni’s reservations team will contact you to arrange the next step.</p>
     </div>
   );
 }
