@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertFounderAiAdmin } from "@/domains/ai/ai.authorization.server";
 
 async function requirePropertyScope(sb: any, userId: string): Promise<string> {
   const { data: propertyId, error: contextError } = await sb.rpc("staynas_active_property_id", { _uid: userId });
@@ -128,3 +129,52 @@ export const updateConciergeLead = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+async function requireFounderAdmin(context: { supabase: any; userId: string }) {
+  await assertFounderAiAdmin(context.supabase, context.userId);
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin as any;
+}
+
+/** Founder-only control plane. Tenant owners cannot grant themselves AI access. */
+export const listFounderConciergeEntitlements = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const admin = await requireFounderAdmin(context);
+    const [{ data: properties, error: propertiesError }, { data: entitlements, error: entitlementsError }] = await Promise.all([
+      admin.from("staynas_properties").select("id,name,status").order("name"),
+      admin.from("ai_concierge_entitlements").select("property_id,enabled,updated_by,updated_at"),
+    ]);
+    if (propertiesError || entitlementsError) throw new Error("Unable to load Concierge entitlement settings.");
+    const byProperty = new Map((entitlements ?? []).map((row: { property_id: string }) => [row.property_id, row]));
+    return (properties ?? []).map((property: { id: string; name: string; status: string }) => ({
+      ...property,
+      entitlement: byProperty.get(property.id) ?? null,
+      enabled: byProperty.get(property.id)?.enabled === true,
+    }));
+  });
+
+export const setFounderConciergeEntitlement = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { property_id: string; enabled: boolean }) => {
+    if (!input || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(input.property_id)) {
+      throw new Error("A valid property_id is required.");
+    }
+    if (typeof input.enabled !== "boolean") throw new Error("enabled must be a boolean.");
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    const admin = await requireFounderAdmin(context);
+    const { data: property, error: propertyError } = await admin
+      .from("staynas_properties").select("id").eq("id", data.property_id).maybeSingle();
+    if (propertyError || !property) throw new Error("Property not found.");
+    const { error } = await admin.from("ai_concierge_entitlements").upsert({
+      property_id: data.property_id,
+      enabled: data.enabled,
+      updated_by: context.userId,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "property_id" });
+    if (error) throw new Error("Unable to save Concierge entitlement.");
+    return { ok: true, property_id: data.property_id, enabled: data.enabled };
+  });
+
