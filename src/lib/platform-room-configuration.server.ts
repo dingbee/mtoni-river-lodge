@@ -73,8 +73,8 @@ export const savePlatformRoomCategory = createServerFn({ method: "POST" })
     await requireRoomAdmin(context.supabase, context.userId);
     const propertyId = await activePropertyId(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const payload = { property_id: propertyId, configuration_source: "tenant_configured", slug:data.slug, name:data.name, description:data.description || null, features:data.features, specifications:data.specifications, sort_order:data.sortOrder, status:data.status };
-    const q = data.id ? sb.from("room_categories").update(payload).eq("id",data.id).eq("property_id",propertyId).select("id").single() : sb.from("room_categories").insert(payload).select("id").single();
+    const payload = { property_id: propertyId, configuration_source: "tenant_configured", configured_by: context.userId, configured_at: new Date().toISOString(), slug:data.slug, name:data.name, description:data.description || null, features:data.features, specifications:data.specifications, sort_order:data.sortOrder, status:data.status };
+    const q = data.id ? sb.from("room_categories").update(payload).eq("id",data.id).eq("property_id",propertyId).eq("configuration_source","tenant_configured").select("id").single() : sb.from("room_categories").insert(payload).select("id").single();
     const { data: row, error } = await q;
     if (error) throw new Error(error.message);
     return row;
@@ -90,13 +90,13 @@ export const savePlatformRoomType = createServerFn({ method: "POST" })
       const { data: category, error } = await sb.from("room_categories").select("id").eq("id", data.categoryId).eq("property_id", propertyId).maybeSingle();
       if (error || !category) throw new Error("Selected category does not belong to the active property");
     }
-    const { data: existing, error: existingError } = data.id ? await sb.from("rooms").select("total_units,base_price,currency,included_guests,extra_guest_fee").eq("id",data.id).eq("property_id",propertyId).single() : { data:null, error:null };
-    if (existingError) throw new Error(existingError.message);
+    const { data: existing, error: existingError } = data.id ? await sb.from("rooms").select("total_units,base_price,currency,included_guests,extra_guest_fee,configuration_source").eq("id",data.id).eq("property_id",propertyId).single() : { data:null, error:null };
+    if (existingError) throw new Error(existingError.message);\n    if (data.id && existing?.configuration_source !== "tenant_configured") throw new Error("Legacy or unverified room records cannot be adopted or edited as tenant configuration.");
     const { data: property, error: propertyError } = await sb.from("staynas_properties").select("currency").eq("id",propertyId).single();
     if (propertyError) throw new Error(propertyError.message);
     if (!existing && !property.currency) throw new Error("Configure the property currency before creating room types");
     const payload = {
-      property_id:propertyId, configuration_source:"tenant_configured", category_id:data.categoryId ?? null, slug:data.slug, name:data.name,
+      property_id:propertyId, configuration_source:"tenant_configured", configured_by:context.userId, configured_at:new Date().toISOString(), category_id:data.categoryId ?? null, slug:data.slug, name:data.name,
       short_name:data.shortName || null, room_number_label:data.roomNumberLabel || null,
       short_description:data.shortDescription || null, description:data.description, details:data.details,
       cta_line:data.ctaLine || null, capacity_adults:data.capacityAdults, capacity_children:data.capacityChildren,
