@@ -10,12 +10,8 @@ import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { getFounderAdminStatus } from "@/domains/_platform/founder-admin.functions";
 import {
-  listPlatformPaymentProviderConfigs,
   listPropertyPaymentProviderConfigs,
-  savePlatformPaymentProviderConfig,
   savePropertyPaymentProviderConfig,
-  setPlatformPaymentProviderStatus,
-  setPropertyPaymentProviderStatus,
   setPropertyGuestCheckoutProvider,
   listFounderGuestPaymentProviders,
   saveFounderPropertyPaymentProviderConfig,
@@ -56,12 +52,8 @@ type ProviderRow = {
 function PaymentProviderSettings() {
   const queryClient = useQueryClient();
   const founderStatusFn = useServerFn(getFounderAdminStatus);
-  const platformListFn = useServerFn(listPlatformPaymentProviderConfigs);
   const propertyListFn = useServerFn(listPropertyPaymentProviderConfigs);
-  const savePlatformFn = useServerFn(savePlatformPaymentProviderConfig);
   const savePropertyFn = useServerFn(savePropertyPaymentProviderConfig);
-  const setPlatformStatusFn = useServerFn(setPlatformPaymentProviderStatus);
-  const setPropertyStatusFn = useServerFn(setPropertyPaymentProviderStatus);
   const setGuestCheckoutProviderFn = useServerFn(setPropertyGuestCheckoutProvider);
   const founderGuestListFn = useServerFn(listFounderGuestPaymentProviders);
   const saveFounderPropertyFn = useServerFn(saveFounderPropertyPaymentProviderConfig);
@@ -71,11 +63,6 @@ function PaymentProviderSettings() {
   const [selectedPropertyId, setSelectedPropertyId] = useState("");
   const founderGuestQuery = useQuery({ queryKey: ["payments.founder-guest-provider-configs"], queryFn: () => founderGuestListFn(), enabled: founderStatus.isSuccess && isFounder });
   const selectedFounderProperty = founderGuestQuery.data?.find((property) => property.id === selectedPropertyId) ?? founderGuestQuery.data?.[0];
-  const platformQuery = useQuery({
-    queryKey: ["payments.platform-provider-configs"],
-    queryFn: () => platformListFn(),
-    enabled: founderStatus.isSuccess && isFounder,
-  });
   const propertyQuery = useQuery({
     queryKey: ["payments.property-provider-configs"],
     queryFn: () => propertyListFn(),
@@ -129,19 +116,7 @@ function PaymentProviderSettings() {
       : setGuestCheckoutProviderFn({ data: { providerConfigId } }),
     onSuccess: () => {
       toast.success("Guest checkout settings updated.");
-      queryClient.invalidateQueries({ queryKey: ["payments.property-provider-configs"] });
-    },
-    onError: (error: unknown) => toast.error((error as Error).message),
-  });
-
-  const statusMutation = useMutation({
-    mutationFn: (input: { providerConfigId: string; status: "inactive" | "active" | "suspended" }) =>
-      isFounder
-        ? setPlatformStatusFn({ data: input })
-        : setPropertyStatusFn({ data: input }),
-    onSuccess: () => {
-      toast.success("Provider status updated.");
-      queryClient.invalidateQueries({ queryKey: [isFounder ? "payments.platform-provider-configs" : "payments.property-provider-configs"] });
+      queryClient.invalidateQueries({ queryKey: [isFounder ? "payments.founder-guest-provider-configs" : "payments.property-provider-configs"] });
     },
     onError: (error: unknown) => toast.error((error as Error).message),
   });
@@ -163,11 +138,18 @@ function PaymentProviderSettings() {
       <PageHeader
         title="Payment Provider Administration"
         description={isFounder
-          ? "Configure providers used for StayNas platform subscription collections. These are platform-level credentials, separate from property guest-payment accounts."
-          : "Configure payment providers for guest payments at the active property. These credentials are isolated from StayNas subscription billing."}
+          ? "Manage mobile-money and other guest-payment providers for each tenant property."
+          : "Configure mobile-money and other guest-payment providers for the active property."}
       />
 
-      <SectionCard title={isFounder ? "Platform subscription collections" : "Property guest payments"}>
+      {isFounder && <SectionCard title="Select property" description="Choose the property whose guest-payment settings you are managing.">
+        <label className="block space-y-1 text-sm"><span className="font-medium">Property</span>
+          <select className="w-full rounded-md border border-input bg-background px-3 py-2" value={selectedFounderProperty?.id ?? ""} onChange={(event) => setSelectedPropertyId(event.target.value)}>
+            {(founderGuestQuery.data ?? []).map((property) => <option key={property.id} value={property.id}>{property.organisationName} — {property.name}</option>)}
+          </select>
+        </label>
+      </SectionCard>}
+      <SectionCard title="Property guest payments">
         <div className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-sm">
           <p className="font-medium">Configuration is separate from activation</p>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -241,8 +223,7 @@ function PaymentProviderSettings() {
       </SectionCard>
 
 
-      {!isFounder && (
-        <SectionCard title="Guest checkout controls" description="Select one certified provider account for this property, or leave online payments disabled. Pay at Property remains available as the fallback.">
+      <SectionCard title="Guest checkout controls" description="Select one certified provider account for this property, or leave online payments disabled. Pay at Property remains available as the fallback.">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-3">
               <div>
@@ -277,8 +258,7 @@ function PaymentProviderSettings() {
               )}
             </div>
           </div>
-        </SectionCard>
-      )}
+      </SectionCard>
 
       <SectionCard title="Configured providers" description="Credentials are never displayed after saving. Activation is withheld until an approved adapter is available.">
         {isLoading ? (
