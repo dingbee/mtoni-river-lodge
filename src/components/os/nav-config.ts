@@ -121,6 +121,7 @@ export const NAV: NavEntry[] = [
       icon: Settings,
       items: [
         { id: "system", label: "Distribution Centre", href: "/admin/distribution", icon: Network },
+        { id: "system.integrations", label: "LexiBite Connection", href: "/admin/integrations/lexibite", icon: Network },
         { id: "system.health", label: "Health", href: "/admin/system/health", icon: Activity },
         { id: "system.information", label: "System Information", href: "/admin/system/nova", icon: Wrench },
         { id: "system.users", label: "Users", href: "/admin/staff/users", icon: UserCog },

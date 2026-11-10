@@ -1,0 +1,38 @@
+name: LB-01 database verification
+
+on:
+  push:
+    branches:
+      - feat/lb-01-*
+      - feat/lb02-mainline-implementation
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  staynas-lb01-db:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: staynas_lb01_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d staynas_lb01_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify reciprocal connection persistence and isolation
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d staynas_lb01_test -v ON_ERROR_STOP=1 -f supabase/verification/lb01_product_connection_persistence.sql
+      - name: Apply and verify the complete StayNas LB-02 migration chain
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d staynas_lb01_test -v ON_ERROR_STOP=1 -f supabase/verification/lb02_stay_outbox.sql
