@@ -65,35 +65,10 @@ CREATE POLICY "Property managers manage booking product configurations"
     AND public.has_any_role((select auth.uid()),ARRAY['owner','manager','admin','marketing','finance']::public.app_role[])
   );
 
-DROP POLICY IF EXISTS "Public read published booking product configurations" ON public.staynas_booking_product_configurations;
-CREATE POLICY "Public read published booking product configurations"
-  ON public.staynas_booking_product_configurations FOR SELECT TO anon,authenticated
-  USING (
-    public_visible=true AND publication_status='published'
-    AND EXISTS (
-      SELECT 1 FROM public.staynas_properties p
-      WHERE p.id=property_id AND p.status='active'
-    )
-    AND EXISTS (
-      SELECT 1 FROM public.rooms r
-      WHERE r.id=room_id AND r.property_id=property_id AND r.status='active'
-    )
-    AND EXISTS (
-      SELECT 1 FROM public.staynas_rate_plan_publications pub
-      JOIN public.staynas_rate_plans rp
-        ON rp.id=pub.rate_plan_id AND rp.property_id=pub.property_id
-      WHERE pub.id=rate_plan_publication_id AND pub.property_id=property_id
-        AND rp.active=true AND rp.publication_status='published'
-        AND pub.publication_number=(
-          SELECT max(pub2.publication_number)
-          FROM public.staynas_rate_plan_publications pub2
-          WHERE pub2.property_id=pub.property_id AND pub2.rate_plan_id=pub.rate_plan_id
-        )
-    )
-  );
-
 GRANT SELECT,INSERT,UPDATE,DELETE ON public.staynas_booking_product_configurations TO authenticated;
-GRANT SELECT ON public.staynas_booking_product_configurations TO anon;
+REVOKE ALL ON public.staynas_booking_product_configurations FROM anon;
+-- Public page resolution is performed by the trusted server function, which
+-- revalidates room ownership, latest publication and property currency.
 
 CREATE OR REPLACE FUNCTION public.validate_staynas_booking_product_configuration()
 RETURNS trigger
