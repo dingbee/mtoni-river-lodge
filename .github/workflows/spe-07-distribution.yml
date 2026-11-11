@@ -1,4 +1,5 @@
 name: SPE-07 distribution contracts
+# Release verification also applies the public room catalogue and physical inventory review migration in an isolated Supabase database.
 
 on:
   push:
