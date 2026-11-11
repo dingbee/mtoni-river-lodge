@@ -27,7 +27,7 @@ const journey = [
 
 function InteractiveModuleCard({ item }: { item: (typeof modules)[number] }) {
   const [open, setOpen] = useState(false);
-  return <article className="site-editorial-item group p-6 transition duration-300 hover:-translate-y-1 hover:border-[#c7a96b]">
+  return <article id={item.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")} className="site-editorial-item group scroll-mt-28 p-6 transition duration-300 hover:-translate-y-1 hover:border-[#c7a96b]">
     <button type="button" aria-expanded={open} onClick={() => setOpen(value => !value)} className="w-full text-left">
       <div className="flex items-start justify-between gap-4"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#e9ede6] text-[#315744] transition group-hover:bg-[#d7bd85]"><item.icon className="h-5 w-5"/></span><span className="pt-2 text-xs font-medium text-[#9a835b]">{open ? "Close −" : "Explore +"}</span></div>
       <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9a835b]">{item.group}</p>
