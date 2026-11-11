@@ -73,8 +73,37 @@ export const savePlatformRoomCategory = createServerFn({ method: "POST" })
     await requireRoomAdmin(context.supabase, context.userId);
     const propertyId = await activePropertyId(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const payload = { property_id: propertyId, slug:data.slug, name:data.name, description:data.description || null, features:data.features, specifications:data.specifications, sort_order:data.sortOrder, status:data.status };
-    const q = data.id ? sb.from("room_categories").update(payload).eq("id",data.id).eq("property_id",propertyId).select("id").single() : sb.from("room_categories").insert(payload).select("id").single();
+    const existing = data.id
+      ? await sb.from("room_categories")
+          .select("configuration_source")
+          .eq("id", data.id)
+          .eq("property_id", propertyId)
+          .maybeSingle()
+      : { data: null, error: null };
+    if (existing.error) throw new Error(existing.error.message);
+    if (data.id && existing.data?.configuration_source !== "tenant_configured") {
+      throw new Error("Legacy or unverified room categories cannot be adopted or edited as tenant configuration.");
+    }
+    const payload = {
+      property_id: propertyId,
+      configuration_source: "tenant_configured",
+      configured_by: context.userId,
+      configured_at: new Date().toISOString(),
+      slug: data.slug,
+      name: data.name,
+      description: data.description || null,
+      features: data.features,
+      specifications: data.specifications,
+      sort_order: data.sortOrder,
+      status: data.status,
+    };
+    const q = data.id
+      ? sb.from("room_categories").update(payload)
+          .eq("id", data.id)
+          .eq("property_id", propertyId)
+          .eq("configuration_source", "tenant_configured")
+          .select("id").single()
+      : sb.from("room_categories").insert(payload).select("id").single();
     const { data: row, error } = await q;
     if (error) throw new Error(error.message);
     return row;
