@@ -1,0 +1,81 @@
+name: CPS-04 booking product configuration
+
+on:
+  push:
+    branches:
+      - feat/cps-04-room-rate-offer-configuration
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/components/os/nav-config.ts"
+      - "src/domains/booking/booking-product-configuration.functions.ts"
+      - "src/lib/booking.functions.ts"
+      - "src/routes/_authenticated.admin.booking-products.tsx"
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+      - ".github/workflows/cps04-booking-product-configuration.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cps04-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cps04-database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: "2.122.1"
+      - name: Normalize optional legacy function revokes in the ephemeral checkout
+        run: python3 scripts/ci/normalize-optional-legacy-revokes.py
+      - name: Start isolated Supabase database
+        run: supabase start --exclude studio,inbucket,storage-api,imgproxy,vector
+      - name: Apply migrations and review-only schemas required by database contracts
+        run: |
+          supabase db reset
+          for migration in \
+            supabase/review/20261107100000_staynas_website_demo_requests.sql \
+            supabase/review/20261109130000_cc06_founder_notifications.sql \
+            supabase/review/20261109140000_cc06_commercial_account_contacts.sql \
+            supabase/review/20261109150000_cc06_founder_subscription_creation.sql
+          do
+            psql "postgresql://postgres:postgres@localhost:54322/postgres" -v ON_ERROR_STOP=1 -f "$migration"
+          done
+      - name: Run all database contracts including CPS-04
+        run: supabase test db
+      - name: Stop isolated Supabase stack
+        if: always()
+        run: supabase stop --no-backup
+
+  cps04-application:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Verify production build and TypeScript
+        run: |
+          bun run build
+          bunx tsc --noEmit
+      - name: Format and lint CPS-04 implementation
+        run: |
+          bunx prettier --write src/domains/booking/booking-product-configuration.functions.ts src/routes/_authenticated.admin.booking-products.tsx src/components/os/nav-config.ts src/lib/booking.functions.ts
+          bunx eslint src/domains/booking/booking-product-configuration.functions.ts src/routes/_authenticated.admin.booking-products.tsx src/components/os/nav-config.ts src/lib/booking.functions.ts

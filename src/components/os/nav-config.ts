@@ -62,6 +62,7 @@ export const NAV: NavEntry[] = [
       items: [
         { id: "reservations", label: "All Reservations", href: "/admin/bookings", icon: Calendar },
         { id: "reservations.calendar", label: "Calendar", href: "/admin/calendar", icon: CalendarDays },
+        { id: "booking-products", label: "Booking Products", href: "/admin/booking-products", icon: Bed },
         { id: "front-desk", label: "Front Desk", href: "/admin/front-desk", icon: ClipboardCheck },
         { id: "front-desk.scan-pass", label: "Scan Arrival Pass", href: "/admin/operations/arrivals/scan", icon: QrCode },
         { id: "guests", label: "Guests", href: "/admin/guests/crm", icon: Users },
