@@ -54,11 +54,13 @@ BEGIN
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conrelid = 'public.staynas_booking_product_configurations'::regclass
-      AND conname = 'staynas_booking_product_unique'
+    SELECT 1 FROM pg_indexes
+    WHERE schemaname = 'public'
+      AND tablename = 'staynas_booking_product_configurations'
+      AND indexname = 'staynas_booking_product_unique'
+      AND indexdef ILIKE '%COALESCE(campaign_slug%'
   ) THEN
-    RAISE EXCEPTION 'Booking product uniqueness constraint is missing';
+    RAISE EXCEPTION 'Booking product uniqueness index is missing or does not normalize NULL campaign slugs';
   END IF;
 END
 $test$;
@@ -121,7 +123,7 @@ BEGIN
       (property_id, room_id, rate_plan_publication_id, channel)
     VALUES
       ('20000000-0000-4000-8000-000000000001', '40000000-0000-4000-8000-000000000001',
-       '70000000-0000-4000-8000-000000000004', 'permanent');
+       '70000000-0000-4000-8000-000000000006', 'permanent');
     RAISE EXCEPTION 'Currency mismatch fixture unexpectedly succeeded';
   EXCEPTION WHEN raise_exception THEN
     IF SQLERRM = 'Currency mismatch fixture unexpectedly succeeded' THEN RAISE; END IF;

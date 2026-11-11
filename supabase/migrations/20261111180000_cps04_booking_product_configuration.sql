@@ -47,8 +47,8 @@ CREATE TABLE IF NOT EXISTS public.staynas_booking_product_configurations (
     AND (minimum_stay IS NULL OR minimum_stay >= 1)
     AND (maximum_stay IS NULL OR maximum_stay >= 1)
     AND (minimum_stay IS NULL OR maximum_stay IS NULL OR maximum_stay >= minimum_stay)
-  ),
- );
+  )
+);
 
 -- COALESCE is required because ordinary UNIQUE constraints treat NULL campaign
 -- slugs as distinct, which otherwise permits duplicate permanent products.
