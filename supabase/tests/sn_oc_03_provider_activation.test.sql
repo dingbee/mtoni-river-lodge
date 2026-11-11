@@ -1,7 +1,9 @@
 -- SN-OC-03 integrated database acceptance fixture.
 -- Run only after the complete supabase/migrations chain has been applied to an isolated database.
 BEGIN;
-
+SELECT plan(1);
+SELECT lives_ok(
+$sn_oc_03_test$
 DO $sn_oc_03$
 DECLARE
   v_org uuid := gen_random_uuid();
@@ -289,5 +291,8 @@ BEGIN
   END IF;
 END;
 $sn_oc_03$;
-
+$sn_oc_03_test$,
+'SN-OC-03 integrated provider activation and dispatch acceptance'
+);
+SELECT * FROM finish();
 ROLLBACK;
