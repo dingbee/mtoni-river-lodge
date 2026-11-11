@@ -271,6 +271,20 @@ function Eyebrow({ children }: { children: ReactNode }) {
   return <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#967747]">{children}</p>;
 }
 
+function ScrollEmphasis({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => {
+      node.dataset.active = entry.isIntersecting ? "true" : "false";
+    }, { threshold: 0.45 });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  return <div ref={ref} data-scroll-emphasis>{children}</div>;
+}
+
 function CapabilityCard({ item, index }: { item: PublicCapability; index: number }) {
   const Icon = capabilityIcons[item.id] ?? CircleDot;
   const [expanded, setExpanded] = useState(false);
@@ -364,7 +378,7 @@ export function ProductHomePage() {
 export function ProductInfoPage({ page }: { page: "platform" | "solutions" | "integrations" | "demo" }) {
   if (page === "platform") return <SiteShell><main>
     <section className="bg-[#0c211b] px-6 py-16 text-white lg:px-10 lg:py-20"><div className="mx-auto max-w-7xl"><Eyebrow>Platform capabilities</Eyebrow><h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl">The operating system behind every part of the stay.</h1><p className="mt-6 max-w-2xl text-base leading-8 text-white/65">Explore the capabilities StayNas brings together. Availability and activation can vary by property configuration, deployment and connected provider.</p></div></section>
-    <section className="mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-24"><div className="mb-12 max-w-2xl" data-scroll-emphasis><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9a835b]">A connected operating environment</p><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Every capability works toward a smoother stay.</h2><p className="mt-5 text-base leading-8 text-[#69756e]">Explore the capabilities that bring the guest journey and property operation together. Open any capability to see what it brings into the day-to-day workflow.</p></div><div className="grid gap-x-10 gap-y-10 sm:grid-cols-2 xl:grid-cols-3">{STAYNAS_PUBLIC_CAPABILITIES.map((item,index)=><CapabilityCard key={item.id} item={item} index={index}/>)}</div></section>
+    <section className="mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-24"><ScrollEmphasis><div className="mb-12 max-w-2xl"><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9a835b]">A connected operating environment</p><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Every capability works toward a smoother stay.</h2><p className="mt-5 text-base leading-8 text-[#69756e]">Explore the capabilities that bring the guest journey and property operation together. Open any capability to see what it brings into the day-to-day workflow.</p></div></ScrollEmphasis><div className="grid gap-x-10 gap-y-10 sm:grid-cols-2 xl:grid-cols-3">{[...STAYNAS_PUBLIC_CAPABILITIES].sort((a,b)=>["ai-concierge","reservations","front-desk","property","guest","housekeeping","finance","automation","payments","multi-property","distribution","ecosystem"].indexOf(a.id)-["ai-concierge","reservations","front-desk","property","guest","housekeeping","finance","automation","payments","multi-property","distribution","ecosystem"].indexOf(b.id)).map((item,index)=><CapabilityCard key={item.id} item={item} index={index}/>)}</div></section>
     <section className="bg-[#e9ede6]"><div className="mx-auto max-w-7xl px-6 py-16 lg:px-10"><div className="max-w-2xl"><Eyebrow>One operating model</Eyebrow><h2 className="mt-4 text-3xl font-semibold">Six connected pillars.</h2></div><div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{STAYNAS_PILLARS.map(p=><div key={p.name} className="site-editorial-item p-5"><h3 className="font-semibold">{p.name}</h3><p className="mt-2 text-sm leading-6 text-[#69756e]">{p.description}</p></div>)}</div></div></section>
     <CallToAction/>
   </main></SiteShell>;
