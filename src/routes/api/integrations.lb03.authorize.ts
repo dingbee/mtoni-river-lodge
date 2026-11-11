@@ -14,7 +14,7 @@ const schema = z.object({
 }).strict();
 
 type Admin = {
- rpc(name:string,args:Record<string,unknown>):Promise<{data:unknown;error:unknown}>;
+ rpc(name:string,args:Record<string,unknown>):Promise<{data:unknown;error:{message?:string}|null}>;
 };
 
 export const Route = createFileRoute("/api/integrations/lb03/authorize")({
