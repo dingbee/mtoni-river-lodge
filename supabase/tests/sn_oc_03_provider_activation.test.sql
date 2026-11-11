@@ -45,7 +45,12 @@ BEGIN
   SELECT id INTO STRICT v_whatsapp_channel FROM public.ai_concierge_channels WHERE channel='whatsapp';
   SELECT id INTO STRICT v_email_channel FROM public.ai_concierge_channels WHERE channel='email';
   UPDATE public.ai_concierge_channels
-    SET status='active',outbound_enabled=true,requires_approval=true
+    SET status='active',outbound_enabled=true,requires_approval=true,
+        provider=CASE channel
+          WHEN 'whatsapp' THEN 'meta_cloud_api'
+          WHEN 'email' THEN 'resend'
+          ELSE provider
+        END
     WHERE id IN (v_whatsapp_channel,v_email_channel);
 
   INSERT INTO public.ai_property_channel_settings
