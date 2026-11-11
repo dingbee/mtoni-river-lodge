@@ -80,7 +80,7 @@ function PlatformRoomConfiguration(){
               {visible.map((item:any)=><button type="button" key={item.id} onClick={()=>choose(item)} className="w-full rounded-xl border border-transparent p-3 text-left transition hover:border-slate-200 hover:bg-white">
                 <div className="flex items-start justify-between gap-2"><span className="text-sm font-semibold text-slate-800">{item.name}</span><span className={`mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold ${item.status==="active"?"bg-emerald-50 text-emerald-700":"bg-slate-100 text-slate-500"}`}>{item.status}</span></div>
                 <p className="mt-1 truncate text-xs text-slate-400">{item.slug}</p>{item.configuration_source==="legacy_unverified"&&<p className="mt-1 text-[10px] font-medium text-amber-700">Legacy record · saving adopts this property record</p>}
-                {tab==="room-types"&&<p className="mt-2 text-xs text-slate-500">{item.capacity_adults} adults · {item.capacity_children} children · max {item.max_occupancy}</p>}
+                {tab==="room-types"&&<p className="mt-2 text-xs text-slate-500">{item.capacity_adults} adults · {item.capacity_children} children · max {item.max_occupancy}</p>}{tab==="room-types"&&<p className={`mt-1 text-[10px] ${item.inventory_synced?"text-slate-400":"font-semibold text-amber-700"}`}>{item.configured_units} configured · {item.physical_units} physical units{item.inventory_synced?"":" · reconciliation required"}</p>}
               </button>)}
               {visible.length===0&&<div className="px-3 py-10 text-center text-sm text-slate-400">No matching records</div>}
             </div>
