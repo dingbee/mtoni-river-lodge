@@ -44,15 +44,15 @@ CREATE TABLE public.staynas_property_members(
  property_id uuid NOT NULL,user_id uuid NOT NULL,role public.app_role NOT NULL,status text NOT NULL
 );
 
-\i supabase/migrations/20261110120000_lb03_room_charge_authorization_posting.sql
-\i supabase/migrations/20261110121000_lb03_folio_reversal_approval.sql
-\i supabase/migrations/20261110122000_lb03_reversal_approval_queue.sql
+\i supabase/migrations/20261111194000_lb03_room_charge_authorization_posting.sql
+\i supabase/migrations/20261111194100_lb03_folio_reversal_approval.sql
+\i supabase/migrations/20261111194200_lb03_reversal_approval_queue.sql
 
 INSERT INTO auth.users(id) VALUES ('90000000-0000-4000-8000-000000000001');
 INSERT INTO public.guests(id) VALUES ('80000000-0000-4000-8000-000000000001');
 INSERT INTO public.bookings(id,property_id,guest_id,status,checked_in_at,check_out,currency,room_id,reference,extras_total,total,balance_due,balance_amount)
 VALUES ('70000000-0000-4000-8000-000000000001','60000000-0000-4000-8000-000000000001',
- '80000000-0000-4000-8000-000000000001','checked_in',now(),current_date+3,'USD',
+ '80000000-0000-4000-8000-000000000001','checked_in',now(),current_date+3,'TZS',
  '50000000-0000-4000-8000-000000000001','UAT-BOOKING-001',0,500,500,500);
 INSERT INTO public.staynas_product_connections VALUES (
  '40000000-0000-4000-8000-000000000001','60000000-0000-4000-8000-000000000001',
@@ -85,7 +85,7 @@ BEGIN
   '10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001',
   '30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000002',
   '80000000-0000-4000-8000-000000000001','70000000-0000-4000-8000-000000000001',
-  'USD',100,'[{"component":"VAT","amount":18}]'::jsonb,5,0,'lb03-uat-correlation'
+  'TZS',100,'[{"component":"VAT","amount":18}]'::jsonb,5,0,'lb03-uat-correlation'
  );
  IF a->>'status'<>'AUTHORIZED' THEN RAISE EXCEPTION 'Authorization failed: %',a; END IF;
  d:=public.lb03_authorize_room_charge(
@@ -94,7 +94,7 @@ BEGIN
   '10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001',
   '30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000002',
   '80000000-0000-4000-8000-000000000001','70000000-0000-4000-8000-000000000001',
-  'USD',100,'[{"component":"VAT","amount":18}]'::jsonb,5,0,'lb03-uat-correlation'
+  'TZS',100,'[{"component":"VAT","amount":18}]'::jsonb,5,0,'lb03-uat-correlation'
  );
  IF d->>'duplicate'<>'true' OR d->>'authorizationReference'<>a->>'authorizationReference' THEN
   RAISE EXCEPTION 'Authorization replay did not recover the original decision';
@@ -106,7 +106,7 @@ BEGIN
    '10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001',
    '30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000002',
    '80000000-0000-4000-8000-000000000001','70000000-0000-4000-8000-000000000001',
-   'USD',101,'[{"component":"VAT","amount":18}]'::jsonb,5,0,'lb03-uat-correlation'
+   'TZS',101,'[{"component":"VAT","amount":18}]'::jsonb,5,0,'lb03-uat-correlation'
   );
   RAISE EXCEPTION 'Expected idempotency payload conflict';
  EXCEPTION WHEN unique_violation THEN NULL;
@@ -131,7 +131,7 @@ BEGIN
   '10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001',
   '30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000002',
   '80000000-0000-4000-8000-000000000001','70000000-0000-4000-8000-000000000001',
-  'USD',50,'[]'::jsonb,0,0,'lb03-uat-correlation'
+  'TZS',50,'[]'::jsonb,0,0,'lb03-uat-correlation'
  );
 END $lb03concurrent$;
 DO $lb03negative$
@@ -143,7 +143,7 @@ BEGIN
    '10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001',
    '30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000099',
    '80000000-0000-4000-8000-000000000001','70000000-0000-4000-8000-000000000001',
-   'USD',10,'[]'::jsonb,0,0,'lb03-uat-correlation'
+   'TZS',10,'[]'::jsonb,0,0,'lb03-uat-correlation'
   );
   RAISE EXCEPTION 'Unmapped outlet was authorized';
  EXCEPTION WHEN insufficient_privilege THEN NULL;
@@ -168,7 +168,7 @@ BEGIN
    '10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001',
    '30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000002',
    '80000000-0000-4000-8000-000000000001','70000000-0000-4000-8000-000000000001',
-   'USD',10,'[]'::jsonb,0,0,'lb03-uat-correlation'
+   'TZS',10,'[]'::jsonb,0,0,'lb03-uat-correlation'
   );
   RAISE EXCEPTION 'Checked-out guest was authorized';
  EXCEPTION WHEN SQLSTATE '22023' THEN NULL;
