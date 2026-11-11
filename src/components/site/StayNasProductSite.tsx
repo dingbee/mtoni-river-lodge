@@ -22,16 +22,16 @@ const capabilityIcons: Record<string, typeof BedDouble> = {
 
 export function ProductSiteHeader() {
   const [open, setOpen] = useState(false);
+  const [activeMenu, setActiveMenu] = useState<"root" | "platform">("root");
   const [expanded, setExpanded] = useState<string | null>("Platform");
-  const links = [
-    { to: "/platform", label: "Platform" },
-    { to: "/modules", label: "Modules" },
-    { to: "/product-tour", label: "Product walkthrough" },
-  ] as const;
   const groups = [
-    { label: "Platform", items: [{ to: "/platform", label: "Overview" }, { to: "/modules", label: "Modules" }, { to: "/product-tour", label: "Product walkthrough" }, { to: "/architecture", label: "Architecture" }] },
     { label: "Solutions", items: [{ to: "/solutions", label: "By hospitality business" }, { to: "/integrations", label: "Integrations & ecosystem" }] },
-    { label: "Resources", items: [{ to: "/security", label: "Trust & security" }, { to: "/architecture", label: "Platform architecture" }] },
+    { label: "Resources", items: [{ to: "/security", label: "Trust & security" }, { to: "/architecture", label: "Platform architecture" }, { to: "/product-tour", label: "Product walkthrough" }] },
+  ] as const;
+  const platformSections = [
+    { heading: "Operations", items: [{ to: "/modules#reservations", label: "Reservations & booking" }, { to: "/modules#front-desk", label: "Front desk" }, { to: "/modules#housekeeping", label: "Housekeeping" }, { to: "/modules#rooms-inventory", label: "Rooms & inventory" }] },
+    { heading: "Guest", items: [{ to: "/modules#staynas-ai", label: "AI Concierge" }, { to: "/modules#guest-intelligence", label: "Guest profiles & intelligence" }] },
+    { heading: "Revenue", items: [{ to: "/modules#revenue", label: "Revenue & pricing" }, { to: "/modules#finance", label: "Finance" }, { to: "/integrations", label: "Booking & distribution" }] },
   ] as const;
 
   useEffect(() => {
@@ -72,52 +72,43 @@ export function ProductSiteHeader() {
         <button type="button" aria-label="Close navigation overlay" onClick={closeMenu} className="absolute inset-0 h-full w-full cursor-default bg-[#071710]/55 backdrop-blur-[2px]"/>
         <aside id="staynas-mobile-navigation" role="dialog" aria-modal="true" aria-label="StayNas navigation" onClick={(event) => event.stopPropagation()} className="absolute inset-y-0 right-0 flex h-[100dvh] w-[min(100%,440px)] flex-col overflow-hidden bg-[#f6f5ef] text-[#15251f] shadow-2xl">
           <div className="flex min-h-[88px] items-center justify-between border-b border-[#deded4] px-6 sm:px-8">
-            <Link to="/" onClick={closeMenu} className="flex items-center gap-3" aria-label="StayNas home">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c7a96b] text-lg font-semibold text-[#10251e]">S</span>
-              <span className="text-[17px] font-semibold tracking-[0.1em] text-[#25232a]">STAYNAS <span className="font-normal tracking-normal text-[#8b8278]">Hospitality OS</span></span>
-            </Link>
-            <button type="button" aria-label="Close navigation menu" onClick={closeMenu} className="inline-flex h-11 w-11 items-center justify-center rounded-full text-[#29242c] transition hover:bg-[#e9ede6]">
-              <X className="h-7 w-7"/>
-            </button>
+            <div className="flex min-w-0 items-center gap-3">
+              {activeMenu === "platform" && <button type="button" aria-label="Back to main navigation" onClick={() => setActiveMenu("root")} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#29242c] transition hover:bg-[#e9ede6]"><ChevronRight className="h-6 w-6 rotate-180"/></button>}
+              <Link to="/" onClick={closeMenu} className="flex items-center gap-3" aria-label="StayNas home">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c7a96b] text-lg font-semibold text-[#10251e]">S</span>
+                <span className="truncate text-[17px] font-semibold tracking-[0.1em] text-[#25232a]">STAYNAS <span className="font-normal tracking-normal text-[#8b8278]">Hospitality OS</span></span>
+              </Link>
+            </div>
+            <div className="flex items-center gap-2">
+              {activeMenu === "platform" && <span className="text-base font-semibold text-[#25232a]">Platform</span>}
+              <button type="button" aria-label="Close navigation menu" onClick={closeMenu} className="inline-flex h-11 w-11 items-center justify-center rounded-full text-[#29242c] transition hover:bg-[#e9ede6]"><X className="h-7 w-7"/></button>
+            </div>
           </div>
 
-          <nav aria-label="Mobile navigation" className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 pt-3 sm:px-8">
-            {groups.map((group) => {
-              const isExpanded = expanded === group.label;
-              return <section key={group.label} className="border-b border-[#e8e1d5]">
-                <button type="button" aria-expanded={isExpanded} onClick={() => toggleGroup(group.label)} className={"flex min-h-[76px] w-full items-center justify-between text-left text-[22px] font-medium transition-colors " + (isExpanded ? "text-[#315744]" : "text-[#25232a] hover:text-[#c65a36]")}>
-                  {group.label}
-                  {isExpanded ? <ChevronDown className="h-6 w-6"/> : <ChevronRight className="h-6 w-6"/>}
-                </button>
-                {isExpanded && <div className="space-y-1 pb-5 pl-1">
-                  {group.items.map((item) => <Link key={item.to} to={item.to} onClick={closeMenu} className="flex items-center justify-between rounded-lg px-3 py-3 text-base text-[#625d61] transition hover:bg-[#e9ede6] hover:text-[#315744]">
-                    {item.label}<ArrowUpRight className="h-4 w-4 opacity-60"/>
-                  </Link>)}
-                </div>}
-              </section>;
-            })}
-
-            <Link to="/pricing" onClick={closeMenu} className="flex min-h-[76px] items-center justify-between border-b border-[#e8e1d5] text-[22px] font-medium text-[#25232a] transition hover:text-[#c65a36]">
-              Pricing<ArrowUpRight className="h-5 w-5"/>
-            </Link>
-
-            <section className="border-b border-[#e8e1d5]">
-              <button type="button" aria-expanded={expanded === "Company"} onClick={() => toggleGroup("Company")} className={"flex min-h-[76px] w-full items-center justify-between text-left text-[22px] font-medium " + (expanded === "Company" ? "text-[#c65a36]" : "text-[#25232a]")}>
-                Company{expanded === "Company" ? <ChevronDown className="h-6 w-6"/> : <ChevronRight className="h-6 w-6"/>}
-              </button>
-              {expanded === "Company" && <div className="pb-5 pl-1"><a href="https://nolmark.co" target="_blank" rel="noreferrer" onClick={closeMenu} className="flex items-center justify-between rounded-lg px-3 py-3 text-base text-[#625d61] hover:bg-[#f3eee4]">Nolmark CDMA <ExternalLink className="h-4 w-4"/></a></div>}
-            </section>
-
-            <Link to="/request-demo" onClick={closeMenu} className="flex min-h-[76px] items-center justify-between border-b border-[#e8e1d5] text-[22px] font-medium text-[#25232a] transition hover:text-[#c65a36]">
-              Support<ArrowUpRight className="h-5 w-5"/>
-            </Link>
-            <Link to="/admin" onClick={closeMenu} className="mt-6 flex min-h-[54px] items-center justify-center rounded-full border border-[#8f877d] px-6 text-base font-medium text-[#37323a] transition hover:bg-[#f3eee4]">Login</Link>
+          <nav aria-label="Mobile navigation" className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-8 pt-3 sm:px-8">
+            {activeMenu === "platform" ? <>
+              <Link to="/platform" onClick={closeMenu} className="flex min-h-[112px] items-center border-b border-[#e8e1d5] text-[25px] font-medium text-[#25232a] transition hover:text-[#315744]">Overview</Link>
+              {platformSections.map(section => <section key={section.heading} className="border-b border-[#e8e1d5] py-7">
+                <h3 className="mb-5 text-[17px] font-medium text-[#8d8580]">{section.heading}</h3>
+                <div className="space-y-1">{section.items.map(item => <Link key={item.label} to={item.to} onClick={closeMenu} className="flex min-h-[58px] items-center py-3 text-[21px] font-normal tracking-tight text-[#25232a] transition-colors hover:text-[#315744]">{item.label}</Link>)}</div>
+              </section>)}
+              <Link to="/architecture" onClick={closeMenu} className="flex min-h-[76px] items-center border-b border-[#e8e1d5] text-[20px] text-[#25232a]">Architecture</Link>
+            </> : <>
+              <button type="button" onClick={() => setActiveMenu("platform")} className="flex min-h-[76px] w-full items-center justify-between border-b border-[#e8e1d5] text-left text-[22px] font-medium text-[#25232a] transition hover:text-[#315744]">Platform<ChevronRight className="h-6 w-6"/></button>
+              {groups.map(group => {
+                const isExpanded = expanded === group.label;
+                return <section key={group.label} className="border-b border-[#e8e1d5]">
+                  <button type="button" aria-expanded={isExpanded} onClick={() => setExpanded(current => current === group.label ? null : group.label)} className={"flex min-h-[76px] w-full items-center justify-between text-left text-[22px] font-medium transition-colors " + (isExpanded ? "text-[#315744]" : "text-[#25232a] hover:text-[#c65a36]")}>{group.label}{isExpanded ? <ChevronDown className="h-6 w-6"/> : <ChevronRight className="h-6 w-6"/>}</button>
+                  {isExpanded && <div className="space-y-1 pb-5 pl-1">{group.items.map(item => <Link key={item.to} to={item.to} onClick={closeMenu} className="flex items-center justify-between rounded-lg px-3 py-3 text-base text-[#625d61] transition hover:bg-[#e9ede6] hover:text-[#315744]">{item.label}<ArrowUpRight className="h-4 w-4 opacity-60"/></Link>)}</div>}
+                </section>;
+              })}
+              <Link to="/pricing" onClick={closeMenu} className="flex min-h-[76px] items-center justify-between border-b border-[#e8e1d5] text-[22px] font-medium text-[#25232a] transition hover:text-[#c65a36]">Pricing<ArrowUpRight className="h-5 w-5"/></Link>
+              <Link to="/admin" onClick={closeMenu} className="mt-6 flex min-h-[54px] items-center justify-center rounded-full border border-[#8f877d] px-6 text-base font-medium text-[#37323a] transition hover:bg-[#f3eee4]">Login</Link>
+            </>}
           </nav>
 
           <div className="shrink-0 border-t border-[#e8e1d5] bg-[#f6f5ef] px-5 pb-[max(18px,env(safe-area-inset-bottom))] pt-4 sm:px-8">
-            <Link to="/request-demo" onClick={closeMenu} className="flex min-h-[58px] w-full items-center justify-center rounded-full bg-[#d7bd85] px-6 text-base font-semibold text-[#14271f] shadow-sm transition hover:bg-[#e5d0a4]">
-              Book a Demo
-            </Link>
+            <Link to="/request-demo" onClick={closeMenu} className="flex min-h-[58px] w-full items-center justify-center rounded-full bg-[#f04b2a] px-6 text-base font-semibold text-white shadow-sm transition hover:bg-[#dc4325]">Book a Demo</Link>
           </div>
         </aside>
       </div>}
