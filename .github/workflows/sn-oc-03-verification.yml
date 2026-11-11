@@ -72,12 +72,24 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 3.1.0
-      - name: Isolate local database ports from concurrent verification jobs
+      - name: Isolate local Supabase ports from concurrent verification jobs
         run: |
           cat >> supabase/config.toml <<'EOF'
+          [api]
+          port = 55421
           [db]
-          port = 54329
-          shadow_port = 54328
+          port = 55422
+          shadow_port = 55420
+          [studio]
+          port = 55423
+          [inbucket]
+          port = 55424
+          smtp_port = 55425
+          pop3_port = 55426
+          [analytics]
+          port = 55427
+          [db.pooler]
+          port = 55429
           EOF
       - name: Start isolated Supabase stack
         run: supabase start
