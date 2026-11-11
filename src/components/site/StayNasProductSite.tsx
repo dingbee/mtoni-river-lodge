@@ -282,7 +282,7 @@ function ScrollEmphasis({ children }: { children: ReactNode }) {
 function CapabilityCard({ item, index }: { item: PublicCapability; index: number }) {
   const Icon = capabilityIcons[item.id] ?? CircleDot;
   const [expanded, setExpanded] = useState(false);
-  const cardRef = useRef<HTMLElement | null>(null);
+  const cardRef = useRef<HTMLElement>(null!);
 
   useEffect(() => {
     const node = cardRef.current;
