@@ -115,10 +115,6 @@ export function ProductSiteHeader() {
               {expanded === "Company" && <div className="pb-5 pl-1"><a href="https://nolmark.co" target="_blank" rel="noreferrer" onClick={closeMenu} className="flex items-center justify-between rounded-lg px-3 py-3 text-base text-[#625d61] hover:bg-[#f3eee4]">Nolmark CDMA <ExternalLink className="h-4 w-4"/></a></div>}
             </section>
 
-            <section className="border-b border-[#e8e1d5]">
-              <div className="flex min-h-[76px] items-center justify-between text-[22px] font-medium text-[#25232a]">Hotelier Stories<span className="rounded-full bg-[#f0eade] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#81786d]">Coming soon</span></div>
-            </section>
-
             <Link to="/request-demo" onClick={closeMenu} className="flex min-h-[76px] items-center justify-between border-b border-[#e8e1d5] text-[22px] font-medium text-[#25232a] transition hover:text-[#c65a36]">
               Support<ArrowUpRight className="h-5 w-5"/>
             </Link>
