@@ -128,7 +128,7 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109160000_cc07_reporting_reconciliation.sql
       - name: Verify CC-07 reporting, exact currency amounts and reconciliation lifecycle
         run: |
-          sed -E '/^[[:space:]]*SELECT[[:space:]]+(plan|ok|finish)[[:space:]]*\\(/Id; /^[[:space:]]*SELECT[[:space:]]+\\*[[:space:]]+FROM[[:space:]]+finish[[:space:]]*\\(/Id' supabase/tests/cc07_reporting_reconciliation.test.sql | psql -v ON_ERROR_STOP=1
+          sed -E '/^[[:space:]]*SELECT[[:space:]]+(plan|ok|finish)[[:space:]]*[(]/Id; /^[[:space:]]*SELECT[[:space:]]+[*][[:space:]]+FROM[[:space:]]+finish[[:space:]]*[(]/Id' supabase/tests/cc07_reporting_reconciliation.test.sql | psql -v ON_ERROR_STOP=1
       - name: Verify CC-07 concurrent reconciliation closure
         run: bash supabase/tests/cc07_concurrency.sh
       - name: Verify concurrent one-time trial activation
