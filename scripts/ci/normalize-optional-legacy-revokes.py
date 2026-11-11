@@ -118,15 +118,19 @@ jwt_compat_migration = Path(
     "supabase/migrations/20261105103000_fix_property_rpc_jwt_role_claim_resolution.sql"
 )
 jwt_compat_source = jwt_compat_migration.read_text()
-declaration = "  v_signature regprocedure;"
-if declaration not in jwt_compat_source:
-    raise SystemExit("Expected legacy JWT compatibility declaration was not found.")
-jwt_compat_source = jwt_compat_source.replace(
-    declaration,
-    declaration + "\n  v_signature_text text;",
-    1,
-)
-old_loop = """  FOREACH v_signature IN ARRAY ARRAY[
+if "SELECT p.oid::regprocedure" in jwt_compat_source:
+    # The committed migration already discovers available overloads safely.
+    pass
+else:
+    declaration = "  v_signature regprocedure;"
+    if declaration not in jwt_compat_source:
+        raise SystemExit("Expected legacy JWT compatibility declaration was not found.")
+    jwt_compat_source = jwt_compat_source.replace(
+        declaration,
+        declaration + "\n  v_signature_text text;",
+        1,
+    )
+    old_loop = """  FOREACH v_signature IN ARRAY ARRAY[
     'public.get_room_availability(date,date,uuid)'::regprocedure,
     'public.create_booking(text,date,date,integer,integer,text,text,text,jsonb,integer,integer,uuid,text,uuid)'::regprocedure
   ]
@@ -138,7 +142,7 @@ old_loop = """  FOREACH v_signature IN ARRAY ARRAY[
     v_definition := replace(v_definition, v_old, v_new);
     EXECUTE v_definition;
   END LOOP;"""
-new_loop = """  FOREACH v_signature_text IN ARRAY ARRAY[
+    new_loop = """  FOREACH v_signature_text IN ARRAY ARRAY[
     'public.get_room_availability(date,date,uuid)',
     'public.create_booking(text,date,date,integer,integer,text,text,text,jsonb,integer,integer,uuid,text,uuid)'
   ]
@@ -153,9 +157,10 @@ new_loop = """  FOREACH v_signature_text IN ARRAY ARRAY[
       EXECUTE v_definition;
     END IF;
   END LOOP;"""
-if old_loop not in jwt_compat_source:
-    raise SystemExit("Expected legacy JWT compatibility function loop was not found.")
-jwt_compat_migration.write_text(jwt_compat_source.replace(old_loop, new_loop, 1))
+    if old_loop not in jwt_compat_source:
+        raise SystemExit("Expected legacy JWT compatibility function loop was not found.")
+    jwt_compat_source = jwt_compat_source.replace(old_loop, new_loop, 1)
+    jwt_compat_migration.write_text(jwt_compat_source)
 
 # The current CC-01 authorization migration revokes direct access from legacy
 # trigger functions that are present in deployed schemas but not all clean CI
