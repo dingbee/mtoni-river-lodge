@@ -1,5 +1,5 @@
 begin;
-select plan(11);
+select plan(12);
 select ok(
   to_regprocedure('public.save_platform_room_type_configuration(uuid,uuid,text,text,uuid,text,text,text,text[],jsonb,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text,text[])') is not null,
   'atomic room configuration RPC is installed'
@@ -43,6 +43,10 @@ select ok(
 select ok(
   pg_get_functiondef(to_regprocedure('public.save_platform_room_type_configuration(uuid,uuid,text,text,uuid,text,text,text,text[],jsonb,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text,text[])')) like '%SKIP LOCKED%',
   'physical room reductions serialize against concurrent room-state updates'
+);
+select ok(
+  pg_get_functiondef(to_regprocedure('public.save_platform_room_type_configuration(uuid,uuid,text,text,uuid,text,text,text,text[],jsonb,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text,text[])')) not like '%AND configuration_source = ''tenant_configured''%',
+  'authorized property managers can adopt existing legacy room definitions in place without replacing their IDs or physical inventory'
 );
 select * from finish();
 rollback;
