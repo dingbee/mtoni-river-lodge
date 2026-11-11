@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: sn-oc-03-${{ github.event.pull_request.number }}
+  group: sn-oc-03-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
   cancel-in-progress: true
 
 jobs:
@@ -87,4 +87,4 @@ jobs:
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/sn_oc_03_provider_activation.test.sql
       - name: Stop isolated Supabase stack
         if: always()
-        run: supabase stop --no-backup
+        run: timeout 90s supabase stop --no-backup || true
