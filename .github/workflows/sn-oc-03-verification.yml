@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: sn-oc-03-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+  group: sn-oc-03-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
