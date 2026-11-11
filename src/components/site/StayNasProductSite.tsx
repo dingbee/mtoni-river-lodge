@@ -20,13 +20,6 @@ const capabilityIcons: Record<string, typeof BedDouble> = {
   ecosystem: Layers3,
 };
 
-const statusStyles: Record<PublicCapability["status"], string> = {
-  implemented: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  "configuration-dependent": "border-amber-200 bg-amber-50 text-amber-800",
-  "integration-dependent": "border-sky-200 bg-sky-50 text-sky-800",
-  planned: "border-stone-200 bg-stone-100 text-stone-700",
-};
-
 export function ProductSiteHeader() {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>("Platform");
