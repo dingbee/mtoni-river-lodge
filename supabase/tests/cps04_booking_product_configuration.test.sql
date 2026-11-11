@@ -25,6 +25,14 @@ INSERT INTO public.staynas_property_members (property_id, user_id, role, status)
   ('20000000-0000-4000-8000-000000000001', '30000000-0000-4000-8000-000000000001', 'owner', 'active'),
   ('20000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000002', 'owner', 'active');
 
+-- The role bootstrap also adds users to the legacy demo property. Pin each
+-- fixture user to its intended tenant so active-property resolution is deterministic.
+INSERT INTO public.staynas_user_property_context (user_id, property_id) VALUES
+  ('30000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001'),
+  ('30000000-0000-4000-8000-000000000002', '20000000-0000-4000-8000-000000000002')
+ON CONFLICT (user_id) DO UPDATE
+SET property_id = EXCLUDED.property_id, updated_at = now();
+
 -- Seed canonical platform room types; rooms.catalogue_type_id is a real FK.
 INSERT INTO public.staynas_room_catalogue_types (id, slug, name, status) VALUES
   ('50000000-0000-4000-8000-000000000001', 'cps04-catalogue-a', 'CPS04 Catalogue A', 'active'),
