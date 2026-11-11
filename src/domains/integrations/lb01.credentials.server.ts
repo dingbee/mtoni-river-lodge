@@ -150,7 +150,7 @@ export async function authenticateLb01ServiceRequest(
 
   const { data: connection, error: connectionError } = await client
     .from("staynas_product_connections")
-    .select("id, integration_tenant_id, integration_property_id, local_organisation_id, local_property_id, remote_tenant_id, remote_property_id, remote_product, status, correlation_id")
+    .select("id, integration_tenant_id, integration_property_id, local_organisation_id, local_property_id, remote_tenant_id, remote_property_id, remote_product, status, local_approved_at, remote_approved_at, correlation_id")
     .eq("id", credentialRow.connection_id)
     .maybeSingle();
   const connectionRow = connection as Record<string, unknown> | null;
