@@ -7,7 +7,7 @@ const schema=z.object({
  idempotencyKey:z.string().min(8).max(200),
  description:z.string().max(240).optional(),
 }).strict();
-type Admin={rpc(name:string,args:Record<string,unknown>):Promise<{data:unknown;error:unknown}>};
+type Admin={rpc(name:string,args:Record<string,unknown>):Promise<{data:unknown;error:{message?:string}|null}>};
 
 export const Route=createFileRoute("/api/integrations/lb03/post")({
  server:{handlers:{POST:async({request})=>{
