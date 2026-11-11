@@ -302,14 +302,29 @@ $function$;
 REVOKE ALL ON FUNCTION public.checkin_eligibility(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.checkin_eligibility(uuid) TO authenticated, service_role;
 -- Trigger functions are invoked by PostgreSQL triggers; direct RPC execution is never needed.
-REVOKE ALL ON FUNCTION public.bookings_link_guest() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.capture_staynas_rate_plan_version() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.hk_exception_events() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.hk_inspection_events() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.hk_room_state_events() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.hk_task_events() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.staynas_enforce_hold_property() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.staynas_enforce_ops_task_property() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.staynas_set_guest_child_property() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.validate_staynas_rate_plan_context() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.validate_staynas_rate_plan_room_type() FROM PUBLIC, anon, authenticated;
+-- Keep this hardening migration compatible with clean installs where optional legacy
+-- trigger functions were never promoted from supabase/review into the migration chain.
+DO $block$
+DECLARE
+  v_signature text;
+BEGIN
+  FOREACH v_signature IN ARRAY ARRAY[
+    'public.bookings_link_guest()',
+    'public.capture_staynas_rate_plan_version()',
+    'public.hk_exception_events()',
+    'public.hk_inspection_events()',
+    'public.hk_room_state_events()',
+    'public.hk_task_events()',
+    'public.staynas_enforce_hold_property()',
+    'public.staynas_enforce_ops_task_property()',
+    'public.staynas_set_guest_child_property()',
+    'public.validate_staynas_rate_plan_context()',
+    'public.validate_staynas_rate_plan_room_type()'
+  ]
+  LOOP
+    IF to_regprocedure(v_signature) IS NOT NULL THEN
+      EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated', v_signature);
+    END IF;
+  END LOOP;
+END
+$block$;
