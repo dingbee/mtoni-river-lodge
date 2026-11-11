@@ -17,6 +17,11 @@ INSERT INTO public.staynas_property_members (property_id, user_id, role, status)
   ('20000000-0000-4000-8000-000000000001', '30000000-0000-4000-8000-000000000001', 'owner', 'active'),
   ('20000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000002', 'owner', 'active');
 
+-- Use real platform catalogue rows because rooms.catalogue_type_id is a live FK.
+INSERT INTO public.staynas_room_catalogue_types (id, slug, name, status) VALUES
+  ('50000000-0000-4000-8000-000000000001', 'cps04-catalogue-a', 'CPS04 Catalogue A', 'active'),
+  ('50000000-0000-4000-8000-000000000002', 'cps04-catalogue-b', 'CPS04 Catalogue B', 'active');
+
 INSERT INTO public.rooms (id, property_id, catalogue_type_id, slug, name, base_price, currency, status) VALUES
   ('40000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', '50000000-0000-4000-8000-000000000001', 'cps04-room-a', 'CPS04 Room A', 120000, 'TZS', 'active'),
   ('40000000-0000-4000-8000-000000000002', '20000000-0000-4000-8000-000000000002', '50000000-0000-4000-8000-000000000002', 'cps04-room-b', 'CPS04 Room B', 45000, 'KES', 'active');
