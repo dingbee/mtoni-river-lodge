@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { trackGAEvent, trackPageView } from "@/lib/analytics";
 import { ArrowRight, ArrowUpRight, BedDouble, Building2, CalendarCheck, ChartNoAxesCombined, Check, ChevronDown, ChevronRight, CircleDot, CreditCard, ExternalLink, Globe2, House, Layers3, Menu, Network, ShieldCheck, Sparkles, Users, Workflow, Wrench, X } from "lucide-react";
@@ -150,10 +150,21 @@ export function ProductSiteHeader() {
         border-radius: 0;
         box-shadow: none;
       }
+      html { scroll-behavior: smooth; }
+      .staynas-public-site main section { scroll-margin-top: 6rem; }
+      .capability-reveal { opacity: .28; transform: translateY(22px); transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.2,1), border-color .3s ease; }
+      .capability-reveal[data-revealed="true"] { opacity: 1; transform: translateY(0); }
+      .capability-reveal:hover { border-color: #c7a96b; }
+      [data-scroll-emphasis] p, [data-scroll-emphasis] h2 { transition: opacity .5s ease, font-weight .5s ease, letter-spacing .5s ease; }
+      [data-scroll-emphasis] h2 { opacity: .62; font-weight: 500; }
+      [data-scroll-emphasis][data-active="true"] h2 { opacity: 1; font-weight: 750; letter-spacing: -.025em; }
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+      @media (prefers-reduced-motion: reduce) {
+        html { scroll-behavior: auto; }
+        .capability-reveal, [data-scroll-emphasis] p, [data-scroll-emphasis] h2 { transition: none; transform: none; opacity: 1; }
+      }
       @media (max-width: 640px) {
-        .staynas-public-site main section { scroll-margin-top: 5rem; }
-        .staynas-public-site main h1 { text-wrap: balance; }
-        .staynas-public-site main h2 { text-wrap: balance; }
+        .staynas-public-site main h1, .staynas-public-site main h2 { text-wrap: balance; }
       }
     `}</style>
     </header>
@@ -260,14 +271,36 @@ function Eyebrow({ children }: { children: ReactNode }) {
   return <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#967747]">{children}</p>;
 }
 
-function CapabilityCard({ item }: { item: PublicCapability }) {
+function CapabilityCard({ item, index }: { item: PublicCapability; index: number }) {
   const Icon = capabilityIcons[item.id] ?? CircleDot;
+  const [expanded, setExpanded] = useState(false);
+  const cardRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const node = cardRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        node.dataset.revealed = "true";
+        observer.disconnect();
+      }
+    }, { threshold: 0.16, rootMargin: "0px 0px -32px 0px" });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <article className="site-editorial-item flex h-full flex-col p-6">
-      <div className="flex items-start justify-between gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#edf1eb] text-[#315744]"><Icon className="h-5 w-5"/></span><span className={"rounded-full border px-2.5 py-1 text-[10px] font-semibold " + statusStyles[item.status]}>{item.statusLabel}</span></div>
-      <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9a835b]">{item.pillar}</p>
-      <h3 className="mt-2 text-lg font-semibold tracking-tight">{item.name}</h3>
-      <p className="mt-3 text-sm leading-6 text-[#68746d]">{item.summary}</p>
+    <article ref={cardRef} data-reveal="true" className="site-editorial-item capability-reveal group flex h-full flex-col p-7" style={{ transitionDelay: `${(index % 6) * 65}ms` }}>
+      <button type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)} className="flex h-full w-full flex-col text-left">
+        <div className="flex items-start justify-between gap-3"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e9ede6] text-[#315744] transition duration-300 group-hover:-translate-y-1 group-hover:bg-[#d7bd85]"><Icon className="h-5 w-5"/></span><span className="mt-2 text-xs font-medium text-[#9a835b] transition group-hover:text-[#315744]">{expanded ? "Close details −" : "Explore capability +"}</span></div>
+        <p className="mt-7 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#9a835b]">{item.pillar}</p>
+        <h3 className="mt-3 text-lg font-semibold tracking-tight transition-colors duration-300 group-hover:text-[#315744]">{item.name}</h3>
+        <p className="mt-3 text-sm leading-7 text-[#68746d]">{item.summary}</p>
+      </button>
+      {expanded && <div className="mt-5 rounded-2xl bg-[#e9ede6] p-5 motion-safe:animate-[fadeIn_.25s_ease-out]">
+        <p className="text-xs font-semibold text-[#315744]">Inside this capability</p>
+        <ul className="mt-3 space-y-2.5">{item.details.map(detail => <li key={detail} className="flex gap-2 text-sm leading-6 text-[#526057]"><Check className="mt-1 h-4 w-4 shrink-0 text-[#53765c]"/>{detail}</li>)}</ul>
+      </div>}
     </article>
   );
 }
@@ -331,7 +364,7 @@ export function ProductHomePage() {
 export function ProductInfoPage({ page }: { page: "platform" | "solutions" | "integrations" | "demo" }) {
   if (page === "platform") return <SiteShell><main>
     <section className="bg-[#0c211b] px-6 py-16 text-white lg:px-10 lg:py-20"><div className="mx-auto max-w-7xl"><Eyebrow>Platform capabilities</Eyebrow><h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl">The operating system behind every part of the stay.</h1><p className="mt-6 max-w-2xl text-base leading-8 text-white/65">Explore the capabilities StayNas brings together. Availability and activation can vary by property configuration, deployment and connected provider.</p></div></section>
-    <section className="mx-auto max-w-7xl px-6 py-16 lg:px-10"><div className="mb-8 flex flex-wrap items-center gap-2 text-xs text-[#657168]"><span className="font-semibold">Capability status:</span><span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800">Implemented in code</span><span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-800">Configuration dependent</span><span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sky-800">Integration dependent</span><span className="rounded-full border border-stone-200 bg-stone-100 px-3 py-1 text-stone-700">Roadmap</span></div><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{STAYNAS_PUBLIC_CAPABILITIES.map(item=><CapabilityCard key={item.id} item={item}/>)}</div><p className="mt-8 max-w-3xl text-xs leading-6 text-[#7a847e]">Capability labels describe repository implementation evidence and the current product architecture. They are not a guarantee that every capability is enabled, contracted or production-certified for every customer environment.</p></section>
+    <section className="mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-24"><div className="mb-12 max-w-2xl" data-scroll-emphasis><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9a835b]">A connected operating environment</p><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Every capability works toward a smoother stay.</h2><p className="mt-5 text-base leading-8 text-[#69756e]">Explore the capabilities that bring the guest journey and property operation together. Open any capability to see what it brings into the day-to-day workflow.</p></div><div className="grid gap-x-10 gap-y-10 sm:grid-cols-2 xl:grid-cols-3">{STAYNAS_PUBLIC_CAPABILITIES.map((item,index)=><CapabilityCard key={item.id} item={item} index={index}/>)}</div></section>
     <section className="bg-[#e9ede6]"><div className="mx-auto max-w-7xl px-6 py-16 lg:px-10"><div className="max-w-2xl"><Eyebrow>One operating model</Eyebrow><h2 className="mt-4 text-3xl font-semibold">Six connected pillars.</h2></div><div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{STAYNAS_PILLARS.map(p=><div key={p.name} className="site-editorial-item p-5"><h3 className="font-semibold">{p.name}</h3><p className="mt-2 text-sm leading-6 text-[#69756e]">{p.description}</p></div>)}</div></div></section>
     <CallToAction/>
   </main></SiteShell>;
