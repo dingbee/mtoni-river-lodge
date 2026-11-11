@@ -5,12 +5,12 @@ BEGIN;
 -- SN-RT-01 owns the property-scoped escalation RPC used by Concierge.
 -- Fail closed rather than silently deploying omnichannel routing without
 -- the existing runtime escalation contract.
-DO $
+DO $sn_oc_03_prereq$
 BEGIN
   IF to_regprocedure('public.staynas_create_concierge_escalation(uuid,uuid,uuid,text,text,text,numeric,smallint,text)') IS NULL THEN
     RAISE EXCEPTION 'SN-RT-01 prerequisite missing: migrate staynas_create_concierge_escalation before SN-OC-03';
   END IF;
-END $;
+END $sn_oc_03_prereq$;
 
 ALTER TABLE public.ai_provider_property_bindings
   ADD COLUMN IF NOT EXISTS credential_secret_ref text,
