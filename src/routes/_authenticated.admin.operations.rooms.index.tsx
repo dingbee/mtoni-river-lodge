@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/admin/operations/rooms/")(
 
 function RoomBoardPage() {
   const fn = useServerFn(getRoomBoard);
-  const q = useQuery({ queryKey: ["ops-room-board"], queryFn: () => fn(), staleTime: 30_000 });
+  const q = useQuery({ queryKey: ["ops-room-board"], queryFn: () => fn(), staleTime: 0, refetchOnMount: "always", refetchOnWindowFocus: true });
   const rolesQ = useCurrentUserRoles();
   const d: any = q.data ?? { states: [] };
   const canConfigure = canAccessModule("rooms.configure", rolesQ.data ?? []);
@@ -36,7 +36,13 @@ function RoomBoardPage() {
           ) : undefined
         }
       />
-      {q.isLoading ? <p className="text-sm text-muted-foreground">Loading…</p> : (
+      {q.isLoading ? <p className="text-sm text-muted-foreground">Loading…</p> : q.isError ? (
+        <div role="alert" className="rounded-lg border border-destructive/30 p-6">
+          <p className="text-sm font-medium">Room Board could not be loaded.</p>
+          <p className="mt-1 text-sm text-muted-foreground">{q.error instanceof Error ? q.error.message : "Please retry the room inventory query."}</p>
+          <Button className="mt-3" variant="outline" onClick={() => q.refetch()}>Retry</Button>
+        </div>
+      ) : (
         <RoomStatusBoard states={d.states} />
       )}
     </div>

@@ -103,6 +103,8 @@ export const getRoomBoard = createServerFn({ method: "GET" })
         .in("status", ["confirmed", "checked_in"])
         .lte("check_in", new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10)),
     ]);
+    const failed = [statesRes, roomsRes, bookingsRes].find((result) => result.error);
+    if (failed?.error) throw new Error(`Room Board data load failed: ${failed.error.message}`);
     const rooms = new Map<string, any>((roomsRes.data ?? []).map((r: any) => [r.id, r]));
     return {
       rooms: roomsRes.data ?? [],
