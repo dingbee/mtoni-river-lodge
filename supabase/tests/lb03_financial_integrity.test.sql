@@ -199,13 +199,17 @@ BEGIN
  END IF;
 END $lb03queue$;
 RESET ROLE;
+SET ROLE service_role;
+SELECT set_config('request.test_role','service_role',false);
+SELECT set_config('lb03.test.reversal_id',(SELECT id::text FROM public.lb03_room_charge_reversal_requests WHERE idempotency_key='uat-reversal-001'),false);
+RESET ROLE;
 SET ROLE authenticated;
 SELECT set_config('request.test_role','authenticated',false);
 SELECT set_config('request.test_uid','90000000-0000-4000-8000-000000000001',false);
 DO $lb03approval$
 DECLARE r jsonb;
 BEGIN
- r:=public.lb03_approve_room_charge_reversal((SELECT id FROM public.lb03_room_charge_reversal_requests WHERE idempotency_key='uat-reversal-001'));
+ r:=public.lb03_approve_room_charge_reversal(current_setting('lb03.test.reversal_id')::uuid);
  IF r->>'status'<>'PARTIALLY_REVERSED' THEN RAISE EXCEPTION 'Partial folio adjustment was not posted: %',r; END IF;
 END $lb03approval$;
 RESET ROLE;
@@ -220,13 +224,17 @@ BEGIN
  IF r->>'status'<>'PENDING_APPROVAL' THEN RAISE EXCEPTION 'Second reversal did not enter approval: %',r; END IF;
 END $lb03reversal2$;
 RESET ROLE;
+SET ROLE service_role;
+SELECT set_config('request.test_role','service_role',false);
+SELECT set_config('lb03.test.reversal_id',(SELECT id::text FROM public.lb03_room_charge_reversal_requests WHERE idempotency_key='uat-reversal-002'),false);
+RESET ROLE;
 SET ROLE authenticated;
 SELECT set_config('request.test_role','authenticated',false);
 SELECT set_config('request.test_uid','90000000-0000-4000-8000-000000000001',false);
 DO $lb03approval2$
 DECLARE r jsonb;
 BEGIN
- r:=public.lb03_approve_room_charge_reversal((SELECT id FROM public.lb03_room_charge_reversal_requests WHERE idempotency_key='uat-reversal-002'));
+ r:=public.lb03_approve_room_charge_reversal(current_setting('lb03.test.reversal_id')::uuid);
  IF r->>'status'<>'REVERSED' THEN RAISE EXCEPTION 'Full folio reversal was not posted: %',r; END IF;
 END $lb03approval2$;
 RESET ROLE;
