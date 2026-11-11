@@ -56,15 +56,25 @@ export const getPlatformRoomConfiguration = createServerFn({ method: "GET" })
     await requireRoomAdmin(context.supabase, context.userId);
     const propertyId = await activePropertyId(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const [property, categories, rooms] = await Promise.all([
+    const [property, categories, rooms, roomStates] = await Promise.all([
       sb.from("staynas_properties").select("id,name,currency").eq("id", propertyId).single(),
       sb.from("room_categories").select("id,slug,name,description,features,specifications,sort_order,status,configuration_source").eq("property_id", propertyId).order("sort_order").order("name"),
       sb.from("rooms").select("id,slug,name,category_id,short_name,room_number_label,short_description,description,details,cta_line,capacity_adults,capacity_children,max_occupancy,total_units,base_price,currency,included_guests,extra_guest_fee,hero_line,image_url,gallery_urls,size_label,view_label,bed_label,bathroom_label,amenities,status,sort_order,configuration_source").eq("property_id", propertyId).order("sort_order").order("name"),
+      sb.from("room_states").select("room_id").eq("property_id", propertyId),
     ]);
     if (property.error) throw new Error(property.error.message);
     if (categories.error) throw new Error(categories.error.message);
     if (rooms.error) throw new Error(rooms.error.message);
-    return { property: property.data, categories: categories.data ?? [], roomTypes: rooms.data ?? [] };
+    if (roomStates.error) throw new Error(roomStates.error.message);
+    const physicalCounts = new Map<string, number>();
+    for (const state of roomStates.data ?? []) physicalCounts.set(state.room_id, (physicalCounts.get(state.room_id) ?? 0) + 1);
+    const roomTypes = (rooms.data ?? []).map((room: any) => ({
+      ...room,
+      configured_units: Number(room.total_units ?? 0),
+      physical_units: physicalCounts.get(room.id) ?? 0,
+      inventory_synced: Number(room.total_units ?? 0) === (physicalCounts.get(room.id) ?? 0),
+    }));
+    return { property: property.data, categories: categories.data ?? [], roomTypes };
   });
 export const savePlatformRoomCategory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
