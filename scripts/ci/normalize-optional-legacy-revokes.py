@@ -108,16 +108,8 @@ if old_backfill not in concierge_source:
     raise SystemExit("Expected optional concierge hostname backfill was not found.")
 concierge_migration.write_text(concierge_source.replace(old_backfill, new_backfill, 1))
 
-# Two historical migrations share one 14-digit version. Supabase's migration
-# ledger keys only on that version, so give the later AI policy migration a
-# unique ephemeral filename without changing the committed/live migration ID.
-migration_dir = Path("supabase/migrations")
-duplicate_version_source = migration_dir / "20261104200000_staynas_ai_activity_insert_policy.sql"
-duplicate_version_target = migration_dir / "20261104200100_staynas_ai_activity_insert_policy.sql"
-if duplicate_version_source.exists():
-    if duplicate_version_target.exists():
-        raise SystemExit("Ephemeral migration version normalization target already exists.")
-    duplicate_version_source.rename(duplicate_version_target)
+# Migration IDs are already unique in the committed repository. Do not rename
+# unrelated revenue-ledger and AI-policy migrations in the ephemeral checkout.
 
 # The clean migration chain does not define the two legacy RPC overloads
 # targeted by this compatibility migration. Preserve the compatibility fix
