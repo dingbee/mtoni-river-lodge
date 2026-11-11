@@ -511,7 +511,9 @@ export async function handleConciergeChat(
         memory_ids: memoryCtx.memoryIds, detail: { message_id: assistantMessageId },
       });
     }
-  } catch {}
+  } catch {
+    // Memory-event persistence is best-effort and must not block the guest reply.
+  }
 
   const reply: ConciergeReply = {
     session_token: sessionToken!,
