@@ -12,7 +12,7 @@ async function communicationDraftFingerprint(input: {
   providerTemplateName?: string | null;
   providerTemplateLanguage?: string | null;
   providerTemplateComponents?: unknown;
-}): string {
+}): Promise<string> {
   return sha256Hex(JSON.stringify({
     subject: input.subject ?? null,
     body: input.body,
