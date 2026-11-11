@@ -10,6 +10,7 @@ on:
       - "supabase/migrations/**"
       - "supabase/tests/sn_oc_03_provider_activation.test.sql"
       - "scripts/ci/sn_rt_01_concierge_integrity.test.sql"
+      - "scripts/ci/normalize-optional-legacy-revokes.py"
       - ".github/workflows/sn-oc-03-verification.yml"
 
 permissions:
