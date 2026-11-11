@@ -30,7 +30,13 @@ export const Route = createFileRoute("/api/public/concierge/chat")({
           }
 
           const rawMessage = typeof body.message === "string" ? body.message : "";
-          const message = rawMessage.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "").trim();
+          const message = Array.from(rawMessage)
+            .filter((character) => {
+              const code = character.charCodeAt(0);
+              return !(code <= 8 || code === 11 || code === 12 || (code >= 14 && code <= 31) || code === 127);
+            })
+            .join("")
+            .trim();
           if (!message) {
             return Response.json({ error: "Message is required." }, { status: 400, headers: { "X-Request-ID": requestId } });
           }

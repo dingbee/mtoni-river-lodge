@@ -3,12 +3,11 @@ import type { AiGatewayResult } from "@/lib/ai-gateway.server";
 import { assertConciergeEntitlement, persistConciergeUsage } from "./concierge.server";
 
 function entitlementClient(result: { data: unknown; error: unknown }) {
-  let query: {
+  const query: {
     select: ReturnType<typeof vi.fn>;
     eq: ReturnType<typeof vi.fn>;
     maybeSingle: ReturnType<typeof vi.fn>;
-  };
-  query = {
+  } = {
     select: vi.fn(() => query),
     eq: vi.fn(() => query),
     maybeSingle: vi.fn().mockResolvedValue(result),

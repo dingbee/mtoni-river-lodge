@@ -40,8 +40,8 @@ type FetchLike = typeof fetch;
 function getConfig(overrides?: Partial<ResendConfig>): ResendConfig {
   return {
     apiKey: requireServerSecret(
-      overrides?.apiKey ?? process.env.RESEND_API_KEY,
-      "RESEND_API_KEY",
+      overrides?.apiKey,
+      "property-bound Resend API key",
       "resend",
     ),
   };
@@ -93,7 +93,7 @@ export async function sendResendEmail(
 
   if (!response.ok) {
     const error = await readProviderError(response);
-    throw providerHttpError("resend", response.status, error.code, error.message);
+    throw providerHttpError("resend", response.status, error.code, error.message, response.headers.get("retry-after"));
   }
 
   const result = await response.json() as { id?: string };
@@ -111,4 +111,50 @@ export async function sendResendEmail(
     providerMessageId: result.id,
     acceptedAt: new Date().toISOString(),
   };
+}
+
+
+export interface ResendReceivedEmail {
+  id: string;
+  from?: string | null;
+  to?: string[];
+  subject?: string | null;
+  text?: string | null;
+  html?: string | null;
+  message_id?: string | null;
+  attachments?: Array<Record<string, unknown>>;
+}
+
+/** Retrieve the full body for a signed email.received event using the bound property's credential. */
+export async function getResendReceivedEmail(
+  emailId: string,
+  options: { config?: Partial<ResendConfig>; fetchImpl?: FetchLike } = {},
+): Promise<ResendReceivedEmail> {
+  if (!/^[A-Za-z0-9_-]{8,200}$/.test(emailId)) {
+    throw new ProviderAdapterError({ provider: "resend", message: "Invalid received email identifier.", code: "invalid_request" });
+  }
+  const config = getConfig(options.config);
+  const fetchImpl = options.fetchImpl ?? fetch;
+  let response: Response;
+  try {
+    response = await fetchImpl(`https://api.resend.com/emails/receiving/${encodeURIComponent(emailId)}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${config.apiKey}` },
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch {
+    throw new ProviderAdapterError({
+      provider: "resend", message: "Resend received-email retrieval failed before a response was received.",
+      code: "network_error", retryable: true,
+    });
+  }
+  if (!response.ok) {
+    const error = await readProviderError(response);
+    throw providerHttpError("resend", response.status, error.code, error.message, response.headers.get("retry-after"));
+  }
+  const payload = await response.json() as ResendReceivedEmail;
+  if (!payload.id || payload.id !== emailId) {
+    throw new ProviderAdapterError({ provider: "resend", message: "Resend returned a mismatched received email.", code: "invalid_provider_response" });
+  }
+  return payload;
 }

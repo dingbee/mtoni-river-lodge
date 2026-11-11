@@ -1,6 +1,21 @@
 -- SN-IQ-04 prerequisite: tenant-scope legacy concierge sessions using
 -- verified hostname-to-property ownership, then install active-property helpers.
 BEGIN;
+
+-- The trusted property-domain registry is required by the hostname-based
+-- Concierge session ownership backfill below. Define it here for clean installs;
+-- the later direct-booking migration extends and secures the same contract.
+CREATE TABLE IF NOT EXISTS public.staynas_property_domains (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id uuid NOT NULL REFERENCES public.staynas_properties(id) ON DELETE RESTRICT,
+  hostname text NOT NULL UNIQUE,
+  verification_status text NOT NULL DEFAULT 'pending'
+    CHECK (verification_status IN ('pending','verified','failed')),
+  verified_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT staynas_property_domains_id_property_uidx UNIQUE(id,property_id)
+);
 ALTER TABLE public.ai_concierge_sessions ADD COLUMN IF NOT EXISTS property_id uuid;
 
 DO $backfill$

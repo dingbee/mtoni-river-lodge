@@ -5,6 +5,7 @@ export class ProviderAdapterError extends Error {
   readonly status: number | null;
   readonly code: string | null;
   readonly retryable: boolean;
+  readonly retryAfterSeconds: number | null;
 
   constructor(args: {
     provider: "meta_cloud_api" | "resend";
@@ -12,6 +13,7 @@ export class ProviderAdapterError extends Error {
     status?: number | null;
     code?: string | null;
     retryable?: boolean;
+    retryAfterSeconds?: number | null;
   }) {
     super(args.message);
     this.name = "ProviderAdapterError";
@@ -19,6 +21,7 @@ export class ProviderAdapterError extends Error {
     this.status = args.status ?? null;
     this.code = args.code ?? null;
     this.retryable = args.retryable ?? false;
+    this.retryAfterSeconds = args.retryAfterSeconds ?? null;
   }
 }
 
@@ -27,6 +30,7 @@ export function providerHttpError(
   status: number,
   code: string | null,
   message: string,
+  retryAfterHeader?: string | null,
 ): ProviderAdapterError {
   return new ProviderAdapterError({
     provider,
@@ -34,7 +38,17 @@ export function providerHttpError(
     code,
     message,
     retryable: status === 408 || status === 425 || status === 429 || status >= 500,
+    retryAfterSeconds: parseRetryAfter(retryAfterHeader),
   });
+}
+
+function parseRetryAfter(value?: string | null): number | null {
+  if (!value) return null;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.min(86400, Math.ceil(seconds));
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return null;
+  return Math.min(86400, Math.max(0, Math.ceil((timestamp - Date.now()) / 1000)));
 }
 
 export async function readProviderError(response: Response): Promise<{ code: string | null; message: string }> {

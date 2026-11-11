@@ -13,7 +13,7 @@ export interface NormalizedProviderEvent {
   providerEventId: string;
   providerMessageId: string | null;
   channel: "whatsapp" | "email";
-  eventType: "inbound_message" | "sent" | "delivered" | "read" | "failed" | "bounced" | "complained" | "unsubscribed";
+  eventType: "inbound_message" | "sent" | "delivered" | "read" | "failed" | "bounced" | "complained" | "unsubscribed" | "delivery_delayed" | "suppressed";
   direction: "inbound" | "outbound";
   occurredAt: string;
   externalContact: string | null;
@@ -48,13 +48,24 @@ export function normalizeMetaWebhook(payload: unknown, receivedAt = new Date().t
         const contact = Array.isArray(data.contacts) ? data.contacts[0] as Record<string, unknown> | undefined : undefined;
         const profile = contact?.profile && typeof contact.profile === "object" ? contact.profile as Record<string, unknown> : {};
         const text = m.text && typeof m.text === "object" ? m.text as Record<string, unknown> : {};
+        const messageType = stringValue(m.type) ?? "unknown";
+        const media = m[messageType] && typeof m[messageType] === "object" ? m[messageType] as Record<string, unknown> : {};
+        const body = stringValue(text.body) ?? stringValue(media.caption);
         events.push({
           provider: "meta_cloud_api", providerEventId: "wa:message:" + id,
           providerMessageId: id, channel: "whatsapp", eventType: "inbound_message",
           direction: "inbound", occurredAt: isoDate(Number(m.timestamp) * 1000, receivedAt),
-          externalContact: stringValue(m.from), body: stringValue(text.body),
+          externalContact: stringValue(m.from), body,
           subject: null,
-          safePayload: { phoneNumberId: stringValue(metadata.phone_number_id), messageType: stringValue(m.type), profileName: stringValue(profile.name) },
+          safePayload: {
+            phoneNumberId: stringValue(metadata.phone_number_id),
+            messageType,
+            profileName: stringValue(profile.name),
+            mediaId: stringValue(media.id),
+            mediaMimeType: stringValue(media.mime_type),
+            mediaFileName: stringValue(media.filename),
+            caption: stringValue(media.caption),
+          },
         });
       }
       const statuses = Array.isArray(data.statuses) ? data.statuses : [];
@@ -70,7 +81,7 @@ export function normalizeMetaWebhook(payload: unknown, receivedAt = new Date().t
           providerMessageId: id, channel: "whatsapp", eventType: state as NormalizedProviderEvent["eventType"],
           direction: "outbound", occurredAt: isoDate(Number(s.timestamp) * 1000, receivedAt),
           externalContact: stringValue(s.recipient_id), body: null, subject: null,
-          safePayload: { conversationId: stringValue((s.conversation as Record<string, unknown> | undefined)?.id), errorCount: errors.length },
+          safePayload: { phoneNumberId: stringValue(metadata.phone_number_id), conversationId: stringValue((s.conversation as Record<string, unknown> | undefined)?.id), errorCount: errors.length },
         });
       }
     }
@@ -88,19 +99,35 @@ export function normalizeResendWebhook(payload: unknown, webhookId: string, rece
   const event = resendEventSchema.parse(payload);
   const data = event.data;
   const id = stringValue(data.email_id) ?? stringValue(data.id);
-  if (!id) return [];
+  const contactUnsubscribed = event.type === "contact.updated" && data.unsubscribed === true;
+  const suppressionAdded = event.type === "suppression.added";
   const map: Record<string, NormalizedProviderEvent["eventType"]> = {
     "email.sent": "sent", "email.delivered": "delivered", "email.bounced": "bounced",
-    "email.delivery_delayed": "failed", "email.complained": "complained",
+    "email.delivery_delayed": "delivery_delayed", "email.complained": "complained",
+    "email.unsubscribed": "unsubscribed", "email.failed": "failed",
+    "email.suppressed": "suppressed", "email.received": "inbound_message",
+    "contact.updated": "unsubscribed", "suppression.added": "suppressed",
   };
   const eventType = map[event.type];
-  if (!eventType) return [];
+  if (!eventType || (event.type === "contact.updated" && !contactUnsubscribed) ||
+      (!id && !contactUnsubscribed && !suppressionAdded)) return [];
   const to = Array.isArray(data.to) ? data.to[0] : data.to;
+  const inbound = eventType === "inbound_message";
+  const from = stringValue(data.from);
+  const senderMatch = from?.match(/<([^<>]+)>/);
+  const senderAddress = senderMatch?.[1]?.trim() ?? from;
+  const recipientRaw = stringValue(to) ?? stringValue(data.email);
+  const recipientMatch = recipientRaw?.match(/<([^<>]+)>/);
+  const recipientAddress = recipientMatch?.[1]?.trim() ?? recipientRaw;
+  const accountSuppressionEvent = contactUnsubscribed || suppressionAdded;
   return [{
-    provider: "resend", providerEventId: webhookId, providerMessageId: id,
-    channel: "email", eventType, direction: "outbound",
+    provider: "resend", providerEventId: webhookId,
+    providerMessageId: accountSuppressionEvent ? null : id,
+    channel: "email", eventType, direction: inbound ? "inbound" : "outbound",
     occurredAt: isoDate(event.created_at, receivedAt),
-    externalContact: stringValue(to), body: null, subject: stringValue(data.subject),
-    safePayload: { eventType: event.type, from: stringValue(data.from) },
+    externalContact: inbound ? senderAddress : recipientAddress,
+    body: inbound ? stringValue(data.text) : null,
+    subject: stringValue(data.subject),
+    safePayload: { eventType: event.type, from, recipientAddress, senderAddress, accountSuppressionEvent },
   }];
 }

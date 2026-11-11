@@ -327,7 +327,7 @@ export const getGuestJourney = createServerFn({ method: "GET" })
       bookingIds = (guestBookings ?? []).map((booking: { id: string }) => booking.id);
     }
     if (bookingIds.length === 0) return [];
-    let q: any = context.supabase
+    const q: any = context.supabase
       .from("ai_guest_journey_events")
       .select("id, guest_id, booking_id, event_type, source, title, metadata, occurred_at")
       .in("booking_id", bookingIds)

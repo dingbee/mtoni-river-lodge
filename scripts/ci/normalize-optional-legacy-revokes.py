@@ -51,9 +51,12 @@ new = """  FROM generate_series(13, 21) g
    AND NOT EXISTS (
    SELECT 1 FROM public.room_states
     WHERE room_id = '3b476463-ea58-4d5b-abb4-ad460e844a8b'"""
-if old not in room_source:
-    raise SystemExit("Expected optional room-state insert was not found.")
-room_migration.write_text(room_source.replace(old, new, 1))
+if old in room_source:
+    room_migration.write_text(room_source.replace(old, new, 1))
+elif "standard-river-" not in room_source or "_standard_room_id" not in room_source:
+    raise SystemExit("Room-state migration is neither legacy nor the expected portable slug-based fixture.")
+# The committed migration already resolves generated room IDs by stable slugs,
+# so no ephemeral room-state rewrite is needed.
 
 # The historical booking fixture now resolves the seeded room and unit by stable
 # slugs/labels, so it is intentionally applied in clean CI rather than skipped.
@@ -69,14 +72,14 @@ property_migration = Path(
 )
 property_source = property_migration.read_text()
 for index in ("rooms_slug_key", "room_categories_slug_key", "extras_slug_key"):
-    statement = f"DROP INDEX IF EXISTS {index};"
-    if statement not in property_source:
-        raise SystemExit(f"Expected legacy global slug index drop was not found: {index}")
-    property_source = property_source.replace(
-        statement,
+    statement = re.compile(rf"DROP INDEX IF EXISTS (?:public\.)?{re.escape(index)};")
+    property_source, count = statement.subn(
         f"-- CI retains the constraint-backed {index} in the clean-reset schema.",
-        1,
+        property_source,
+        count=1,
     )
+    if count < 1:
+        raise SystemExit(f"Expected legacy global slug index drop was not found: {index}")
 property_migration.write_text(property_source)
 
 # A legacy concierge migration expects a hostname registry that is provisioned
@@ -105,16 +108,8 @@ if old_backfill not in concierge_source:
     raise SystemExit("Expected optional concierge hostname backfill was not found.")
 concierge_migration.write_text(concierge_source.replace(old_backfill, new_backfill, 1))
 
-# Two historical migrations share one 14-digit version. Supabase's migration
-# ledger keys only on that version, so give the later AI policy migration a
-# unique ephemeral filename without changing the committed/live migration ID.
-migration_dir = Path("supabase/migrations")
-duplicate_version_source = migration_dir / "20261104200000_staynas_ai_activity_insert_policy.sql"
-duplicate_version_target = migration_dir / "20261104200100_staynas_ai_activity_insert_policy.sql"
-if duplicate_version_source.exists():
-    if duplicate_version_target.exists():
-        raise SystemExit("Ephemeral migration version normalization target already exists.")
-    duplicate_version_source.rename(duplicate_version_target)
+# Migration IDs are already unique in the committed repository. Do not rename
+# unrelated revenue-ledger and AI-policy migrations in the ephemeral checkout.
 
 # The clean migration chain does not define the two legacy RPC overloads
 # targeted by this compatibility migration. Preserve the compatibility fix
@@ -123,15 +118,19 @@ jwt_compat_migration = Path(
     "supabase/migrations/20261105103000_fix_property_rpc_jwt_role_claim_resolution.sql"
 )
 jwt_compat_source = jwt_compat_migration.read_text()
-declaration = "  v_signature regprocedure;"
-if declaration not in jwt_compat_source:
-    raise SystemExit("Expected legacy JWT compatibility declaration was not found.")
-jwt_compat_source = jwt_compat_source.replace(
-    declaration,
-    declaration + "\n  v_signature_text text;",
-    1,
-)
-old_loop = """  FOREACH v_signature IN ARRAY ARRAY[
+if "SELECT p.oid::regprocedure" in jwt_compat_source:
+    # The committed migration already discovers available overloads safely.
+    pass
+else:
+    declaration = "  v_signature regprocedure;"
+    if declaration not in jwt_compat_source:
+        raise SystemExit("Expected legacy JWT compatibility declaration was not found.")
+    jwt_compat_source = jwt_compat_source.replace(
+        declaration,
+        declaration + "\n  v_signature_text text;",
+        1,
+    )
+    old_loop = """  FOREACH v_signature IN ARRAY ARRAY[
     'public.get_room_availability(date,date,uuid)'::regprocedure,
     'public.create_booking(text,date,date,integer,integer,text,text,text,jsonb,integer,integer,uuid,text,uuid)'::regprocedure
   ]
@@ -143,7 +142,7 @@ old_loop = """  FOREACH v_signature IN ARRAY ARRAY[
     v_definition := replace(v_definition, v_old, v_new);
     EXECUTE v_definition;
   END LOOP;"""
-new_loop = """  FOREACH v_signature_text IN ARRAY ARRAY[
+    new_loop = """  FOREACH v_signature_text IN ARRAY ARRAY[
     'public.get_room_availability(date,date,uuid)',
     'public.create_booking(text,date,date,integer,integer,text,text,text,jsonb,integer,integer,uuid,text,uuid)'
   ]
@@ -158,9 +157,10 @@ new_loop = """  FOREACH v_signature_text IN ARRAY ARRAY[
       EXECUTE v_definition;
     END IF;
   END LOOP;"""
-if old_loop not in jwt_compat_source:
-    raise SystemExit("Expected legacy JWT compatibility function loop was not found.")
-jwt_compat_migration.write_text(jwt_compat_source.replace(old_loop, new_loop, 1))
+    if old_loop not in jwt_compat_source:
+        raise SystemExit("Expected legacy JWT compatibility function loop was not found.")
+    jwt_compat_source = jwt_compat_source.replace(old_loop, new_loop, 1)
+    jwt_compat_migration.write_text(jwt_compat_source)
 
 # The current CC-01 authorization migration revokes direct access from legacy
 # trigger functions that are present in deployed schemas but not all clean CI
@@ -170,7 +170,11 @@ cc01_migration = Path(
     "supabase/migrations/20261106180545_cc01_authorization_identity_scope.sql"
 )
 cc01_source = cc01_migration.read_text()
-cc01_patched, cc01_count = pattern.subn(conditional_revoke, cc01_source)
-if cc01_count < 1:
-    raise SystemExit("No CC-01 trigger-function revokes found; inspect migration drift.")
-cc01_migration.write_text(cc01_patched)
+if "to_regprocedure(v_signature)" in cc01_source:
+    # The committed migration already guards optional trigger-function revokes.
+    pass
+else:
+    cc01_patched, cc01_count = pattern.subn(conditional_revoke, cc01_source)
+    if cc01_count < 1:
+        raise SystemExit("No CC-01 trigger-function revokes found; inspect migration drift.")
+    cc01_migration.write_text(cc01_patched)

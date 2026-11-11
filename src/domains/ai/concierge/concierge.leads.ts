@@ -3,9 +3,16 @@ import type { ConciergeLeadInput } from "./concierge.types";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+function stripControlCharacters(value: string): string {
+  return Array.from(value).filter((character) => {
+    const code = character.charCodeAt(0);
+    return !(code <= 31 || code === 127);
+  }).join("");
+}
+
 function clean(v: unknown, max = 200): string | null {
   if (typeof v !== "string") return null;
-  const t = v.replace(/[\u0000-\u001F\u007F]/g, "").trim();
+  const t = stripControlCharacters(v).trim();
   return t ? t.slice(0, max) : null;
 }
 
@@ -58,7 +65,7 @@ export async function captureLead(input: ConciergeLeadInput, propertyId: string)
   }
 
   const interests = Array.isArray(input.interests)
-    ? input.interests.filter((value): value is string => typeof value === "string").slice(0, 12).map((value) => value.replace(/[\u0000-\u001F\u007F]/g, "").trim().slice(0, 40)).filter(Boolean)
+    ? input.interests.filter((value): value is string => typeof value === "string").slice(0, 12).map((value) => stripControlCharacters(value).trim().slice(0, 40)).filter(Boolean)
     : [];
   const intent_level = start && email ? "high" : email || phone ? "medium" : "low";
   const idempotencyKey = createHash("sha256")

@@ -54,3 +54,11 @@ export function verifyResendWebhookSignature(
     } catch { return false; }
   });
 }
+
+
+export function verifyMetaWebhookChallenge(supplied: string | null, expected: string | null | undefined): boolean {
+  if (!supplied || !expected) return false;
+  const a = Buffer.from(supplied, "utf8");
+  const b = Buffer.from(expected, "utf8");
+  return a.length === b.length && timingSafeEqual(a, b);
+}

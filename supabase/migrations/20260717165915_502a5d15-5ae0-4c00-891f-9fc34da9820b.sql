@@ -20,14 +20,12 @@ REVOKE EXECUTE ON FUNCTION public.handle_booking_insert() FROM PUBLIC, anon, aut
 REVOKE EXECUTE ON FUNCTION public.handle_booking_update() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.set_updated_at() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.ai_knowledge_sources_tsv_trigger() FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.email_queue_wake() FROM PUBLIC, anon, authenticated;
 
 -- 4. Internal service-only helpers: revoke from anon+authenticated (kept for service_role)
 REVOKE EXECUTE ON FUNCTION public.enqueue_email(text, jsonb) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.delete_email(text, bigint) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.read_email_batch(text, integer, integer) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.move_to_dlq(text, text, bigint, jsonb) FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.email_queue_dispatch() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.find_duplicate_guests() FROM PUBLIC, anon, authenticated;
 
 -- 5. RLS-support helpers: revoke from anon (used in policies as SECURITY DEFINER; authenticated keeps EXECUTE)
