@@ -96,7 +96,7 @@ export const getRoomBoard = createServerFn({ method: "GET" })
     if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const [statesRes, roomsRes, bookingsRes] = await Promise.all([
       sb.from("room_states").select("id, room_id, unit_label, state, state_note, booking_id, updated_at").eq("property_id", propertyId).order("unit_label"),
-      sb.from("rooms").select("id, slug, name").eq("property_id", propertyId).eq("status", "active").order("sort_order"),
+      sb.from("rooms").select("id, slug, name, total_units, configuration_source").eq("property_id", propertyId).order("sort_order"),
       sb.from("bookings")
         .select("id, reference, guest_name, check_in, check_out, status, room_id")
         .eq("property_id", propertyId)
@@ -106,12 +106,28 @@ export const getRoomBoard = createServerFn({ method: "GET" })
     const failed = [statesRes, roomsRes, bookingsRes].find((result) => result.error);
     if (failed?.error) throw new Error(`Room Board data load failed: ${failed.error.message}`);
     const rooms = new Map<string, any>((roomsRes.data ?? []).map((r: any) => [r.id, r]));
+    const states = (statesRes.data ?? []) as any[];
+    const orphanedStates = states.filter((state) => !rooms.has(state.room_id));
+    if (orphanedStates.length) {
+      throw new Error("Room Board inventory integrity failure: physical room units reference missing or inactive room definitions.");
+    }
+    const physicalCounts = new Map<string, number>();
+    for (const state of states) physicalCounts.set(state.room_id, (physicalCounts.get(state.room_id) ?? 0) + 1);
+    const roomTypes = (roomsRes.data ?? []).map((room: any) => {
+      const configuredUnits = Number(room.total_units ?? 0);
+      const physicalUnits = physicalCounts.get(room.id) ?? 0;
+      return { ...room, configured_units: configuredUnits, physical_units: physicalUnits, inventory_synced: configuredUnits === physicalUnits };
+    });
     return {
+      propertyId,
       rooms: roomsRes.data ?? [],
-      states: (statesRes.data ?? []).map((s: any) => ({
-        ...s,
-        room: rooms.get(s.room_id),
-      })),
+      roomTypes,
+      inventoryIntegrity: {
+        configuredUnits: roomTypes.reduce((sum: number, room: any) => sum + room.configured_units, 0),
+        physicalUnits: roomTypes.reduce((sum: number, room: any) => sum + room.physical_units, 0),
+        mismatches: roomTypes.filter((room: any) => !room.inventory_synced).length,
+      },
+      states: states.map((s: any) => ({ ...s, room: rooms.get(s.room_id) })),
       upcomingBookings: bookingsRes.data ?? [],
     };
   });

@@ -43,7 +43,15 @@ function RoomBoardPage() {
           <Button className="mt-3" variant="outline" onClick={() => q.refetch()}>Retry</Button>
         </div>
       ) : (
-        <RoomStatusBoard states={d.states} />
+        <>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-lg border bg-card p-4"><p className="text-xs text-muted-foreground">Room definitions</p><p className="mt-1 text-xl font-semibold tabular-nums">{d.roomTypes?.length ?? 0}</p></div>
+            <div className="rounded-lg border bg-card p-4"><p className="text-xs text-muted-foreground">Configured units</p><p className="mt-1 text-xl font-semibold tabular-nums">{d.inventoryIntegrity?.configuredUnits ?? 0}</p></div>
+            <div className="rounded-lg border bg-card p-4"><p className="text-xs text-muted-foreground">Physical units</p><p className="mt-1 text-xl font-semibold tabular-nums">{d.inventoryIntegrity?.physicalUnits ?? 0}</p></div>
+          </div>
+          {(d.inventoryIntegrity?.mismatches ?? 0) > 0 && <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">Inventory reconciliation required: {d.inventoryIntegrity.mismatches} room definition(s) have a configured-versus-physical unit mismatch.</div>}
+          <RoomStatusBoard states={d.states} />
+        </>
       )}
     </div>
   );
