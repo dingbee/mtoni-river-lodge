@@ -70,7 +70,11 @@ jobs:
               WHERE m.user_id=_uid AND m.status='active' AND m.role=ANY(_roles)
             )
           $$;
-          CREATE TABLE public.rooms(id uuid PRIMARY KEY,property_id uuid NOT NULL REFERENCES public.staynas_properties(id),catalogue_type_id uuid NOT NULL,status text NOT NULL);
+          CREATE TABLE public.rooms(
+  id uuid PRIMARY KEY,property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
+  catalogue_type_id uuid NOT NULL,slug text NOT NULL UNIQUE,name text NOT NULL,
+  base_price numeric(10,2) NOT NULL,currency text NOT NULL DEFAULT 'USD',status text NOT NULL
+);
           CREATE TABLE public.staynas_rate_plans(
             id uuid PRIMARY KEY,property_id uuid NOT NULL REFERENCES public.staynas_properties(id),
             publication_status text NOT NULL,active boolean NOT NULL
