@@ -177,7 +177,7 @@ function DraftsPage() {
               disabled={conversations.isLoading}
             >
               <option value="">Select a property conversation</option>
-              {conversations.data?.map((session) => (
+              {conversations.data?.map((session: any) => (
                 <option key={session.id} value={session.id}>
                   {session.guest_name || session.guest_email || session.id.slice(0, 8)} · {session.channel}
                 </option>
