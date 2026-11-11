@@ -2,7 +2,7 @@ name: LB-03 financial integrity verification
 
 on:
   push:
-    branches: [feat/lb03-pos-folio-financial-lifecycle-current]
+    branches: ["feat/lb03-*"]
   pull_request:
     branches: [main]
     paths:
