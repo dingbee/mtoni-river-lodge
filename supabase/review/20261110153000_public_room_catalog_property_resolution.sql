@@ -46,7 +46,14 @@ DECLARE
 BEGIN
   IF auth.uid() IS NULL
      OR NOT public.staynas_user_has_property_access(auth.uid(), _property_id)
-     OR NOT public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[])
+     OR NOT EXISTS (
+       SELECT 1
+       FROM public.staynas_property_members pm
+       WHERE pm.user_id = auth.uid()
+         AND pm.property_id = _property_id
+         AND pm.status = 'active'
+         AND pm.role IN ('owner','manager','admin')
+     )
   THEN
     RAISE EXCEPTION 'Room configuration requires property manager access'
       USING ERRCODE = '42501';
