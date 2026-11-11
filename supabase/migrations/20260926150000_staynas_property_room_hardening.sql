@@ -248,15 +248,18 @@ ALTER TABLE public.extras ALTER COLUMN property_id SET NOT NULL;
 ALTER TABLE public.room_states ALTER COLUMN property_id SET NOT NULL;
 ALTER TABLE public.bookings ALTER COLUMN property_id SET NOT NULL;
 
-DROP INDEX IF EXISTS rooms_slug_key;
+ALTER TABLE public.rooms DROP CONSTRAINT IF EXISTS rooms_slug_key;
+DROP INDEX IF EXISTS public.rooms_slug_key;
 CREATE UNIQUE INDEX IF NOT EXISTS rooms_property_slug_uidx
   ON public.rooms(property_id, slug);
 
-DROP INDEX IF EXISTS room_categories_slug_key;
+ALTER TABLE public.room_categories DROP CONSTRAINT IF EXISTS room_categories_slug_key;
+DROP INDEX IF EXISTS public.room_categories_slug_key;
 CREATE UNIQUE INDEX IF NOT EXISTS room_categories_property_slug_uidx
   ON public.room_categories(property_id, slug);
 
-DROP INDEX IF EXISTS extras_slug_key;
+ALTER TABLE public.extras DROP CONSTRAINT IF EXISTS extras_slug_key;
+DROP INDEX IF EXISTS public.extras_slug_key;
 CREATE UNIQUE INDEX IF NOT EXISTS extras_property_slug_uidx
   ON public.extras(property_id, slug);
 
