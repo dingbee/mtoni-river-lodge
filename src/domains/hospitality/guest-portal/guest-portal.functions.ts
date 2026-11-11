@@ -487,6 +487,7 @@ export const guestPortalConciergeChat = createServerFn({ method: "POST" })
         locale: "en",
       },
       { userAgent: null, referer: "/guest" },
+      ctx.access.property_id,
     );
   });
 
