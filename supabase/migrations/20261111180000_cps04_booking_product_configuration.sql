@@ -48,9 +48,13 @@ CREATE TABLE IF NOT EXISTS public.staynas_booking_product_configurations (
     AND (maximum_stay IS NULL OR maximum_stay >= 1)
     AND (minimum_stay IS NULL OR maximum_stay IS NULL OR maximum_stay >= minimum_stay)
   ),
-  CONSTRAINT staynas_booking_product_unique
-    UNIQUE (property_id, channel, campaign_slug, room_id, rate_plan_publication_id)
-);
+ );
+
+-- COALESCE is required because ordinary UNIQUE constraints treat NULL campaign
+-- slugs as distinct, which otherwise permits duplicate permanent products.
+CREATE UNIQUE INDEX staynas_booking_product_unique
+  ON public.staynas_booking_product_configurations
+  (property_id, channel, COALESCE(campaign_slug, ''), room_id, rate_plan_publication_id);
 
 CREATE INDEX IF NOT EXISTS staynas_booking_product_public_lookup
   ON public.staynas_booking_product_configurations

@@ -70,6 +70,21 @@ VALUES
   ('20000000-0000-4000-8000-000000000001', '40000000-0000-4000-8000-000000000001',
    '70000000-0000-4000-8000-000000000002', 'permanent', 'draft');
 
+DO $test$
+BEGIN
+  BEGIN
+    INSERT INTO public.staynas_booking_product_configurations
+      (property_id, room_id, rate_plan_publication_id, channel, publication_status)
+    VALUES
+      ('20000000-0000-4000-8000-000000000001', '40000000-0000-4000-8000-000000000001',
+       '70000000-0000-4000-8000-000000000002', 'permanent', 'draft');
+    RAISE EXCEPTION 'Duplicate permanent booking product unexpectedly succeeded';
+  EXCEPTION WHEN unique_violation THEN
+    NULL;
+  END;
+END
+$test$;
+
 -- Valid campaign configuration is persisted independently, with no client price override.
 INSERT INTO public.staynas_booking_product_configurations
   (property_id, room_id, rate_plan_publication_id, channel, campaign_slug, offer_code, offer_name)

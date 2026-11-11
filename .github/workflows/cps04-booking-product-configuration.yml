@@ -88,7 +88,7 @@ jobs:
           GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
           SQL
       - name: Apply CPS-04 configuration migration
-        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261110160000_cps04_booking_product_configuration.sql
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261111180000_cps04_booking_product_configuration.sql
       - name: Verify tenant isolation and public write denial
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/cps04_booking_product_configuration.test.sql
 
