@@ -66,6 +66,11 @@ export const getPlatformRoomConfiguration = createServerFn({ method: "GET" })
     if (categories.error) throw new Error(categories.error.message);
     if (rooms.error) throw new Error(rooms.error.message);
     if (roomStates.error) throw new Error(roomStates.error.message);
+    const knownRoomIds = new Set((rooms.data ?? []).map((room: any) => room.id));
+    const orphanedPhysicalUnits = (roomStates.data ?? []).filter((state: any) => !knownRoomIds.has(state.room_id));
+    if (orphanedPhysicalUnits.length) {
+      throw new Error("Room Configuration inventory integrity failure: physical room units reference missing room definitions.");
+    }
     const physicalCounts = new Map<string, number>();
     for (const state of roomStates.data ?? []) physicalCounts.set(state.room_id, (physicalCounts.get(state.room_id) ?? 0) + 1);
     const roomTypes = (rooms.data ?? []).map((room: any) => ({
