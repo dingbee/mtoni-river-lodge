@@ -185,13 +185,19 @@ const tryJson = parseAiJson;
 
 export async function handleConciergeChat(
   input: ConciergeChatInput,
-  meta: { userAgent?: string | null; referer?: string | null },
+  meta: {
+    userAgent?: string | null;
+    referer?: string | null;
+    channel?: "web" | "whatsapp" | "email";
+    sourceOmnichannelMessageId?: string | null;
+  },
   propertyId: string,
 ): Promise<ConciergeReply> {
   const message = (safeString(input.message, MAX_MESSAGE_LEN) ?? "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "").trim();
   if (!message) throw new Error("Message is required.");
   const locale = safeString(input.locale, 16);
   const page = safeString(input.page, 200);
+  const sourceChannel = meta.channel ?? "web";
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   if (!propertyId) throw new Error("Public property context is required.");
@@ -260,18 +266,58 @@ export async function handleConciergeChat(
       ].join("\n");
     }
   }
+
   if (!sessionId) throw new Error("Unable to establish a property-scoped concierge session.");
 
-  const { data: historyRows, error: historyError } = await supabaseAdmin.from("ai_concierge_messages").select("role, content").eq("session_id", sessionId).order("created_at", { ascending: true }).limit(HISTORY_LIMIT);
+  const sourceOmnichannelMessageId = meta.sourceOmnichannelMessageId ?? null;
+  const { data: historyRows, error: historyError } = await (supabaseAdmin as any).from("ai_concierge_messages")
+    .select("role,content,source_omnichannel_message_id")
+    .eq("session_id", sessionId).order("created_at", { ascending: true }).limit(HISTORY_LIMIT);
   if (historyError) throw new Error("Conversation history is temporarily unavailable.");
-  const history = (historyRows ?? []).map((r): ConciergeMessage => ({ role: r.role as ConciergeMessage["role"], content: r.content }));
+  const history = (historyRows ?? [])
+    .filter((r: any) => !(sourceOmnichannelMessageId && r.source_omnichannel_message_id === sourceOmnichannelMessageId))
+    .map((r: any): ConciergeMessage => ({ role: r.role as ConciergeMessage["role"], content: r.content }));
 
-  const { data: userMessageRow, error: userMessageError } = await supabaseAdmin
-    .from("ai_concierge_messages")
-    .insert({ session_id: sessionId, role: "user", content: message })
-    .select("id")
-    .single();
-  if (userMessageError || !userMessageRow?.id) throw new Error("Your message could not be saved. Please try again.");
+  let userMessageRow: { id: string } | null = null;
+  if (sourceOmnichannelMessageId) {
+    const { data, error } = await (supabaseAdmin as any).from("ai_concierge_messages").upsert({
+      session_id: sessionId, role: "user", content: message,
+      source_omnichannel_message_id: sourceOmnichannelMessageId,
+    }, { onConflict: "source_omnichannel_message_id,role", ignoreDuplicates: true }).select("id").maybeSingle();
+    if (error) throw new Error("Your message could not be saved. Please try again.");
+    userMessageRow = data;
+    if (!userMessageRow?.id) {
+      const { data: existingUser, error: existingUserError } = await (supabaseAdmin as any).from("ai_concierge_messages")
+        .select("id").eq("session_id", sessionId).eq("source_omnichannel_message_id", sourceOmnichannelMessageId)
+        .eq("role", "user").maybeSingle();
+      if (existingUserError || !existingUser?.id) throw new Error("Your message could not be recovered after a webhook retry.");
+      userMessageRow = existingUser;
+    }
+    const { data: existingAssistant, error: existingAssistantError } = await (supabaseAdmin as any).from("ai_concierge_messages")
+      .select("id,content,citations,confidence,escalated,created_at")
+      .eq("session_id", sessionId).eq("source_omnichannel_message_id", sourceOmnichannelMessageId)
+      .eq("role", "assistant").maybeSingle();
+    if (existingAssistantError) throw new Error("The prior Concierge response could not be recovered.");
+    if (existingAssistant?.id) {
+      return {
+        session_token: sessionToken!,
+        message: {
+          id: existingAssistant.id, role: "assistant", content: existingAssistant.content,
+          citations: (existingAssistant.citations ?? []) as ConciergeCitation[],
+          confidence: Number(existingAssistant.confidence ?? 0),
+          escalated: Boolean(existingAssistant.escalated), intent: "medium",
+          created_at: existingAssistant.created_at,
+        },
+      };
+    }
+  } else {
+    const { data, error } = await supabaseAdmin.from("ai_concierge_messages")
+      .insert({ session_id: sessionId, role: "user", content: message })
+      .select("id").single();
+    if (error || !data?.id) throw new Error("Your message could not be saved. Please try again.");
+    userMessageRow = data;
+  }
+  if (!userMessageRow?.id) throw new Error("Your message could not be saved. Please try again.");
 
   // Guest retrieval is feature-gated until SN-IQ-01 database isolation and
   // the property-scoped public search migration have been applied and verified.
@@ -311,7 +357,7 @@ export async function handleConciergeChat(
     }
   }
 
-  const historyText = history.map((h) => h.content);
+  const historyText = history.map((h: ConciergeMessage) => h.content);
   const intent = classifyIntent(message, historyText);
   const recommendations: ConciergeRecommendation[] = intent.level !== "low" ? combinedRecommendations(intent, roomCatalog, experienceCatalog) : [];
 
@@ -393,9 +439,10 @@ export async function handleConciergeChat(
   const availabilityFailure = ["property_resolution_failure", "inventory_service_failure", "pricing_service_failure", "temporary_failure"].includes(availabilityOutcome ?? "");
   const shouldEscalate = parsed.escalate === true || confidence < LOW_CONFIDENCE || availabilityFailure || malformedModelResponse || inferenceFailed;
 
-  const { data: assistantRow, error: assistantMessageError } = await supabaseAdmin.from("ai_concierge_messages").insert({
+  const { data: assistantRow, error: assistantMessageError } = await (supabaseAdmin as any).from("ai_concierge_messages").insert({
     session_id: sessionId, role: "assistant", content: answer, citations: citations as any,
     confidence, escalated: shouldEscalate, model: gatewayResult?.model ?? MODEL, latency_ms: latency,
+    ...(sourceOmnichannelMessageId ? { source_omnichannel_message_id: sourceOmnichannelMessageId } : {}),
   }).select("id, created_at").single();
   if (assistantMessageError || !assistantRow?.id) throw new Error("The Concierge response could not be saved. Please retry.");
 
@@ -417,7 +464,7 @@ export async function handleConciergeChat(
       p_property_id: propertyId,
       p_session_id: sessionId,
       p_guest_id: existingGuestId ?? null,
-      p_channel: "web",
+      p_channel: meta.channel ?? "web",
       p_reason: reason,
       p_summary: message.slice(0, 2000),
       p_ai_confidence: confidence,

@@ -57,7 +57,7 @@ export const Route = createFileRoute("/api/public/staynas-demo-request")({
           // saved first; missing mail configuration must not lose the enquiry.
           const notifyTo = process.env.STAYNAS_DEMO_NOTIFICATION_EMAIL;
           const from = process.env.STAYNAS_DEMO_FROM_EMAIL;
-          if (process.env.RESEND_API_KEY && notifyTo && from) {
+          if (process.env.STAYNAS_PLATFORM_RESEND_API_KEY && notifyTo && from) {
             try {
               const { sendResendEmail } = await import("@/domains/ai/concierge/providers/resend-email.server");
               await sendResendEmail({
@@ -83,7 +83,7 @@ export const Route = createFileRoute("/api/public/staynas-demo-request")({
                 ].join("\n"),
                 idempotencyKey: `staynas-demo-${saved.request_id}`,
                 tags: [{ name: "source", value: "staynas-website" }],
-              });
+              }, { config: { apiKey: process.env.STAYNAS_PLATFORM_RESEND_API_KEY! } });
             } catch (notifyError) {
               console.error("[StayNas demo request] Notification dispatch failed; request remains stored.", notifyError instanceof Error ? notifyError.message : "unknown");
             }

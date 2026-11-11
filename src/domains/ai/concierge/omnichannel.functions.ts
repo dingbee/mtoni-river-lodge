@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { communicationDraftFingerprint } from "./draft-fingerprint.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertFounderAiAdmin } from "@/domains/ai/ai.authorization.server";
@@ -163,10 +164,10 @@ export const listConciergeConversations = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const propertyId = await requirePropertyScope(context.supabase, context.userId);
-    let q = context.supabase
+    let q = (context.supabase as any)
       .from("ai_concierge_sessions")
       .select(
-        "id, channel, locale, page_context, guest_id, guest_name, guest_email, message_count, escalated, identity_confidence, last_active_at, created_at",
+        "id, channel, locale, page_context, guest_id, guest_name, guest_email, guest_phone, message_count, escalated, identity_confidence, last_active_at, created_at",
       )
       .eq("property_id", propertyId)
       .order("last_active_at", { ascending: false })
@@ -179,7 +180,67 @@ export const listConciergeConversations = createServerFn({ method: "POST" })
     }
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const admin = supabaseAdmin as any;
+    const [{ data: contactPreferences, error: contactError }, { data: guestPreferences, error: guestError }, { data: propertyBindings, error: bindingsError }] = await Promise.all([
+      admin.from("ai_guest_channel_contact_preferences")
+        .select("channel,external_contact,purpose,consent_status,consent_source,captured_at,withdrawn_at")
+        .eq("property_id", propertyId).order("captured_at", { ascending: false }).limit(2000),
+      admin.from("ai_guest_channel_preferences")
+        .select("guest_id,session_id,channel,purpose,consent_status,consent_source,captured_at,withdrawn_at")
+        .eq("property_id", propertyId).order("captured_at", { ascending: false }).limit(2000),
+      admin.from("ai_provider_property_bindings").select("provider,external_account_id")
+        .eq("property_id", propertyId).eq("enabled", true),
+    ]);
+    if (contactError || guestError || bindingsError) throw new Error("Channel consent status could not be loaded.");
+    const accountIds = [...new Set((propertyBindings ?? []).map((binding: any) => binding.external_account_id).filter(Boolean))];
+    const { data: accountSuppressions, error: accountSuppressionError } = await admin.from("ai_provider_account_suppressions")
+      .select("provider,external_account_id,channel,external_contact,purpose,consent_status,source,captured_at,withdrawn_at")
+      .in("external_account_id", accountIds.length ? accountIds : ["__no_bound_provider_account__"])
+      .order("captured_at", { ascending: false }).limit(2000);
+    if (accountSuppressionError) throw new Error("Provider-account suppression status could not be loaded.");
+    return (rows ?? []).map((row: any) => {
+      const externalContact = row.channel === "email"
+        ? String(row.guest_email ?? "").trim().toLowerCase()
+        : String(row.guest_phone ?? "").trim();
+      const contactRows = (contactPreferences ?? []).filter((preference: any) =>
+        preference.channel === row.channel &&
+        String(preference.external_contact ?? "").trim().toLowerCase() === externalContact,
+      );
+      const guestRows = (guestPreferences ?? []).filter((preference: any) =>
+        preference.channel === row.channel &&
+        ((row.guest_id && preference.guest_id === row.guest_id) ||
+          (!row.guest_id && preference.session_id === row.id)),
+      );
+      const expectedProvider = row.channel === "whatsapp" ? "meta_cloud_api" : "resend";
+      const boundAccountIds = new Set((propertyBindings ?? [])
+        .filter((binding: any) => binding.provider === expectedProvider)
+        .map((binding: any) => binding.external_account_id));
+      const accountRows = (accountSuppressions ?? [])
+        .filter((preference: any) => preference.provider === expectedProvider
+          && boundAccountIds.has(preference.external_account_id)
+          && preference.channel === row.channel
+          && String(preference.external_contact ?? "").trim().toLowerCase() === externalContact)
+        .map((preference: any) => ({ ...preference, consent_source: preference.source }));
+      const consentByPurpose = new Map<string, any>();
+      for (const preference of [...guestRows, ...contactRows, ...accountRows]) {
+        const existing = consentByPurpose.get(preference.purpose);
+        if (!existing || new Date(preference.captured_at).getTime() > new Date(existing.captured_at).getTime()) {
+          consentByPurpose.set(preference.purpose, preference);
+        }
+      }
+      const safeRow = Object.fromEntries(Object.entries(row).filter(([key]) => key !== "guest_phone"));
+      return {
+        ...safeRow,
+        channel_consent: [...consentByPurpose.values()].map((preference: any) => ({
+          purpose: preference.purpose,
+          consent_status: preference.consent_status,
+          consent_source: preference.consent_source,
+          captured_at: preference.captured_at,
+          withdrawn_at: preference.withdrawn_at,
+        })),
+      };
+    });
   });
 
 // ── Communication drafts ────────────────────────────────────────────────────
@@ -248,7 +309,7 @@ export const createCommunicationDraft = createServerFn({ method: "POST" })
       notes?: string | null;
     }) => {
       if (!isChannel(input?.channel)) throw new Error("invalid channel");
-      if (!["welcome", "pre_arrival", "activity_intro", "transfer_info", "follow_up", "custom"].includes(input?.draft_type)) throw new Error("invalid draft_type");
+      if (!["welcome", "pre_arrival", "activity_intro", "transfer_info", "follow_up", "custom", "concierge_response"].includes(input?.draft_type)) throw new Error("invalid draft_type");
       return input;
     },
   )
@@ -352,20 +413,27 @@ export const updateCommunicationDraft = createServerFn({ method: "POST" })
       subject?: string | null;
       body?: string;
       notes?: string | null;
+      provider_template_name?: string | null;
+      provider_template_language?: string | null;
+      provider_template_components?: unknown;
     }) => {
       if (!input?.id) throw new Error("id required");
-      if (input.status && !["pending", "approved", "edited", "rejected", "sent", "archived"].includes(input.status)) throw new Error("invalid draft status");
+      if (input.status && !["pending", "approved", "edited", "rejected", "archived"].includes(input.status)) throw new Error("invalid draft status; provider acceptance is recorded only by dispatch");
+      if (input.provider_template_name && !/^[a-z0-9_]{1,512}$/.test(input.provider_template_name)) throw new Error("invalid WhatsApp template name");
+      if (input.provider_template_language && !/^[a-z]{2,3}(?:_[A-Z]{2})?$/.test(input.provider_template_language)) throw new Error("invalid WhatsApp template language");
+      if (input.provider_template_components !== undefined && (!Array.isArray(input.provider_template_components) || input.provider_template_components.length > 10)) throw new Error("invalid WhatsApp template components");
       return input;
     },
   )
   .handler(async ({ data, context }) => {
     const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
-    const { data: existingDraft, error: draftError } = await context.supabase
+    const { data: existingDraft, error: draftError } = await (context.supabase as any)
       .from("ai_communication_drafts")
-      .select("id, session_id, booking_id")
+      .select("id, session_id, booking_id, subject, body, status, content_version, provider_template_name, provider_template_language, provider_template_components")
       .eq("id", data.id)
       .maybeSingle();
     if (draftError || !existingDraft) throw new Error("Draft not found in the active property.");
+    if (existingDraft.status === "sent") throw new Error("A provider-accepted draft is immutable. Create a new draft for any follow-up message.");
     let belongsToProperty = false;
     if (existingDraft.session_id) {
       await requireSessionInProperty(context.supabase, existingDraft.session_id, propertyId);
@@ -377,24 +445,68 @@ export const updateCommunicationDraft = createServerFn({ method: "POST" })
     }
     if (!belongsToProperty) throw new Error("Draft not found in the active property.");
     const patch: Record<string, unknown> = {};
+    const effectiveSubject = data.subject !== undefined ? data.subject : existingDraft.subject;
+    const effectiveBody = data.body !== undefined ? data.body : existingDraft.body;
+    const effectiveTemplateName = data.provider_template_name !== undefined ? data.provider_template_name : existingDraft.provider_template_name;
+    const effectiveTemplateLanguage = data.provider_template_language !== undefined ? data.provider_template_language : existingDraft.provider_template_language;
+    const effectiveTemplateComponents = data.provider_template_components !== undefined ? data.provider_template_components : existingDraft.provider_template_components;
+    const contentChanged =
+      data.subject !== undefined && data.subject !== existingDraft.subject ||
+      data.body !== undefined && data.body !== existingDraft.body ||
+      data.provider_template_name !== undefined && data.provider_template_name !== existingDraft.provider_template_name ||
+      data.provider_template_language !== undefined && data.provider_template_language !== existingDraft.provider_template_language ||
+      data.provider_template_components !== undefined && JSON.stringify(data.provider_template_components) !== JSON.stringify(existingDraft.provider_template_components);
+
     if (data.subject !== undefined) patch.subject = data.subject;
     if (data.body !== undefined) patch.body = data.body;
     if (data.notes !== undefined) patch.notes = data.notes;
-    if (data.status) {
-      if (["approved", "rejected", "sent", "archived"].includes(data.status)) {
-        await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
-      }
+    if (data.provider_template_name !== undefined) patch.provider_template_name = data.provider_template_name;
+    if (data.provider_template_language !== undefined) patch.provider_template_language = data.provider_template_language;
+    if (data.provider_template_components !== undefined) patch.provider_template_components = data.provider_template_components;
+
+    const nextVersion = Number(existingDraft.content_version ?? 1) + (contentChanged ? 1 : 0);
+    if (contentChanged) patch.content_version = nextVersion;
+
+    if (data.status === "approved") {
+      await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
+      patch.status = "approved";
+      patch.approved_by = context.userId;
+      patch.approved_by_system = false;
+      patch.approved_at = new Date().toISOString();
+      patch.approved_content_hash = communicationDraftFingerprint({
+        subject: effectiveSubject,
+        body: effectiveBody,
+        providerTemplateName: effectiveTemplateName,
+        providerTemplateLanguage: effectiveTemplateLanguage,
+        providerTemplateComponents: effectiveTemplateComponents,
+      });
+      patch.approved_content_version = nextVersion;
+    } else if (data.status === "rejected") {
+      patch.status = "rejected";
+      patch.approved_by = null;
+      patch.approved_by_system = false;
+      patch.approved_at = null;
+      patch.approved_content_hash = null;
+      patch.approved_content_version = null;
+    } else if (data.status === "edited" || contentChanged) {
+      patch.status = "edited";
+      patch.approved_by = null;
+      patch.approved_by_system = false;
+      patch.approved_at = null;
+      patch.approved_content_hash = null;
+      patch.approved_content_version = null;
+    } else if (data.status) {
       patch.status = data.status;
-      if (data.status === "approved") {
-        patch.approved_by = context.userId;
-        patch.approved_at = new Date().toISOString();
-      }
-      if (data.status === "sent") patch.sent_at = new Date().toISOString();
+      patch.approved_by = null;
+      patch.approved_by_system = false;
+      patch.approved_at = null;
+      patch.approved_content_hash = null;
+      patch.approved_content_version = null;
     }
     if (Object.keys(patch).length === 0) throw new Error("No draft changes supplied.");
-    const { data: updated, error } = await context.supabase
+    const { data: updated, error } = await (context.supabase as any)
       .from("ai_communication_drafts")
-      .update(patch as never)
+      .update(patch)
       .eq("id", data.id)
       .select("id")
       .maybeSingle();
@@ -541,4 +653,43 @@ export const getOmnichannelAnalytics = createServerFn({ method: "GET" })
       escalations_open: escOpen.count ?? 0,
       drafts_pending: pendingDraftIds.size,
     };
+  });
+
+export const listCommunicationDispatchAttempts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { limit?: number } = {}) => ({
+    limit: Math.min(Math.max(input.limit ?? 50, 1), 100),
+  }))
+  .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await (supabaseAdmin as any).from("ai_communication_dispatch_attempts")
+      .select("id,draft_id,message_id,channel,provider,idempotency_key,attempt_number,max_attempts,status,provider_message_id,error_code,error_summary,next_retry_at,started_at,finished_at,manual_retry_authorized,recovery_requested_at,recovery_reason")
+      .eq("property_id", propertyId)
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (error) throw new Error(error.message);
+    const { data: priorRecoveries, error: recoveryLookupError } = await (supabaseAdmin as any).from("ai_communication_dispatch_attempts")
+      .select("draft_id").eq("property_id", propertyId)
+      .not("recovery_requested_at", "is", null).limit(1000);
+    if (recoveryLookupError) throw new Error("Dispatch recovery history could not be loaded.");
+    const recoveredDraftIds = new Set((priorRecoveries ?? []).map((row: any) => row.draft_id));
+    const latestByDraft = new Map<string, string>();
+    for (const attempt of rows ?? []) {
+      if (attempt.draft_id && !latestByDraft.has(attempt.draft_id)) latestByDraft.set(attempt.draft_id, attempt.id);
+    }
+    return (rows ?? []).map((attempt: any) => {
+      const httpStatus = Number(/^http_(\d{3})/.exec(String(attempt.error_code ?? ""))?.[1] ?? 0);
+      const recoverableProviderFailure = attempt.provider === "meta_cloud_api"
+        ? httpStatus === 429
+        : attempt.provider === "resend"
+          && ([408, 425, 429].includes(httpStatus) || httpStatus >= 500 || attempt.error_code === "network_error");
+      return {
+        ...attempt,
+        recoverable: attempt.status === "permanent_failure"
+          && latestByDraft.get(attempt.draft_id) === attempt.id
+          && !recoveredDraftIds.has(attempt.draft_id)
+          && recoverableProviderFailure,
+      };
+    });
   });

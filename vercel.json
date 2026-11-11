@@ -53,5 +53,11 @@
       "destination": "/nolmark-cdma-staynas",
       "permanent": false
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/internal/communications/recovery",
+      "schedule": "*/5 * * * *"
+    }
   ]
 }

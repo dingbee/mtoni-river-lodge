@@ -14,7 +14,8 @@ export type CommunicationDraftType =
   | "activity_intro"
   | "transfer_info"
   | "follow_up"
-  | "custom";
+  | "custom"
+  | "concierge_response";
 
 export type CommunicationDraftStatus =
   | "pending"
@@ -62,8 +63,16 @@ export interface CommunicationDraftRow {
   supporting_context: JsonValue;
   status: CommunicationDraftStatus;
   approved_by: string | null;
+  approved_by_system: boolean;
+  approved_content_hash: string | null;
+  content_version: number;
+  approved_content_version: number | null;
   approved_at: string | null;
   sent_at: string | null;
+  provider_template_name: string | null;
+  provider_template_language: string | null;
+  provider_template_components: JsonValue;
+  source_message_id: string | null;
   notes: string | null;
   created_by: string | null;
   created_at: string;

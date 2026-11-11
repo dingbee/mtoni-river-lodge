@@ -71,7 +71,7 @@ export async function sendCommercialInvoiceIssuedEmail(input: { admin: FinanceNo
     const sent = await sendResendEmail({
       from, to: recipient, subject: `StayNas invoice ${invoice.invoice_number}`,
       html, idempotencyKey,
-    });
+    }, { config: { apiKey: process.env.STAYNAS_PLATFORM_RESEND_API_KEY ?? "" } });
     await admin.from("commercial_financial_notifications").update({
       status: "sent", provider_message_ref: sent.providerMessageId,
       attempted_at: sent.acceptedAt, sent_at: sent.acceptedAt,
@@ -127,7 +127,7 @@ export async function sendCommercialPaymentConfirmationEmail(input: { admin: Fin
     <p>Provider reference: ${escapeHtml(payment.provider_transaction_ref ?? "manual verification")}</p>
     <p>Payment status: ${escapeHtml(payment.status)}</p><p>Your receipt is available in your StayNas billing workspace.</p>`;
   try {
-    const sent = await sendResendEmail({from,to:recipient,subject:`StayNas payment receipt — ${invoice.invoice_number}`,html,idempotencyKey});
+    const sent = await sendResendEmail({from,to:recipient,subject:`StayNas payment receipt — ${invoice.invoice_number}`,html,idempotencyKey}, { config: { apiKey: process.env.STAYNAS_PLATFORM_RESEND_API_KEY ?? "" } });
     await admin.from("commercial_financial_notifications").update({status:"sent",provider_message_ref:sent.providerMessageId,attempted_at:sent.acceptedAt,sent_at:sent.acceptedAt}).eq("id",notificationId);
     return {status:"sent" as const,providerMessageRef:sent.providerMessageId};
   } catch (error) {
@@ -176,7 +176,7 @@ export async function sendCommercialPaymentFailureEmail(input: { admin: FinanceN
       from,to:recipient,subject:`StayNas payment unsuccessful — ${invoice.invoice_number}`,
       html:`<h2>StayNas payment unsuccessful</h2><p>Invoice: ${escapeHtml(invoice.invoice_number)}</p><p>Payment attempt: ${escapeHtml(payment.id)}</p><p>Please review the invoice and try another permitted payment method.</p>`,
       idempotencyKey,
-    });
+    }, { config: { apiKey: process.env.STAYNAS_PLATFORM_RESEND_API_KEY ?? "" } });
     await admin.from("commercial_financial_notifications").update({status:"sent",provider_message_ref:sent.providerMessageId,attempted_at:sent.acceptedAt,sent_at:sent.acceptedAt}).eq("id",notificationId);
     return {status:"sent" as const,providerMessageRef:sent.providerMessageId};
   } catch(error) {
@@ -225,7 +225,7 @@ export async function sendCommercialInvoiceReminderEmail(input: {
     <p>Outstanding: <strong>${amount(invoice.outstanding_minor,invoice.currency)}</strong></p>
     <p>Due date: ${escapeHtml(invoice.due_at)}</p><p>Please review your StayNas billing workspace to settle this balance.</p>`;
   try{
-    const sent=await sendResendEmail({from,to:recipient,subject,html,idempotencyKey});
+    const sent=await sendResendEmail({from,to:recipient,subject,html,idempotencyKey}, { config: { apiKey: process.env.STAYNAS_PLATFORM_RESEND_API_KEY ?? "" } });
     await admin.from("commercial_financial_notifications").update({status:"sent",provider_message_ref:sent.providerMessageId,attempted_at:sent.acceptedAt,sent_at:sent.acceptedAt}).eq("id",notificationId);
     return {status:"sent" as const,providerMessageRef:sent.providerMessageId};
   }catch(error){
@@ -270,7 +270,7 @@ export async function sendCommercialUnallocatedPaymentEmail(input:{admin:Finance
   try{
     const sent=await sendResendEmail({from,to:recipient,subject:"StayNas payment received — allocation pending",
       html:`<h2>StayNas payment received</h2><p>Amount: <strong>${amount(payment.amount_minor,payment.currency)}</strong></p><p>Reference: ${escapeHtml(payment.provider_transaction_ref)}</p><p>This collection is recorded and awaiting invoice allocation. No invoice has been marked paid by this receipt.</p>`,
-      idempotencyKey});
+      idempotencyKey}, { config: { apiKey: process.env.STAYNAS_PLATFORM_RESEND_API_KEY ?? "" } });
     await admin.from("commercial_financial_notifications").update({status:"sent",provider_message_ref:sent.providerMessageId,attempted_at:sent.acceptedAt,sent_at:sent.acceptedAt}).eq("id",notificationId);
     return {status:"sent" as const,providerMessageRef:sent.providerMessageId};
   }catch(error){

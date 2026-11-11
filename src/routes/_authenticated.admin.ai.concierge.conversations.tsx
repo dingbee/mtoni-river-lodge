@@ -81,7 +81,7 @@ function ConversationsPage() {
           {list.data?.length === 0 && (
             <p className="p-3 text-sm text-muted-foreground">No conversations yet.</p>
           )}
-          {list.data?.map((s) => (
+          {list.data?.map((s: any) => (
             <div key={s.id} className="flex items-center justify-between px-3 py-2 text-sm">
               <div className="min-w-0">
                 <p className="truncate font-medium">
@@ -94,6 +94,14 @@ function ConversationsPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="secondary">{s.channel}</Badge>
+                {(s.channel_consent ?? []).map((preference) => (
+                  <Badge
+                    key={preference.purpose}
+                    variant={preference.consent_status === "withdrawn" ? "destructive" : "outline"}
+                  >
+                    {preference.purpose}: {preference.consent_status}
+                  </Badge>
+                ))}
                 {s.escalated && <Badge variant="destructive">Escalated</Badge>}
                 {typeof s.identity_confidence === "number" && s.identity_confidence > 0 && (
                   <span className="text-xs text-muted-foreground">

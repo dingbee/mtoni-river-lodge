@@ -37,24 +37,24 @@ type FetchLike = typeof fetch;
 
 function getConfig(overrides?: Partial<MetaWhatsAppConfig>): MetaWhatsAppConfig {
   const accessToken = requireServerSecret(
-    overrides?.accessToken ?? process.env.META_WHATSAPP_ACCESS_TOKEN,
-    "META_WHATSAPP_ACCESS_TOKEN",
+    overrides?.accessToken,
+    "property-bound Meta access token",
     "meta_cloud_api",
   );
   const phoneNumberId = requireServerSecret(
-    overrides?.phoneNumberId ?? process.env.META_WHATSAPP_PHONE_NUMBER_ID,
-    "META_WHATSAPP_PHONE_NUMBER_ID",
+    overrides?.phoneNumberId,
+    "property-bound Meta Phone Number ID",
     "meta_cloud_api",
   );
   const graphApiVersion = requireServerSecret(
-    overrides?.graphApiVersion ?? process.env.META_GRAPH_API_VERSION,
-    "META_GRAPH_API_VERSION",
+    overrides?.graphApiVersion,
+    "property-bound Meta Graph API version",
     "meta_cloud_api",
   );
   if (!/^v\d+\.\d+$/.test(graphApiVersion)) {
     throw new ProviderAdapterError({
       provider: "meta_cloud_api",
-      message: "META_GRAPH_API_VERSION must use the versioned Graph API format (for example vXX.X).",
+      message: "property-bound Meta Graph API version must use the versioned Graph API format (for example vXX.X).",
       code: "invalid_provider_configuration",
     });
   }
@@ -111,7 +111,7 @@ export async function sendWhatsAppText(
 
   if (!response.ok) {
     const error = await readProviderError(response);
-    throw providerHttpError("meta_cloud_api", response.status, error.code, error.message);
+    throw providerHttpError("meta_cloud_api", response.status, error.code, error.message, response.headers.get("retry-after"));
   }
 
   const payload = await response.json() as {
@@ -175,7 +175,7 @@ export async function sendWhatsAppTemplate(
 
   if (!response.ok) {
     const error = await readProviderError(response);
-    throw providerHttpError("meta_cloud_api", response.status, error.code, error.message);
+    throw providerHttpError("meta_cloud_api", response.status, error.code, error.message, response.headers.get("retry-after"));
   }
 
   const payload = await response.json() as { messages?: Array<{ id?: string }> };

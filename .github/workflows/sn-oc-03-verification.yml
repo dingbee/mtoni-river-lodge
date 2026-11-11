@@ -1,0 +1,88 @@
+name: SN-OC-03 Provider Activation Verification
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/domains/ai/concierge/**"
+      - "src/routes/api/public/webhooks.*"
+      - "src/routes/api/internal/communications/**"
+      - "supabase/migrations/**"
+      - "supabase/tests/sn_oc_03_provider_activation.test.sql"
+      - ".github/workflows/sn-oc-03-verification.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sn-oc-03-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: Concierge, webhook, type, lint and production build verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: >
+          bunx vitest run
+          src/domains/ai/concierge/omnichannel.contracts.test.ts
+          src/domains/ai/concierge/webhooks/webhook-processor.server.test.ts
+          src/domains/ai/concierge/webhooks/webhook-normalization.server.test.ts
+      - name: TypeScript verification
+        run: bunx tsc --noEmit
+      - name: Lint changed omnichannel, provider and webhook surfaces
+        run: >-
+          bunx eslint
+          src/domains/ai/concierge/concierge.server.ts
+          src/domains/ai/concierge/dispatch.functions.ts
+          src/domains/ai/concierge/omnichannel.functions.ts
+          src/domains/ai/concierge/webhooks/webhook-processor.server.ts
+          src/domains/ai/concierge/webhooks/webhook-normalization.server.ts
+          src/domains/ai/concierge/webhooks/webhook-signatures.server.ts
+          src/routes/api/public/webhooks.meta.ts
+          src/routes/api/public/webhooks.resend.ts
+          src/routes/api/internal/communications/recovery.ts
+          src/routes/_authenticated.admin.ai.concierge.conversations.tsx
+          --rule 'prettier/prettier: off'
+      - name: Production build
+        run: bun run build
+
+  database:
+    name: Full Supabase migration chain and SN-OC-03 acceptance fixture
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start isolated Supabase stack
+        run: supabase start
+      - name: Apply the complete repository migration chain
+        run: supabase db reset --local
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Run SN-OC-03 integrated database acceptance fixture
+        shell: bash
+        run: |
+          DB_URL="$(supabase status -o env | sed -n 's/^DB_URL=//p' | tr -d '"')"
+          test -n "$DB_URL"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/sn_oc_03_provider_activation.test.sql
+      - name: Stop isolated Supabase stack
+        if: always()
+        run: supabase stop --no-backup
