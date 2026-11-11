@@ -156,6 +156,12 @@ jobs:
           src/domains/commercial/commercial-reconciliation-engine.ts
           src/domains/commercial/commercial-reconciliation-engine.test.ts
           src/domains/commercial/commercial-payment.functions.ts
+          src/domains/commercial/founder-commercial-reporting.functions.ts
+          src/domains/commercial/founder-control-centre.functions.ts
+          src/domains/commercial/founder-reconciliation.functions.ts
+          src/routes/_authenticated.founder.tsx
+          src/routes/_authenticated.founder.reporting.tsx
+          src/routes/_authenticated.founder.reconciliation.tsx
           src/domains/payments/payment-provider-management.functions.ts
           src/domains/payments/provider-adapter.contract.ts
           src/domains/payments/provider-adapter.contract.test.ts

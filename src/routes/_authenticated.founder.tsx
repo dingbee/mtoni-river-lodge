@@ -1,7 +1,7 @@
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Activity, AlertCircle, Building2, CalendarClock, CheckCircle2, CircleDollarSign, CreditCard, FileText, RefreshCw, Search, ShieldCheck, Users } from "lucide-react";
-import { getFounderCommercialWorkspace, registerFounderCommercialAccount } from "@/domains/commercial/founder-control-centre.functions";
+import { getFounderCommercialWorkspace, getFounderSubscriptionSetup, replaceFounderCommercialSubscription, registerFounderCommercialAccount } from "@/domains/commercial/founder-control-centre.functions";
 import { administerCommercialSubscription } from "@/domains/commercial/subscription-administration.functions";
 
 type FounderWorkspaceData = {
@@ -9,17 +9,17 @@ type FounderWorkspaceData = {
   metrics: {
     totalTenants: number; activeTenants: number; trialTenants: number; paidSubscriptions: number;
     suspendedTenants: number; expiredSubscriptions: number; renewalsApproaching: number; overdueInvoices: number;
-    totalInvoicedByCurrency: { TZS: number; USD: number };
-    collectedByCurrency: { TZS: number; USD: number };
-    outstandingByCurrency: { TZS: number; USD: number };
-    mrrArrByCurrency: { TZS: { mrrMinor: number; arrMinor: number }; USD: { mrrMinor: number; arrMinor: number } };
+    totalInvoicedByCurrency: { TZS: string; USD: string };
+    collectedByCurrency: { TZS: string; USD: string };
+    outstandingByCurrency: { TZS: string; USD: string };
+    mrrArrByCurrency: { TZS: { mrrMinor: string; arrMinor: string }; USD: { mrrMinor: string; arrMinor: string } };
   };
   tenants: Array<{
     id: string; slug: string; name: string; status: string; accountId: string | null; propertyCount: number; subscriptionCount: number;
     primaryContact: {contact_name:string;contact_email:string;contact_phone:string|null;contact_role:string}|null;
     subscription: { id: string; planCode: string; status: string; propertyAllowance: number } | null;
-    entitlementCount: number; outstandingByCurrency: { TZS: number; USD: number };
-    lastPayment: { amountMinor: number; currency: "TZS" | "USD"; confirmedAt: string | null; reference: string | null } | null;
+    entitlementCount: number; outstandingByCurrency: { TZS: string; USD: string };
+    lastPayment: { amountMinor: string; currency: "TZS" | "USD"; confirmedAt: string | null; reference: string | null } | null;
     commercialHealth: string;
   }>;
   subscriptions: Array<Record<string, unknown>>;
@@ -43,8 +43,17 @@ export const Route = createFileRoute("/_authenticated/founder")({
   component: FounderWorkspace,
 });
 
-const money = (minor: number, currency: "TZS" | "USD") =>
-  new Intl.NumberFormat("en-TZ", { style: "currency", currency, maximumFractionDigits: 2 }).format(minor / 100);
+const money = (minor: string | number, currency: "TZS" | "USD") => {
+  const amount = BigInt(String(minor ?? 0));
+  const negative = amount < 0n;
+  const absolute = negative ? -amount : amount;
+  const major = absolute / 100n;
+  const fraction = (absolute % 100n).toString().padStart(2, "0");
+  const formatted = new Intl.NumberFormat("en-TZ", {
+    style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0,
+  }).format(major);
+  return `${negative ? "-" : ""}${formatted}.${fraction}`;
+};
 const date = (value: unknown) => value ? new Date(String(value)).toLocaleDateString() : "—";
 const label = (value: string) => value.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -56,7 +65,7 @@ function Metric({ title, value, detail, icon: Icon }: { title: string; value: st
   </article>;
 }
 
-function CurrencyMetric({ title, values }: { title: string; values: { TZS: number; USD: number } }) {
+function CurrencyMetric({ title, values }: { title: string; values: { TZS: string; USD: string } }) {
   return <article className="rounded-xl border bg-card p-4">
     <p className="text-sm text-muted-foreground">{title}</p>
     <div className="mt-3 grid grid-cols-2 gap-3">
@@ -64,6 +73,99 @@ function CurrencyMetric({ title, values }: { title: string; values: { TZS: numbe
       <div><p className="text-xs text-muted-foreground">USD</p><p className="font-semibold tabular-nums">{money(values.USD, "USD")}</p></div>
     </div>
   </article>;
+}
+
+function SubscriptionPriceChangeAction({ subscription }: { subscription: Record<string, unknown> }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [setup, setSetup] = useState<{plans:Array<{code:string;name:string}>;planVersions:Array<{planCode:string;version:number}>}|null>(null);
+  const [planCode, setPlanCode] = useState(String(subscription.plan_code));
+  const [planVersion, setPlanVersion] = useState(Number(subscription.plan_version));
+  const [billingTerm, setBillingTerm] = useState(String(subscription.billing_term));
+  const [propertyCount, setPropertyCount] = useState(String(subscription.property_count));
+  const [addons, setAddons] = useState(Array.isArray(subscription.addon_codes) ? (subscription.addon_codes as string[]).join(", ") : "");
+  const [acceptanceRef, setAcceptanceRef] = useState("");
+  const [adjustmentRef, setAdjustmentRef] = useState("");
+  const [periodEnd, setPeriodEnd] = useState(String(subscription.current_period_ends_at ?? "").slice(0,16));
+  const [reason, setReason] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  useEffect(() => {
+    if (open && !setup) void getFounderSubscriptionSetup().then(setSetup).catch((error) => setMessage(error instanceof Error ? error.message : "Commercial policy setup could not be loaded."));
+  }, [open, setup]);
+  const versions = setup?.planVersions.filter((item) => item.planCode === planCode) ?? [];
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!confirmed) return;
+    setBusy(true); setMessage("");
+    try {
+      const result = await replaceFounderCommercialSubscription({ data: {
+        subscriptionId: String(subscription.id),
+        planCode: planCode as "essential" | "professional" | "enterprise",
+        planVersion, billingTerm: billingTerm as "monthly" | "annual",
+        propertyCount: Number(propertyCount),
+        addonCodes: addons.split(",").map((value) => value.trim()).filter(Boolean),
+        commercialAcceptanceRef: acceptanceRef,
+        financialAdjustmentRef: adjustmentRef,
+        periodEndsAt: new Date(periodEnd).toISOString(),
+        reasonCode: reason, idempotencyKey: crypto.randomUUID(),
+      } });
+      setMessage(`Subscription replaced. MRR movement: ${String(result.movementType)} (${String(result.deltaMrrMinor)} minor units).`);
+      await router.invalidate();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Subscription replacement failed.");
+    } finally { setBusy(false); }
+  };
+  if (subscription.status !== "active" || subscription.quote_required === true) return null;
+  return <div className="mt-2">
+    <button type="button" onClick={() => setOpen((value) => !value)} className="rounded-md border px-2 py-1 text-xs">Change accepted terms</button>
+    {open && <form onSubmit={submit} className="mt-2 min-w-[250px] space-y-2 rounded-lg border bg-card p-3">
+      <p className="text-xs font-medium">Replacement takes effect immediately. Confirm that any proration/credit/debit has already been posted in the financial ledger.</p>
+      {!setup && <p className="text-xs text-muted-foreground">Loading published commercial policy…</p>}
+      {setup && <>
+        <label className="block text-xs">Plan
+          <select value={planCode} onChange={(event) => { const next=event.target.value; setPlanCode(next); const first=setup.planVersions.find((item)=>item.planCode===next); if(first) setPlanVersion(first.version); }} className="mt-1 h-8 w-full rounded border bg-background px-2">
+            {setup.plans.map((plan)=><option key={plan.code} value={plan.code}>{plan.name}</option>)}
+          </select>
+        </label>
+        <label className="block text-xs">Published plan version
+          <select value={planVersion} onChange={(event)=>setPlanVersion(Number(event.target.value))} className="mt-1 h-8 w-full rounded border bg-background px-2">
+            {versions.map((item)=><option key={item.version} value={item.version}>v{item.version}</option>)}
+          </select>
+        </label>
+        <label className="block text-xs">Billing term
+          <select value={billingTerm} onChange={(event)=>setBillingTerm(event.target.value)} className="mt-1 h-8 w-full rounded border bg-background px-2">
+            <option value="monthly">Monthly</option><option value="annual">Annual</option>
+          </select>
+        </label>
+        <label className="block text-xs">Property allowance
+          <input type="number" min="1" required value={propertyCount} onChange={(event)=>setPropertyCount(event.target.value)} className="mt-1 h-8 w-full rounded border bg-background px-2"/>
+        </label>
+        <label className="block text-xs">Add-on codes (comma-separated)
+          <input value={addons} onChange={(event)=>setAddons(event.target.value)} className="mt-1 h-8 w-full rounded border bg-background px-2"/>
+        </label>
+        <label className="block text-xs">Commercial acceptance reference
+          <input required value={acceptanceRef} onChange={(event)=>setAcceptanceRef(event.target.value)} className="mt-1 h-8 w-full rounded border bg-background px-2"/>
+        </label>
+        <label className="block text-xs">Posted financial adjustment reference
+          <input required value={adjustmentRef} onChange={(event)=>setAdjustmentRef(event.target.value)} placeholder="Credit/debit note reference" className="mt-1 h-8 w-full rounded border bg-background px-2"/>
+        </label>
+        <label className="block text-xs">New paid period end
+          <input required type="datetime-local" value={periodEnd} onChange={(event)=>setPeriodEnd(event.target.value)} className="mt-1 h-8 w-full rounded border bg-background px-2"/>
+        </label>
+        <label className="block text-xs">Reason
+          <input required minLength={2} value={reason} onChange={(event)=>setReason(event.target.value)} className="mt-1 h-8 w-full rounded border bg-background px-2"/>
+        </label>
+        <label className="flex items-start gap-2 text-xs text-muted-foreground">
+          <input type="checkbox" checked={confirmed} onChange={(event)=>setConfirmed(event.target.checked)} className="mt-0.5"/>
+          I confirm the accepted terms and the separately posted financial adjustment reference.
+        </label>
+        <button disabled={busy || !setup || !confirmed} className="w-full rounded bg-primary px-3 py-2 text-xs font-medium text-primary-foreground disabled:opacity-50">{busy ? "Replacing…" : "Confirm subscription replacement"}</button>
+      </>}
+      {message && <p role="status" className="text-xs text-muted-foreground">{message}</p>}
+    </form>}
+  </div>;
 }
 
 function SubscriptionAction({ subscription }: { subscription: Record<string, unknown> }) {
@@ -163,6 +265,8 @@ function FounderWorkspace() {
           <a href="#notifications" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Notifications</a>
           <a href="/founder/subscriptions" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Subscriptions</a>
           <a href="/founder/billing" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Billing & collections</a>
+          <a href="/founder/reporting" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Commercial reporting</a>
+          <a href="/founder/reconciliation" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Reconciliation</a>
           <a href="#entitlements" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Entitlements</a>
           <a href="#activity" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">Audit activity</a>
           <span className="inline-flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground"><ShieldCheck className="size-4" /> Founder-authorized</span>
@@ -247,7 +351,7 @@ function FounderWorkspace() {
             <tbody className="divide-y">{data.subscriptions.map((subscription) => <tr key={String(subscription.id)}>
               <td className="px-4 py-3 font-medium">{String(subscription.tenant_name)}</td><td className="px-4 py-3">{label(String(subscription.plan_code))} · v{String(subscription.plan_version)}</td>
               <td className="px-4 py-3">{label(String(subscription.status))}</td><td className="px-4 py-3">{String(subscription.billing_term)} · {String(subscription.currency)}</td>
-              <td className="px-4 py-3 tabular-nums">{String(subscription.property_count)}</td><td className="px-4 py-3">{date(subscription.trial_ends_at)}</td><td className="px-4 py-3">{date(subscription.current_period_ends_at)}</td><td className="px-4 py-3"><SubscriptionAction subscription={subscription} /></td>
+              <td className="px-4 py-3 tabular-nums">{String(subscription.property_count)}</td><td className="px-4 py-3">{date(subscription.trial_ends_at)}</td><td className="px-4 py-3">{date(subscription.current_period_ends_at)}</td><td className="px-4 py-3"><SubscriptionAction subscription={subscription} /><SubscriptionPriceChangeAction subscription={subscription} /></td>
             </tr>)}{data.subscriptions.length === 0 && <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">No subscription records have been provisioned.</td></tr>}</tbody>
           </table>
         </div>
@@ -260,9 +364,9 @@ function FounderWorkspace() {
             <thead className="bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="px-4 py-3">Invoice</th><th className="px-4 py-3">Tenant</th><th className="px-4 py-3">Issued</th><th className="px-4 py-3">Due</th><th className="px-4 py-3">Total</th><th className="px-4 py-3">Collected</th><th className="px-4 py-3">Outstanding</th><th className="px-4 py-3">Status</th></tr></thead>
             <tbody className="divide-y">{data.invoices.map((invoice) => <tr key={String(invoice.id)}>
               <td className="px-4 py-3 font-medium">{String(invoice.invoice_number)}</td><td className="px-4 py-3">{String(invoice.tenant_name)}</td><td className="px-4 py-3">{date(invoice.issued_at)}</td><td className="px-4 py-3">{date(invoice.due_at)}</td>
-              <td className="px-4 py-3 tabular-nums">{money(Number(invoice.total_minor ?? 0), invoice.currency === "USD" ? "USD" : "TZS")}</td>
-              <td className="px-4 py-3 tabular-nums">{money(Number(invoice.amount_paid_minor ?? 0), invoice.currency === "USD" ? "USD" : "TZS")}</td>
-              <td className="px-4 py-3 tabular-nums">{money(Number(invoice.outstanding_minor ?? 0), invoice.currency === "USD" ? "USD" : "TZS")}</td><td className="px-4 py-3">{label(String(invoice.status))}</td>
+              <td className="px-4 py-3 tabular-nums">{money(String(invoice.total_minor ?? "0"), invoice.currency === "USD" ? "USD" : "TZS")}</td>
+              <td className="px-4 py-3 tabular-nums">{money(String(invoice.amount_paid_minor ?? "0"), invoice.currency === "USD" ? "USD" : "TZS")}</td>
+              <td className="px-4 py-3 tabular-nums">{money(String(invoice.outstanding_minor ?? "0"), invoice.currency === "USD" ? "USD" : "TZS")}</td><td className="px-4 py-3">{label(String(invoice.status))}</td>
             </tr>)}{data.invoices.length === 0 && <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">No issued invoice records.</td></tr>}</tbody>
           </table>
         </div>
@@ -272,7 +376,7 @@ function FounderWorkspace() {
             <thead className="bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="px-4 py-3">Tenant</th><th className="px-4 py-3">Provider</th><th className="px-4 py-3">Reference</th><th className="px-4 py-3">Amount</th><th className="px-4 py-3">Method</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Confirmed</th></tr></thead>
             <tbody className="divide-y">{data.payments.map((payment) => <tr key={String(payment.id)}>
               <td className="px-4 py-3">{String(payment.tenant_name)}</td><td className="px-4 py-3">{label(String(payment.provider))}</td><td className="px-4 py-3 text-xs">{String(payment.provider_transaction_ref ?? "Pending provider reference")}</td>
-              <td className="px-4 py-3 tabular-nums">{money(Number(payment.amount_minor ?? 0), payment.currency === "USD" ? "USD" : "TZS")}</td><td className="px-4 py-3">{label(String(payment.payment_method ?? "—"))}</td><td className="px-4 py-3">{label(String(payment.status))}</td><td className="px-4 py-3">{date(payment.confirmed_at)}</td>
+              <td className="px-4 py-3 tabular-nums">{money(String(payment.amount_minor ?? "0"), payment.currency === "USD" ? "USD" : "TZS")}</td><td className="px-4 py-3">{label(String(payment.payment_method ?? "—"))}</td><td className="px-4 py-3">{label(String(payment.status))}</td><td className="px-4 py-3">{date(payment.confirmed_at)}</td>
             </tr>)}{data.payments.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No payment transactions.</td></tr>}</tbody>
           </table>
         </div>
