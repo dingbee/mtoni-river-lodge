@@ -36,9 +36,9 @@ function PlatformRoomConfiguration(){
   const [room,setRoom]=useState<RoomForm>(emptyRoom());
   const [editing,setEditing]=useState(false);
   const [customAmenity,setCustomAmenity]=useState("");
-  const amenityOptions=useMemo(()=>Array.from(new Set([...(roomTypes as any[]).flatMap((item:any)=>item.amenities??[]),...room.amenities])).sort((a,b)=>String(a).localeCompare(String(b))),[roomTypes,room.amenities]);
   const [uploadingImage,setUploadingImage]=useState(false);
   const categories=query.data?.categories??[], roomTypes=query.data?.roomTypes??[];
+  const amenityOptions=useMemo(()=>Array.from(new Set([...(roomTypes as any[]).flatMap((item:any)=>item.amenities??[]),...room.amenities])).sort((a,b)=>String(a).localeCompare(String(b))),[roomTypes,room.amenities]);
   const visible=useMemo(()=>{const source=tab==="categories"?categories:roomTypes;const q=search.trim().toLowerCase();return source.filter((x:any)=>!q||x.name.toLowerCase().includes(q)||x.slug.toLowerCase().includes(q));},[tab,categories,roomTypes,search]);
   const refresh=()=>qc.invalidateQueries({queryKey:["platform-room-configuration-v3"]});
   const categoryMutation=useMutation({mutationFn:()=>saveCategory({data:{id:category.id,slug:category.slug,name:category.name,description:category.description,features:lines(category.features),specifications:pairs(category.specifications),sortOrder:Number(category.sortOrder),status:category.status}}),onSuccess:()=>{toast.success("Category saved");setCategory(emptyCategory());setEditing(false);refresh();},onError:(e:Error)=>toast.error(e.message)});
