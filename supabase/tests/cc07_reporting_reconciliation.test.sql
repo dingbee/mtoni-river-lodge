@@ -1,5 +1,6 @@
 -- CC-07 reporting and reconciliation persistence contracts.
 BEGIN;
+SELECT plan(1);
 DO $test$
 DECLARE
   v_constraint text;
@@ -826,4 +827,6 @@ BEGIN
 END
 $revenue_test$;
 
+SELECT ok(true, 'CC-07 reporting and reconciliation contracts and lifecycle fixtures pass');
+SELECT * FROM finish();
 ROLLBACK;
