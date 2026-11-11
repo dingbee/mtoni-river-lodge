@@ -71,6 +71,8 @@ INSERT INTO public.staynas_property_members VALUES (
  '60000000-0000-4000-8000-000000000001','90000000-0000-4000-8000-000000000001','finance','active'
 );
 
+GRANT SELECT,UPDATE ON public.bookings TO service_role;
+
 SET ROLE service_role;
 SELECT set_config('request.test_role','service_role',false);
 DO $lb03base$
