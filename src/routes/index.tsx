@@ -37,14 +37,28 @@ export const Route = createFileRoute("/")({
     if (isProductWebsiteHost) return;
 
     // Resolve platform authority from the authenticated database identity.
-    // Never infer founder access from email, user metadata or a tenant role.
-    const { data, error } = await supabase.auth.getUser();
+    // A transient auth/network failure must not strand the public root route
+    // on the global error screen; the rooms route remains the safe fallback.
+    let data: Awaited<ReturnType<typeof supabase.auth.getUser>>["data"];
+    let error: Awaited<ReturnType<typeof supabase.auth.getUser>>["error"];
+    try {
+      ({ data, error } = await supabase.auth.getUser());
+    } catch {
+      throw redirect({ to: "/rooms" });
+    }
+
     if (!error && data.user) {
-      const { data: isFounder, error: founderError } = await (supabase as any).rpc(
-        "commercial_is_founder_admin",
-        { _principal_id: data.user.id },
-      );
-      throw redirect({ to: !founderError && isFounder === true ? "/founder" : "/settings" });
+      let isFounder = false;
+      try {
+        const result = await (supabase as any).rpc(
+          "commercial_is_founder_admin",
+          { _principal_id: data.user.id },
+        );
+        isFounder = !result.error && result.data === true;
+      } catch {
+        // A failed authority lookup must never grant founder access.
+      }
+      throw redirect({ to: isFounder ? "/founder" : "/settings" });
     }
 
     throw redirect({ to: "/rooms" });
