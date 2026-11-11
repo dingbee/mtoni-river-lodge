@@ -193,7 +193,13 @@ export async function handleConciergeChat(
   },
   propertyId: string,
 ): Promise<ConciergeReply> {
-  const message = (safeString(input.message, MAX_MESSAGE_LEN) ?? "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "").trim();
+  const message = Array.from(safeString(input.message, MAX_MESSAGE_LEN) ?? "")
+    .filter((character) => {
+      const code = character.charCodeAt(0);
+      return !(code <= 8 || code === 11 || code === 12 || (code >= 14 && code <= 31) || code === 127);
+    })
+    .join("")
+    .trim();
   if (!message) throw new Error("Message is required.");
   const locale = safeString(input.locale, 16);
   const page = safeString(input.page, 200);
