@@ -72,7 +72,7 @@ property_migration = Path(
 )
 property_source = property_migration.read_text()
 for index in ("rooms_slug_key", "room_categories_slug_key", "extras_slug_key"):
-    statement = re.compile(rf"DROP INDEX IF EXISTS (?:public\\.)?{re.escape(index)};")
+    statement = re.compile(rf"DROP INDEX IF EXISTS (?:public\.)?{re.escape(index)};")
     property_source, count = statement.subn(
         f"-- CI retains the constraint-backed {index} in the clean-reset schema.",
         property_source,
