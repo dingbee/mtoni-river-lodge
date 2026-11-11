@@ -72,14 +72,14 @@ property_migration = Path(
 )
 property_source = property_migration.read_text()
 for index in ("rooms_slug_key", "room_categories_slug_key", "extras_slug_key"):
-    statement = f"DROP INDEX IF EXISTS {index};"
-    if statement not in property_source:
-        raise SystemExit(f"Expected legacy global slug index drop was not found: {index}")
-    property_source = property_source.replace(
-        statement,
+    statement = re.compile(rf"DROP INDEX IF EXISTS (?:public\\.)?{re.escape(index)};")
+    property_source, count = statement.subn(
         f"-- CI retains the constraint-backed {index} in the clean-reset schema.",
-        1,
+        property_source,
+        count=1,
     )
+    if count < 1:
+        raise SystemExit(f"Expected legacy global slug index drop was not found: {index}")
 property_migration.write_text(property_source)
 
 # A legacy concierge migration expects a hostname registry that is provisioned
