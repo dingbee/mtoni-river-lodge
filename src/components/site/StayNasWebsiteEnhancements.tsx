@@ -25,6 +25,19 @@ const journey = [
   { title: "Close & improve", label: "Management", detail: "Departure, payment status and management indicators contribute to a clearer view of the stay and the property's operation.", outputs: ["Departure workflow", "Financial status", "Management indicators"], icon: ChartNoAxesCombined },
 ];
 
+function InteractiveModuleCard({ item }: { item: (typeof modules)[number] }) {
+  const [open, setOpen] = useState(false);
+  return <article className="site-editorial-item group p-6 transition duration-300 hover:-translate-y-1 hover:border-[#c7a96b]">
+    <button type="button" aria-expanded={open} onClick={() => setOpen(value => !value)} className="w-full text-left">
+      <div className="flex items-start justify-between gap-4"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#e9ede6] text-[#315744] transition group-hover:bg-[#d7bd85]"><item.icon className="h-5 w-5"/></span><span className="pt-2 text-xs font-medium text-[#9a835b]">{open ? "Close −" : "Explore +"}</span></div>
+      <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9a835b]">{item.group}</p>
+      <h3 className="mt-2 text-lg font-semibold">{item.name}</h3>
+      <p className="mt-3 text-sm leading-7 text-[#69756e]">{item.description}</p>
+    </button>
+    {open && <div className="mt-5 rounded-2xl bg-[#e9ede6] p-5 motion-safe:animate-[fadeIn_.25s_ease-out]"><p className="text-xs font-semibold text-[#315744]">What this workspace brings together</p><ul className="mt-3 space-y-2">{item.outcomes.map(outcome=><li key={outcome} className="flex gap-2 text-sm leading-6 text-[#526057]"><Check className="mt-1 h-4 w-4 shrink-0 text-[#53765c]"/>{outcome}</li>)}</ul></div>}
+  </article>;
+}
+
 export function StayNasModulePreview() {
   return <section className="bg-[#f0f1e9]">
     <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
@@ -33,7 +46,7 @@ export function StayNasModulePreview() {
         <Link to="/modules" className="inline-flex items-center gap-2 text-sm font-semibold text-[#315744]">Explore all modules <ArrowRight className="h-4 w-4"/></Link>
       </div>
       <div className="mt-10 grid gap-x-8 gap-y-0 sm:grid-cols-2 lg:grid-cols-4">
-        {modules.slice(0,8).map((item) => <article key={item.name} className="site-editorial-item p-5"><item.icon className="h-5 w-5 text-[#a1844f]"/><p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.17em] text-[#9a835b]">{item.group}</p><h3 className="mt-2 font-semibold">{item.name}</h3><p className="mt-2 text-sm leading-6 text-[#69756e]">{item.description}</p></article>)}
+        {[...modules].sort((a,b)=>["StayNas AI","Reservations","Front desk","Rooms & inventory","Guest intelligence","Housekeeping","Finance","Revenue"].indexOf(a.name)-["StayNas AI","Reservations","Front desk","Rooms & inventory","Guest intelligence","Housekeeping","Finance","Revenue"].indexOf(b.name)).slice(0,8).map((item) => <InteractiveModuleCard key={item.name} item={item}/>)}
       </div>
     </div>
   </section>;
@@ -41,8 +54,8 @@ export function StayNasModulePreview() {
 
 export function StayNasModulesPage() {
   return <main>
-    <section className="bg-[#0c211b] px-6 py-16 text-white lg:px-10 lg:py-20"><div className="mx-auto max-w-7xl"><p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#d7bd85]">Product modules</p><h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl">The workspaces behind the whole stay.</h1><p className="mt-6 max-w-2xl text-base leading-8 text-white/65">StayNas connects the functions a hospitality team needs to manage the guest journey and operate the property. Module availability depends on the deployment, configuration and release status.</p></div></section>
-    <section className="mx-auto max-w-7xl px-6 py-16 lg:px-10"><div className="grid gap-x-8 gap-y-0 md:grid-cols-2 xl:grid-cols-3">{modules.map((item) => <article key={item.name} className="site-editorial-item p-6"><div className="flex items-center justify-between"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#edf1eb] text-[#315744]"><item.icon className="h-5 w-5"/></span><span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#9a835b]">{item.group}</span></div><h2 className="mt-5 text-lg font-semibold">{item.name}</h2><p className="mt-3 text-sm leading-6 text-[#69756e]">{item.description}</p><ul className="mt-5 space-y-2">{item.outcomes.map((x) => <li key={x} className="flex gap-2 text-xs leading-5 text-[#526057]"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#53765c]"/>{x}</li>)}</ul></article>)}</div><p className="mt-8 text-xs leading-6 text-[#7a847e]">This catalogue describes the product's functional scope. It does not imply that every module is enabled, fully certified or included in every subscription.</p></section>
+    <section className="bg-[#0c211b] px-6 py-16 text-white lg:px-10 lg:py-20"><div className="mx-auto max-w-7xl"><p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#d7bd85]">Product modules</p><h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl">The workspaces behind the whole stay.</h1><p className="mt-6 max-w-2xl text-base leading-8 text-white/65">StayNas connects the functions a hospitality team needs to manage the guest journey and operate the property. Explore each workspace and how it supports a connected hospitality operation.</p></div></section>
+    <section className="mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-24"><div className="grid gap-x-10 gap-y-10 sm:grid-cols-2 xl:grid-cols-3">{[...modules].sort((a,b)=>["StayNas AI","Reservations","Front desk","Rooms & inventory","Guest intelligence","Housekeeping","Finance","Revenue","Automation","Multi-property","Integrations","Reporting & intelligence"].indexOf(a.name)-["StayNas AI","Reservations","Front desk","Rooms & inventory","Guest intelligence","Housekeeping","Finance","Revenue","Automation","Multi-property","Integrations","Reporting & intelligence"].indexOf(b.name)).map((item) => <InteractiveModuleCard key={item.name} item={item}/>)}</div><p className="mt-8 text-xs leading-6 text-[#7a847e]">This catalogue describes the product's functional scope. It does not imply that every module is enabled, fully certified or included in every subscription.</p></section>
     <section className="bg-[#10271f] text-white"><div className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-14 lg:flex-row lg:items-center lg:justify-between lg:px-10"><div><p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#d7bd85]">See the modules in context</p><h2 className="mt-3 text-2xl font-semibold sm:text-3xl">Walk through your property's operating model.</h2></div><Link to="/request-demo" className="inline-flex items-center gap-2 self-start rounded-full bg-[#d7bd85] px-6 py-3.5 text-sm font-semibold text-[#14271f]">Request a demo <ArrowRight className="h-4 w-4"/></Link></div></section>
   </main>;
 }
