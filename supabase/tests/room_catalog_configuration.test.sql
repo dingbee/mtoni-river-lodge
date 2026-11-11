@@ -1,5 +1,5 @@
 begin;
-select plan(10);
+select plan(11);
 select ok(
   to_regprocedure('public.save_platform_room_type_configuration(uuid,uuid,text,text,uuid,text,text,text,text[],jsonb,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text,text[])') is not null,
   'atomic room configuration RPC is installed'
@@ -39,6 +39,10 @@ select ok(
 select ok(
   not has_table_privilege('authenticated','public.rooms','TRUNCATE'),
   'authenticated users cannot truncate physical room inventory definitions'
+);
+select ok(
+  pg_get_functiondef(to_regprocedure('public.save_platform_room_type_configuration(uuid,uuid,text,text,uuid,text,text,text,text[],jsonb,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text,text[])')) like '%SKIP LOCKED%',
+  'physical room reductions serialize against concurrent room-state updates'
 );
 select * from finish();
 rollback;

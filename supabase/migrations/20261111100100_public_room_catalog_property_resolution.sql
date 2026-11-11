@@ -61,6 +61,7 @@ DECLARE
   _old_units integer := 0;
   _remove_count integer := 0;
   _removable_units integer := 0;
+  _deleted_units integer := 0;
 BEGIN
   IF auth.uid() IS NULL
      OR NOT public.staynas_user_has_property_access(auth.uid(), _property_id)
@@ -185,14 +186,23 @@ BEGIN
       RAISE EXCEPTION 'Cannot reduce quantity: physical room units are booked, occupied, blocked or otherwise protected';
     END IF;
 
-    DELETE FROM public.room_states
-    WHERE id IN (
-      SELECT id FROM public.room_states
+    WITH removable_units AS (
+      SELECT id
+      FROM public.room_states
       WHERE property_id = _property_id AND room_id = _room_id
         AND booking_id IS NULL AND state IN ('vacant_clean','vacant_dirty')
       ORDER BY unit_label DESC
+      FOR UPDATE SKIP LOCKED
       LIMIT _remove_count
-    );
+    )
+    DELETE FROM public.room_states rs
+    USING removable_units ru
+    WHERE rs.id = ru.id;
+
+    GET DIAGNOSTICS _deleted_units = ROW_COUNT;
+    IF _deleted_units <> _remove_count THEN
+      RAISE EXCEPTION 'Room quantity changed concurrently; retry after inventory updates finish';
+    END IF;
   END IF;
 
   RETURN _room_id;
