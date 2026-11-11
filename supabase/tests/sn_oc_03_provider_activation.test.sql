@@ -1,6 +1,7 @@
 -- SN-OC-03 integrated database acceptance fixture.
 -- Run only after the complete supabase/migrations chain has been applied to an isolated database.
 BEGIN;
+CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SELECT plan(1);
 SELECT lives_ok(
 $sn_oc_03_test$
