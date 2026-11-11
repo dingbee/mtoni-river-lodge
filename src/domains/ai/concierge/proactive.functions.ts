@@ -231,7 +231,7 @@ export const listRecommendations = createServerFn({ method: "GET" })
     const propertyId = await requirePropertyScope(context.supabase, context.userId, ["owner", "manager", "admin", "reception"]);
     const bookingIds = await propertyBookingIds(context.supabase, propertyId);
     if (bookingIds.length === 0) return [];
-    let q: any = context.supabase
+    const q: any = context.supabase
       .from("ai_concierge_recommendations")
       .select(
         "id, guest_id, booking_id, session_id, recommendation_type, item_slug, item_name, title, reasoning, confidence, evidence, status, notes, reviewed_at, created_at, updated_at",
