@@ -9,13 +9,13 @@ CREATE TABLE auth.users(id uuid PRIMARY KEY);
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$
   SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
 $$;
-CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $
+CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$
   SELECT nullif(current_setting('request.jwt.claim.role', true), '')
-$;
+$$;
 CREATE FUNCTION public.is_staynas_founder_ai_admin()
-RETURNS boolean LANGUAGE sql STABLE AS $
+RETURNS boolean LANGUAGE sql STABLE AS $$
   SELECT COALESCE(current_setting('request.jwt.claim.role', true), '') = 'founder'
-$;
+$$;
 GRANT EXECUTE ON FUNCTION public.is_staynas_founder_ai_admin() TO authenticated;
 
 CREATE TYPE public.app_role AS ENUM ('owner','manager','admin','reservations','reception','marketing');
