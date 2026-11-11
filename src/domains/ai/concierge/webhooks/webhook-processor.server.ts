@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- These provider tables and RPCs are newer than the generated Supabase Database type; the migration acceptance suite validates their contracts. */
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json, Tables } from "@/integrations/supabase/types";
