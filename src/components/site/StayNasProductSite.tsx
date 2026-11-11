@@ -23,6 +23,11 @@ const capabilityIcons: Record<string, typeof BedDouble> = {
 export function ProductSiteHeader() {
   const [open, setOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState<"root" | "platform">("root");
+  const links = [
+    { to: "/platform", label: "Platform" },
+    { to: "/modules", label: "Modules" },
+    { to: "/product-tour", label: "Product walkthrough" },
+  ] as const;
   const [expanded, setExpanded] = useState<string | null>("Platform");
   const groups = [
     { label: "Solutions", items: [{ to: "/solutions", label: "By hospitality business" }, { to: "/integrations", label: "Integrations & ecosystem" }] },
@@ -90,7 +95,7 @@ export function ProductSiteHeader() {
               <Link to="/platform" onClick={closeMenu} className="flex min-h-[112px] items-center border-b border-[#e8e1d5] text-[25px] font-medium text-[#25232a] transition hover:text-[#315744]">Overview</Link>
               {platformSections.map(section => <section key={section.heading} className="border-b border-[#e8e1d5] py-7">
                 <h3 className="mb-5 text-[17px] font-medium text-[#8d8580]">{section.heading}</h3>
-                <div className="space-y-1">{section.items.map(item => <Link key={item.label} to={item.to} onClick={closeMenu} className="flex min-h-[58px] items-center py-3 text-[21px] font-normal tracking-tight text-[#25232a] transition-colors hover:text-[#315744]">{item.label}</Link>)}</div>
+                <div className="space-y-1">{section.items.map(item => <a key={item.label} href={item.to} onClick={closeMenu} className="flex min-h-[58px] items-center py-3 text-[21px] font-normal tracking-tight text-[#25232a] transition-colors hover:text-[#315744]">{item.label}</a>)}</div>
               </section>)}
               <Link to="/architecture" onClick={closeMenu} className="flex min-h-[76px] items-center border-b border-[#e8e1d5] text-[20px] text-[#25232a]">Architecture</Link>
             </> : <>
