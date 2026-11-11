@@ -4,6 +4,8 @@
 -- Authenticated staff retain read access only to properties they belong to.
 DROP POLICY IF EXISTS "Public read active rooms" ON public.rooms;
 DROP POLICY IF EXISTS "Public read active room categories" ON public.room_categories;
+DROP POLICY IF EXISTS "Staff manage own property rooms" ON public.rooms;
+DROP POLICY IF EXISTS "Room admins manage own property categories" ON public.room_categories;
 
 CREATE POLICY "Property members read active rooms"
   ON public.rooms FOR SELECT TO authenticated
@@ -11,10 +13,29 @@ CREATE POLICY "Property members read active rooms"
 
 CREATE POLICY "Property members read active room categories"
   ON public.room_categories FOR SELECT TO authenticated
-  USING (status = 'active' AND public.staynas_user_has_property_access(auth.uid(), property_id));
+  USING (public.staynas_user_has_property_access(auth.uid(), property_id));
+
+CREATE POLICY "Room admins manage own property categories"
+  ON public.room_categories FOR ALL TO authenticated
+  USING (EXISTS (
+    SELECT 1 FROM public.staynas_property_members pm
+    WHERE pm.user_id = auth.uid()
+      AND pm.property_id = room_categories.property_id
+      AND pm.status = 'active'
+      AND pm.role IN ('owner','manager','admin')
+  ))
+  WITH CHECK (EXISTS (
+    SELECT 1 FROM public.staynas_property_members pm
+    WHERE pm.user_id = auth.uid()
+      AND pm.property_id = room_categories.property_id
+      AND pm.status = 'active'
+      AND pm.role IN ('owner','manager','admin')
+  ));
 
 REVOKE ALL PRIVILEGES ON TABLE public.rooms, public.room_categories FROM PUBLIC, anon;
-GRANT SELECT ON TABLE public.rooms, public.room_categories TO authenticated, service_role;
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.rooms FROM authenticated;
+GRANT SELECT ON TABLE public.rooms TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.room_categories TO authenticated, service_role;
 
 
 -- Room configuration persistence and physical inventory reconciliation.
