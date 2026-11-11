@@ -10,6 +10,7 @@ export type NotificationKind =
   | "room_maintenance"
   | "task_assigned"
   | "guest_request"
+  | "housekeeping_exception"
   | "other";
 
 export type OsNotification = {
@@ -53,6 +54,16 @@ function titleFor(evt: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+type HousekeepingNotificationRow = {
+  id: string;
+  kind: string;
+  title: string;
+  body: string | null;
+  href: string | null;
+  read_at: string | null;
+  created_at: string;
+};
+
 type PendingRow = {
   id: string;
   event_type: string;
@@ -85,27 +96,46 @@ function toNotification(row: PendingRow): OsNotification {
 }
 
 /**
- * Load recent notifications from the `pending_notifications` queue.
- * The panel subscribes to realtime inserts via `useRealtimeNotifications`.
+ * Load platform notifications and recipient-scoped housekeeping notifications.
+ * Both streams remain protected by their respective RLS policies.
  */
 export function useNotifications() {
   return useQuery<OsNotification[]>({
     queryKey: NOTIF_QUERY_KEY,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pending_notifications")
-        .select("id, event_type, booking_id, created_at, processed_at, payload")
-        .order("created_at", { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return (data ?? []).map((r) => toNotification(r as PendingRow));
+      const [platformResult, housekeepingResult] = await Promise.all([
+        supabase.from("pending_notifications")
+          .select("id, event_type, booking_id, created_at, processed_at, payload")
+          .order("created_at", { ascending: false }).limit(50),
+        supabase.from("housekeeping_notifications")
+          .select("id, kind, title, body, href, read_at, created_at")
+          .order("created_at", { ascending: false }).limit(50),
+      ]);
+      if (platformResult.error) throw platformResult.error;
+      if (housekeepingResult.error) throw housekeepingResult.error;
+      const platform = (platformResult.data ?? []).map((row) => toNotification(row as PendingRow));
+      const housekeeping = (housekeepingResult.data ?? []).map((row) => {
+        const item = row as HousekeepingNotificationRow;
+        return {
+          id: "housekeeping:" + item.id,
+          kind: "housekeeping_exception" as const,
+          title: item.title,
+          body: item.body ?? undefined,
+          href: item.href ?? undefined,
+          createdAt: item.created_at,
+          read: item.read_at !== null,
+        };
+      });
+      return [...platform, ...housekeeping]
+        .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+        .slice(0, 50);
     },
     staleTime: 30_000,
   });
 }
 
 /**
- * Subscribes to pending notification changes and refreshes the shared query.
+ * Subscribes to platform and housekeeping notification changes and refreshes the shared query.
  * Each mounted instance owns a unique channel; listeners are always attached
  * before subscribe(), and the channel is removed when that instance unmounts.
  */
@@ -121,6 +151,13 @@ export function useRealtimeNotifications() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "pending_notifications" },
+        () => {
+          if (active) void qc.invalidateQueries({ queryKey: NOTIF_QUERY_KEY });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "housekeeping_notifications" },
         () => {
           if (active) void qc.invalidateQueries({ queryKey: NOTIF_QUERY_KEY });
         },
