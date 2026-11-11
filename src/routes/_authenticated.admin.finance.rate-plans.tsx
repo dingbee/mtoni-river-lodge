@@ -124,6 +124,27 @@ function RatePlans() {
       a.rate_plan_id===editing.id&&a.room_type_id===rt.id&&a.active,
     ),
   );
+  const readBaseRates=():Record<string,{nightly_rate:number;currency:string}>=>{
+    try {
+      const parsed=JSON.parse(ratePlanDataText||"{}") as {base_rates?:Record<string,{nightly_rate?:number;currency?:string}|null>};
+      return Object.fromEntries(Object.entries(parsed.base_rates??{}).filter(([,value])=>value&&typeof value==="object")) as Record<string,{nightly_rate:number;currency:string}>;
+    } catch { return {}; }
+  };
+  const setBaseRate=(roomTypeId:string,rawValue:string)=>{
+    try {
+      const parsed=JSON.parse(ratePlanDataText||"{}") as Record<string,unknown>;
+      const rates=(parsed.base_rates&&typeof parsed.base_rates==="object"?parsed.base_rates:{}) as Record<string,unknown>;
+      if(rawValue===""){delete rates[roomTypeId];}
+      else {
+        const amount=Number(rawValue);
+        if(!Number.isFinite(amount)||amount<=0)return;
+        rates[roomTypeId]={nightly_rate:amount,currency};
+      }
+      parsed.base_rates=rates;
+      setRatePlanDataText(JSON.stringify(parsed,null,2));
+    } catch { toast.error("Fix the advanced rate data before changing base rates."); }
+  };
+  const baseRateEntries=readBaseRates();
   const addSeason=()=>{
     if(!editing){toast.error("Create the rate plan and assign room types before adding seasonal rates.");return;}
     if(!seasonKey.trim()||!seasonName.trim()||!seasonStart||!seasonEnd||!seasonRate||!seasonRoomTypes.length){
@@ -326,8 +347,29 @@ function RatePlans() {
         <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Effective to</span><Input type="date" value={to} onChange={e=>setTo(e.target.value)} aria-label="Effective to"/></label>
         <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={refundable?"refundable":"non_refundable"} onChange={e=>setRefundable(e.target.value==="refundable")}><option value="refundable">Refundable</option><option value="non_refundable">Non-refundable</option></select>
         <Input className="md:col-span-3" placeholder="Description and booking conditions" value={description} onChange={e=>setDescription(e.target.value)}/>
-        <label className="md:col-span-3 space-y-1 text-sm"><span className="font-medium">Advanced inheritance data (JSON)</span><textarea className="min-h-40 w-full min-w-0 max-w-full rounded-md border border-border bg-background p-3 font-mono text-xs" value={ratePlanDataText} onChange={e=>setRatePlanDataText(e.target.value)} spellCheck={false}/><span className="block text-xs text-muted-foreground">Allowed keys: base_rates, seasonal_rates, daily_rates, occupancy_rules, restrictions. Seasonal and daily rates can be managed above. Use keyed objects; JSON null explicitly clears an inherited key.</span></label>
       </div>
+      <div className="mt-5 min-w-0 rounded-lg border border-border p-3 sm:p-4 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div><h3 className="text-sm font-semibold">Base nightly rates</h3><p className="mt-1 text-xs text-muted-foreground">Set the standard nightly amount for each room type assigned to this plan. Currency follows this rate plan.</p></div>
+          <Badge variant="outline">{currency || "Set currency above"}</Badge>
+        </div>
+        {!editing?<p className="text-sm text-muted-foreground">Create the rate plan, save it, assign room types in the plan list, then edit it to enter base rates.</p>:!assignedPlanRoomTypes.length?<p className="text-sm text-muted-foreground">Assign room types to this plan below before entering their base rates.</p>:(
+          <div className="divide-y divide-border rounded-md border border-border">
+            {assignedPlanRoomTypes.map((rt:{id:string;name:string})=>{
+              const rate=baseRateEntries[rt.id];
+              return <div key={rt.id} className="grid min-w-0 grid-cols-1 items-center gap-2 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(160px,240px)]">
+                <div className="min-w-0"><p className="text-sm font-medium">{rt.name}</p><p className="text-xs text-muted-foreground">{rate?"Base rate configured":"No base rate configured"}{parent&&!rate?" · may inherit from parent plan":""}</p></div>
+                <label className="flex min-w-0 items-center gap-2"><Input aria-label={"Base nightly rate for "+rt.name} type="number" min="0.01" step="0.01" placeholder="Enter nightly rate" value={rate?.nightly_rate??""} onChange={e=>setBaseRate(rt.id,e.target.value)}/><span className="shrink-0 text-xs text-muted-foreground">{currency}</span></label>
+              </div>;
+            })}
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">Leave a room type blank only when its rate is intentionally inherited from a parent plan or supplied by a valid seasonal/daily rate. A plan without an eligible rate remains unsellable.</p>
+      </div>
+      <details className="mt-4 rounded-lg border border-border p-3">
+        <summary className="cursor-pointer text-sm font-medium">Advanced pricing data</summary>
+        <label className="mt-3 block space-y-1 text-sm"><span className="font-medium">Advanced inheritance data (JSON)</span><textarea className="min-h-40 w-full min-w-0 max-w-full rounded-md border border-border bg-background p-3 font-mono text-xs" value={ratePlanDataText} onChange={e=>setRatePlanDataText(e.target.value)} spellCheck={false}/><span className="block text-xs text-muted-foreground">Advanced keys: base_rates, seasonal_rates, daily_rates, occupancy_rules and restrictions. Base rates, seasonal rates and daily rates can be managed with the editors on this page.</span></label>
+      </details>
       <div className="mt-5 min-w-0 rounded-lg border border-border p-3 sm:p-4 space-y-3">
         <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4"/><h3 className="text-sm font-semibold">Seasonal pricing</h3></div>
         <p className="text-xs text-muted-foreground">Add low, shoulder, high, peak, festive, event or custom seasons. Dates are inclusive property-local calendar dates; annual recurrence is not enabled. Higher priority wins when active seasons overlap.</p>
