@@ -94,7 +94,7 @@ function ConversationsPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="secondary">{s.channel}</Badge>
-                {(s.channel_consent ?? []).map((preference) => (
+                {(s.channel_consent ?? []).map((preference: any) => (
                   <Badge
                     key={preference.purpose}
                     variant={preference.consent_status === "withdrawn" ? "destructive" : "outline"}
