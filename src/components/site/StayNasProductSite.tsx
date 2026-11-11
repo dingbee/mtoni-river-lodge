@@ -145,7 +145,7 @@ export function ProductSiteHeader() {
       }
       html { scroll-behavior: smooth; }
       .staynas-public-site main section { scroll-margin-top: 6rem; }
-      .capability-reveal { opacity: .28; transform: translateY(22px); transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.2,1), border-color .3s ease; }
+      .capability-reveal { transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.2,1), border-color .3s ease; }\n      .capability-reveal[data-reveal-pending="true"] { opacity: .28; transform: translateY(22px); }
       .capability-reveal[data-revealed="true"] { opacity: 1; transform: translateY(0); }
       .capability-reveal:hover { border-color: #c7a96b; }
       [data-scroll-emphasis] p, [data-scroll-emphasis] h2 { transition: opacity .5s ease, font-weight .5s ease, letter-spacing .5s ease; }
@@ -286,6 +286,7 @@ function CapabilityCard({ item, index }: { item: PublicCapability; index: number
   useEffect(() => {
     const node = cardRef.current;
     if (!node || typeof IntersectionObserver === "undefined") return;
+    node.dataset.revealPending = "true";
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
         node.dataset.revealed = "true";
