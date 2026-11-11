@@ -46,6 +46,7 @@ CREATE TABLE public.staynas_property_members(
 
 \i supabase/migrations/20261110120000_lb03_room_charge_authorization_posting.sql
 \i supabase/migrations/20261110121000_lb03_folio_reversal_approval.sql
+\i supabase/migrations/20261110122000_lb03_reversal_approval_queue.sql
 
 INSERT INTO auth.users(id) VALUES ('90000000-0000-4000-8000-000000000001');
 INSERT INTO public.guests(id) VALUES ('80000000-0000-4000-8000-000000000001');
