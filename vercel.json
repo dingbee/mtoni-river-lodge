@@ -58,6 +58,10 @@
     {
       "path": "/api/internal/communications/recovery",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/internal/integrations/lb02/dispatch",
+      "schedule": "*/5 * * * *"
     }
   ]
 }
