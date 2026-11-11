@@ -51,9 +51,12 @@ new = """  FROM generate_series(13, 21) g
    AND NOT EXISTS (
    SELECT 1 FROM public.room_states
     WHERE room_id = '3b476463-ea58-4d5b-abb4-ad460e844a8b'"""
-if old not in room_source:
-    raise SystemExit("Expected optional room-state insert was not found.")
-room_migration.write_text(room_source.replace(old, new, 1))
+if old in room_source:
+    room_migration.write_text(room_source.replace(old, new, 1))
+elif "standard-river-" not in room_source or "_standard_room_id" not in room_source:
+    raise SystemExit("Room-state migration is neither legacy nor the expected portable slug-based fixture.")
+# The committed migration already resolves generated room IDs by stable slugs,
+# so no ephemeral room-state rewrite is needed.
 
 # The historical booking fixture now resolves the seeded room and unit by stable
 # slugs/labels, so it is intentionally applied in clean CI rather than skipped.
@@ -170,7 +173,11 @@ cc01_migration = Path(
     "supabase/migrations/20261106180545_cc01_authorization_identity_scope.sql"
 )
 cc01_source = cc01_migration.read_text()
-cc01_patched, cc01_count = pattern.subn(conditional_revoke, cc01_source)
-if cc01_count < 1:
-    raise SystemExit("No CC-01 trigger-function revokes found; inspect migration drift.")
-cc01_migration.write_text(cc01_patched)
+if "to_regprocedure(v_signature)" in cc01_source:
+    # The committed migration already guards optional trigger-function revokes.
+    pass
+else:
+    cc01_patched, cc01_count = pattern.subn(conditional_revoke, cc01_source)
+    if cc01_count < 1:
+        raise SystemExit("No CC-01 trigger-function revokes found; inspect migration drift.")
+    cc01_migration.write_text(cc01_patched)
