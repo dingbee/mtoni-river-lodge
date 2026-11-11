@@ -23,6 +23,18 @@ export const Route = createFileRoute("/_authenticated/admin/ai/concierge/convers
 });
 
 type ChannelFilter = "all" | "web" | "whatsapp" | "email";
+type ConversationConsent = { purpose: string; consent_status: string };
+type ConversationSummary = {
+  id: string;
+  guest_name: string | null;
+  guest_email: string | null;
+  message_count: number;
+  last_active_at: string;
+  channel: string;
+  channel_consent?: ConversationConsent[] | null;
+  escalated: boolean;
+  identity_confidence: number | null;
+};
 function ConversationsPage() {
   const listFn = useServerFn(listConciergeConversations);
   const statsFn = useServerFn(getOmnichannelAnalytics);
@@ -81,7 +93,7 @@ function ConversationsPage() {
           {list.data?.length === 0 && (
             <p className="p-3 text-sm text-muted-foreground">No conversations yet.</p>
           )}
-          {list.data?.map((s: any) => (
+          {list.data?.map((s: ConversationSummary) => (
             <div key={s.id} className="flex items-center justify-between px-3 py-2 text-sm">
               <div className="min-w-0">
                 <p className="truncate font-medium">
@@ -94,7 +106,7 @@ function ConversationsPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="secondary">{s.channel}</Badge>
-                {(s.channel_consent ?? []).map((preference: any) => (
+                {(s.channel_consent ?? []).map((preference: ConversationConsent) => (
                   <Badge
                     key={preference.purpose}
                     variant={preference.consent_status === "withdrawn" ? "destructive" : "outline"}
