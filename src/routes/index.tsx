@@ -1,5 +1,4 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
 import { ProductHomePage } from "@/components/site/StayNasProductSite";
 
 export const Route = createFileRoute("/")({
@@ -36,31 +35,9 @@ export const Route = createFileRoute("/")({
 
     if (isProductWebsiteHost) return;
 
-    // Resolve platform authority from the authenticated database identity.
-    // A transient auth/network failure must not strand the public root route
-    // on the global error screen; the rooms route remains the safe fallback.
-    let data: Awaited<ReturnType<typeof supabase.auth.getUser>>["data"];
-    let error: Awaited<ReturnType<typeof supabase.auth.getUser>>["error"];
-    try {
-      ({ data, error } = await supabase.auth.getUser());
-    } catch {
-      throw redirect({ to: "/rooms" });
-    }
-
-    if (!error && data.user) {
-      let isFounder = false;
-      try {
-        const result = await (supabase as any).rpc(
-          "commercial_is_founder_admin",
-          { _principal_id: data.user.id },
-        );
-        isFounder = !result.error && result.data === true;
-      } catch {
-        // A failed authority lookup must never grant founder access.
-      }
-      throw redirect({ to: isFounder ? "/founder" : "/settings" });
-    }
-
+    // Product website hosts render the marketing homepage. The application
+    // host has a deterministic public landing route and must not depend on
+    // Supabase auth availability merely to open the site.
     throw redirect({ to: "/rooms" });
   },
   component: ProductHomePage,
