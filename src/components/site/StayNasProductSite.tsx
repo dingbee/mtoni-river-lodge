@@ -76,14 +76,14 @@ export function ProductSiteHeader() {
       </div>
 
       {open && <div className="fixed inset-0 z-[100] lg:hidden">
-        <button type="button" aria-label="Close navigation overlay" onClick={closeMenu} className="absolute inset-0 h-full w-full bg-black/45 backdrop-blur-[2px]"/>
-        <aside id="staynas-mobile-navigation" role="dialog" aria-modal="true" aria-label="StayNas navigation" className="absolute inset-y-0 right-0 flex h-[100dvh] w-full max-w-[440px] flex-col overflow-hidden bg-[#fffaf0] text-[#201d25] shadow-2xl">
-          <div className="flex min-h-[88px] items-center justify-between border-b border-[#e8e1d5] px-6 sm:px-8">
+        <button type="button" aria-label="Close navigation overlay" onClick={closeMenu} className="absolute inset-0 h-full w-full cursor-default bg-[#071710]/55 backdrop-blur-[2px]"/>
+        <aside id="staynas-mobile-navigation" role="dialog" aria-modal="true" aria-label="StayNas navigation" onClick={(event) => event.stopPropagation()} className="absolute inset-y-0 right-0 flex h-[100dvh] w-[min(100%,440px)] flex-col overflow-hidden bg-[#f6f5ef] text-[#15251f] shadow-2xl">
+          <div className="flex min-h-[88px] items-center justify-between border-b border-[#deded4] px-6 sm:px-8">
             <Link to="/" onClick={closeMenu} className="flex items-center gap-3" aria-label="StayNas home">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c7a96b] text-lg font-semibold text-[#10251e]">S</span>
               <span className="text-[17px] font-semibold tracking-[0.1em] text-[#25232a]">STAYNAS <span className="font-normal tracking-normal text-[#8b8278]">Hospitality OS</span></span>
             </Link>
-            <button type="button" aria-label="Close navigation menu" onClick={closeMenu} className="inline-flex h-11 w-11 items-center justify-center rounded-full text-[#29242c] transition hover:bg-[#f0eade]">
+            <button type="button" aria-label="Close navigation menu" onClick={closeMenu} className="inline-flex h-11 w-11 items-center justify-center rounded-full text-[#29242c] transition hover:bg-[#e9ede6]">
               <X className="h-7 w-7"/>
             </button>
           </div>
@@ -92,12 +92,12 @@ export function ProductSiteHeader() {
             {groups.map((group) => {
               const isExpanded = expanded === group.label;
               return <section key={group.label} className="border-b border-[#e8e1d5]">
-                <button type="button" aria-expanded={isExpanded} onClick={() => toggleGroup(group.label)} className={"flex min-h-[76px] w-full items-center justify-between text-left text-[22px] font-medium transition-colors " + (isExpanded ? "text-[#c65a36]" : "text-[#25232a] hover:text-[#c65a36]")}>
+                <button type="button" aria-expanded={isExpanded} onClick={() => toggleGroup(group.label)} className={"flex min-h-[76px] w-full items-center justify-between text-left text-[22px] font-medium transition-colors " + (isExpanded ? "text-[#315744]" : "text-[#25232a] hover:text-[#c65a36]")}>
                   {group.label}
                   {isExpanded ? <ChevronDown className="h-6 w-6"/> : <ChevronRight className="h-6 w-6"/>}
                 </button>
                 {isExpanded && <div className="space-y-1 pb-5 pl-1">
-                  {group.items.map((item) => <Link key={item.to} to={item.to} onClick={closeMenu} className="flex items-center justify-between rounded-lg px-3 py-3 text-base text-[#625d61] transition hover:bg-[#f3eee4] hover:text-[#b94d2c]">
+                  {group.items.map((item) => <Link key={item.to} to={item.to} onClick={closeMenu} className="flex items-center justify-between rounded-lg px-3 py-3 text-base text-[#625d61] transition hover:bg-[#e9ede6] hover:text-[#315744]">
                     {item.label}<ArrowUpRight className="h-4 w-4 opacity-60"/>
                   </Link>)}
                 </div>}
@@ -125,8 +125,8 @@ export function ProductSiteHeader() {
             <Link to="/admin" onClick={closeMenu} className="mt-6 flex min-h-[54px] items-center justify-center rounded-full border border-[#8f877d] px-6 text-base font-medium text-[#37323a] transition hover:bg-[#f3eee4]">Login</Link>
           </nav>
 
-          <div className="shrink-0 border-t border-[#e8e1d5] bg-[#fffaf0] px-5 pb-[max(18px,env(safe-area-inset-bottom))] pt-4 sm:px-8">
-            <Link to="/request-demo" onClick={closeMenu} className="flex min-h-[58px] w-full items-center justify-center rounded-full bg-[#f04b24] px-6 text-base font-semibold text-white shadow-sm transition hover:bg-[#dc401d]">
+          <div className="shrink-0 border-t border-[#e8e1d5] bg-[#f6f5ef] px-5 pb-[max(18px,env(safe-area-inset-bottom))] pt-4 sm:px-8">
+            <Link to="/request-demo" onClick={closeMenu} className="flex min-h-[58px] w-full items-center justify-center rounded-full bg-[#d7bd85] px-6 text-base font-semibold text-[#14271f] shadow-sm transition hover:bg-[#e5d0a4]">
               Book a Demo
             </Link>
           </div>
@@ -303,7 +303,7 @@ export function ProductHomePage() {
             <div className="rounded-[28px] border border-white/15 bg-white/[0.07] p-5 shadow-2xl backdrop-blur-sm sm:p-7">
               <div className="flex items-center justify-between border-b border-white/10 pb-5"><div><p className="text-xs uppercase tracking-[0.2em] text-white/45">The connected property</p><p className="mt-1 text-lg font-semibold">One operating environment</p></div><span className="rounded-full border border-emerald-300/25 bg-emerald-300/10 px-3 py-1 text-[10px] text-emerald-200">Platform overview</span></div>
               <div className="mt-5 grid grid-cols-2 gap-3">
-                {STAYNAS_PILLARS.map((pillar,index)=><div key={pillar.name} className="rounded-2xl border border-white/10 bg-[#102c23] p-4"><span className="text-[10px] font-semibold text-[#d7bd85]">0{index+1}</span><p className="mt-3 text-sm font-semibold">{pillar.name}</p><p className="mt-2 text-xs leading-5 text-white/45">{pillar.description}</p></div>)}
+                {STAYNAS_PILLARS.map((pillar)=><div key={pillar.name} className="rounded-2xl border border-white/10 bg-[#102c23] p-5"><p className="text-sm font-semibold">{pillar.name}</p><p className="mt-2 text-xs leading-5 text-white/45">{pillar.description}</p></div>)}
               </div>
               <div className="mt-4 rounded-2xl border border-[#d7bd85]/25 bg-[#d7bd85]/10 p-4"><div className="flex items-center gap-2 text-sm font-semibold text-[#ead8b3]"><Sparkles className="h-4 w-4"/> Intelligence across the operation</div><p className="mt-2 text-xs leading-5 text-white/55">A connected view of the guest journey, property activity and management decisions.</p></div>
               <p className="mt-4 text-[10px] text-white/35">Conceptual platform overview · Not a live operational dashboard</p>
@@ -313,13 +313,13 @@ export function ProductHomePage() {
       </section>
       <section className="mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-24">
         <div className="max-w-2xl"><Eyebrow>One connected platform</Eyebrow><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">The systems behind a better-run property.</h2><p className="mt-5 text-base leading-7 text-[#69756e]">Hospitality teams should not have to coordinate their entire operation across disconnected tools. StayNas brings the core work of running a property into one environment.</p></div>
-        <div className="mt-10 grid gap-x-8 gap-y-0 sm:grid-cols-2 lg:grid-cols-3">{STAYNAS_PILLARS.map((pillar,index)=><div key={pillar.name} className="site-editorial-item p-6"><span className="text-xs font-semibold text-[#a1844f]">0{index+1}</span><h3 className="mt-4 text-lg font-semibold">{pillar.name}</h3><p className="mt-2 text-sm leading-6 text-[#69756e]">{pillar.description}</p></div>)}</div>
+        <div className="mt-10 grid gap-x-8 gap-y-0 sm:grid-cols-2 lg:grid-cols-3">{STAYNAS_PILLARS.map((pillar)=><div key={pillar.name} className="site-editorial-item p-7"><h3 className="text-lg font-semibold">{pillar.name}</h3><p className="mt-2 text-sm leading-6 text-[#69756e]">{pillar.description}</p></div>)}</div>
         <div className="mt-8"><Link to="/platform" className="inline-flex items-center gap-2 text-sm font-semibold text-[#315744]">Explore platform capabilities <ArrowRight className="h-4 w-4"/></Link></div>
       </section>
       <section className="bg-[#e9ede6]">
         <div className="mx-auto grid max-w-7xl gap-12 px-6 py-20 lg:grid-cols-2 lg:items-center lg:px-10">
           <div><Eyebrow>From first enquiry to departure</Eyebrow><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">A guest journey that connects to the operation.</h2><p className="mt-5 text-base leading-7 text-[#647169]">A reservation is not an isolated transaction. It creates work across reception, rooms, housekeeping, guest communication and finance. StayNas is designed to connect those steps.</p><Link to="/platform" className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-[#315744]">See how the platform works <ArrowRight className="h-4 w-4"/></Link></div>
-          <div className="space-y-3">{[{n:"01",t:"Discover & book",d:"Direct booking and reservation capture."},{n:"02",t:"Prepare for arrival",d:"Guest details and online check-in."},{n:"03",t:"Welcome & operate",d:"Reception, room readiness and service coordination."},{n:"04",t:"Manage & improve",d:"Financial visibility, guest context and operational intelligence."}].map(step=><div key={step.n} className="flex gap-4 border-b border-[#d4dbd1] py-5"><span className="text-sm font-semibold text-[#a1844f]">{step.n}</span><div><h3 className="font-semibold">{step.t}</h3><p className="mt-1 text-sm text-[#69756e]">{step.d}</p></div></div>)}</div>
+          <div className="space-y-3">{[{t:"Discover & book",d:"Direct booking and reservation capture."},{t:"Prepare for arrival",d:"Guest details and online check-in."},{t:"Welcome & operate",d:"Reception, room readiness and service coordination."},{t:"Manage & improve",d:"Financial visibility, guest context and operational intelligence."}].map(step=><div key={step.t} className="flex gap-4 border-b border-[#d4dbd1] py-7"><div><h3 className="font-semibold">{step.t}</h3><p className="mt-1 text-sm text-[#69756e]">{step.d}</p></div></div>)}</div>
         </div>
       </section>
       <section className="mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-24">
