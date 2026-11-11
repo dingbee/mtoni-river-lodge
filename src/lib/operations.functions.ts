@@ -96,7 +96,7 @@ export const getRoomBoard = createServerFn({ method: "GET" })
     if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const [statesRes, roomsRes, bookingsRes] = await Promise.all([
       sb.from("room_states").select("id, room_id, unit_label, state, state_note, booking_id, updated_at").eq("property_id", propertyId).order("unit_label"),
-      sb.from("rooms").select("id, slug, name, total_units, configuration_source").eq("property_id", propertyId).eq("status", "active").order("sort_order"),
+      sb.from("rooms").select("id, slug, name, total_units, configuration_source").eq("property_id", propertyId).order("sort_order"),
       sb.from("bookings")
         .select("id, reference, guest_name, check_in, check_out, status, room_id")
         .eq("property_id", propertyId)
