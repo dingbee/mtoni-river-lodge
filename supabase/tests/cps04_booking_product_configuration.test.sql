@@ -15,6 +15,12 @@ INSERT INTO auth.users (id) VALUES
   ('30000000-0000-4000-8000-000000000001'),
   ('30000000-0000-4000-8000-000000000002');
 
+-- Global authorization is read from user_roles; property membership alone is not
+-- sufficient for rate-plan inheritance and publication authorization.
+INSERT INTO public.user_roles (user_id, role) VALUES
+  ('30000000-0000-4000-8000-000000000001', 'owner'),
+  ('30000000-0000-4000-8000-000000000002', 'owner');
+
 INSERT INTO public.staynas_property_members (property_id, user_id, role, status) VALUES
   ('20000000-0000-4000-8000-000000000001', '30000000-0000-4000-8000-000000000001', 'owner', 'active'),
   ('20000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000002', 'owner', 'active');
@@ -44,6 +50,7 @@ INSERT INTO public.staynas_rate_plan_room_types
   ('20000000-0000-4000-8000-000000000001', '60000000-0000-4000-8000-000000000004', '50000000-0000-4000-8000-000000000001', true, 1);
 
 SELECT set_config('request.jwt.claim.sub', '30000000-0000-4000-8000-000000000001', true);
+SELECT set_config('request.jwt.claim.role', 'authenticated', true);
 SELECT set_config('staynas.rate_plan_publication_reason', 'CPS-04 database fixture publication lifecycle', true);
 
 -- Plan A is published twice so publication 1 is genuinely obsolete.
@@ -59,10 +66,12 @@ WHERE id IN (
 );
 
 SELECT set_config('request.jwt.claim.sub', '30000000-0000-4000-8000-000000000002', true);
+SELECT set_config('request.jwt.claim.role', 'authenticated', true);
 UPDATE public.staynas_rate_plans SET publication_status = 'published'
 WHERE id = '60000000-0000-4000-8000-000000000002';
 
 SELECT set_config('request.jwt.claim.sub', '30000000-0000-4000-8000-000000000001', true);
+SELECT set_config('request.jwt.claim.role', 'authenticated', true);
 
 -- Add deliberately invalid latest snapshots to prove currency and assignment checks
 -- against the same immutable publication contract used by production.
