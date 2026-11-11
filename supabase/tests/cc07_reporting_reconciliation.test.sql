@@ -1,7 +1,4 @@
 -- CC-07 reporting and reconciliation persistence contracts.
-CREATE SCHEMA IF NOT EXISTS extensions;
-CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SET search_path TO public, extensions;
 BEGIN;
 SELECT plan(1);
 DO $test$
