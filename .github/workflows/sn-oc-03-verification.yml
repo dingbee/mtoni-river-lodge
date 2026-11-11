@@ -82,7 +82,8 @@ jobs:
           shadow_port = 55420
           [studio]
           port = 55423
-          [inbucket]
+          [local_smtp]
+          enabled = true
           port = 55424
           smtp_port = 55425
           pop3_port = 55426
