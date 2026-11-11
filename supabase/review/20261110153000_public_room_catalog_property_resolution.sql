@@ -137,14 +137,16 @@ BEGIN
 
   IF _id IS NULL THEN
     INSERT INTO public.rooms (
-      property_id, category_id, slug, name, short_name, room_number_label,
+      property_id, configuration_source, configured_by, configured_at,
+      category_id, slug, name, short_name, room_number_label,
       short_description, description, details, cta_line, capacity_adults,
       capacity_children, max_occupancy, total_units, base_price, currency,
       included_guests, extra_guest_fee, status, sort_order, hero_line,
       image_url, gallery_urls, size_label, view_label, bed_label,
       bathroom_label, amenities
     ) VALUES (
-      _property_id, _category_id, _slug, btrim(_name), NULLIF(btrim(_short_name),''),
+      _property_id, 'tenant_configured', auth.uid(), now(),
+      _category_id, _slug, btrim(_name), NULLIF(btrim(_short_name),''),
       NULLIF(btrim(_room_number_label),''), NULLIF(btrim(_short_description),''),
       COALESCE(_description,'{}'::text[]), COALESCE(_details,'[]'::jsonb),
       NULLIF(btrim(_cta_line),''), _capacity_adults, _capacity_children,
@@ -165,6 +167,9 @@ BEGIN
     END IF;
 
     UPDATE public.rooms SET
+      configuration_source = 'tenant_configured',
+      configured_by = auth.uid(),
+      configured_at = now(),
       category_id = _category_id, slug = _slug, name = btrim(_name),
       short_name = NULLIF(btrim(_short_name),''),
       room_number_label = NULLIF(btrim(_room_number_label),''),
