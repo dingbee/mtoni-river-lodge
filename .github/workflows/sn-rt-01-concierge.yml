@@ -17,7 +17,7 @@ on:
       - "src/lib/booking-search.ts"
       - "src/lib/booking-search.test.ts"
       - "supabase/review/20261109150000_sn_rt_01_concierge_runtime_integrity.sql"
-      - "supabase/tests/sn_rt_01_concierge_integrity.test.sql"
+      - "scripts/ci/sn_rt_01_concierge_integrity.test.sql"
       - ".github/workflows/sn-rt-01-concierge.yml"
   pull_request:
     branches:
@@ -35,7 +35,7 @@ on:
       - "src/lib/booking-search.ts"
       - "src/lib/booking-search.test.ts"
       - "supabase/review/20261109150000_sn_rt_01_concierge_runtime_integrity.sql"
-      - "supabase/tests/sn_rt_01_concierge_integrity.test.sql"
+      - "scripts/ci/sn_rt_01_concierge_integrity.test.sql"
       - ".github/workflows/sn-rt-01-concierge.yml"
 
 jobs:
@@ -127,4 +127,4 @@ jobs:
       - name: Execute isolated Concierge migration, RLS, escalation and rate-limit tests
         env:
           PGPASSWORD: postgres
-        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/sn_rt_01_concierge_integrity.test.sql
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f scripts/ci/sn_rt_01_concierge_integrity.test.sql
