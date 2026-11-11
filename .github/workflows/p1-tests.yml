@@ -7,6 +7,7 @@ on:
       - fix/pesapal-*
       - fix/ci-*
       - main
+      - feat/lb03-*
       - feat/finance-*
       - feat/spe-03-*
       - feat/spe-04-*
