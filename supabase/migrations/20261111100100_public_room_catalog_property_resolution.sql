@@ -32,8 +32,7 @@ CREATE POLICY "Room admins manage own property categories"
       AND pm.role IN ('owner','manager','admin')
   ));
 
-REVOKE ALL PRIVILEGES ON TABLE public.rooms, public.room_categories FROM PUBLIC, anon;
-REVOKE INSERT, UPDATE, DELETE ON TABLE public.rooms FROM authenticated;
+REVOKE ALL PRIVILEGES ON TABLE public.rooms, public.room_categories FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.rooms TO authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.room_categories TO authenticated, service_role;
 

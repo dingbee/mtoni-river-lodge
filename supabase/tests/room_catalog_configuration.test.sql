@@ -1,5 +1,5 @@
 begin;
-select plan(9);
+select plan(10);
 select ok(
   to_regprocedure('public.save_platform_room_type_configuration(uuid,uuid,text,text,uuid,text,text,text,text[],jsonb,text,integer,integer,integer,integer,numeric,text,integer,numeric,text,integer,text,text,text[],text,text,text,text,text[])') is not null,
   'atomic room configuration RPC is installed'
@@ -35,6 +35,10 @@ select ok(
 select ok(
   exists(select 1 from pg_policies where schemaname='public' and tablename='room_categories' and policyname='Room admins manage own property categories' and qual like '%staynas_property_members%'),
   'category writes require a property-scoped manager membership'
+);
+select ok(
+  not has_table_privilege('authenticated','public.rooms','TRUNCATE'),
+  'authenticated users cannot truncate physical room inventory definitions'
 );
 select * from finish();
 rollback;
