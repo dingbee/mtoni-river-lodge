@@ -9,6 +9,7 @@ on:
       - "src/routes/api/internal/communications/**"
       - "supabase/migrations/**"
       - "supabase/tests/sn_oc_03_provider_activation.test.sql"
+      - "scripts/ci/sn_rt_01_concierge_integrity.test.sql"
       - ".github/workflows/sn-oc-03-verification.yml"
 
 permissions:
