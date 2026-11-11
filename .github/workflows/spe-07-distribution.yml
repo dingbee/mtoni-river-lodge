@@ -60,7 +60,6 @@ jobs:
             supabase/review/20261109130000_cc06_founder_notifications.sql \
             supabase/review/20261109140000_cc06_commercial_account_contacts.sql \
             supabase/review/20261109150000_cc06_founder_subscription_creation.sql \
-            supabase/review/20261110153000_public_room_catalog_property_resolution.sql
           do
             psql "postgresql://postgres:postgres@localhost:54322/postgres" -v ON_ERROR_STOP=1 -f "$migration"
           done
