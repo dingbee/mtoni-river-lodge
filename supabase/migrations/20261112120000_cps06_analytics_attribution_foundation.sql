@@ -374,8 +374,8 @@ create trigger staynas_quote_attribution_property_guard
   before insert or update of attribution_id,property_id on public.staynas_reservation_quotes
   for each row execute function public.staynas_validate_booking_attribution_property();
 
-drop trigger if exists staynas_booking_attribution_property_guard on public.bookings;
-create trigger staynas_booking_attribution_property_guard
+drop trigger if exists staynas_z_booking_attribution_property_guard on public.bookings;
+create trigger staynas_z_booking_attribution_property_guard
   before insert or update of attribution_id,property_id on public.bookings
   for each row execute function public.staynas_validate_booking_attribution_property();
 
