@@ -506,6 +506,7 @@ DECLARE
   v_message text;
   v_message_id uuid;
   v_web_enabled boolean;
+  v_updated_rows integer;
 BEGIN
   IF auth.role() <> 'service_role' AND NOT public.staynas_ai_property_in_active_context(
     p_property_id,ARRAY['owner','manager','admin','reservations']::public.app_role[]
@@ -579,6 +580,8 @@ BEGIN
   JOIN public.staynas_properties property ON property.id=policy.property_id
   WHERE escalation.id=p_escalation_id AND escalation.property_id=p_property_id
     AND policy.property_id=p_property_id AND policy.priority=COALESCE(p_priority,v_escalation.priority) AND policy.enabled;
+  GET DIAGNOSTICS v_updated_rows = ROW_COUNT;
+  IF v_updated_rows <> 1 THEN RAISE EXCEPTION 'No enabled property SLA policy exists for this escalation priority' USING ERRCODE='23514'; END IF;
 
   IF v_escalation.ops_task_id IS NOT NULL THEN
     UPDATE public.ops_tasks SET
