@@ -7,6 +7,7 @@ DO $test$
 DECLARE
   v_rel oid;
   v_report text;
+  v_lifecycle text;
 BEGIN
   SELECT c.oid INTO v_rel
   FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
@@ -65,6 +66,18 @@ BEGIN
     RAISE EXCEPTION 'Anonymous role can execute server-only attribution or event-ingestion RPCs';
   END IF;
 
+  SELECT pg_get_functiondef(p.oid) INTO v_lifecycle
+  FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+  WHERE n.nspname='public' AND p.proname='staynas_capture_booking_analytics_lifecycle';
+  IF v_lifecycle IS NULL
+     OR position('manual_payment' in v_lifecycle)=0
+     OR position('payment_completed' in v_lifecycle)=0
+     OR position('provider_reversal' in v_lifecycle)=0
+     OR position('payment_reversed' in v_lifecycle)=0
+     OR position('payment_refunded' in v_lifecycle)=0 THEN
+    RAISE EXCEPTION 'Payment ledger event normalization does not cover manual, Pesapal, cash refund and provider reversal events';
+  END IF;
+
   SELECT pg_get_functiondef(p.oid) INTO v_report
   FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
   WHERE n.nspname='public' AND p.proname='staynas_get_booking_analytics';
@@ -73,7 +86,8 @@ BEGIN
      OR position('confirmed_booking_value' in v_report)=0
      OR position('amount_paid' in v_report)=0
      OR position('outstanding' in v_report)=0
-     OR position('refunds' in v_report)=0 THEN
+     OR position('refunds' in v_report)=0
+     OR position('provider_reversals' in v_report)=0 THEN
     RAISE EXCEPTION 'Financial reconciliation or campaign currency separation is incomplete';
   END IF;
 END
