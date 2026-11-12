@@ -198,7 +198,7 @@ function EscalationCard({ row, assignees, onPatch }: {
             {assignees.map((m) => <option key={m.user_id} value={m.user_id}>{m.role} · {m.user_id.slice(0,8)}</option>)}
           </select>
         </label>
-        <Button size="sm" variant="outline" disabled={!assignee || assignee === row.assigned_to || ["resolved","dismissed"].includes(row.status)} onClick={() => onPatch({id:row.id,status:"assigned",assigned_to:assignee})}>Assign / reassign</Button>
+        <Button size="sm" variant="outline" disabled={!assignee || assignee === row.assigned_to || ["resolved","dismissed"].includes(row.status)} onClick={() => onPatch({id:row.id,status:row.status === "open" ? "assigned" : undefined,assigned_to:assignee})}>Assign / reassign</Button>
         {row.assigned_to && !["resolved","dismissed"].includes(row.status) && <Button size="sm" variant="outline" onClick={() => onPatch({id:row.id,status:"open",assigned_to:null})}>Unassign</Button>}
       </div>
       <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Resolution notes…" />
