@@ -492,9 +492,10 @@ REVOKE ALL ON FUNCTION public.staynas_process_concierge_sla_alerts() FROM PUBLIC
 GRANT EXECUTE ON FUNCTION public.staynas_process_concierge_sla_alerts() TO service_role;
 
 -- Extend the existing atomic transition RPC with explicit reopen support.
+DROP FUNCTION IF EXISTS public.staynas_transition_concierge_escalation(uuid,uuid,text,uuid,text);
 CREATE OR REPLACE FUNCTION public.staynas_transition_concierge_escalation(
   p_escalation_id uuid,p_property_id uuid,p_status text DEFAULT NULL,
-  p_assigned_to uuid DEFAULT NULL,p_resolution_notes text DEFAULT NULL
+  p_assigned_to uuid DEFAULT NULL,p_resolution_notes text DEFAULT NULL,p_priority smallint DEFAULT NULL
 ) RETURNS boolean
 LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public, pg_temp
@@ -515,6 +516,9 @@ BEGIN
   SELECT * INTO v_escalation FROM public.ai_escalations
   WHERE id=p_escalation_id AND property_id=p_property_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Escalation not found in active property' USING ERRCODE='P0002'; END IF;
+  IF p_priority IS NOT NULL AND (p_priority NOT BETWEEN 1 AND 3 OR NOT EXISTS (
+    SELECT 1 FROM public.ai_escalation_sla_policies WHERE property_id=p_property_id AND priority=p_priority AND enabled
+  )) THEN RAISE EXCEPTION 'Selected priority has no enabled SLA policy' USING ERRCODE='23514'; END IF;
   IF p_assigned_to IS NOT NULL AND NOT EXISTS (
     SELECT 1 FROM public.staynas_property_members m WHERE m.property_id=p_property_id
       AND m.user_id=p_assigned_to AND m.status='active'
@@ -550,6 +554,7 @@ BEGIN
 
   UPDATE public.ai_escalations AS escalation SET
     status=v_next_status,
+    priority=COALESCE(p_priority,escalation.priority),
     assigned_to=CASE WHEN p_assigned_to IS NOT NULL THEN p_assigned_to
       WHEN v_next_status='open' AND v_escalation.status IN ('assigned','acknowledged','in_progress','resolved','dismissed') THEN NULL
       ELSE assigned_to END,
@@ -615,8 +620,8 @@ BEGIN
 END
 $function$;
 
-REVOKE ALL ON FUNCTION public.staynas_transition_concierge_escalation(uuid,uuid,text,uuid,text) FROM PUBLIC,anon;
-GRANT EXECUTE ON FUNCTION public.staynas_transition_concierge_escalation(uuid,uuid,text,uuid,text) TO authenticated,service_role;
+REVOKE ALL ON FUNCTION public.staynas_transition_concierge_escalation(uuid,uuid,text,uuid,text,smallint) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.staynas_transition_concierge_escalation(uuid,uuid,text,uuid,text,smallint) TO authenticated,service_role;
 
 -- Invoke the alert processor every minute through Supabase pg_cron. The job is
 -- idempotent and does not depend on Vercel Cron or a Vercel deployment.
