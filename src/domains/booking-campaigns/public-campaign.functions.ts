@@ -159,7 +159,7 @@ export const recordPublicBookingCampaignEvent = createServerFn({ method: "POST" 
       .select("id,status").eq("id", channel.propertyId).eq("slug", data.propertySlug).maybeSingle();
     if (propertyError || !property || property.status !== "active" || property.id !== channel.propertyId) throw new Error("Campaign attribution property does not match the verified booking domain.");
     const { data: campaign, error: campaignError } = await sb.from("booking_campaigns")
-      .select("id,property_id,status,starts_at,ends_at").eq("id", data.campaignId).eq("property_id", property.id).maybeSingle();
+      .select("id,property_id,status,starts_at,ends_at,slug").eq("id", data.campaignId).eq("property_id", property.id).maybeSingle();
     const now = Date.now();
     if (campaignError || !campaign || campaign.status !== "published"
       || (campaign.starts_at && Date.parse(campaign.starts_at) > now)
@@ -222,12 +222,53 @@ export const recordPublicBookingCampaignEvent = createServerFn({ method: "POST" 
       _utm_content: data.utmContent ?? null,
       _utm_term: data.utmTerm ?? null,
       _referrer: data.referrer ?? null,
-      _landing_page: `/p/${data.propertySlug}/campaign/${campaignSlug}`,
+      _landing_page: `/p/${data.propertySlug}/campaign/${campaign.slug}`,
       _metadata: { offer_id: data.offerId ?? null },
     });
     if (analyticsError) throw new Error("Campaign analytics event could not be recorded.");
     return { recorded: true };
   });
 
+
+export const recordPublicDirectBookingAnalyticsEvent = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => z.object({
+    propertySlug: campaignSlug,
+    sessionKey: z.string().trim().min(16).max(140),
+    source: z.string().trim().max(200).optional(),
+    medium: z.string().trim().max(200).optional(),
+    utmCampaign: z.string().trim().max(200).optional(),
+    utmContent: z.string().trim().max(200).optional(),
+    utmTerm: z.string().trim().max(200).optional(),
+    referrer: z.string().url().max(2000).optional(),
+    landingPage: z.string().trim().max(2000),
+  }).parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const sb = supabaseAdmin as any;
+    const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
+    const { data: property, error: propertyError } = await sb.from("staynas_properties")
+      .select("id,organisation_id,status").eq("id", channel.propertyId).eq("slug", data.propertySlug).maybeSingle();
+    if (propertyError || !property || property.status !== "active" || property.organisation_id !== channel.organisationId)
+      throw new Error("Booking analytics property does not match the verified public domain.");
+    const touch = { source: data.source ?? null, medium: data.medium ?? null, utm_campaign: data.utmCampaign ?? null,
+      utm_content: data.utmContent ?? null, utm_term: data.utmTerm ?? null, referrer: data.referrer ?? null,
+      landing_page: data.landingPage };
+    const { data: attribution, error: attributionError } = await sb.rpc("staynas_upsert_booking_attribution", {
+      _property_id: property.id, _organisation_id: channel.organisationId, _session_key: data.sessionKey,
+      _touch: touch, _touch_at: new Date().toISOString(),
+      _is_external_acquisition: Boolean(data.source || data.medium || data.utmCampaign || data.referrer),
+    });
+    if (attributionError || !attribution?.attribution_id) throw new Error("Booking page attribution could not be initialized.");
+    const { error: eventError } = await sb.rpc("staynas_record_booking_analytics_event", {
+      _property_id: property.id, _organisation_id: channel.organisationId,
+      _event_type: "booking_page_viewed", _event_key: "cps6:direct:" + data.sessionKey + ":view",
+      _event_source: "browser_observed", _attribution_id: attribution.attribution_id,
+      _session_key: data.sessionKey, _traffic_source: data.source ?? null, _traffic_medium: data.medium ?? null,
+      _utm_campaign: data.utmCampaign ?? null, _utm_content: data.utmContent ?? null, _utm_term: data.utmTerm ?? null,
+      _referrer: data.referrer ?? null, _landing_page: data.landingPage,
+    });
+    if (eventError) throw new Error("Booking page analytics event could not be recorded.");
+    return { recorded: true };
+  });
 
 /** Resolve a short campaign slug on the property selected by the current booking-domain configuration. */
