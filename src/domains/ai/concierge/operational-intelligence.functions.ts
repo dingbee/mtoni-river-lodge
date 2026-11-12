@@ -104,7 +104,7 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
     const since = periodStart.toISOString();
 
     const [property, sessions, messageRows, legacyMessages, feedbackRows, leadRows, escalationRows, documentRows, chunkRows, searchRows, conciergeAttributionRows, campaignAttributionRows, slaEventRows, slaAlertRows, slaPolicyRows] = await Promise.all([
-      sb.from("staynas_properties").select("id,currency,timezone").eq("id", propertyId).maybeSingle(),
+      sb.from("staynas_properties").select("id,timezone").eq("id", propertyId).maybeSingle(),
       sb.from("ai_concierge_sessions").select("id", { count: "exact", head: true }).eq("property_id", propertyId).gte("created_at", since),
       fetchAllRows(() => sb.from("ai_omnichannel_messages")
         .select("id,property_id,session_id,channel,direction,actor_type,message_type,status,provider,provider_message_id,client_message_id,occurred_at")
@@ -221,7 +221,6 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
       period_start: since,
       period_end: periodEnd.toISOString(),
       timezone: property.data.timezone ?? "UTC",
-      currency: property.data.currency ?? null,
       generated_at: new Date().toISOString(),
       source_status: "queried",
       operations: {
