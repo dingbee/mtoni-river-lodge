@@ -29,11 +29,28 @@ export function trackGAEvent(
       ? window.location.href
       : `${window.location.origin}${safePath}`;
 
+  const safeParams: GAEventParams = { ...params };
+  if (typeof safeParams.destination_url === "string") {
+    try {
+      const destination = new URL(safeParams.destination_url, window.location.origin);
+      if (destination.pathname.startsWith("/guest/")) {
+        destination.pathname = "/guest/[credential]";
+        destination.search = "";
+        destination.hash = "";
+        safeParams.destination_url = destination.toString();
+      }
+    } catch {
+      if (safeParams.destination_url.startsWith("/guest/")) {
+        safeParams.destination_url = "/guest/[credential]";
+      }
+    }
+  }
+
   const enriched: GAEventParams = {
+    ...safeParams,
     page_location: safePageLocation,
     page_title: typeof document !== "undefined" ? document.title : undefined,
     page_path: safePath,
-    ...params,
   };
 
   if (window.gtag) {
