@@ -82,7 +82,7 @@ async function authorizeGuestPortal(token: string): Promise<GuestPortalContext> 
   const admin = await adminClient();
   const { data: access, error: accessError } = await admin
     .from("staynas_guest_portal_access")
-    .select("id, property_id, booking_id, guest_id, concierge_session_id, expires_at, revoked_at")
+    .select("id, property_id, booking_id, guest_id, concierge_session_id, expires_at, revoked_at, status")
     .eq("token_hash", hashToken(cleanToken))
     .maybeSingle();
 
@@ -491,7 +491,10 @@ export const guestPortalConciergeChat = createServerFn({ method: "POST" })
     );
   });
 
-const staffBookingSchema = z.object({ bookingId: z.string().uuid() });
+const staffBookingSchema = z.object({
+  bookingId: z.string().uuid(),
+  rotate: z.boolean().optional().default(true),
+});
 
 async function requireReservationProperty(context: {
   supabase: SupabaseClient;
@@ -509,35 +512,191 @@ async function requireReservationProperty(context: {
   return String(propertyId);
 }
 
-export const getGuestPortalAccessStatus = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => staffBookingSchema.parse(input))
-  .handler(async ({ data, context }) => {
-    const propertyId = await requireReservationProperty(context);
-    const admin = await adminClient();
-    const { data: booking, error: bookingError } = await admin
-      .from("bookings")
-      .select("id, property_id, status")
-      .eq("id", data.bookingId)
-      .eq("property_id", propertyId)
-      .maybeSingle();
-    if (bookingError || !booking) throw new Error("Booking not found in the active property.");
-    const { data: access, error } = await admin
+type GuestPortalIssueResult = {
+  token: string | null;
+  expiresAt: string;
+  accessId: string;
+  alreadyActive: boolean;
+};
+
+async function issueGuestPortalAccessForBooking(input: {
+  propertyId: string;
+  bookingId: string;
+  actorId: string;
+  rotate: boolean;
+}): Promise<GuestPortalIssueResult> {
+  const admin = await adminClient();
+  const { data: booking, error: bookingError } = await admin
+    .from("bookings")
+    .select("id, property_id, guest_id, guest_name, guest_email, guest_phone, status")
+    .eq("id", input.bookingId)
+    .eq("property_id", input.propertyId)
+    .maybeSingle();
+
+  if (bookingError || !booking) throw new Error("Booking not found in the active property.");
+  if (booking.status !== "checked_in") {
+    throw new Error("Guest portal access can be issued only after the guest is checked in.");
+  }
+
+  if (!input.rotate) {
+    const { data: existing, error: existingError } = await admin
       .from("staynas_guest_portal_access")
-      .select("id, expires_at, created_at")
-      .eq("booking_id", data.bookingId)
-      .eq("property_id", propertyId)
+      .select("id, expires_at")
+      .eq("property_id", input.propertyId)
+      .eq("booking_id", booking.id)
+      .is("guest_id", booking.guest_id)
+      .eq("status", "active")
       .is("revoked_at", null)
       .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (existingError) throw new Error("Guest access status could not be verified.");
+    if (existing) {
+      return {
+        token: null,
+        expiresAt: existing.expires_at,
+        accessId: existing.id,
+        alreadyActive: true,
+      };
+    }
+  }
+
+  const token = randomBytes(32).toString("base64url");
+  const sessionToken = "cnc_" + randomBytes(32).toString("base64url");
+  const { data: session, error: sessionError } = await admin
+    .from("ai_concierge_sessions")
+    .insert({
+      session_token: sessionToken,
+      property_id: input.propertyId,
+      guest_id: booking.guest_id,
+      guest_name: booking.guest_name,
+      guest_email: booking.guest_email,
+      guest_phone: booking.guest_phone,
+      channel: "web",
+      page_context: { page: "guest_portal", booking_id: booking.id },
+    })
+    .select("id")
+    .single();
+
+  if (sessionError || !session) {
+    throw new Error("Guest assistance session could not be prepared.");
+  }
+
+  const { data: issued, error: issueError } = await admin.rpc(
+    "staynas_issue_guest_portal_access",
+    {
+      _property_id: input.propertyId,
+      _booking_id: booking.id,
+      _guest_id: booking.guest_id,
+      _concierge_session_id: session.id,
+      _token_hash: hashToken(token),
+      _actor_id: input.actorId,
+    },
+  );
+
+  if (issueError || !issued?.access_id || !issued?.expires_at) {
+    await admin.from("ai_concierge_sessions").delete().eq("id", session.id);
+    throw new Error("Guest portal access could not be issued. The previous credential remains valid.");
+  }
+
+  return {
+    token,
+    expiresAt: String(issued.expires_at),
+    accessId: String(issued.access_id),
+    alreadyActive: false,
+  };
+}
+
+/**
+ * Called only after the authoritative booking transition succeeds.
+ * It is safe to retry: an existing active credential is not rotated.
+ */
+export async function ensureGuestPortalAccessAfterCheckIn(
+  supabase: SupabaseClient,
+  actorId: string,
+  bookingId: string,
+): Promise<{ issued: boolean; alreadyActive: boolean; expiresAt: string | null }> {
+  const { data: propertyId, error } = await supabase.rpc("staynas_active_property_id", {
+    _uid: actorId,
+  });
+  if (error || !propertyId) throw new Error("Active property could not be resolved for guest access.");
+  const result = await issueGuestPortalAccessForBooking({
+    propertyId: String(propertyId),
+    bookingId,
+    actorId,
+    rotate: false,
+  });
+  return {
+    issued: !result.alreadyActive,
+    alreadyActive: result.alreadyActive,
+    expiresAt: result.expiresAt,
+  };
+}
+
+export const getGuestPortalAccessStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => staffBookingSchema.pick({ bookingId: true }).parse(input))
+  .handler(async ({ data, context }) => {
+    const propertyId = await requireReservationProperty(context);
+    const admin = await adminClient();
+    const { data: booking, error: bookingError } = await admin
+      .from("bookings")
+      .select("id, property_id, guest_id, guest_name, reference, room_id, check_in, check_out, status")
+      .eq("id", data.bookingId)
+      .eq("property_id", propertyId)
+      .maybeSingle();
+    if (bookingError || !booking) throw new Error("Booking not found in the active property.");
+
+    const [accessResult, propertyResult, roomResult, eventsResult] = await Promise.all([
+      admin
+        .from("staynas_guest_portal_access")
+        .select("id, guest_id, status, expires_at, created_at, created_by, last_used_at, revoked_at")
+        .eq("booking_id", data.bookingId)
+        .eq("property_id", propertyId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      admin.from("staynas_properties").select("name, timezone").eq("id", propertyId).maybeSingle(),
+      admin.from("rooms").select("name").eq("id", booking.room_id).eq("property_id", propertyId).maybeSingle(),
+      admin
+        .from("staynas_guest_portal_access_events")
+        .select("id, event_type, actor_id, metadata, created_at")
+        .eq("booking_id", data.bookingId)
+        .eq("property_id", propertyId)
+        .order("created_at", { ascending: false })
+        .limit(25),
+    ]);
+
+    if (accessResult.error || eventsResult.error) {
+      throw new Error("Guest portal access history could not be loaded.");
+    }
+    const access = accessResult.data;
+    const expired = Boolean(access && Date.parse(access.expires_at) <= Date.now() && !access.revoked_at);
+    const status = access?.revoked_at
+      ? (access.status === "superseded" ? "superseded" : "revoked")
+      : expired
+        ? "expired"
+        : access?.status ?? "not_issued";
+
     return {
       eligible: booking.status === "checked_in",
-      active: Boolean(access),
-      expiresAt: access?.expires_at ?? null,
+      active: status === "active",
+      status,
+      accessId: access?.id ?? null,
+      guestId: booking.guest_id,
+      guestName: booking.guest_name,
+      reservationReference: booking.reference,
+      propertyName: propertyResult.data?.name ?? "Property",
+      timezone: propertyResult.data?.timezone ?? "UTC",
+      roomName: roomResult.data?.name ?? null,
       createdAt: access?.created_at ?? null,
+      expiresAt: access?.expires_at ?? null,
+      createdBy: access?.created_by ?? null,
+      lastUsedAt: access?.last_used_at ?? null,
+      events: eventsResult.data ?? [],
+      deliveryStatus: "not_sent",
+      multipleGuestAccess: false,
     };
   });
 
@@ -546,99 +705,29 @@ export const issueGuestPortalAccess = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => staffBookingSchema.parse(input))
   .handler(async ({ data, context }) => {
     const propertyId = await requireReservationProperty(context);
-    const admin = await adminClient();
-    const { data: booking, error: bookingError } = await admin
-      .from("bookings")
-      .select(
-        "id, property_id, guest_id, guest_name, guest_email, guest_phone, room_id, check_in, check_out, status",
-      )
-      .eq("id", data.bookingId)
-      .eq("property_id", propertyId)
-      .maybeSingle();
-    if (bookingError || !booking) throw new Error("Booking not found in the active property.");
-    if (booking.status !== "checked_in") {
-      throw new Error("Guest portal access can be issued only after the guest is checked in.");
-    }
-
-    const { data: property } = await admin
-      .from("staynas_properties")
-      .select("timezone")
-      .eq("id", propertyId)
-      .maybeSingle();
-    const today = localDate(property?.timezone);
-    if (booking.check_in > today || booking.check_out < today) {
-      throw new Error("Guest portal access can be issued only during the reservation dates.");
-    }
-
-    const token = randomBytes(32).toString("base64url");
-    const sessionToken = "cnc_" + randomBytes(32).toString("base64url");
-    const { data: session, error: sessionError } = await admin
-      .from("ai_concierge_sessions")
-      .insert({
-        session_token: sessionToken,
-        property_id: propertyId,
-        guest_id: booking.guest_id,
-        guest_name: booking.guest_name,
-        guest_email: booking.guest_email,
-        guest_phone: booking.guest_phone,
-        channel: "web",
-        page_context: { page: "guest_portal", booking_id: booking.id },
-      })
-      .select("id")
-      .single();
-    if (sessionError || !session)
-      throw new Error("Guest assistance session could not be prepared.");
-
-    const expiresAt = new Date(Date.now() + PORTAL_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
-    const { data: access, error: insertError } = await admin
-      .from("staynas_guest_portal_access")
-      .insert({
-        property_id: propertyId,
-        booking_id: booking.id,
-        guest_id: booking.guest_id,
-        concierge_session_id: session.id,
-        token_hash: hashToken(token),
-        expires_at: expiresAt,
-        created_by: context.userId,
-      })
-      .select("id, expires_at")
-      .single();
-
-    if (insertError || !access) {
-      await admin.from("ai_concierge_sessions").delete().eq("id", session.id);
-      throw new Error("Guest portal access could not be issued.");
-    }
-
-    const { error: revokeError } = await admin
-      .from("staynas_guest_portal_access")
-      .update({ revoked_at: new Date().toISOString(), revoked_by: context.userId })
-      .eq("property_id", propertyId)
-      .eq("booking_id", booking.id)
-      .neq("id", access.id)
-      .is("revoked_at", null);
-    if (revokeError) {
-      await admin
-        .from("staynas_guest_portal_access")
-        .update({ revoked_at: new Date().toISOString(), revoked_by: context.userId })
-        .eq("id", access.id);
-      throw new Error("Previous guest access could not be safely rotated. No new link was issued.");
-    }
-
-    return { token, expiresAt: access.expires_at };
+    const result = await issueGuestPortalAccessForBooking({
+      propertyId,
+      bookingId: data.bookingId,
+      actorId: context.userId,
+      rotate: data.rotate,
+    });
+    return result;
   });
 
 export const revokeGuestPortalAccess = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => staffBookingSchema.parse(input))
+  .inputValidator((input: unknown) =>
+    z.object({ bookingId: z.string().uuid(), guestId: z.string().uuid().nullable().optional() }).parse(input),
+  )
   .handler(async ({ data, context }) => {
     const propertyId = await requireReservationProperty(context);
     const admin = await adminClient();
-    const { error } = await admin
-      .from("staynas_guest_portal_access")
-      .update({ revoked_at: new Date().toISOString(), revoked_by: context.userId })
-      .eq("booking_id", data.bookingId)
-      .eq("property_id", propertyId)
-      .is("revoked_at", null);
+    const { data: count, error } = await admin.rpc("staynas_revoke_guest_portal_access", {
+      _property_id: propertyId,
+      _booking_id: data.bookingId,
+      _guest_id: data.guestId ?? null,
+      _actor_id: context.userId,
+    });
     if (error) throw new Error("Guest portal access could not be revoked.");
-    return { ok: true };
+    return { ok: true, revokedCount: Number(count ?? 0) };
   });
