@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
-import { ensureGuestPortalAccessAfterCheckIn } from "@/domains/hospitality/guest-portal/guest-portal.functions";
 
 async function assertStaff(supabase: any, userId: string) {
   const { data, error } = await supabase.rpc("is_any_staff", { _user_id: userId });
@@ -248,6 +247,9 @@ export const checkInBooking = createServerFn({ method: "POST" })
       accessId: "",
     };
     try {
+      const { ensureGuestPortalAccessAfterCheckIn } = await import(
+        "@/domains/hospitality/guest-portal/guest-portal-access.server"
+      );
       guestPortalAccess = await ensureGuestPortalAccessAfterCheckIn(
         context.supabase,
         context.userId,
