@@ -642,6 +642,14 @@ async function issueGuestPortalAccessForBooking(input: {
     .single();
 
   if (sessionError || !session) {
+    await admin.from("staynas_guest_portal_access_events").insert({
+      property_id: input.propertyId,
+      booking_id: booking.id,
+      guest_id: booking.guest_id,
+      actor_id: input.actorId,
+      event_type: "issue_failed",
+      metadata: { phase: "session_preparation" },
+    });
     throw new Error("Guest assistance session could not be prepared.");
   }
 
@@ -660,6 +668,14 @@ async function issueGuestPortalAccessForBooking(input: {
 
   if (issueError || !issued?.access_id || !issued?.expires_at) {
     await admin.from("ai_concierge_sessions").delete().eq("id", session.id);
+    await admin.from("staynas_guest_portal_access_events").insert({
+      property_id: input.propertyId,
+      booking_id: booking.id,
+      guest_id: booking.guest_id,
+      actor_id: input.actorId,
+      event_type: "issue_failed",
+      metadata: { phase: "credential_rpc" },
+    });
     throw new Error("Guest portal access could not be issued. The previous credential remains valid.");
   }
 
