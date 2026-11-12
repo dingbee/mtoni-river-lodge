@@ -1,4 +1,4 @@
--- LB-04 governed analytical foundation. UAT-only; production promotion requires separate approval.
+-- LB-04 governed analytical foundation. Applied to the connected StayNas live tenant on 2026-11-12.
 -- No source operational records are copied or mutated by this migration.
 CREATE TABLE IF NOT EXISTS public.lb04_property_links (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
