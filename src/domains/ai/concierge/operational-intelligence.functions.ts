@@ -136,14 +136,20 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
 
     const response = responseIntervals(messageRows);
     const escalationCreatedAt = new Map(escalationRows.map((row: any) => [row.id, row.created_at]));
-    const acknowledgedIntervals = slaEventRows
-      .filter((event: any) => event.event_type === "acknowledged")
-      .map((event: any) => Date.parse(event.occurred_at) - Date.parse(event.metadata?.sla_cycle_started_at ?? escalationCreatedAt.get(event.escalation_id) ?? event.occurred_at))
-      .filter((value: number) => Number.isFinite(value) && value >= 0);
-    const resolvedIntervals = slaEventRows
-      .filter((event: any) => event.event_type === "resolved")
-      .map((event: any) => Date.parse(event.occurred_at) - Date.parse(event.metadata?.sla_cycle_started_at ?? escalationCreatedAt.get(event.escalation_id) ?? event.occurred_at))
-      .filter((value: number) => Number.isFinite(value) && value >= 0);
+    const acknowledgedIntervals = slaEventRows.flatMap((event: any) => {
+      if (event.event_type !== "acknowledged") return [];
+      const startedAt = event.metadata?.sla_cycle_started_at ?? escalationCreatedAt.get(event.escalation_id);
+      if (!startedAt) return [];
+      const interval = Date.parse(event.occurred_at) - Date.parse(startedAt);
+      return Number.isFinite(interval) && interval >= 0 ? [interval] : [];
+    });
+    const resolvedIntervals = slaEventRows.flatMap((event: any) => {
+      if (event.event_type !== "resolved") return [];
+      const startedAt = event.metadata?.sla_cycle_started_at ?? escalationCreatedAt.get(event.escalation_id);
+      if (!startedAt) return [];
+      const interval = Date.parse(event.occurred_at) - Date.parse(startedAt);
+      return Number.isFinite(interval) && interval >= 0 ? [interval] : [];
+    });
     const consentVerifiedLeads = leadRows.filter((row: any) => row.consent_at && row.consent_version).length;
     const leadStatusCounts = Object.fromEntries(["new", "contacted", "qualified", "converted", "closed"].map((status) => [
       status, leadRows.filter((row: any) => row.status === status).length,
