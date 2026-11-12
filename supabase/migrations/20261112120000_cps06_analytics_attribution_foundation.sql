@@ -185,7 +185,8 @@ begin
     raise exception using errcode='42501', message='Property and organisation scope do not match';
   end if;
   if _event_source='browser_observed' and (
-    _amount is not null or _currency is not null or _booking_id is not null or _quote_id is not null
+    length(btrim(coalesce(_session_key,''))) not between 16 and 200
+    or _amount is not null or _currency is not null or _booking_id is not null or _quote_id is not null
   ) then
     raise exception using errcode='42501', message='Browser-observed events cannot supply financial or ledger references';
   end if;
@@ -394,6 +395,11 @@ begin
     left join public.staynas_booking_attributions a on a.id=b.attribution_id and a.property_id=b.property_id
     where b.id=new.booking_id;
     if v_org is null then return new; end if;
+    update public.staynas_booking_attributions
+    set reservation_id=new.booking_id,
+        payment_reference=coalesce(payment_reference,new.order_tracking_id,new.merchant_reference),
+        updated_at=now()
+    where id=v_attribution and property_id=(select property_id from public.bookings where id=new.booking_id);
     if new.event_type='payment_completed' then v_type:='payment_completed';
     elsif new.event_type in ('refund','provider_reversal') then v_type:='payment_refunded';
     else return new;
@@ -428,6 +434,9 @@ begin
   left join public.staynas_booking_attributions a on a.id=new.attribution_id and a.property_id=new.property_id
   where p.id=new.property_id;
   if v_org is null then return new; end if;
+  update public.staynas_booking_attributions
+  set reservation_id=new.id, updated_at=now()
+  where id=new.attribution_id and property_id=new.property_id;
   insert into public.staynas_booking_analytics_events(
     organisation_id,property_id,attribution_id,campaign_id,booking_id,quote_id,event_type,
     event_key,event_source,currency,amount,metadata
