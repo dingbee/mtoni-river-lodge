@@ -40,4 +40,53 @@ describe("concierge direct-booking search validation", () => {
     expect(validateBookingSearch({ step: "2", session: "session-1", room: "suite" }))
       .toMatchObject({ step: 2, session: "session-1", room: "suite" });
   });
+  it("preserves a validated campaign offer and attribution context through /book navigation", () => {
+    expect(validateBookingSearch({
+      step: "2",
+      session: "8f6f8c3a-2a61-4a8c-8b7e-3d2a1c4f5e6a",
+      property: "mtoni-river-lodge",
+      campaign: "resident-escape",
+      offer: "50000000-0000-4000-8000-000000000001",
+      ratePlan: "51000000-0000-4000-8000-000000000001",
+      campaignSession: "8f6f8c3a-2a61-4a8c-8b7e-3d2a1c4f5e6a",
+      utmSource: "newsletter",
+      utmMedium: "email",
+      utmCampaign: "resident-escape",
+      utmContent: "hero-cta",
+      utmTerm: "resident",
+      referrer: "https://example.com/campaign",
+    })).toMatchObject({
+      step: 2,
+      property: "mtoni-river-lodge",
+      campaign: "resident-escape",
+      offer: "50000000-0000-4000-8000-000000000001",
+      ratePlan: "51000000-0000-4000-8000-000000000001",
+      campaignSession: "8f6f8c3a-2a61-4a8c-8b7e-3d2a1c4f5e6a",
+      utmSource: "newsletter",
+      utmMedium: "email",
+      utmCampaign: "resident-escape",
+      utmContent: "hero-cta",
+      utmTerm: "resident",
+      referrer: "https://example.com/campaign",
+    });
+  });
+
+  it("drops malformed campaign identifiers and non-HTTP referrers", () => {
+    expect(validateBookingSearch({
+      property: "../other-tenant",
+      campaign: "UPPERCASE",
+      offer: "not-a-uuid",
+      ratePlan: "not-a-uuid",
+      campaignSession: "short",
+      referrer: "javascript:alert(1)",
+    })).toMatchObject({
+      property: undefined,
+      campaign: undefined,
+      offer: undefined,
+      ratePlan: undefined,
+      campaignSession: undefined,
+      referrer: undefined,
+    });
+  });
+
 });

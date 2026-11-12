@@ -4,6 +4,7 @@ import { z } from "zod";
 import { assertSameProperty } from "@/lib/booking-property";
 import { resolvePublicDirectBookingChannel } from "@/lib/public-booking-channel.server";
 import { getPublicBookingProducts } from "@/domains/booking/booking-product-configuration.functions";
+import { publicCampaignBookingSchema, resolvePublicCampaignBookingContext } from "@/lib/public-campaign-booking.server";
 
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date");
@@ -16,7 +17,7 @@ const availabilitySchema = z.object({
   childrenBelow6: z.number().int().min(0).max(10).default(0),
   children7Plus: z.number().int().min(0).max(10).default(0),
   ratePlanId: z.string().uuid().optional(),
-});
+}).merge(publicCampaignBookingSchema);
 
 export type PublicRatePlanOption = { rate_plan_id: string; name: string; description: string | null; meal_plan: string | null; refundable: boolean; currency: string; total: number; average_nightly_rate: number; minimum_stay: number; nightly_breakdown: Array<{ date: string; nightly_rate: number; currency: string; source_label: string; pricing_basis: string; source_rate: number }>; publication_id: string; publication_number: number; rate_plan_version: number; snapshot_hash: string };
 
@@ -97,14 +98,17 @@ export const checkAvailability = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
     const propertyId = channel.propertyId;
-    const configured = await getPublicBookingProducts({
-      data: { propertyId, channel: "permanent" },
-    });
+    const campaignContext = await resolvePublicCampaignBookingContext(supabaseAdmin as any, propertyId, data);
     const allowedPlansByRoom = new Map<string, Set<string>>();
-    for (const product of configured.products as Array<{ room_id: string; rate_plan_id: string }>) {
-      const allowed = allowedPlansByRoom.get(product.room_id) ?? new Set<string>();
-      allowed.add(product.rate_plan_id);
-      allowedPlansByRoom.set(product.room_id, allowed);
+    if (campaignContext) {
+      for (const roomId of campaignContext.allowedRoomIds) allowedPlansByRoom.set(roomId, new Set([campaignContext.ratePlanId]));
+    } else {
+      const configured = await getPublicBookingProducts({ data: { channel: "permanent" } });
+      for (const product of configured.products as Array<{ room_id: string; rate_plan_id: string }>) {
+        const allowed = allowedPlansByRoom.get(product.room_id) ?? new Set<string>();
+        allowed.add(product.rate_plan_id);
+        allowedPlansByRoom.set(product.room_id, allowed);
+      }
     }
     if (allowedPlansByRoom.size === 0) return [];
     const { data: rows, error } = await (supabaseAdmin as any).rpc("get_staynas_room_availability_priced_with_rate_plan", {
@@ -117,7 +121,7 @@ export const checkAvailability = createServerFn({ method: "POST" })
       _rate_plan_id: data.ratePlanId ?? null,
     });
     if (error) throw new Error(error.message);
-    const mapped = await Promise.all(((rows ?? []) as any[]).map(async (r) => {
+    const mapped = await Promise.all(((rows ?? []) as any[]).filter((r) => !campaignContext || campaignContext.allowedRoomIds.has(String(r.room_id))).map(async (r) => {
       const allowedPlanIds = allowedPlansByRoom.get(String(r.room_id));
       if (!allowedPlanIds?.size || (data.ratePlanId && !allowedPlanIds.has(data.ratePlanId))) {
         return null;
@@ -142,6 +146,7 @@ export const checkAvailability = createServerFn({ method: "POST" })
       }
       return {
       ...r,
+      selected_rate_plan_id: campaignContext?.ratePlanId ?? r.pricing_quote?.pricing_evidence?.rate_plan_id ?? null,
       rate_plan_options: ratePlanOptions,
       nightly_total: r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" ? null : Number(r.nightly_total),
       base_price: r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" ? null : Number(r.base_price),
@@ -199,7 +204,7 @@ const createBookingSchema = z.object({
   extras: z.array(extraSchema).max(20).default([]),
   holdId: z.string().uuid().optional(),
   sessionId: z.string().min(24).max(120).optional(),
-});
+}).merge(publicCampaignBookingSchema);
 
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 
@@ -215,10 +220,12 @@ export const getBookingQuote = createServerFn({ method: "POST" })
     childrenBelow6: z.number().int().min(0).max(10).default(0),
     children7Plus: z.number().int().min(0).max(10).default(0),
     extras: z.array(extraSchema).max(20).default([]),
-  }).parse(d))
+  }).merge(publicCampaignBookingSchema).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
+    const campaignContext = await resolvePublicCampaignBookingContext(supabaseAdmin as any, channel.propertyId, data);
+    if (campaignContext && !campaignContext.allowedRoomIds.size) throw new Error("Campaign has no eligible rooms.");
     const { data: room, error: roomError } = await (supabaseAdmin as any)
       .from("rooms")
       .select("id")
@@ -227,19 +234,21 @@ export const getBookingQuote = createServerFn({ method: "POST" })
       .eq("status", "active")
       .maybeSingle();
     if (roomError || !room) throw new Error("Selected room is not available for this booking property.");
+    if (campaignContext && !campaignContext.allowedRoomIds.has(room.id)) throw new Error("Selected room is not included in this campaign.");
 
-    const configured = await getPublicBookingProducts({
-      data: { propertyId: channel.propertyId, channel: "permanent" },
-    });
-    const roomProducts = (configured.products as Array<{ room_id: string; rate_plan_id: string }>)
-      .filter((product) => product.room_id === room.id);
-    const eligiblePlanIds = new Set(roomProducts.map((product) => product.rate_plan_id));
-    if (eligiblePlanIds.size === 0) {
-      throw new Error("This room is not published for permanent direct booking.");
+    let eligiblePlanIds = new Set<string>();
+    if (campaignContext) {
+      eligiblePlanIds.add(campaignContext.ratePlanId);
+    } else {
+      const configured = await getPublicBookingProducts({ data: { channel: "permanent" } });
+      const roomProducts = (configured.products as Array<{ room_id: string; rate_plan_id: string }>)
+        .filter((product) => product.room_id === room.id);
+      eligiblePlanIds = new Set(roomProducts.map((product) => product.rate_plan_id));
+      if (eligiblePlanIds.size === 0) throw new Error("This room is not published for permanent direct booking.");
     }
     const selectedRatePlanId = data.ratePlanId ?? (eligiblePlanIds.size === 1 ? [...eligiblePlanIds][0] : null);
     if (!selectedRatePlanId || !eligiblePlanIds.has(selectedRatePlanId)) {
-      throw new Error("Select a rate plan published for this room on the permanent booking channel.");
+      throw new Error(campaignContext ? "Selected rate plan is not included in this campaign offer." : "Select a rate plan published for this room on the permanent booking channel.");
     }
 
     const { data: quote, error } = await (supabaseAdmin as any).rpc("staynas_create_public_channel_quote", {
@@ -261,6 +270,19 @@ export const getBookingQuote = createServerFn({ method: "POST" })
     if (quote.ok === false) {
       throw new Error(`Pricing rejected [${quote.error_code ?? "INVALID_RATE_CONFIGURATION"}]: ${quote.message ?? "Pricing configuration is invalid"}`);
     }
+    if (campaignContext) {
+      const { error: attributionError } = await (supabaseAdmin as any).from("campaign_attribution").upsert({
+        campaign_id: campaignContext.campaignId, property_id: channel.propertyId,
+        session_key: campaignContext.sessionKey, event_type: "booking_started",
+        event_key: `${campaignContext.campaignId}:${campaignContext.sessionKey}:booking_started`,
+        source: campaignContext.attribution.source, medium: campaignContext.attribution.medium,
+        utm_campaign: campaignContext.attribution.utm_campaign, utm_content: campaignContext.attribution.utm_content,
+        utm_term: campaignContext.attribution.utm_term, referrer: campaignContext.attribution.referrer,
+        metadata: { offerId: campaignContext.offerId, pricingEvidence: campaignContext.pricingEvidence, quoteId: quote.quote_id },
+        occurred_at: new Date().toISOString(),
+      }, { onConflict: "property_id,event_key", ignoreDuplicates: true });
+      if (attributionError) console.error("[StayNas campaign attribution] Quote created but booking-start event failed", { code: attributionError.code, propertyId: channel.propertyId });
+    }
     return quote as BookingPricingQuote;
   });
 
@@ -270,6 +292,25 @@ export const createBooking = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const sb: any = supabaseAdmin;
     const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
+    const campaignContext = await resolvePublicCampaignBookingContext(sb, channel.propertyId, {
+      ...data,
+      sessionKey: data.sessionKey ?? (data.sessionId && data.sessionId.length >= 16 ? data.sessionId : data.quoteId),
+    });
+    if (campaignContext) {
+      const { data: room, error: roomError } = await sb.from("rooms").select("id")
+        .eq("property_id", channel.propertyId).eq("slug", data.roomSlug).eq("status", "active").maybeSingle();
+      if (roomError || !room || !campaignContext.allowedRoomIds.has(room.id)) throw new Error("Selected room is not included in this campaign.");
+      const { data: quoteRecord, error: quoteError } = await sb.from("staynas_reservation_quotes")
+        .select("property_id,request,expires_at,consumed_at,booking_id")
+        .eq("id", data.quoteId).eq("property_id", channel.propertyId).maybeSingle();
+      const request = quoteRecord?.request ?? {};
+      if (quoteError || !quoteRecord || (quoteRecord.consumed_at && !quoteRecord.booking_id)
+        || (!quoteRecord.consumed_at && Date.parse(quoteRecord.expires_at) <= Date.now())
+        || request.room_slug !== data.roomSlug || request.rate_plan_id !== campaignContext.ratePlanId
+        || request.check_in !== data.checkIn || request.check_out !== data.checkOut) {
+        throw new Error("Reservation quote does not match the validated campaign offer, room, dates and property.");
+      }
+    }
     const { data: result, error } = await sb.rpc("staynas_create_public_channel_reservation", {
       _sales_channel_id: channel.channelId,
       _quote_id: data.quoteId,
@@ -298,6 +339,19 @@ export const createBooking = createServerFn({ method: "POST" })
     }
     const row = result as { booking_id?: string; reference?: string; total?: number; currency?: string };
     if (!row?.booking_id) throw new Error("Booking could not be created");
+    if (campaignContext) {
+      const { error: attributionError } = await sb.from("campaign_attribution").upsert({
+        campaign_id: campaignContext.campaignId, property_id: channel.propertyId, booking_id: row.booking_id,
+        session_key: campaignContext.sessionKey, event_type: "booking_completed",
+        event_key: `${campaignContext.campaignId}:${row.booking_id}:booking_completed`,
+        source: campaignContext.attribution.source, medium: campaignContext.attribution.medium,
+        utm_campaign: campaignContext.attribution.utm_campaign, utm_content: campaignContext.attribution.utm_content,
+        utm_term: campaignContext.attribution.utm_term, referrer: campaignContext.attribution.referrer,
+        metadata: { offerId: campaignContext.offerId, pricingEvidence: campaignContext.pricingEvidence, quoteId: data.quoteId },
+        occurred_at: new Date().toISOString(),
+      }, { onConflict: "property_id,event_key", ignoreDuplicates: true });
+      if (attributionError) console.error("[StayNas campaign attribution] Reservation created but attribution persistence failed", { code: attributionError.code, propertyId: channel.propertyId });
+    }
     // Send "reservation received" email via Lovable Emails. Never let email failure block booking.
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
