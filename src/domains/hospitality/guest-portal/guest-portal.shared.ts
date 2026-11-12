@@ -72,7 +72,7 @@ export function buildGuestPortalUrl(origin: string, token: string): string {
     throw new Error("Invalid guest access credential.");
   }
   const base = new URL(origin);
-  if (!["https:", "http:"].includes(base.protocol) || base.username || base.password) {
+  if (base.protocol !== "https:" || base.username || base.password) {
     throw new Error("Invalid Guest Portal origin.");
   }
   return `${base.origin}/guest/${encodeURIComponent(token)}`;
