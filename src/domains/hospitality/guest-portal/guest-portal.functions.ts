@@ -1070,6 +1070,15 @@ export const prepareGuestPortalDeliveryDraft = createServerFn({ method: "POST" }
     return { id: draft.id, channel: data.channel };
   });
 
+type GuestPortalOccupantRow = { guest_id: string; status: string; created_at: string };
+type GuestPortalPropertyBookingRow = { guest_id: string | null };
+type GuestPortalGuestProfile = {
+  id: string;
+  full_name: string | null;
+  email?: string | null;
+  phone_e164?: string | null;
+};
+
 export const listGuestPortalOccupants = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ bookingId: z.string().uuid() }).parse(input))
@@ -1082,18 +1091,20 @@ export const listGuestPortalOccupants = createServerFn({ method: "POST" })
       admin.from("bookings").select("guest_id").eq("property_id", propertyId).not("guest_id", "is", null).limit(500),
     ]);
     if (bookingError || !booking || relationError || propertyBookingsError) throw new Error("Registered reservation guests could not be loaded.");
-    const occupantIds = (relations ?? []).map((row: any) => row.guest_id);
-    const availableIds = [...new Set((propertyBookings ?? []).map((row: any) => row.guest_id).filter(Boolean))]
+    const occupantIds = (relations ?? []).map((row: GuestPortalOccupantRow) => row.guest_id);
+    const availableIds = [...new Set((propertyBookings ?? []).map((row: GuestPortalPropertyBookingRow) => row.guest_id).filter((id): id is string => Boolean(id)))]
       .filter((id: string) => id !== booking.guest_id && !occupantIds.includes(id));
-    const allIds = [...new Set([booking.guest_id, ...occupantIds, ...availableIds].filter(Boolean))];
+    const allIds = [...new Set([booking.guest_id, ...occupantIds, ...availableIds].filter((id): id is string => Boolean(id)))];
     const { data: profiles, error: profileError } = allIds.length
       ? await admin.from("guests").select("id,full_name,email,phone_e164").in("id", allIds)
       : { data: [], error: null };
     if (profileError) throw new Error("Registered guest profiles could not be loaded.");
-    const byId = new Map((profiles ?? []).map((profile: any) => [profile.id, profile]));
+    const byId = new Map<string, GuestPortalGuestProfile>(
+      (profiles ?? []).map((profile: GuestPortalGuestProfile) => [profile.id, profile] as const),
+    );
     return {
       leadGuest: booking.guest_id ? byId.get(booking.guest_id) ?? { id: booking.guest_id, full_name: booking.guest_name } : null,
-      occupants: (relations ?? []).map((row: any) => ({ ...byId.get(row.guest_id), addedAt: row.created_at })),
+      occupants: (relations ?? []).map((row: GuestPortalOccupantRow) => ({ ...byId.get(row.guest_id), addedAt: row.created_at })),
       availableGuests: availableIds.map((id: string) => byId.get(id)).filter(Boolean),
     };
   });
