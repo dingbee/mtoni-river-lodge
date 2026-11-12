@@ -711,11 +711,6 @@ BEGIN
 END
 $cron$;
 
-REVOKE ALL ON FUNCTION public.staynas_seed_property_escalation_sla_policies() FROM PUBLIC,anon,authenticated,service_role;
-REVOKE ALL ON FUNCTION public.staynas_set_concierge_escalation_deadlines() FROM PUBLIC,anon,authenticated,service_role;
-REVOKE ALL ON FUNCTION public.staynas_record_concierge_escalation_event() FROM PUBLIC,anon,authenticated,service_role;
 REVOKE ALL ON FUNCTION public.staynas_set_concierge_escalation_deadlines_for_row(uuid) FROM PUBLIC,anon,authenticated,service_role;
-REVOKE ALL ON FUNCTION public.staynas_refresh_property_sla_deadlines() FROM PUBLIC,anon,authenticated,service_role;
-REVOKE ALL ON FUNCTION public.staynas_record_escalation_sla_policy_event() FROM PUBLIC,anon,authenticated,service_role;
 
 COMMIT;
