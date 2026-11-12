@@ -218,7 +218,7 @@ BEGIN
   ) THEN RAISE EXCEPTION 'Revoking one occupant affected the lead guest or failed to revoke occupant'; END IF;
   BEGIN
     INSERT INTO public.staynas_booking_guest_occupants(property_id,booking_id,guest_id,created_by)
-      VALUES (v_a_property,v_booking_b,v_guest_c,v_user_a);
+      VALUES (v_a_property,v_booking_b3,v_guest_c,v_user_a);
     RAISE EXCEPTION 'Cross-property occupant relationship was accepted';
   EXCEPTION WHEN insufficient_privilege THEN
     NULL;
