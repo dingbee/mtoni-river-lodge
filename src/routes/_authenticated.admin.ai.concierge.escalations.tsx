@@ -143,7 +143,11 @@ function SlaPolicyEditor({ policy, timezone, saving, onSave }: { policy: any; ti
   );
 }
 
-function formatPropertyTime(value: string, timezone: string): string {\n  return new Intl.DateTimeFormat(undefined,{timeZone:timezone,dateStyle:"medium",timeStyle:"short"}).format(new Date(value));\n}\n\nfunction EscalationCard({ row, assignees, onPatch }: {
+function formatPropertyTime(value: string, timezone: string): string {
+  return new Intl.DateTimeFormat(undefined,{timeZone:timezone,dateStyle:"medium",timeStyle:"short"}).format(new Date(value));
+}
+
+function EscalationCard({ row, assignees, onPatch }: {
   row: EscalationRow; assignees: Array<{user_id:string;role:string}>;
   onPatch: (v: {id:string;status?:EscalationStatus;assigned_to?:string|null;resolution_notes?:string}) => void;
 }) {
