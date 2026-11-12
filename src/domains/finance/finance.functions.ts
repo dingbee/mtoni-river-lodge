@@ -4,6 +4,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
+import type { Json } from "@/integrations/supabase/types";
 
 type PaymentTimelineProviderEvidence = {
   id: string;
@@ -12,7 +13,7 @@ type PaymentTimelineProviderEvidence = {
   external_reservation_id: string;
   event_type: string;
   provider_reference: string | null;
-  evidence: Record<string, unknown>;
+  evidence: Json;
   reconciliation_status: string;
   reconciliation_code: string | null;
   received_at: string;
