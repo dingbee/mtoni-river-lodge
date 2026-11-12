@@ -11,6 +11,7 @@ export type StayNasModuleId =
   | "guests"
   | "finance"
   | "revenue"
+  | "direct-booking.analytics"
   | "automation"
   | "ai.concierge"
   | "ai.guests"
