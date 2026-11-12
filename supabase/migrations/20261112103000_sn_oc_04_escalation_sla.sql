@@ -373,7 +373,7 @@ BEGIN
     SELECT 1 FROM public.ai_escalations
     WHERE sla_policy_id=OLD.id
   ) THEN
-    RAISE EXCEPTION 'Cannot disable an SLA policy while active escalations depend on it';
+    RAISE EXCEPTION 'Cannot disable an SLA policy while any escalation references it';
   END IF;
   FOR r IN SELECT id FROM public.ai_escalations
     WHERE property_id=NEW.property_id AND priority=NEW.priority
