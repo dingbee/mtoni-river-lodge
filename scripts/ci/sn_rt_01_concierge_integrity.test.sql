@@ -387,6 +387,33 @@ RESET ROLE;
 RESET request.jwt.claim.role;
 RESET request.jwt.claim.sub;
 
+DO $sla_security_tests$
+BEGIN
+  IF has_table_privilege('anon','public.ai_escalation_sla_policies','SELECT')
+     OR has_table_privilege('anon','public.ai_escalation_events','SELECT')
+     OR has_table_privilege('anon','public.ai_escalation_sla_alerts','SELECT') THEN
+    RAISE EXCEPTION 'anonymous callers must not read SLA policy, lifecycle or alert records';
+  END IF;
+  IF NOT has_table_privilege('authenticated','public.ai_escalation_sla_policies','SELECT')
+     OR has_table_privilege('authenticated','public.ai_escalation_sla_policies','UPDATE') THEN
+    RAISE EXCEPTION 'tenant staff may read policies but policy writes must use the scoped server action';
+  END IF;
+  IF NOT has_table_privilege('authenticated','public.ai_escalation_events','SELECT')
+     OR has_table_privilege('authenticated','public.ai_escalation_events','INSERT')
+     OR has_table_privilege('authenticated','public.ai_escalation_events','UPDATE')
+     OR has_table_privilege('authenticated','public.ai_escalation_events','DELETE') THEN
+    RAISE EXCEPTION 'lifecycle history must be readable but immutable to tenant roles';
+  END IF;
+  IF NOT has_table_privilege('service_role','public.ai_escalation_sla_policies','UPDATE')
+     OR NOT has_table_privilege('service_role','public.ai_escalation_events','INSERT')
+     OR NOT has_table_privilege('service_role','public.ai_escalation_sla_alerts','INSERT')
+     OR has_table_privilege('service_role','public.ai_escalation_events','DELETE')
+     OR has_table_privilege('service_role','public.ai_escalation_sla_alerts','TRUNCATE') THEN
+    RAISE EXCEPTION 'server role SLA privileges must be scoped to policy writes and append-only event/alert inserts';
+  END IF;
+END
+$sla_security_tests$;
+
 -- SLA lifecycle, policy calendar and idempotent alert acceptance tests.
 DO $sla_schema_tests$
 BEGIN
