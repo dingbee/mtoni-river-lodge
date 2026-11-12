@@ -371,7 +371,7 @@ DECLARE r record;
 BEGIN
   IF NOT NEW.enabled AND EXISTS (
     SELECT 1 FROM public.ai_escalations
-    WHERE sla_policy_id=OLD.id AND status IN ('open','assigned','acknowledged','in_progress')
+    WHERE sla_policy_id=OLD.id
   ) THEN
     RAISE EXCEPTION 'Cannot disable an SLA policy while active escalations depend on it';
   END IF;
@@ -555,6 +555,7 @@ BEGIN
   UPDATE public.ai_escalations AS escalation SET
     status=v_next_status,
     priority=COALESCE(p_priority,escalation.priority),
+    sla_policy_id=policy.id,
     assigned_to=CASE WHEN p_assigned_to IS NOT NULL THEN p_assigned_to
       WHEN v_next_status='open' AND v_escalation.status IN ('assigned','acknowledged','in_progress','resolved','dismissed') THEN NULL
       ELSE assigned_to END,
@@ -576,7 +577,8 @@ BEGIN
     updated_at=now()
   FROM public.ai_escalation_sla_policies policy
   JOIN public.staynas_properties property ON property.id=policy.property_id
-  WHERE escalation.id=p_escalation_id AND escalation.property_id=p_property_id AND policy.id=escalation.sla_policy_id;
+  WHERE escalation.id=p_escalation_id AND escalation.property_id=p_property_id
+    AND policy.property_id=p_property_id AND policy.priority=COALESCE(p_priority,v_escalation.priority) AND policy.enabled;
 
   IF v_escalation.ops_task_id IS NOT NULL THEN
     UPDATE public.ops_tasks SET
