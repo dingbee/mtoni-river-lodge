@@ -592,7 +592,7 @@ async function issueGuestPortalAccessForBooking(input: {
       session_token: sessionToken,
       property_id: input.propertyId,
       guest_id: booking.guest_id,
-      guest_name: booking.guest_name,
+      guest_name: booking.guest_name || "Guest",
       guest_email: booking.guest_email,
       guest_phone: booking.guest_phone,
       channel: "web",
