@@ -95,7 +95,7 @@ export interface EscalationRow {
   assignment_due_at?: string | null;
   acknowledgement_due_at?: string | null;
   resolution_due_at?: string | null;
-  reopened_at?: string | null;
+  reopened_at?: string | null;\n  sla_cycle_started_at?: string | null;\n  property_timezone?: string;
   acknowledged_at?: string | null;
   created_at: string;
   updated_at: string;
