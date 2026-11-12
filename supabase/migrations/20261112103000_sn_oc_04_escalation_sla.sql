@@ -76,7 +76,7 @@ BEGIN
       THEN CASE WHEN NEW.enabled THEN 'enabled' ELSE 'disabled' END
       ELSE 'updated' END;
     INSERT INTO public.ai_escalation_sla_policy_events(property_id,policy_id,priority,event_type,actor_id,old_policy,new_policy)
-    VALUES (NEW.property_id,NEW.id,NEW.priority,v_type,auth.uid(),to_jsonb(OLD),to_jsonb(NEW));
+    VALUES (NEW.property_id,NEW.id,NEW.priority,v_type,COALESCE(auth.uid(),NEW.updated_by),to_jsonb(OLD),to_jsonb(NEW));
   END IF;
   RETURN NEW;
 END
