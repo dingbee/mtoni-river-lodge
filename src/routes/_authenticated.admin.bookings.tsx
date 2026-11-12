@@ -71,18 +71,22 @@ function AdminBookings() {
     mutationFn: (vars: { id: string; status: BookingLifecycleAction }) =>
       updateFn({ data: vars }),
     onSuccess: (result, variables) => {
-      if (result?.guestPortalAccess?.token && result?.guestPortalAccess?.accessId) {
+      const payload = result && typeof result === "object" && !Array.isArray(result)
+        ? result as { guestPortalAccess?: { issued: boolean; alreadyActive: boolean; expiresAt: string | null; accessId: string; token?: string | null; error?: string } }
+        : {};
+      const guestPortalAccess = payload.guestPortalAccess;
+      if (guestPortalAccess?.token && guestPortalAccess.accessId) {
         setIssuedGuestPortalCredential({
           bookingId: variables.id,
-          token: result.guestPortalAccess.token,
-          accessId: result.guestPortalAccess.accessId,
+          token: guestPortalAccess.token,
+          accessId: guestPortalAccess.accessId,
         });
       }
-      if (result?.guestPortalAccess?.error) {
-        toast.error(result.guestPortalAccess.error);
-      } else if (result?.guestPortalAccess?.issued) {
+      if (guestPortalAccess?.error) {
+        toast.error(guestPortalAccess.error);
+      } else if (guestPortalAccess?.issued) {
         toast.success("Booking updated and Guest Portal access issued. Open the reservation access panel to retrieve the QR code or link.");
-      } else if (result?.guestPortalAccess?.alreadyActive) {
+      } else if (guestPortalAccess?.alreadyActive) {
         toast.success("Booking updated. The existing Guest Portal credential remains active.");
       } else {
         toast.success("Booking updated");
