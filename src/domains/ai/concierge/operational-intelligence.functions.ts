@@ -182,11 +182,6 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
       ));
     }
     const confirmedBookingCount = new Set(verifiedBookings.map((row: any) => row.id)).size;
-    const { count: currencyMismatchCount, error: currencyError } = await sb.from("bookings")
-      .select("id", { count: "exact", head: true }).eq("property_id", propertyId)
-      .or(`currency.is.null,currency.neq.${property.data.currency}`);
-    if (currencyError) throw new Error(currencyError.message);
-
     const slaCompletionEvents = slaEventRows.flatMap((event: any) => {
       const milestone = event.event_type === "assigned" ? "assignment" : event.event_type === "acknowledged" ? "acknowledgement" : event.event_type === "resolved" ? "resolution" : null;
       const dueAt = milestone ? event.metadata?.[milestone === "assignment" ? "assignment_due_at" : milestone === "acknowledgement" ? "acknowledgement_due_at" : "resolution_due_at"] : null;
