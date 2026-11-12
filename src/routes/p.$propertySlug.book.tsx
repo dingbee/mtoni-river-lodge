@@ -384,6 +384,7 @@ function BookPage() {
 
   const recordPageViewFn = useServerFn(recordPublicDirectBookingAnalyticsEvent);
   const pageViewRecordedFor = useRef("");
+  const pageViewEventId = useRef<string | null>(null);
   const checkAvailabilityFn = useServerFn(checkAvailability);
   const getBookingQuoteFn = useServerFn(getBookingQuote);
   const listExtrasFn = useServerFn(listExtras);
