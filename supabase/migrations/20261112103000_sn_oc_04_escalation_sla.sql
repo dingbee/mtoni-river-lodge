@@ -477,6 +477,26 @@ FROM public.ai_escalations e
 WHERE NOT EXISTS (SELECT 1 FROM public.ai_escalation_events h WHERE h.escalation_id=e.id AND h.event_type='created');
 
 -- SLA alert worker is idempotent and sends only to active property staff via in-app.
+-- Preserve a truthful baseline for escalations that predate the immutable event stream.
+-- Only creation and explicitly stored reopen timestamps are backfilled; unknown assignment
+-- and acknowledgement times remain unknown rather than being inferred from updated_at.
+INSERT INTO public.ai_escalation_events(property_id,escalation_id,event_type,metadata,occurred_at)
+SELECT e.property_id,e.id,'created',
+  jsonb_build_object('legacy_snapshot',true,'priority',e.priority,'assignment_due_at',e.assignment_due_at,
+    'acknowledgement_due_at',e.acknowledgement_due_at,'resolution_due_at',e.resolution_due_at),
+  e.created_at
+FROM public.ai_escalations e
+WHERE NOT EXISTS (SELECT 1 FROM public.ai_escalation_events event WHERE event.escalation_id=e.id AND event.event_type='created');
+
+INSERT INTO public.ai_escalation_events(property_id,escalation_id,event_type,metadata,occurred_at)
+SELECT e.property_id,e.id,'reopened',
+  jsonb_build_object('legacy_snapshot',true,'sla_cycle_started_at',e.reopened_at,
+    'assignment_due_at',e.assignment_due_at,'acknowledgement_due_at',e.acknowledgement_due_at,'resolution_due_at',e.resolution_due_at),
+  e.reopened_at
+FROM public.ai_escalations e
+WHERE e.reopened_at IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM public.ai_escalation_events event WHERE event.escalation_id=e.id AND event.event_type='reopened');
+
 CREATE OR REPLACE FUNCTION public.staynas_process_concierge_sla_alerts()
 RETURNS integer
 LANGUAGE plpgsql SECURITY DEFINER
