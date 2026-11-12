@@ -48,6 +48,7 @@ function AdminBookings() {
   const [to, setTo] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [issuedGuestPortalCredential, setIssuedGuestPortalCredential] = useState<{ bookingId: string; token: string; accessId: string } | null>(null);
 
   const listFn = useServerFn(listBookings);
   const detailFn = useServerFn(getBookingDetail);
@@ -69,7 +70,14 @@ function AdminBookings() {
   const update = useMutation({
     mutationFn: (vars: { id: string; status: BookingLifecycleAction }) =>
       updateFn({ data: vars }),
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
+      if (result?.guestPortalAccess?.token && result?.guestPortalAccess?.accessId) {
+        setIssuedGuestPortalCredential({
+          bookingId: variables.id,
+          token: result.guestPortalAccess.token,
+          accessId: result.guestPortalAccess.accessId,
+        });
+      }
       if (result?.guestPortalAccess?.error) {
         toast.error(result.guestPortalAccess.error);
       } else if (result?.guestPortalAccess?.issued) {
@@ -373,7 +381,12 @@ function AdminBookings() {
                 )}
 
                 <CheckinAccessPanel bookingId={detail.data.booking.id} />
-                <GuestPortalAccessPanel bookingId={detail.data.booking.id} bookingStatus={detail.data.booking.status} />
+                <GuestPortalAccessPanel
+                  bookingId={detail.data.booking.id}
+                  bookingStatus={detail.data.booking.status}
+                  issuedCredential={issuedGuestPortalCredential?.bookingId === detail.data.booking.id ? issuedGuestPortalCredential : null}
+                  onCredentialConsumed={() => setIssuedGuestPortalCredential(null)}
+                />
 
                 <div className="mt-5">
                   <p className="text-[0.65rem] uppercase tracking-[0.22em] text-muted-foreground">
