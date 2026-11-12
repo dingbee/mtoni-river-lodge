@@ -696,6 +696,17 @@ export const updateEscalationReasonPriorityMap = createServerFn({ method: "POST"
     return { ok: true };
   });
 
+export const listEscalationSlaPolicyEvents = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
+    const { data, error } = await (context.supabase as any).from("ai_escalation_sla_policy_events")
+      .select("id,priority,event_type,actor_id,old_policy,new_policy,occurred_at")
+      .eq("property_id",propertyId).order("occurred_at",{ascending:false}).limit(100);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
 export const listEscalationSlaAlerts = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { escalation_id: string }) => {
