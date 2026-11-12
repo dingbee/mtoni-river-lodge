@@ -80,7 +80,13 @@ describe("guest portal environment origin", () => {
       .toBe("https://uat.staynas.example");
   });
 
-  it("rejects unapproved preview and local development hosts", () => {
+  it("accepts the canonical production and approved UAT hosts", () => {
+    expect(guestPortalOrigin("https://staynas.nolmark.co")).toBe("https://staynas.nolmark.co");
+    expect(guestPortalOrigin("https://uat.staynas.com")).toBe("https://uat.staynas.com");
+  });
+
+  it("rejects aliases, previews and local development hosts without explicit approval", () => {
+    expect(() => guestPortalOrigin("https://staynas.com")).toThrow();
     expect(() => guestPortalOrigin("https://preview.vercel.app")).toThrow();
     expect(() => guestPortalOrigin("http://localhost:3000")).toThrow();
     expect(() => guestPortalOrigin("http://staynas.nolmark.co")).toThrow();
