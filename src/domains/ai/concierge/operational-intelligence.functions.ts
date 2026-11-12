@@ -110,10 +110,10 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
       fetchAllRows(() => sb.from("ai_concierge_feedback")
         .select("id,session_id,message_id,rating,created_at,ai_concierge_sessions!inner(property_id)")
         .eq("ai_concierge_sessions.property_id", propertyId).gte("created_at", since)),
-      fetchAllRows(() => sb.from("ai_concierge_leads").select("id,status,created_at").eq("property_id", propertyId).gte("created_at", since)),
+      fetchAllRows(() => sb.from("ai_concierge_leads").select("id,status,consent_at,consent_version,created_at").eq("property_id", propertyId).gte("created_at", since)),
       fetchAllRows(() => sb.from("ai_escalations")
-        .select("id,session_id,status,priority,assigned_to,created_at,resolved_at,ai_concierge_sessions!inner(property_id)")
-        .eq("ai_concierge_sessions.property_id", propertyId).gte("created_at", since)),
+        .select("id,session_id,property_id,status,priority,assigned_to,created_at,acknowledged_at,resolved_at")
+        .eq("property_id", propertyId).gte("created_at", since)),
       fetchAllRows(() => sb.from("knowledge_documents").select("id,status,current_version,source_updated_at,review_due_at").eq("property_id", propertyId)),
       fetchAllRows(() => sb.from("knowledge_chunks").select("id,document_id,version").eq("property_id", propertyId)),
       fetchAllRows(() => sb.from("ai_knowledge_search_log").select("id,result_count,matched_source_ids,created_at").eq("property_id", propertyId).gte("created_at", since)),
@@ -130,10 +130,15 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
     if (!property.data) throw new Error("Active property configuration is unavailable.");
 
     const response = responseIntervals(messageRows);
+    const acknowledgedIntervals = escalationRows
+      .filter((row: any) => row.acknowledged_at)
+      .map((row: any) => Date.parse(row.acknowledged_at) - Date.parse(row.created_at))
+      .filter((value: number) => Number.isFinite(value) && value >= 0);
     const resolvedIntervals = escalationRows
       .filter((row: any) => row.resolved_at && row.status === "resolved")
       .map((row: any) => Date.parse(row.resolved_at) - Date.parse(row.created_at))
       .filter((value: number) => Number.isFinite(value) && value >= 0);
+    const consentVerifiedLeads = leadRows.filter((row: any) => row.consent_at && row.consent_version).length;
     const leadStatusCounts = Object.fromEntries(["new", "contacted", "qualified", "converted", "closed"].map((status) => [
       status, leadRows.filter((row: any) => row.status === status).length,
     ]));
@@ -198,7 +203,7 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         unanswered_conversations: response.unanswered,
         response_metric_note: "Pairs eligible guest inbound messages with the next assistant/staff outbound message; excludes event/template messages, outbound messages not recorded/delivered/read, and duplicate provider/client message identifiers.",
       },
-      leads: { total: leadRows.length, by_status: leadStatusCounts, qualified: leadStatusCounts.qualified, consent_evidence_available: false, limitation: "The deployed shared schema inspected for UAT has not yet applied SN-RT-01 consent_at/consent_version columns; lead counts are not presented as a consent-verified audience." },
+      leads: { total: leadRows.length, consent_verified: consentVerifiedLeads, consent_unverified: leadRows.length - consentVerifiedLeads, by_status: leadStatusCounts, qualified: leadStatusCounts.qualified, consent_evidence_available: true },
       feedback: {
         total: feedbackRows.length,
         helpful: helpfulFeedback,
@@ -230,10 +235,12 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
           ? percentileMinutes(resolvedIntervals, 0.5)
           : null,
         resolution_sample_size: resolvedIntervals.length,
-        acknowledgement_latency_available: false,
+        median_acknowledgement_minutes: acknowledgedIntervals.length ? percentileMinutes(acknowledgedIntervals, 0.5) : null,
+        acknowledgement_sample_size: acknowledgedIntervals.length,
+        acknowledgement_latency_available: true,
         reopen_rate_available: false,
         sla_compliance_available: false,
-        limitation: "The current escalation schema has no acknowledged_at timestamp, immutable status/reassignment/reopen history, or versioned SLA policy snapshot.",
+        limitation: "SN-RT-01 provides acknowledged_at, but immutable status/reassignment/reopen history and versioned SLA policy snapshots are not yet present.",
       },
       knowledge: {
         documents: documentRows.length,
