@@ -401,6 +401,11 @@ DECLARE
   v_status text;
 BEGIN
   IF NEW.property_id IS DISTINCT FROM OLD.property_id THEN
+    UPDATE public.staynas_booking_guest_occupants
+    SET status = 'removed'
+    WHERE property_id = OLD.property_id
+      AND booking_id = NEW.id
+      AND status = 'active';
     v_event := 'revoked';
     v_status := 'revoked';
   ELSIF NEW.guest_id IS DISTINCT FROM OLD.guest_id THEN
