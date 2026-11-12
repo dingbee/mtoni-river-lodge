@@ -21,10 +21,18 @@ export async function resolvePublicCampaignBookingContext(
   propertyId: string,
   input: PublicCampaignBookingInput & { ratePlanId?: string },
 ) {
-  const hasCampaignContext = !!(
-    input.propertySlug || input.campaignSlug || input.offerId || input.sessionKey
-  );
-  if (!hasCampaignContext) return null;
+  const hasCampaignContext = !!(input.campaignSlug || input.offerId || input.sessionKey);
+  if (!hasCampaignContext) {
+    if (input.propertySlug) {
+      const { data: property, error } = await sb.from("staynas_properties")
+        .select("id,slug,status,currency,timezone").eq("id", propertyId).maybeSingle();
+      if (error || !property || property.status !== "active" || property.slug !== input.propertySlug
+        || !/^[A-Z]{3}$/.test(String(property.currency ?? "")) || !property.timezone) {
+        throw new Error("Booking property does not match the verified property domain.");
+      }
+    }
+    return null;
+  }
   if (!input.propertySlug || !input.campaignSlug || !input.offerId || !input.sessionKey || !input.ratePlanId) {
     throw new Error("Campaign booking requires a complete property, campaign, offer, session and rate-plan context.");
   }
