@@ -16,6 +16,7 @@ DECLARE
   v_booking_b uuid := '50000000-0000-0000-0000-000000000002';
   v_booking_b2 uuid := '50000000-0000-0000-0000-000000000003';
   v_booking_b3 uuid := '50000000-0000-0000-0000-000000000004';
+  v_booking_a2 uuid := '50000000-0000-0000-0000-000000000005';
   v_session_1 uuid := '60000000-0000-0000-0000-000000000001';
   v_session_2 uuid := '60000000-0000-0000-0000-000000000002';
   v_session_3 uuid := '60000000-0000-0000-0000-000000000003';
@@ -59,7 +60,8 @@ BEGIN
       (v_booking_a,v_a_property,v_guest_a,'checked_in',current_date + 2),
       (v_booking_b,v_b_property,v_guest_b,'checked_in',current_date + 2),
       (v_booking_b2,v_b_property,v_guest_b,'checked_in',current_date + 2),
-      (v_booking_b3,v_b_property,v_guest_b,'checked_in',current_date + 2);
+      (v_booking_b3,v_b_property,v_guest_b,'checked_in',current_date + 2),
+      (v_booking_a2,v_a_property,v_guest_a,'checked_in',current_date + 2);
 
   INSERT INTO public.ai_concierge_sessions(id,session_token,property_id,guest_id,guest_name,channel)
     VALUES
@@ -147,6 +149,19 @@ BEGIN
     SELECT 1 FROM public.staynas_guest_portal_access
     WHERE id=(v_founder->>'access_id')::uuid AND status='revoked' AND revoked_at IS NOT NULL
   ) THEN RAISE EXCEPTION 'Cancellation did not revoke guest access'; END IF;
+
+  -- Reversing a successful check-in also revokes access.
+  INSERT INTO public.ai_concierge_sessions(id,session_token,property_id,guest_id,guest_name,channel)
+    VALUES ('60000000-0000-0000-0000-000000000009','session-test-9',v_a_property,v_guest_a,'Guest A','web');
+  v_checkout := public.staynas_issue_guest_portal_access(
+    v_a_property,v_booking_a2,v_guest_a,'60000000-0000-0000-0000-000000000009',
+    repeat('h',64),v_user_a,false
+  );
+  UPDATE public.bookings SET status='confirmed' WHERE id=v_booking_a2;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.staynas_guest_portal_access
+    WHERE id=(v_checkout->>'access_id')::uuid AND status='revoked' AND revoked_at IS NOT NULL
+  ) THEN RAISE EXCEPTION 'Check-in reversal did not revoke guest access'; END IF;
 
   -- A property administrator cannot cross into another tenant's property.
   INSERT INTO public.ai_concierge_sessions(id,session_token,property_id,guest_id,guest_name,channel)
