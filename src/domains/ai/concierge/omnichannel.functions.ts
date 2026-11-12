@@ -713,7 +713,7 @@ export const getOmnichannelAnalytics = createServerFn({ method: "GET" })
     const bookingIds = await propertyBookingIds(context.supabase, propertyId);
     const [escOpen, sessionDrafts, bookingDrafts] = await Promise.all([
       sessionIds.length
-        ? context.supabase.from("ai_escalations").select("id", { count: "exact", head: true }).in("session_id", sessionIds).in("status", ["open", "assigned", "in_progress"])
+        ? context.supabase.from("ai_escalations").select("id", { count: "exact", head: true }).in("session_id", sessionIds).in("status", ["open", "assigned", "acknowledged", "in_progress"])
         : Promise.resolve({ count: 0, error: null }),
       sessionIds.length
         ? context.supabase.from("ai_communication_drafts").select("id, session_id, booking_id").in("session_id", sessionIds).eq("status", "pending")
