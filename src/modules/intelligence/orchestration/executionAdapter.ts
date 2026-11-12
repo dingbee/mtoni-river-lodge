@@ -146,6 +146,7 @@ export async function dispatchToAdapter(
     payload: JsonObject;
     actionId: string;
     decisionId: string | null;
+    actorUserId: string;
   },
 ): Promise<AdapterResult> {
   const check = validateCapability(input.adapter, input.capability);
@@ -174,21 +175,37 @@ export async function dispatchToAdapter(
     }
 
     case "notification.create": {
-      const { data, error } = await supabase
-        .from("notifications")
-        .insert({
-          role: input.payload.role,
-          channel: "in_app",
-          kind: "intelligence",
-          title: input.payload.title,
-          body: input.payload.body ?? null,
-          href: input.payload.href ?? "/admin/intelligence/actions",
-          meta: trace,
-        })
-        .select("id")
-        .single();
+      const propertyId = input.payload.property_id ?? input.payload.propertyId;
+      if (typeof propertyId !== "string") {
+        return { ok: false, executionReference: null, response: {}, error: "Operational notification requires an explicit property_id." };
+      }
+      const role = typeof input.payload.role === "string" ? input.payload.role : "manager";
+      const allowedRoles = ["owner", "admin", "manager", "reception", "reservations", "housekeeping", "finance", "marketing"];
+      if (!allowedRoles.includes(role)) {
+        return { ok: false, executionReference: null, response: {}, error: "Unsupported operational notification recipient role." };
+      }
+      const { data, error } = await supabase.rpc("staynas_publish_operational_notification", {
+        _property_id: propertyId,
+        _source: "intelligence",
+        _dedupe_key: `intelligence:${input.actionId}`,
+        _event_type: "intelligence_action",
+        _module: input.adapter,
+        _entity_type: "intelligence_action",
+        _entity_id: input.actionId,
+        _actor_user_id: input.actorUserId,
+        _assignee_user_id: null,
+        _reporter_user_id: null,
+        _recipient_roles: [role],
+        _severity: ["info", "warning", "critical"].includes(String(input.payload.severity)) ? input.payload.severity : "info",
+        _title: String(input.payload.title ?? "Operational intelligence alert"),
+        _body: typeof input.payload.body === "string" ? input.payload.body : null,
+        _href: typeof input.payload.href === "string" ? input.payload.href : "/admin/intelligence/actions",
+        _payload: trace,
+        _correlation_id: input.decisionId,
+        _occurred_at: new Date().toISOString(),
+      });
       if (error) return { ok: false, executionReference: null, response: {}, error: error.message };
-      return { ok: true, executionReference: `notification:${data.id}`, response: { ...trace, notification_id: data.id } };
+      return { ok: true, executionReference: `notification_event:${data}`, response: { ...trace, notification_event_id: data } };
     }
 
     case "campaign.draft": {

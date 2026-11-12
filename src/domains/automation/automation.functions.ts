@@ -133,7 +133,7 @@ export const retryWorkflowRun = createServerFn({ method: "POST" })
     const { data: run } = await context.supabase.from("workflow_runs").select("*").eq("id", data.runId).single();
     if (!run) throw new Error("Run not found");
     await dispatchWorkflow(context.supabase, run.workflow_id, run.trigger_event, run.event_payload, {
-      correlationId: run.correlation_id, retryOf: run.id,
+      correlationId: run.correlation_id, retryOf: run.id, actorUserId: context.userId,
     });
     return { ok: true };
   });
@@ -167,28 +167,48 @@ function evalConditions(conditions: any[], payload: any, mode: "all" | "any" = "
                          : conditions.some((c) => evalCondition(c, payload));
 }
 
-async function executeAction(supabase: any, runId: string, index: number, action: any, payload: any) {
+async function executeAction(supabase: any, runId: string, index: number, action: any, payload: any, actorUserId: string) {
   const step = { run_id: runId, step_index: index, step_type: action.type, step_config: action, status: "running" };
   const { data: inserted } = await supabase.from("workflow_run_steps").insert(step).select("id").single();
   const stepId = inserted?.id;
   try {
     let result: any = { simulated: true };
     switch (action.type) {
+      case "notify_staff": {
+        const propertyId = payload.propertyId ?? payload.property_id ?? payload.meta?.property_id ?? payload.meta?.propertyId;
+        if (typeof propertyId !== "string") throw new Error("Staff notification requires an explicit event property context.");
+        const role = typeof action.role === "string" ? action.role : "manager";
+        const allowedRoles = ["owner", "admin", "manager", "reception", "reservations", "housekeeping", "finance", "marketing"];
+        if (!allowedRoles.includes(role)) throw new Error("Workflow notification role is not supported.");
+        const entityId = typeof payload.entityId === "string" && /^[0-9a-f-]{36}$/i.test(payload.entityId) ? payload.entityId : null;
+        const { error } = await supabase.rpc("staynas_publish_operational_notification", {
+          _property_id: propertyId,
+          _source: "automation.workflow",
+          _dedupe_key: `workflow:${runId}:${index}`,
+          _event_type: "workflow_notification",
+          _module: typeof payload.module === "string" ? payload.module : "automation",
+          _entity_type: typeof payload.entityType === "string" ? payload.entityType : "workflow",
+          _entity_id: entityId,
+          _actor_user_id: actorUserId,
+          _assignee_user_id: null,
+          _reporter_user_id: null,
+          _recipient_roles: [role],
+          _severity: ["info", "warning", "critical"].includes(action.severity) ? action.severity : "info",
+          _title: action.title ?? action.template ?? "Workflow notification",
+          _body: action.body ?? null,
+          _href: action.href ?? null,
+          _payload: { action, event: payload },
+          _correlation_id: payload.correlationId ?? null,
+          _occurred_at: new Date().toISOString(),
+        });
+        if (error) throw new Error(error.message);
+        result = { ok: true, propertyId, role };
+        break;
+      }
       case "send_email":
       case "send_whatsapp":
-      case "send_sms":
-      case "notify_staff": {
-        // Persist a notification record (channels handled by delivery workers)
-        await supabase.from("notifications").insert({
-          channel: action.type === "notify_staff" ? "in_app" : action.type.replace("send_", ""),
-          role: action.role ?? null,
-          title: action.title ?? action.template ?? action.type,
-          body: action.body ?? null,
-          kind: action.template ?? action.type,
-          meta: { action, event: payload },
-        });
-        result = { ok: true };
-        break;
+      case "send_sms": {
+        throw new Error("Guest channel delivery must use the configured guest communications contract; it cannot be queued through the operational staff notification service.");
       }
       case "create_task": {
         if (payload.entityType === "booking" && payload.entityId) {
@@ -232,7 +252,7 @@ async function dispatchWorkflow(
   workflowId: string,
   eventType: string,
   payload: any,
-  opts: { correlationId?: string | null; retryOf?: string | null } = {},
+  opts: { correlationId?: string | null; retryOf?: string | null; actorUserId: string } = { actorUserId: "" },
 ) {
   const { data: wf } = await supabase.from("workflows").select("*").eq("id", workflowId).single();
   if (!wf || !wf.enabled) return;
@@ -270,7 +290,7 @@ async function dispatchWorkflow(
   let failed = false;
   const actions = Array.isArray(wf.actions) ? wf.actions : [];
   for (let i = 0; i < actions.length; i++) {
-    const res = await executeAction(supabase, run.id, i, actions[i], payload);
+    const res = await executeAction(supabase, run.id, i, actions[i], payload, opts.actorUserId);
     if (!res.ok) { failed = true; break; }
   }
 
@@ -302,7 +322,7 @@ export const dispatchEvent = createServerFn({ method: "POST" })
       .eq("is_template", false);
     if (!matches?.length) return { dispatched: 0 };
     for (const m of matches) {
-      try { await dispatchWorkflow(context.supabase, m.id, data.type, data, { correlationId: data.correlationId }); }
+      try { await dispatchWorkflow(context.supabase, m.id, data.type, data, { correlationId: data.correlationId, actorUserId: context.userId }); }
       catch (err) { console.warn("[automation] dispatch failed", (err as Error).message); }
     }
     return { dispatched: matches.length };
@@ -325,7 +345,8 @@ export const markNotificationRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
-    await context.supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", data.id);
+    const { error } = await context.supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", data.id).eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
     return { ok: true };
   });
 
@@ -404,7 +425,7 @@ export const decideApproval = createServerFn({ method: "POST" })
         const actions = Array.isArray(wf?.actions) ? wf!.actions : [];
         let failed = false;
         for (let i = 0; i < actions.length; i++) {
-          const res = await executeAction(context.supabase, run.id, i, actions[i], run.event_payload);
+          const res = await executeAction(context.supabase, run.id, i, actions[i], run.event_payload, context.userId);
           if (!res.ok) { failed = true; break; }
         }
         await context.supabase.from("workflow_runs").update({
