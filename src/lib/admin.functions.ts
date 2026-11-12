@@ -9,11 +9,26 @@ async function assertStaff(supabase: any, userId: string) {
   if (!data) throw new Error("Forbidden");
 }
 
+async function requireActiveReservationProperty(supabase: any, userId: string): Promise<string> {
+  const { data: propertyId, error } = await supabase.rpc("staynas_active_property_id", {
+    _uid: userId,
+  });
+  if (error || !propertyId) throw new Error("Select an active property first.");
+
+  const { data: allowed, error: accessError } = await supabase.rpc(
+    "staynas_user_has_property_access",
+    { _uid: userId, _property_id: propertyId },
+  );
+  if (accessError || !allowed) throw new Error("You do not have access to the active property.");
+
+  return String(propertyId);
+}
+
 const listSchema = z.object({
   status: z.enum(["all", "pending", "confirmed", "checked_in", "cancelled", "completed", "no_show"]).default("all"),
   paymentStatus: z.enum(["all", "unpaid", "deposit_paid", "paid", "refunded"]).default("all"),
-  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  from: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/).optional(),
+  to: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/).optional(),
 });
 
 export const listBookings = createServerFn({ method: "POST" })
@@ -22,9 +37,11 @@ export const listBookings = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
     await assertStaff(context.supabase, context.userId);
+    const propertyId = await requireActiveReservationProperty(context.supabase, context.userId);
     let q = context.supabase
       .from("bookings")
       .select("id, reference, guest_name, guest_email, check_in, check_out, nights, adults, children, total, deposit_amount, balance_amount, paid_amount, currency, status, payment_status, payment_method, created_at, room_id")
+      .eq("property_id", propertyId)
       .order("created_at", { ascending: false })
       .limit(200);
     if (data.status !== "all") q = q.eq("status", data.status);
@@ -33,7 +50,10 @@ export const listBookings = createServerFn({ method: "POST" })
     if (data.to) q = q.lte("check_in", data.to);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    const { data: rooms } = await context.supabase.from("rooms").select("id, name, slug");
+    const { data: rooms } = await context.supabase
+      .from("rooms")
+      .select("id, name, slug")
+      .eq("property_id", propertyId);
     const roomMap = new Map((rooms ?? []).map((r: any) => [r.id, r]));
     return (rows ?? []).map((b: any) => ({
       ...b,
@@ -48,14 +68,19 @@ export const getBookingDetail = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
     await assertStaff(context.supabase, context.userId);
+    const propertyId = await requireActiveReservationProperty(context.supabase, context.userId);
     const { data: booking, error } = await context.supabase
-      .from("bookings").select("*").eq("id", data.id).maybeSingle();
+      .from("bookings")
+      .select("*")
+      .eq("id", data.id)
+      .eq("property_id", propertyId)
+      .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!booking) throw new Error("Booking not found");
+    if (!booking) throw new Error("Booking not found in the active property.");
     const [{ data: nights }, { data: bExtras }, { data: room }] = await Promise.all([
       context.supabase.from("booking_nights").select("date, nightly_rate").eq("booking_id", data.id).order("date"),
       context.supabase.from("booking_extras").select("quantity, unit_price, line_total, extra_id").eq("booking_id", data.id),
-      context.supabase.from("rooms").select("name, slug").eq("id", booking.room_id).maybeSingle(),
+      context.supabase.from("rooms").select("name, slug").eq("id", booking.room_id).eq("property_id", propertyId).maybeSingle(),
     ]);
     const extraIds = (bExtras ?? []).map((e: any) => e.extra_id);
     const { data: extras } = extraIds.length
@@ -81,6 +106,15 @@ export const updateBookingStatus = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
     await assertStaff(context.supabase, context.userId);
+    const propertyId = await requireActiveReservationProperty(context.supabase, context.userId);
+    const { data: booking, error: bookingError } = await context.supabase
+      .from("bookings")
+      .select("id")
+      .eq("id", data.id)
+      .eq("property_id", propertyId)
+      .maybeSingle();
+    if (bookingError) throw new Error(bookingError.message);
+    if (!booking) throw new Error("Booking not found in the active property.");
     const { data: result, error } = await context.supabase.rpc("staynas_transition_booking", {
       _booking_id: data.id,
       _target_status: data.status,
