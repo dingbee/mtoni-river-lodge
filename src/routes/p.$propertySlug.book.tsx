@@ -4,7 +4,6 @@ import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2, Check } from "lucide-react";
-import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooterMinimal } from "@/components/site/SiteFooterMinimal";
 import { BreadcrumbsBar } from "@/components/site/Breadcrumbs";
 import {
