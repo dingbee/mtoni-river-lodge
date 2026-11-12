@@ -185,11 +185,11 @@ function AnalyticsPage() {
           <Stat label="Confirmed attributed bookings" value={ops?.conversion.verified_attributed_bookings} />
           <Stat label="Leads in period" value={ops?.leads.total} />
           <Stat label="Consent-verified leads" value={ops?.leads.consent_verified} />
-          <Stat label="Bookings with currency mismatch" value={ops?.conversion.booking_currency_mismatch_count} />
+          
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
           Lead-to-booking rate unavailable: {ops?.conversion.lead_to_booking_rate_reason ?? "relationship evidence is loading."}
-          {" "}Revenue unavailable: {ops?.conversion.revenue_reason ?? "financial evidence is loading."}
+          {" "}Revenue reporting excluded from this sprint.
         </p>
       </SectionCard>
 
