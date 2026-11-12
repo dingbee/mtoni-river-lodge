@@ -223,6 +223,131 @@ grant execute on function public.staynas_record_booking_analytics_event(
   uuid,uuid,text,text,text,uuid,uuid,uuid,uuid,text,text,text,text,text,text,text,text,text,text,numeric,jsonb
 ) to service_role;
 
+
+-- Durable acquisition context. First touch is immutable; last touch changes
+-- only for a qualifying external acquisition, never for internal navigation.
+create or replace function public.staynas_upsert_booking_attribution(
+  _property_id uuid,
+  _organisation_id uuid,
+  _session_key text,
+  _visitor_key text default null,
+  _booking_page_id uuid default null,
+  _campaign_id uuid default null,
+  _campaign_offer_id uuid default null,
+  _touch jsonb default '{}'::jsonb,
+  _touch_at timestamptz default now(),
+  _is_external_acquisition boolean default false
+) returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_id uuid;
+begin
+  if coalesce(auth.role(),'') <> 'service_role' then
+    raise exception using errcode='42501',message='Attribution writes are server-only';
+  end if;
+  if _property_id is null or _organisation_id is null
+     or length(btrim(coalesce(_session_key,''))) not between 16 and 200
+     or jsonb_typeof(coalesce(_touch,'{}'::jsonb)) <> 'object' then
+    raise exception using errcode='22023',message='Invalid attribution contract';
+  end if;
+  if not exists(select 1 from public.staynas_properties p
+    where p.id=_property_id and p.organisation_id=_organisation_id) then
+    raise exception using errcode='42501',message='Property and organisation scope do not match';
+  end if;
+  if _campaign_id is not null and not exists(
+    select 1 from public.booking_campaigns c
+    where c.id=_campaign_id and c.property_id=_property_id
+      and c.organisation_id=_organisation_id
+  ) then
+    raise exception using errcode='42501',message='Campaign does not belong to the property';
+  end if;
+  if _campaign_offer_id is not null and not exists(
+    select 1 from public.campaign_offers o
+    where o.id=_campaign_offer_id and o.property_id=_property_id
+      and (_campaign_id is null or o.campaign_id=_campaign_id)
+  ) then
+    raise exception using errcode='42501',message='Campaign offer does not belong to the property and campaign';
+  end if;
+  insert into public.staynas_booking_attributions(
+    organisation_id,property_id,session_key,visitor_key,booking_page_id,
+    campaign_id,campaign_offer_id,first_touch,last_touch,first_touch_at,last_touch_at
+  ) values (
+    _organisation_id,_property_id,_session_key,_visitor_key,_booking_page_id,
+    _campaign_id,_campaign_offer_id,coalesce(_touch,'{}'::jsonb),
+    coalesce(_touch,'{}'::jsonb),_touch_at,_touch_at
+  )
+  on conflict(property_id,session_key) do update set
+    visitor_key=coalesce(public.staynas_booking_attributions.visitor_key,excluded.visitor_key),
+    booking_page_id=coalesce(excluded.booking_page_id,public.staynas_booking_attributions.booking_page_id),
+    campaign_id=coalesce(excluded.campaign_id,public.staynas_booking_attributions.campaign_id),
+    campaign_offer_id=coalesce(excluded.campaign_offer_id,public.staynas_booking_attributions.campaign_offer_id),
+    last_touch=case when _is_external_acquisition then excluded.last_touch
+      else public.staynas_booking_attributions.last_touch end,
+    last_touch_at=case when _is_external_acquisition then _touch_at
+      else public.staynas_booking_attributions.last_touch_at end,
+    updated_at=now()
+  returning id into v_id;
+  return jsonb_build_object('ok',true,'attribution_id',v_id);
+end
+$function$;
+
+revoke all on function public.staynas_upsert_booking_attribution(uuid,uuid,text,text,uuid,uuid,uuid,jsonb,timestamptz,boolean)
+  from public,anon,authenticated;
+grant execute on function public.staynas_upsert_booking_attribution(uuid,uuid,text,text,uuid,uuid,uuid,jsonb,timestamptz,boolean)
+  to service_role;
+
+create or replace function public.staynas_attach_quote_attribution(
+  _quote_id uuid,_property_id uuid,_attribution_id uuid
+) returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+begin
+  if coalesce(auth.role(),'') <> 'service_role' then
+    raise exception using errcode='42501',message='Quote attribution is server-only';
+  end if;
+  if not exists(select 1 from public.staynas_booking_attributions a
+    where a.id=_attribution_id and a.property_id=_property_id) then
+    raise exception using errcode='42501',message='Attribution does not belong to the quote property';
+  end if;
+  update public.staynas_reservation_quotes
+  set attribution_id=_attribution_id,
+      request=request || jsonb_build_object('attribution_id',_attribution_id)
+  where id=_quote_id and property_id=_property_id;
+  return found;
+end
+$function$;
+
+revoke all on function public.staynas_attach_quote_attribution(uuid,uuid,uuid)
+  from public,anon,authenticated;
+grant execute on function public.staynas_attach_quote_attribution(uuid,uuid,uuid)
+  to service_role;
+
+create or replace function public.staynas_inherit_quote_attribution()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $trigger$
+begin
+  if new.attribution_id is null and new.reservation_quote_id is not null then
+    select q.attribution_id into new.attribution_id
+    from public.staynas_reservation_quotes q
+    where q.id=new.reservation_quote_id and q.property_id=new.property_id;
+  end if;
+  return new;
+end
+$trigger$;
+
+drop trigger if exists staynas_booking_inherit_quote_attribution on public.bookings;
+create trigger staynas_booking_inherit_quote_attribution
+  before insert on public.bookings
+  for each row execute function public.staynas_inherit_quote_attribution();
+
 -- Server-side lifecycle evidence is derived from the authoritative booking and
 -- payment ledgers. No browser event can fabricate these conversions.
 create or replace function public.staynas_capture_booking_analytics_lifecycle()
@@ -248,12 +373,15 @@ begin
     else return new;
     end if;
     v_key:='ledger-payment:'||new.id::text;
-    perform public.staynas_record_booking_analytics_event(
-      (select property_id from public.bookings where id=new.booking_id),v_org,
-      v_type,v_key,'server_confirmed',v_attribution,null,new.booking_id,null,null,
-      null,null,null,null,null,null,null,null,new.currency,new.amount,
+    insert into public.staynas_booking_analytics_events(
+      organisation_id,property_id,attribution_id,booking_id,event_type,event_key,
+      event_source,currency,amount,metadata
+    )
+    select v_org,b.property_id,v_attribution,new.booking_id,v_type,v_key,
+      'server_confirmed',upper(new.currency),new.amount,
       jsonb_build_object('payment_event_id',new.id,'provider',new.provider,'payment_event_type',new.event_type)
-    );
+    from public.bookings b where b.id=new.booking_id
+    on conflict(property_id,event_key) do nothing;
     return new;
   end if;
 
@@ -271,12 +399,15 @@ begin
   end if;
   select organisation_id into v_org from public.staynas_properties where id=new.property_id;
   if v_org is null then return new; end if;
-  perform public.staynas_record_booking_analytics_event(
-    new.property_id,v_org,v_type,v_key,'server_confirmed',new.attribution_id,
-    null,new.id,new.reservation_quote_id,null,null,null,null,null,null,null,null,null,
-    new.currency,case when v_type='reservation_created' then new.total else null end,
+  insert into public.staynas_booking_analytics_events(
+    organisation_id,property_id,attribution_id,booking_id,quote_id,event_type,
+    event_key,event_source,currency,amount,metadata
+  ) values (
+    v_org,new.property_id,new.attribution_id,new.id,new.reservation_quote_id,
+    v_type,v_key,'server_confirmed',upper(new.currency),
+    case when v_type='reservation_created' then new.total else null end,
     jsonb_build_object('booking_status',new.status::text)
-  );
+  ) on conflict(property_id,event_key) do nothing;
   return new;
 end
 $trigger$;
