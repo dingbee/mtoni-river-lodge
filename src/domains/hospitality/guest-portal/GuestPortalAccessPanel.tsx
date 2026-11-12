@@ -165,6 +165,14 @@ export function GuestPortalAccessPanel({
     printWindow.document.close();
   }
 
+  useEffect(() => {
+    if (access.data && !access.data.active) {
+      setLink(null);
+      setQrDataUrl(null);
+      setAccessId(null);
+    }
+  }, [access.data?.active]);
+
   const active = access.data?.active ?? false;
 
   return (
