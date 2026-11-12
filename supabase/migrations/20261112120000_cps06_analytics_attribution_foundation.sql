@@ -184,12 +184,29 @@ begin
   ) then
     raise exception using errcode='42501', message='Property and organisation scope do not match';
   end if;
+  if _event_source='browser_observed' and (
+    _amount is not null or _currency is not null or _booking_id is not null or _quote_id is not null
+  ) then
+    raise exception using errcode='42501', message='Browser-observed events cannot supply financial or ledger references';
+  end if;
   if _attribution_id is not null and not exists (
     select 1 from public.staynas_booking_attributions a
     where a.id=_attribution_id and a.property_id=_property_id
       and a.organisation_id=_organisation_id
+      and (_session_key is null or a.session_key=_session_key)
   ) then
-    raise exception using errcode='42501', message='Attribution does not belong to the supplied property';
+    raise exception using errcode='42501', message='Attribution does not belong to the supplied property or session';
+  end if;
+  if _campaign_id is not null and not exists (
+    select 1 from public.booking_campaigns c
+    where c.id=_campaign_id and c.property_id=_property_id and c.organisation_id=_organisation_id
+  ) then
+    raise exception using errcode='42501', message='Campaign does not belong to the supplied property';
+  end if;
+  if _quote_id is not null and not exists (
+    select 1 from public.staynas_reservation_quotes q where q.id=_quote_id and q.property_id=_property_id
+  ) then
+    raise exception using errcode='42501', message='Quote does not belong to the supplied property';
   end if;
   if _booking_id is not null and not exists (
     select 1 from public.bookings b where b.id=_booking_id and b.property_id=_property_id
