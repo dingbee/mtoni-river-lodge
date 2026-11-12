@@ -502,13 +502,33 @@ begin
       count(distinct booking_id) filter(where event_type='payment_completed') as paid_bookings
     from e
   ),
-  money as (
+  booking_money as (
+    select upper(currency) as currency,
+      coalesce(sum(total),0) as gross_booking_value,
+      coalesce(sum(total) filter(where status::text in ('confirmed','checked_in','completed')),0) as confirmed_booking_value,
+      coalesce(sum(balance_amount) filter(where status::text not in ('cancelled','no_show')),0) as outstanding
+    from public.bookings
+    where property_id=_property_id and created_at >= _from and created_at < _to
+    group by upper(currency)
+  ),
+  payment_money as (
     select currency,
-      coalesce(sum(amount) filter(where event_type='reservation_created'),0) as gross_booking_value,
-      coalesce(sum(amount) filter(where event_type='payment_completed'),0)
-        - coalesce(sum(abs(amount)) filter(where event_type='payment_refunded'),0) as net_collected
+      coalesce(sum(amount) filter(where event_type='payment_completed'),0) as amount_paid,
+      coalesce(sum(abs(amount)) filter(where event_type='payment_refunded'),0) as refunds
     from e where currency is not null
+      and event_type in ('payment_completed','payment_refunded')
     group by currency
+  ),
+  money as (
+    select coalesce(b.currency,p.currency) as currency,
+      coalesce(b.gross_booking_value,0) as gross_booking_value,
+      coalesce(b.confirmed_booking_value,0) as confirmed_booking_value,
+      coalesce(p.amount_paid,0) as amount_paid,
+      coalesce(b.outstanding,0) as outstanding,
+      coalesce(p.refunds,0) as refunds,
+      coalesce(p.amount_paid,0)-coalesce(p.refunds,0) as net_collected
+    from booking_money b
+    full join payment_money p using(currency)
   ),
   campaign_rows as (
     select c.id,c.name,c.slug,c.status,
