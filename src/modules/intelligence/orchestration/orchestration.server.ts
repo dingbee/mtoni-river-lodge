@@ -105,10 +105,30 @@ export function capabilityForStep(module: string, title: string, objective: stri
   return "task.create";
 }
 
+async function resolveNotificationPropertyId(supabase: Sb, userId: string, decisionContext: unknown): Promise<string> {
+  const context = decisionContext && typeof decisionContext === "object" ? decisionContext as Record<string, unknown> : {};
+  const explicit = context.property_id ?? context.propertyId;
+  const { data, error } = await supabase
+    .from("staynas_property_members")
+    .select("property_id")
+    .eq("user_id", userId)
+    .eq("status", "active");
+  if (error) throw new Error(error.message);
+  const memberships = [...new Set((data ?? []).map((row: any) => String(row.property_id)))];
+  if (typeof explicit === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(explicit)) {
+    if (!memberships.includes(explicit)) throw new Error("Intelligence decision property is not an active property membership.");
+    return explicit;
+  }
+  if (memberships.length === 1) return memberships[0];
+  if (memberships.length === 0) throw new Error("Intelligence notification requires an active property membership.");
+  throw new Error("Intelligence notification requires an explicit property_id for multi-property users.");
+}
+
 function payloadForCapability(
   capability: ExecutionCapability,
   step: { title: string; objective: string; expected_outcome: string | null; responsible_role: string | null; module: string },
   decisionTitle: string,
+  propertyId?: string | null,
 ): JsonObject {
   const title = String(step.title ?? "");
   const objective = String(step.objective ?? "");
@@ -119,11 +139,13 @@ function payloadForCapability(
     .join("\n\n");
   switch (capability) {
     case "notification.create":
+      if (!propertyId) throw new Error("Intelligence notification requires an unambiguous active property scope.");
       return {
+        property_id: propertyId,
         title,
         body: `${decisionTitle}. ${objective}`.slice(0, 1000),
         role: responsibleRole.toLowerCase(),
-        href: String("/admin/intelligence/actions"),
+        href: "/admin/intelligence/actions",
       };
     case "campaign.draft":
       return { name: title.slice(0, 160), objective: objective.slice(0, 500), audience: "Direct guests", notes: rationale };
@@ -136,7 +158,7 @@ function payloadForCapability(
       };
     default:
       return {
-        title: step.title.slice(0, 160),
+        title: title.slice(0, 160),
         description: rationale.slice(0, 2000),
         category: step.module,
         priority: 2,
@@ -231,7 +253,10 @@ export async function prepareActions(supabase: Sb, userId: string, input: Prepar
     const check = validateCapability(adapter.key, capability);
     const resolvedCapability: ExecutionCapability = check.ok ? capability : "task.create";
     const risk = CAPABILITY_RISK[resolvedCapability];
-    const payload = payloadForCapability(resolvedCapability, step, String(decision.title));
+    const notificationPropertyId = resolvedCapability === "notification.create"
+      ? await resolveNotificationPropertyId(supabase, userId, decision.context)
+      : null;
+    const payload = payloadForCapability(resolvedCapability, step, String(decision.title), notificationPropertyId);
 
     const { data: action } = await supabase
       .from("intelligence_actions")
@@ -488,6 +513,7 @@ export async function executeAction(supabase: Sb, userId: string, input: Execute
     payload: payloadCheck.data,
     actionId: row.id,
     decisionId: row.decision_id ?? null,
+    actorUserId: userId,
   });
   const completedAt = new Date().toISOString();
 
