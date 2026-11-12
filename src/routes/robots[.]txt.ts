@@ -8,11 +8,12 @@ export const Route = createFileRoute("/robots.txt")({
         const isStayNasHost = hostname === "staynas.com" || hostname === "www.staynas.com";
         const isMtoniHost = hostname === "mtoniriverlodge.com" || hostname === "www.mtoniriverlodge.com";
         const body = isStayNasHost
-          ? "User-agent: *\nAllow: /\n\nSitemap: https://staynas.com/sitemap.xml\n"
+          ? "User-agent: *\nAllow: /\nDisallow: /guest/\n\nSitemap: https://staynas.com/sitemap.xml\n"
           : isMtoniHost
             ? "User-agent: *\nAllow: /\nDisallow: /wp-admin/\nDisallow: /wp-content/\nDisallow: /wp-includes/\nDisallow: /wp-json/\nDisallow: /category/\nDisallow: /tag/\nDisallow: /author/\nDisallow: /hello-world/\nDisallow: /?p=\nDisallow: /feed/\n\nSitemap: https://mtoniriverlodge.com/sitemap.xml\n"
             : [
               "User-agent: *",
+              "Disallow: /guest/",
               "Disallow: /wp-admin/",
               "Disallow: /wp-content/",
               "Disallow: /wp-includes/",
