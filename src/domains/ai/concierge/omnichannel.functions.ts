@@ -587,9 +587,11 @@ export const updateEscalation = createServerFn({ method: "POST" })
       status?: EscalationStatus;
       assigned_to?: string | null;
       resolution_notes?: string | null;
+      priority?: number;
     }) => {
       if (!input?.id) throw new Error("id required");
       if (input.status && !["open", "assigned", "acknowledged", "in_progress", "resolved", "dismissed"].includes(input.status)) throw new Error("invalid escalation status");
+      if (input.priority !== undefined && ![1,2,3].includes(input.priority)) throw new Error("invalid escalation priority");
       return input;
     },
   )
@@ -601,6 +603,7 @@ export const updateEscalation = createServerFn({ method: "POST" })
       p_status: data.status ?? null,
       p_assigned_to: data.assigned_to ?? null,
       p_resolution_notes: data.resolution_notes ?? null,
+      p_priority: data.priority ?? null,
     });
     if (error) throw new Error("Could not update the property escalation.");
     return { ok: true };
