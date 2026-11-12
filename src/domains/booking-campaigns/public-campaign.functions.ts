@@ -187,6 +187,45 @@ export const recordPublicBookingCampaignEvent = createServerFn({ method: "POST" 
       occurred_at: new Date().toISOString(),
     }, { onConflict: "property_id,event_key", ignoreDuplicates: true });
     if (error) throw new Error("Campaign attribution could not be persisted.");
+
+    const touch = {
+      source: data.source ?? null, medium: data.medium ?? null,
+      utm_campaign: data.utmCampaign ?? null, utm_content: data.utmContent ?? null,
+      utm_term: data.utmTerm ?? null, referrer: data.referrer ?? null,
+    };
+    const { data: attribution, error: durableAttributionError } = await sb.rpc("staynas_upsert_booking_attribution", {
+      _property_id: property.id,
+      _organisation_id: channel.organisationId,
+      _session_key: data.sessionKey,
+      _campaign_id: data.campaignId,
+      _campaign_offer_id: data.offerId ?? null,
+      _touch: touch,
+      _touch_at: new Date().toISOString(),
+      _is_external_acquisition: Boolean(data.source || data.medium || data.utmCampaign || data.referrer),
+    });
+    if (durableAttributionError || !attribution?.attribution_id) {
+      throw new Error("Campaign analytics attribution could not be initialized.");
+    }
+    const analyticsEventType = data.eventType === "page_view" ? "campaign_page_viewed" : "campaign_cta_clicked";
+    const { error: analyticsError } = await sb.rpc("staynas_record_booking_analytics_event", {
+      _property_id: property.id,
+      _organisation_id: channel.organisationId,
+      _event_type: analyticsEventType,
+      _event_key: `cps6:${data.campaignId}:${data.sessionKey}:${data.eventType === "page_view" ? "view" : "cta"}`,
+      _event_source: "browser_observed",
+      _attribution_id: attribution.attribution_id,
+      _campaign_id: data.campaignId,
+      _session_key: data.sessionKey,
+      _traffic_source: data.source ?? null,
+      _traffic_medium: data.medium ?? null,
+      _utm_campaign: data.utmCampaign ?? null,
+      _utm_content: data.utmContent ?? null,
+      _utm_term: data.utmTerm ?? null,
+      _referrer: data.referrer ?? null,
+      _landing_page: `/p/${data.propertySlug}/campaign/${campaignSlug}`,
+      _metadata: { offer_id: data.offerId ?? null },
+    });
+    if (analyticsError) throw new Error("Campaign analytics event could not be recorded.");
     return { recorded: true };
   });
 
