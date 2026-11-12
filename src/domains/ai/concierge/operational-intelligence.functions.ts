@@ -65,7 +65,7 @@ function responseIntervals(rows: any[]) {
     let firstAnswered = false;
     for (const message of messages) {
       const at = Date.parse(message.occurred_at);
-      if (!Number.isFinite(at) || message.message_type === "event") continue;
+      if (!Number.isFinite(at) || ["event", "template"].includes(message.message_type) || ["failed", "undeliverable"].includes(message.status)) continue;
       if (message.direction === "inbound" && message.actor_type === "guest") {
         pending.push(at);
         if (firstInboundAt === null) firstInboundAt = at;
@@ -97,11 +97,11 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
     const periodStart = new Date(periodEnd.getTime() - days * 86_400_000);
     const since = periodStart.toISOString();
 
-    const [property, sessions, messages, leads, escalations, docs, chunks, searches, conciergeAttributions, campaignAttributions, propertyBookings] = await Promise.all([
+    const [property, sessions, messages, leads, escalations, docs, chunks, searches, conciergeAttributions, campaignAttributions] = await Promise.all([
       sb.from("staynas_properties").select("id,currency,timezone").eq("id", propertyId).maybeSingle(),
       sb.from("ai_concierge_sessions").select("id,created_at").eq("property_id", propertyId).gte("created_at", since),
       sb.from("ai_omnichannel_messages")
-        .select("id,property_id,session_id,direction,actor_type,message_type,provider,provider_message_id,client_message_id,occurred_at")
+        .select("id,property_id,session_id,direction,actor_type,message_type,status,provider,provider_message_id,client_message_id,occurred_at")
         .eq("property_id", propertyId).gte("occurred_at", since).order("occurred_at", { ascending: true }).limit(10000),
       sb.from("ai_concierge_leads").select("id,status,created_at").eq("property_id", propertyId).gte("created_at", since),
       sb.from("ai_escalations")
@@ -115,10 +115,9 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         .eq("ai_concierge_sessions.property_id", propertyId).gte("created_at", since),
       sb.from("campaign_attribution").select("id,booking_id,event_type,occurred_at")
         .eq("property_id", propertyId).eq("event_type", "booking_completed").gte("occurred_at", since),
-      sb.from("bookings").select("id,currency").eq("property_id", propertyId),
     ]);
 
-    for (const result of [property, sessions, messages, leads, escalations, docs, chunks, searches, conciergeAttributions, campaignAttributions, propertyBookings]) {
+    for (const result of [property, sessions, messages, leads, escalations, docs, chunks, searches, conciergeAttributions, campaignAttributions]) {
       if (result.error) throw new Error(result.error.message);
     }
     if (!property.data) throw new Error("Active property configuration is unavailable.");
@@ -153,7 +152,10 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
       );
     }
     const confirmedBookingCount = new Set(verifiedBookings.map((row: any) => row.id)).size;
-    const currencyMismatchCount = (propertyBookings.data ?? []).filter((row: any) => row.currency !== property.data.currency).length;
+    const { count: currencyMismatchCount, error: currencyError } = await sb.from("bookings")
+      .select("id", { count: "exact", head: true }).eq("property_id", propertyId)
+      .neq("currency", property.data.currency);
+    if (currencyError) throw new Error(currencyError.message);
 
     const documentRows = docs.data ?? [];
     const currentChunkCount = (chunks.data ?? []).filter((chunk: any) =>
@@ -175,7 +177,7 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         ai_response_minutes: { p50: percentile(response.ai, 0.5), p90: percentile(response.ai, 0.9), sample_size: response.ai.length },
         human_response_minutes: { p50: percentile(response.human, 0.5), p90: percentile(response.human, 0.9), sample_size: response.human.length },
         unanswered_conversations: response.unanswered,
-        response_metric_note: "Pairs eligible guest inbound messages with the next assistant/staff outbound message; excludes event messages and duplicate provider/client message identifiers.",
+        response_metric_note: "Pairs eligible guest inbound messages with the next assistant/staff outbound message; excludes event/template messages, failed or undeliverable outbound messages, and duplicate provider/client message identifiers.",
       },
       leads: { total: leadRows.length, by_status: leadStatusCounts, qualified: leadStatusCounts.qualified },
       conversion: {
@@ -187,7 +189,7 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         revenue: null,
         revenue_available: false,
         revenue_reason: "Realized revenue requires reconciled, verified payment and reversal ledger evidence; booking totals and paid flags are not treated as settlement proof.",
-        booking_currency_mismatch_count: currencyMismatchCount,
+        booking_currency_mismatch_count: currencyMismatchCount ?? 0,
       },
       escalations: {
         total: escalationRows.length,
