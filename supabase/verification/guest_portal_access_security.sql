@@ -15,6 +15,7 @@ DECLARE
   v_booking_a uuid := '50000000-0000-0000-0000-000000000001';
   v_booking_b uuid := '50000000-0000-0000-0000-000000000002';
   v_booking_b2 uuid := '50000000-0000-0000-0000-000000000003';
+  v_booking_b3 uuid := '50000000-0000-0000-0000-000000000004';
   v_session_1 uuid := '60000000-0000-0000-0000-000000000001';
   v_session_2 uuid := '60000000-0000-0000-0000-000000000002';
   v_session_3 uuid := '60000000-0000-0000-0000-000000000003';
@@ -52,7 +53,8 @@ BEGIN
     VALUES
       (v_booking_a,v_a_property,v_guest_a,'checked_in',current_date + 2),
       (v_booking_b,v_b_property,v_guest_b,'checked_in',current_date + 2),
-      (v_booking_b2,v_b_property,v_guest_b,'checked_in',current_date + 2);
+      (v_booking_b2,v_b_property,v_guest_b,'checked_in',current_date + 2),
+      (v_booking_b3,v_b_property,v_guest_b,'checked_in',current_date + 2);
 
   INSERT INTO public.ai_concierge_sessions(id,session_token,property_id,guest_id,guest_name,channel)
     VALUES
@@ -146,7 +148,7 @@ BEGIN
     VALUES ('60000000-0000-0000-0000-000000000008','session-test-8',v_b_property,v_guest_b,'Guest B','web');
   BEGIN
     PERFORM public.staynas_issue_guest_portal_access(
-      v_b_property,v_booking_b2,v_guest_b,'60000000-0000-0000-0000-000000000008',
+      v_b_property,v_booking_b3,v_guest_b,'60000000-0000-0000-0000-000000000008',
       repeat('g',64),v_user_c,false
     );
     RAISE EXCEPTION 'Cross-property issuance unexpectedly succeeded';
