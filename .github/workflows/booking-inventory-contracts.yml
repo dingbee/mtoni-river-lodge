@@ -1,0 +1,49 @@
+name: StayNas booking and inventory contracts
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/lib/payments.functions.ts"
+      - "src/domains/ai/concierge/concierge.server.ts"
+      - "src/domains/ai/concierge/concierge.tools.ts"
+      - "src/routes/api/public/rooms.catalog.ts"
+      - "src/routes/api/public/availability.search.ts"
+      - "src/routes/api/public/rooms.status.ts"
+      - "src/lib/booking-property.ts"
+      - "src/lib/booking-property.test.ts"
+      - "src/lib/booking-property.server.ts"
+      - "src/lib/booking-rpc.ts"
+      - "src/lib/booking.functions.ts"
+      - "src/lib/availability.functions.ts"
+      - "src/lib/public-booking.functions.ts"
+      - "src/lib/public-booking-context.server.ts"
+      - "src/lib/public-booking-context.server.test.ts"
+      - "src/lib/booking-session.tsx"
+      - "supabase/migrations/*booking*"
+      - "scripts/ci/dc03r-*"
+      - ".github/workflows/booking-inventory-contracts.yml"
+  push:
+    branches:
+      - fix/dc-03r-*
+      - fix/booking-*
+      - main
+
+jobs:
+  booking-inventory-contracts:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postg¶»§q«^

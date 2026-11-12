@@ -1,16 +1,23 @@
-name: SPE-07 distribution contracts
+name: StayNas DC-series distribution contracts
 
 on:
   push:
     branches:
-      - feat/spe-07-*
+      - feat/dc*
+      - main
   pull_request:
     paths:
       - "src/domains/distribution/**"
       - "src/routes/_authenticated.admin.distribution.tsx"
+      - "src/lib/operations.functions.ts"
+      - "src/lib/front-desk.functions.ts"
+      - "src/lib/room-board-allocation-mapper.ts"
+      - "src/lib/room-board-allocation-mapper.test.ts"
+      - "src/components/os/operations/RoomStatusBoard.tsx"
       - "src/lib/staynas-rpc.ts"
       - "src/components/os/nav-config.ts"
-      - "docs/database/SPE-07-distribution-persistence.sql"
+      - "docs/dc-series-production-migration-reconciliation.md"
+      - "docs/archive/SPE-07-legacy-schema-deprecation.md"
       - "supabase/tests/**"
       - "supabase/review/**"
       - "supabase/migrations/**"
@@ -36,35 +43,4 @@ jobs:
         run: bunx tsc --noEmit
       - name: Distribution lint
         run: >-
-          bunx eslint src/domains/distribution
-          --rule "prettier/prettier: off"
-      - name: Production build
-        run: bun run build
-
-  distribution-database-contracts:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: supabase/setup-cli@v1
-        with:
-          version: "2.122.1"
-      - name: Normalize optional legacy migration drift in ephemeral checkout
-        run: python3 scripts/ci/normalize-optional-legacy-revokes.py
-      - name: Start local Supabase database
-        run: supabase start --exclude studio,inbucket,storage-api,imgproxy,vector
-      - name: Apply migrations and review-only schema required by database contracts
-        run: |
-          supabase db reset
-          for migration in \
-            supabase/review/20261107100000_staynas_website_demo_requests.sql \
-            supabase/review/20261109130000_cc06_founder_notifications.sql \
-            supabase/review/20261109140000_cc06_commercial_account_contacts.sql \
-            supabase/review/20261109150000_cc06_founder_subscription_creation.sql
-          do
-            psql "postgresql://postgres:postgres@localhost:54322/postgres" -v ON_ERROR_STOP=1 -f "$migration"
-          done
-      - name: Run database contracts
-        run: supabase test db
-      - name: Stop local Supabase stack
-        if: always()
-        run: supabase stop --no-backup
+  ¶»§q«^

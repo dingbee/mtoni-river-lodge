@@ -30,7 +30,7 @@ import { createBookingHold, releaseBookingHold } from "@/lib/availability.functi
 import { getBookingQuote, type BookingPricingQuote } from "@/lib/booking.functions";
 import { DatePickerField } from "@/components/os/DatePickerField";
 import { validateBookingSearch } from "@/lib/booking-search";
-import { getPublicBookingProperty } from "@/domains/booking-campaigns/public-campaign.functions";
+import { getPublicBookingProperty, recordPublicDirectBookingAnalyticsEvent } from "@/domains/booking-campaigns/public-campaign.functions";
 
 export const Route = createFileRoute("/p/$propertySlug/book")({
   loader: ({ params }) => getPublicBookingProperty({ data: { propertySlug: params.propertySlug } }),
@@ -201,6 +201,26 @@ function BookPage() {
   const [roomInventory, setRoomInventory] = useState<{ available_units: number; total_units: number } | null>(null);
 
   useEffect(() => {
+    if (!sessionId || pageViewRecordedFor.current === sessionId) return;
+    pageViewRecordedFor.current = sessionId;
+    const eventId = window.crypto.randomUUID();
+    recordPageViewFn({
+      data: {
+        propertySlug,
+        sessionKey: sessionId,
+        eventId,
+        source: utmSource,
+        medium: utmMedium,
+        utmCampaign,
+        utmContent,
+        utmTerm,
+        referrer,
+        landingPage: `/p/${propertySlug}/book`,
+      },
+    }).catch((error) => console.warn("[StayNas analytics] Booking page view could not be recorded", error));
+  }, [propertySlug, sessionId, recordPageViewFn, utmSource, utmMedium, utmCampaign, utmContent, utmTerm, referrer]);
+
+  useEffect(() => {
     const slug = selectedRoom?.slug ?? incomingRoom;
     if (!slug) { setRoomInventory(null); return; }
     let cancelled = false;
@@ -363,6 +383,8 @@ function BookPage() {
   const totalOccupants = adults + childrenBelow6 + children7Plus;
   const paidOccupants = adults + children7Plus;
 
+  const recordPageViewFn = useServerFn(recordPublicDirectBookingAnalyticsEvent);
+  const pageViewRecordedFor = useRef("");
   const checkAvailabilityFn = useServerFn(checkAvailability);
   const getBookingQuoteFn = useServerFn(getBookingQuote);
   const listExtrasFn = useServerFn(listExtras);
@@ -376,8 +398,9 @@ function BookPage() {
       const [rooms, extrasList] = await Promise.all([
         checkAvailabilityFn({ data: {
           checkIn, checkOut, guests: totalOccupants, adults, childrenBelow6, children7Plus,
+          eventId: window.crypto.randomUUID(),
           propertySlug, campaignSlug: campaign, offerId: offer, ratePlanId: ratePlan,
-          sessionKey: campaign ? (campaignSession ?? sessionId) : undefined,
+          sessionKey: campaign ? (campaignSession ?? sessionId) : sessionId,
           utmSource, utmMedium, utmCampaign, utmContent, utmTerm, referrer,
         } }),
         listExtrasFn(),
@@ -433,7 +456,7 @@ function BookPage() {
           holdId: hold && hold.roomSlug === selectedRoom.slug ? hold.id : undefined,
           sessionId,
           propertySlug, campaignSlug: campaign, offerId: offer,
-          sessionKey: campaign ? (campaignSession ?? sessionId) : undefined,
+          sessionKey: campaign ? (campaignSession ?? sessionId) : sessionId,
           utmSource, utmMedium, utmCampaign, utmContent, utmTerm, referrer,
         },
       });
@@ -468,7 +491,7 @@ function BookPage() {
               checkIn, checkOut, adults, childrenBelow6, children7Plus,
               extras: selectedExtras,
               propertySlug, campaignSlug: campaign, offerId: offer,
-              sessionKey: campaign ? (campaignSession ?? sessionId) : undefined,
+              sessionKey: campaign ? (campaignSession ?? sessionId) : sessionId,
               utmSource, utmMedium, utmCampaign, utmContent, utmTerm, referrer,
             },
           });
@@ -510,7 +533,7 @@ function BookPage() {
         children7Plus,
         extras: selectedExtras,
         propertySlug, campaignSlug: campaign, offerId: offer,
-        sessionKey: campaign ? (campaignSession ?? sessionId) : undefined,
+        sessionKey: campaign ? (campaignSession ?? sessionId) : sessionId,
         utmSource, utmMedium, utmCampaign, utmContent, utmTerm, referrer,
       },
     }).then((quote) => {

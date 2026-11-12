@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowRight, CheckCircle2, ShieldCheck } from "lucide-react";
 import { getPublicBookingCampaign, recordPublicBookingCampaignEvent } from "@/domains/booking-campaigns/public-campaign.functions";
@@ -37,6 +37,7 @@ function PublicCampaignPage() {
   const [tracking, setTracking] = useState<{ source?: string; medium?: string; utmCampaign?: string; utmContent?: string; utmTerm?: string; referrer?: string }>({});
   const [trackingReady, setTrackingReady] = useState(false);
   const [trackingError, setTrackingError] = useState("");
+  const pageViewEventId = useRef<string | null>(null);
   const selectedOffer = useMemo(() => data.offers.find((offer: CampaignOffer) => offer.id === selectedOfferId) as CampaignOffer | undefined, [data.offers, selectedOfferId]);
 
   useEffect(() => {
@@ -57,11 +58,14 @@ function PublicCampaignPage() {
 
   useEffect(() => {
     if (!trackingReady || !sessionKey) return;
+    const eventId = pageViewEventId.current ?? window.crypto.randomUUID();
+    pageViewEventId.current = eventId;
     recordEvent({
       data: {
         campaignId: data.campaign.id,
         propertySlug: data.property.slug,
         sessionKey,
+        eventId,
         eventType: "page_view",
         source: tracking.source,
         medium: tracking.medium,
@@ -82,6 +86,7 @@ function PublicCampaignPage() {
           campaignId: data.campaign.id,
           propertySlug: data.property.slug,
           sessionKey,
+          eventId: window.crypto.randomUUID(),
           eventType: "booking_click",
           offerId: selectedOffer.id,
           ...tracking,

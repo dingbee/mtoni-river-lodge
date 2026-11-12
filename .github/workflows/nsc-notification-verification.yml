@@ -1,0 +1,59 @@
+name: NSC operational notification verification
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - feat/nsc-*
+
+jobs:
+  nsc-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: nsc_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d nsc_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: nsc_test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Bootstrap isolated Supabase-compatible schema
+        run: psql -v ON_ERROR_STOP=1 -f supabase/verification/nsc_bootstrap.sql
+
+      - name: Enable logical replication for Realtime publication checks
+        run: |
+          psql -v ON_ERROR_STOP=1 -c "ALTER SYSTEM SET wal_level = 'logical';"
+          docker restart "${{ job.services.postgres.id }}"
+          for i in $(seq 1 30); do
+            pg_isready -h localhost -p 5432 -U postgres -d nsc_test && break
+            sleep 2
+          done
+          psql -v ON_ERROR_STOP=1 -c "CREATE PUBLICATION supabase_realtime;"
+
+      - name: Apply NSC notification service migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261112120000_nsc_operational_notification_service.sql
+
+      - name: Run real event, recipient, lifecycle, escalation and tenant-isolation tests
+        run: psql -v ON_ERROR_STOP=1 -f supabase/verification/nsc_operational_notification_events.sql
