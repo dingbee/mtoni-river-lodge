@@ -96,11 +96,23 @@ export async function ensureGuestPortalAccessAfterCheckIn(
     _concierge_session_id: session.id,
     _token_hash: hashToken(token),
     _actor_id: actorId,
+    _rotate: false,
   });
 
   if (issueError || !issued?.access_id || !issued?.expires_at) {
     await admin.from("ai_concierge_sessions").delete().eq("id", session.id);
     throw new Error("Guest Portal access issuance failed after check-in.");
+  }
+
+  if (issued.already_active) {
+    await admin.from("ai_concierge_sessions").delete().eq("id", session.id);
+    return {
+      issued: false,
+      alreadyActive: true,
+      expiresAt: String(issued.expires_at),
+      token: null,
+      accessId: String(issued.access_id),
+    };
   }
 
   return {
