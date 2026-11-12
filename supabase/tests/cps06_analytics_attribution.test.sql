@@ -344,6 +344,10 @@ BEGIN
     RAISE EXCEPTION 'Currency-safe financial reconciliation failed: %',v_money;
   END IF;
 
+  IF (v_report->'funnel'->>'paid_bookings')::integer<>1 THEN
+    RAISE EXCEPTION 'Net-positive paid booking funnel count included a fully reversed settlement';
+  END IF;
+
   SELECT value INTO v_campaign
   FROM jsonb_array_elements(v_report->'campaigns') value
   WHERE value->>'id'='96000000-0000-4000-8000-000000000001';
