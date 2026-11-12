@@ -1235,7 +1235,7 @@ BEGIN
       v_severity := 'warning';
       v_title := 'Stocktake variance posted';
       v_body := 'Stocktake ' || COALESCE(v_new->>'stocktake_number',v_entity_id::text) ||
-        ' posted with variance ' || v_new->>'variance_value' || ' ' || COALESCE(v_new->>'currency','');
+        ' posted with variance ' || (v_new->>'variance_value') || ' ' || COALESCE(v_new->>'currency','');
       v_dedupe_key := 'lexibite:stocktake:' || v_entity_id::text || ':posted';
 
     WHEN 'restaurant_stock_transfers' THEN
