@@ -535,7 +535,26 @@ export const listEscalations = createServerFn({ method: "POST" })
       (context.supabase as any).from("staynas_properties").select("timezone").eq("id",propertyId).maybeSingle(),
     ]);
     if (error || propertyError) throw new Error(error?.message ?? propertyError?.message ?? "Escalation property context unavailable.");
-    return (rows ?? []).map((row: any) => ({ ...row, property_timezone: property?.timezone ?? "UTC" })) as EscalationRow[];
+    const escalationRows = rows ?? [];
+    const ids = escalationRows.map((row: any) => row.id);
+    let alertsByEscalation = new Map<string, any[]>();
+    if (ids.length) {
+      const { data: alerts, error: alertsError } = await (context.supabase as any).from("ai_escalation_sla_alerts")
+        .select("id,escalation_id,milestone,alert_type,due_at,threshold_percent,created_at")
+        .eq("property_id",propertyId).in("escalation_id",ids)
+        .order("created_at",{ascending:false}).limit(2400);
+      if (alertsError) throw new Error(alertsError.message);
+      alertsByEscalation = new Map<string,any[]>();
+      for (const alert of alerts ?? []) {
+        const current = alertsByEscalation.get(alert.escalation_id) ?? [];
+        if (current.length < 12) current.push(alert);
+        alertsByEscalation.set(alert.escalation_id,current);
+      }
+    }
+    return escalationRows.map((row: any) => ({
+      ...row, property_timezone: property?.timezone ?? "UTC",
+      sla_alerts: alertsByEscalation.get(row.id) ?? [],
+    })) as EscalationRow[];
   });
 
 export const createEscalation = createServerFn({ method: "POST" })
