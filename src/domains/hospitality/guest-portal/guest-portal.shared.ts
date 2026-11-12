@@ -81,7 +81,7 @@ export function buildGuestPortalUrl(origin: string, token: string): string {
 /** Resolve only an explicitly configured environment host or its canonical current origin. */
 export function guestPortalOrigin(currentOrigin: string, configuredOrigin?: string): string {
   const base = new URL(configuredOrigin?.trim() || currentOrigin);
-  if (!["https:", "http:"].includes(base.protocol) || base.username || base.password) {
+  if (base.protocol !== "https:" || base.username || base.password) {
     throw new Error("Invalid Guest Portal origin.");
   }
   if (
