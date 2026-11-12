@@ -424,6 +424,7 @@ BEGIN
       ON policy.id=escalation.sla_policy_id AND policy.enabled
     WHERE escalation.status IN ('open','assigned','acknowledged','in_progress')
   LOOP
+    v_alert_id := NULL;
     BEGIN
     SELECT property.timezone, policy.operating_hours INTO v_timezone,v_hours
     FROM public.staynas_properties property
@@ -440,6 +441,7 @@ BEGIN
       SELECT 'resolution', e.resolution_due_at, true, policy.resolution_minutes
       FROM public.ai_escalation_sla_policies policy WHERE policy.id=e.sla_policy_id
     LOOP
+      v_alert_id := NULL;
       IF NOT a.pending OR a.due_at IS NULL THEN CONTINUE; END IF;
       SELECT CASE WHEN policy.business_hours_only
         THEN public.staynas_sla_add_minutes(COALESCE(e.sla_cycle_started_at,e.created_at),GREATEST(1,round(a.target_minutes*e.warning_percent/100.0)::integer),v_timezone,v_hours)
