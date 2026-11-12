@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   listEscalations, updateEscalation, listEscalationSlaPolicies,
-  updateEscalationSlaPolicy, updateEscalationReasonPriorityMap, listEscalationEvents, listEscalationSlaAlerts, listEscalationAssignees,
+  updateEscalationSlaPolicy, updateEscalationReasonPriorityMap, listEscalationEvents, listEscalationSlaAlerts, listEscalationSlaPolicyEvents, listEscalationAssignees,
 } from "@/domains/ai/concierge/omnichannel.functions";
 import type { EscalationRow, EscalationStatus } from "@/domains/ai/concierge/omnichannel.types";
 
@@ -26,11 +26,13 @@ function EscalationsPage() {
   const updatePolicyFn = useServerFn(updateEscalationSlaPolicy);
   const updateReasonMapFn = useServerFn(updateEscalationReasonPriorityMap);
   const assigneesFn = useServerFn(listEscalationAssignees);
+  const policyEventsFn = useServerFn(listEscalationSlaPolicyEvents);
   const qc = useQueryClient();
   const [status, setStatus] = useState<EscalationStatus | "all">("open");
   const list = useQuery({ queryKey: ["oc.escalations", status], queryFn: () => listFn({ data: { status } }) });
   const policies = useQuery({ queryKey: ["oc.escalation-sla-policies"], queryFn: () => policiesFn() });
   const assignees = useQuery({ queryKey: ["oc.escalation-assignees"], queryFn: () => assigneesFn() });
+  const policyEvents = useQuery({ queryKey: ["oc.escalation-sla-policy-events"], queryFn: () => policyEventsFn() });
   const patch = useMutation({
     mutationFn: async (v: { id: string; status?: EscalationStatus; assigned_to?: string | null; resolution_notes?: string; priority?: number }) => updateFn({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["oc.escalations"] }),
@@ -55,6 +57,22 @@ function EscalationsPage() {
           ))}
         </div>
         {policies.data?.[0] && <ReasonPriorityEditor key={JSON.stringify(policies.data[0].reason_priority_map)} initial={policies.data[0].reason_priority_map} saving={saveReasonMap.isPending} onSave={saveReasonMap.mutate} />}
+        <details className="rounded-lg border p-3">
+          <summary className="cursor-pointer text-sm font-medium">SLA policy change history ({policyEvents.data?.length ?? 0})</summary>
+          <div className="mt-3 space-y-2">
+            {(policyEvents.data ?? []).map((event: any) => (
+              <div key={event.id} className="border-l-2 pl-3 py-1">
+                <div className="text-sm font-medium">P{event.priority} · {event.event_type}</div>
+                <div className="text-xs text-muted-foreground">{formatPropertyTime(event.occurred_at,policies.data?.[0]?.property_timezone ?? "UTC")} · {event.actor_id ?? "System"}</div>
+                <details className="mt-1 text-xs">
+                  <summary className="cursor-pointer">Changed policy snapshot</summary>
+                  <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap break-all">{JSON.stringify({before:event.old_policy,after:event.new_policy},null,2)}</pre>
+                </details>
+              </div>
+            ))}
+            {policyEvents.data?.length === 0 && <p className="text-xs text-muted-foreground">No policy changes recorded.</p>}
+          </div>
+        </details>
         {savePolicy.isError && <p className="text-sm text-destructive">{String(savePolicy.error)}</p>}
         {saveReasonMap.isError && <p className="text-sm text-destructive">{String(saveReasonMap.error)}</p>}
       </SectionCard>
