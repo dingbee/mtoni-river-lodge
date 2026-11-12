@@ -5,6 +5,7 @@ import {
   guestRequestStatusLabel,
   validateGuestPortalPhotoMeta,
   buildGuestPortalUrl,
+  guestPortalOrigin,
 } from "./guest-portal.shared";
 
 describe("guest portal photo validation", () => {
@@ -68,5 +69,17 @@ describe("guest portal bearer URL and QR generation", () => {
     });
     expect(png.startsWith("data:image/png;base64,")).toBe(true);
     expect(QRCode.create(url, { errorCorrectionLevel: "H" }).modules.size).toBeGreaterThan(0);
+  });
+});
+
+describe("guest portal environment origin", () => {
+  it("uses the explicitly configured approved UAT or production origin", () => {
+    expect(guestPortalOrigin("https://preview.vercel.app", "https://uat.staynas.example"))
+      .toBe("https://uat.staynas.example");
+  });
+
+  it("rejects unapproved preview and local development hosts", () => {
+    expect(() => guestPortalOrigin("https://preview.vercel.app")).toThrow();
+    expect(() => guestPortalOrigin("http://localhost:3000")).toThrow();
   });
 });
