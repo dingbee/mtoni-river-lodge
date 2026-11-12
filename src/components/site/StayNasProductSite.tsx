@@ -73,9 +73,9 @@ export function ProductSiteHeader() {
         </button>
       </div>
 
-      {open && <div className="fixed inset-0 z-[100] lg:hidden">
-        <button type="button" aria-label="Close navigation menu by tapping outside" onPointerDown={closeMenu} onClick={closeMenu} className="absolute inset-0 h-full w-full cursor-default touch-manipulation bg-[#071710]/55 backdrop-blur-[2px]"/>
-        <aside id="staynas-mobile-navigation" role="dialog" aria-modal="true" aria-label="StayNas navigation" onClick={(event) => event.stopPropagation()} className="absolute inset-y-0 right-0 flex h-[100dvh] w-[min(100%,440px)] flex-col overflow-hidden bg-[#f6f5ef] text-[#15251f] shadow-2xl">
+      <div aria-hidden={!open} inert={!open} className={"fixed inset-0 z-[100] lg:hidden " + (open ? "pointer-events-auto" : "pointer-events-none")}>
+        <button type="button" aria-label="Close navigation menu by tapping outside" onPointerDown={closeMenu} onClick={closeMenu} className={"absolute inset-0 h-full w-full cursor-default touch-manipulation bg-[#071710]/55 backdrop-blur-[2px] transition-opacity duration-300 ease-out motion-reduce:transition-none " + (open ? "opacity-100" : "opacity-0")}/>
+        <aside id="staynas-mobile-navigation" role="dialog" aria-modal="true" aria-label="StayNas navigation" onClick={(event) => event.stopPropagation()} className={"absolute inset-y-0 right-0 flex h-[100dvh] w-[min(100%,440px)] flex-col overflow-hidden bg-[#f6f5ef] text-[#15251f] shadow-2xl transform-gpu transition-[transform,opacity] duration-[360ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none " + (open ? "translate-x-0 opacity-100" : "translate-x-full opacity-0")}>
           <div className="flex min-h-[88px] items-center justify-between border-b border-[#deded4] px-6 sm:px-8">
             {activeMenu === "platform" ? <>
               <div className="flex min-w-0 items-center gap-4">
@@ -118,7 +118,7 @@ export function ProductSiteHeader() {
             <Link to="/request-demo" onClick={closeMenu} className="flex min-h-[58px] w-full items-center justify-center rounded-full bg-[#c7a96b] px-6 text-base font-semibold text-[#10251e] shadow-sm transition hover:bg-[#d7bd85]">Book a Demo</Link>
           </div>
         </aside>
-      </div>}
+      </div>
     <style>{`
       .staynas-public-site main article[class*="rounded-2xl"],
       .staynas-public-site main article[class*="rounded-3xl"] {
