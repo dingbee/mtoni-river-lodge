@@ -208,10 +208,11 @@ function EscalationCard({ row, assignees, onPatch }: {
         {due.map(({label,at,completedAt,cancelled}) => {
           const dueTime = at ? new Date(at).getTime() : null;
           const completedTime = completedAt ? new Date(completedAt).getTime() : null;
-          const overdue = completedTime === null && !cancelled && dueTime !== null && dueTime < now;
+          const assignmentTimeUnknown = label === "Assignment" && Boolean(row.assigned_to) && completedTime === null;
+          const overdue = completedTime === null && !cancelled && !assignmentTimeUnknown && dueTime !== null && dueTime < now;
           const breached = completedTime !== null && dueTime !== null && completedTime > dueTime;
           const met = completedTime !== null && dueTime !== null && completedTime <= dueTime;
-          const result = cancelled ? "Cancelled" : completedTime !== null ? (dueTime === null ? "Completed" : met ? "Met" : "Breached") : at ? formatPropertyTime(at,row.property_timezone ?? "UTC") : "No deadline";
+          const result = cancelled ? "Cancelled" : assignmentTimeUnknown ? "Assigned (time unavailable)" : completedTime !== null ? (dueTime === null ? "Completed" : met ? "Met" : "Breached") : at ? formatPropertyTime(at,row.property_timezone ?? "UTC") : "No deadline";
           return <div key={label} className="rounded bg-muted/50 p-2">
             <div className="text-xs text-muted-foreground">{label} SLA</div>
             <div className="font-medium">{result}</div>
