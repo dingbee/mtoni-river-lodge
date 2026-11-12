@@ -26,6 +26,7 @@ const availabilitySchema = z.object({
   childrenBelow6: z.number().int().min(0).max(10).default(0),
   children7Plus: z.number().int().min(0).max(10).default(0),
   ratePlanId: z.string().uuid().optional(),
+  eventId: z.string().uuid().optional(),
 }).merge(publicCampaignBookingSchema);
 
 export type PublicRatePlanOption = { rate_plan_id: string; name: string; description: string | null; meal_plan: string | null; refundable: boolean; currency: string; total: number; average_nightly_rate: number; minimum_stay: number; nightly_breakdown: Array<{ date: string; nightly_rate: number; currency: string; source_label: string; pricing_basis: string; source_rate: number }>; publication_id: string; publication_number: number; rate_plan_version: number; snapshot_hash: string };
@@ -157,7 +158,9 @@ export const checkAvailability = createServerFn({ method: "POST" })
               _property_id: propertyId,
               _organisation_id: channel.organisationId,
               _event_type: eventType,
-              _event_key: "cps6:journey:" + sessionKey + ":" + eventType,
+              _event_key: eventType === "booking_started"
+                ? "cps6:journey:" + sessionKey + ":booking_started"
+                : "cps6:availability:" + (data.eventId ?? sessionKey),
               _event_source: "server_confirmed",
               _attribution_id: attribution.attribution_id,
               _campaign_id: campaignContext?.campaignId ?? null,
