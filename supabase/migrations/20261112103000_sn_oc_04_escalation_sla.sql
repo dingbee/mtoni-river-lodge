@@ -156,13 +156,13 @@ BEGIN
     RAISE EXCEPTION 'Invalid property timezone for SLA calendar';
   END IF;
   FOR v_day IN
-    SELECT d::date FROM generate_series(
+    SELECT day_value::date FROM generate_series(
       (p_start AT TIME ZONE p_timezone)::date,
       (p_end AT TIME ZONE p_timezone)::date,
       interval '1 day'
-    ) d
+    ) AS days(day_value)
   LOOP
-    v_key := lower(to_char(v_day,'Dy'));
+    v_key := (ARRAY['mon','tue','wed','thu','fri','sat','sun'])[extract(isodow FROM v_day)::integer];
     FOR v_window IN SELECT value FROM jsonb_array_elements(COALESCE(p_hours->v_key,'[]'::jsonb))
     LOOP
       v_local_start := v_day + (v_window->>'start')::time;
@@ -202,11 +202,11 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_timezone_names WHERE name=p_timezone) THEN
     RAISE EXCEPTION 'Invalid property timezone for SLA calendar';
   END IF;
-  FOR v_day IN SELECT d::date FROM generate_series(
+  FOR v_day IN SELECT day_value::date FROM generate_series(
     (p_start AT TIME ZONE p_timezone)::date,
     (p_start AT TIME ZONE p_timezone)::date + 3700,
     interval '1 day'
-  ) d
+  ) AS days(day_value)
   LOOP
     v_key := lower(to_char(v_day,'Dy'));
     FOR v_window IN SELECT value FROM jsonb_array_elements(COALESCE(p_hours->v_key,'[]'::jsonb))
