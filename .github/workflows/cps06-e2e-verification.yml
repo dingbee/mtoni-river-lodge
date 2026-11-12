@@ -57,6 +57,7 @@ jobs:
           src/domains/booking-campaigns/public-campaign.functions.ts
           src/lib/booking.functions.ts
           'src/routes/p.$propertySlug.book.tsx'
+          'src/routes/p.$propertySlug.campaign.$campaignSlug.tsx'
           src/routes/_authenticated.admin.analytics.direct-booking.tsx
           src/components/os/nav-config.ts
           src/lib/staynas-entitlements.ts
