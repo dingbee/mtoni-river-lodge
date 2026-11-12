@@ -34,7 +34,7 @@ BEGIN
     SELECT 1 FROM pg_type t JOIN pg_namespace n ON n.oid=t.typnamespace
     WHERE n.nspname='public' AND t.typname='app_role'
   ) THEN
-    CREATE TYPE public.app_role AS ENUM ('owner','manager','admin','reception','reservations');
+    CREATE TYPE public.app_role AS ENUM ('admin','reservations','user','owner','manager','reception','marketing','housekeeping','finance','editor');
   END IF;
 END
 $$;
