@@ -58,13 +58,14 @@ function PublicCampaignPage() {
 
   useEffect(() => {
     if (!trackingReady || !sessionKey) return;
-    pageViewEventId.current ??= window.crypto.randomUUID();
+    const eventId = pageViewEventId.current ?? window.crypto.randomUUID();
+    pageViewEventId.current = eventId;
     recordEvent({
       data: {
         campaignId: data.campaign.id,
         propertySlug: data.property.slug,
         sessionKey,
-        eventId: pageViewEventId.current,
+        eventId,
         eventType: "page_view",
         source: tracking.source,
         medium: tracking.medium,
