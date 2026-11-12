@@ -164,12 +164,7 @@ async function authorizeGuestPortal(token: string): Promise<GuestPortalContext> 
     .eq("property_id", access.property_id)
     .maybeSingle();
 
-  const withinCheckoutGrace = Boolean(
-    booking &&
-    booking.status === "completed" &&
-    Date.parse(access.expires_at) > Date.now(),
-  );
-  if (bookingError || !booking || (booking.status !== "checked_in" && !withinCheckoutGrace)) {
+  if (bookingError || !booking || !isGuestPortalStayEligible(booking.status, access.expires_at)) {
     await recordGuestPortalAccessDenied(admin, tokenHash, "booking_not_eligible", access);
     throw new Error("Guest Portal access is available during an active stay or its configured checkout grace period.");
   }
@@ -878,11 +873,8 @@ export const recordGuestPortalAccessEvent = createServerFn({ method: "POST" })
       .eq("id", data.bookingId)
       .eq("property_id", propertyId)
       .maybeSingle();
-    const withinCheckoutGrace = Boolean(
-      booking && booking.status === "completed" && Date.parse(access.expires_at) > Date.now(),
-    );
     if (bookingError || !booking ||
-        (booking.status !== "checked_in" && !withinCheckoutGrace) ||
+        !isGuestPortalStayEligible(booking.status, access.expires_at) ||
         booking.guest_id !== access.guest_id) {
       throw new Error("The guest credential is no longer bound to an eligible guest stay.");
     }
