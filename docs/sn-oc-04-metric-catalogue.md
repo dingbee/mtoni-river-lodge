@@ -17,7 +17,7 @@ The approved UAT tenant is Nolmark CDMA (`f44ff48a-5449-4464-b0cb-83295fadb468`)
 | Omnichannel messages | `ai_omnichannel_messages` | `property_id, session_id, channel, direction, actor_type, message_type, status, occurred_at, created_at`; idempotent provider/client identifiers | Use only non-event inbound guest/provider and outbound assistant/staff messages; exclude system/provider events |
 | Delivery | `ai_omnichannel_delivery_events` | Provider event ID, message, type, occurred/received timestamps | Delivery is not guest response or booking conversion |
 | Dispatch | `ai_communication_dispatch_attempts` | Provider, channel, approval, attempt status and timestamps | Dispatch acceptance is not delivery |
-| Leads | `ai_concierge_leads` | Property and session linkage, status, consent evidence, idempotency key | Lead status `converted` is not a booking proof |
+| Leads | `ai_concierge_leads` | Property and optional session linkage, status, created_at | No explicit consent evidence column is present in the verified schema; lead status `converted` is not a booking proof |
 | Concierge attribution | `ai_concierge_attributions` | Session, optional booking ID, conversion type, metadata, created_at | Booking click and assisted/direct attribution labels alone are not proof of a confirmed booking |
 | Campaign attribution | `campaign_attribution` | Property, campaign, optional booking, session key, event type, source/medium/referrer, UTM campaign/content/term, occurred_at; unique event key support | UTM source/medium/content may be carried in metadata; verify event lineage before joining to lead/session |
 | Booking | `bookings` | Property, booking ID, status, payment status, confirmed/cancelled timestamps, total, currency, paid amount, check-in/out | Booked revenue and realized revenue must be separate; use finance ledger for settled/refunded realization |
@@ -32,7 +32,7 @@ The approved UAT tenant is Nolmark CDMA (`f44ff48a-5449-4464-b0cb-83295fadb468`)
 
 | Metric | Definition | Authoritative calculation |
 |---|---|---|
-| Leads generated | Distinct consented lead records created in period | Count distinct `ai_concierge_leads.id` by property and created_at |
+| Leads generated | Distinct consented lead records created in period | Count distinct `ai_concierge_leads.id` by property and created_at; current count is not consent-verified |
 | Qualified leads | Distinct leads with explicit qualified status or documented qualification evidence | Count qualified lead records; do not infer from intent score alone |
 | Confirmed booking conversions | Distinct attributed bookings with authoritative confirmed status and confirmed_at | Join attribution to `bookings` by booking_id and property_id; require confirmed status and non-null confirmed_at |
 | Completed stays | Distinct confirmed bookings with verified completed-stay lifecycle evidence | Do not infer completion solely from check_out date; require authoritative checkout/completion evidence |
@@ -60,12 +60,12 @@ First-touch, last-touch and conversion-touch must preserve original event timest
 
 ### Response and resolution
 
-Incoming message: `direction='inbound'`, `actor_type='guest'`, `message_type<>'event'`. Valid response: `direction='outbound'`, `actor_type IN ('assistant','staff')`, `message_type<>'event'`. System/provider events, webhook retries and duplicate provider/client message IDs are excluded.
+Incoming message: `direction='inbound'`, `actor_type='guest'`, `message_type<>'event'`. Valid response: `direction='outbound'`, `actor_type IN ('assistant','staff')`, `message_type NOT IN ('event','template')`, and delivery status recorded/delivered/read. System/provider events, webhook retries and duplicate provider/client message IDs are excluded.
 
 - First response: first valid outbound message after the first eligible inbound message in the conversation.
 - Subsequent response: each valid outbound response after the preceding eligible inbound message, using a deterministic chronological pairing contract.
 - AI and human response times: split by outbound actor_type.
-- Automated acknowledgements: assistant-originated content counts only when it is a substantive guest-facing response; templated transport receipts/system events do not count. If the source contract cannot distinguish acknowledgement from substantive answer, expose the limitation rather than guessing.
+- Automated acknowledgements: template messages are excluded because the current schema does not distinguish transport acknowledgements from substantive templates. Other assistant text responses are measured; future explicit acknowledgement metadata is required for exact classification.
 - Unanswered conversations: retain as unanswered; do not drop from denominator.
 - Resolution time: median of `ai_escalations.resolved_at - created_at` for current rows with status `resolved`; this is a current-state snapshot, not an immutable lifecycle history. First-contact resolution and reopen rate remain unavailable. Session last_active_at is not a resolution timestamp.
 - Timezone: persist/compare UTC instants; bucket display dates using the property's configured timezone. Percentiles use continuous percentile calculation over eligible completed response intervals.
