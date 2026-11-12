@@ -124,4 +124,39 @@ BEGIN
   END IF;
 END
 $sn_oc_04_contract$;
+DO $sn_oc_04_sla_contract$
+BEGIN
+  IF to_regclass('public.ai_escalation_sla_policies') IS NULL
+     OR to_regclass('public.ai_escalation_events') IS NULL
+     OR to_regclass('public.ai_escalation_sla_alerts') IS NULL THEN
+    RAISE EXCEPTION 'SN-OC-04 SLA policy, lifecycle and alert tables are required';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='ai_escalations' AND column_name='assignment_due_at')
+     OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='ai_escalations' AND column_name='acknowledgement_due_at')
+     OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='ai_escalations' AND column_name='resolution_due_at')
+     OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='ai_escalations' AND column_name='sla_cycle_started_at') THEN
+    RAISE EXCEPTION 'SN-OC-04 escalation deadline and cycle fields are incomplete';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='ai_escalation_sla_policies' AND column_name='operating_hours')
+     OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='ai_escalation_sla_policies' AND column_name='warning_percent')
+     OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='ai_escalation_sla_policies' AND column_name='reason_priority_map') THEN
+    RAISE EXCEPTION 'SN-OC-04 configurable policy contract is incomplete';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_proc WHERE pronamespace='public'::regnamespace AND proname='staynas_process_concierge_sla_alerts')
+     OR NOT EXISTS (SELECT 1 FROM pg_proc WHERE pronamespace='public'::regnamespace AND proname='staynas_sla_add_minutes')
+     OR NOT EXISTS (SELECT 1 FROM pg_proc WHERE pronamespace='public'::regnamespace AND proname='staynas_sla_business_minutes') THEN
+    RAISE EXCEPTION 'SN-OC-04 SLA calculation and alert worker functions are missing';
+  END IF;
+  IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.ai_escalation_sla_policies'::regclass)
+     OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.ai_escalation_events'::regclass)
+     OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.ai_escalation_sla_alerts'::regclass) THEN
+    RAISE EXCEPTION 'SN-OC-04 SLA tables must enforce row-level security';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname='pg_cron')
+     AND NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname='staynas-concierge-sla-monitor' AND schedule='* * * * *') THEN
+    RAISE EXCEPTION 'SN-OC-04 minute-level SLA monitor must be scheduled';
+  END IF;
+END
+$sn_oc_04_sla_contract$;
+
 ROLLBACK;
