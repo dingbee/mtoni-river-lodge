@@ -872,7 +872,20 @@ export const getGuestPortalAccessStatus = createServerFn({ method: "POST" })
       createdBy: access?.created_by ?? null,
       lastUsedAt: access?.last_used_at ?? null,
       events: eventsResult.data ?? [],
-      deliveryStatus: "not_sent",
+      deliveryStatus: (() => {
+        const latestDelivery = (eventsResult.data ?? []).find((event: any) =>
+          ["delivery_queued", "delivery_sent", "delivery_delivered", "delivery_retrying", "delivery_failed"].includes(event.event_type),
+        );
+        return latestDelivery
+          ? ({
+              delivery_queued: "queued",
+              delivery_sent: "sent",
+              delivery_delivered: "delivered",
+              delivery_retrying: "retrying",
+              delivery_failed: "failed",
+            } as Record<string, string>)[latestDelivery.event_type] ?? "not_sent"
+          : "not_sent";
+      })(),
       multipleGuestAccess: true,
     };
   });
