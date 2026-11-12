@@ -113,7 +113,7 @@ alter table public.staynas_booking_analytics_events enable row level security;
 revoke all on public.staynas_booking_attributions from public, anon, authenticated;
 revoke all on public.staynas_booking_analytics_events from public, anon, authenticated;
 grant all on public.staynas_booking_attributions to service_role;
-grant all on public.staynas_booking_analytics_events to service_role;
+grant all on public.staynas_booking_analytics_events to service_role;\ngrant select on public.staynas_booking_attributions to authenticated;\ngrant select on public.staynas_booking_analytics_events to authenticated;
 
 drop policy if exists staynas_booking_attributions_property_read on public.staynas_booking_attributions;
 create policy staynas_booking_attributions_property_read
