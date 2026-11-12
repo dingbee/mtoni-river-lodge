@@ -94,18 +94,16 @@ function AnalyticsPage() {
             <Stat label="Booking intents" value={a?.conversion.booking_intents} />
             <Stat label="Booking clicks" value={a?.conversion.booking_clicks} />
             <Stat label="Leads captured" value={a?.conversion.leads} />
-            <Stat label="Assisted bookings" value={a?.conversion.assisted_bookings} />
+            <Stat label="Booking attributions (unverified)" value={a?.conversion.booking_attributions_unverified} />
           </dl>
         </SectionCard>
 
-        <SectionCard title="Concierge health score">
-          <div className="space-y-2">
-            <HealthBar label="Accuracy" value={a?.health.accuracy} />
-            <HealthBar label="Engagement" value={a?.health.engagement} />
-            <HealthBar label="Conversion" value={a?.health.conversion} />
-            <HealthBar label="Experience" value={a?.health.experience} />
-            <HealthBar label="Overall" value={a?.health.overall} highlight />
-          </div>
+        <SectionCard title="Measurement integrity">
+          <p className="text-sm text-muted-foreground">
+            Booking clicks and attribution labels are not counted as confirmed bookings.
+            Factual accuracy and conversion rates remain unavailable until verified booking
+            outcomes and a human-labelled answer evaluation dataset are linked to source records.
+          </p>
         </SectionCard>
       </div>
 
@@ -191,17 +189,3 @@ function Stat({ label, value }: { label: string; value: number | undefined }) {
   );
 }
 
-function HealthBar({ label, value, highlight }: { label: string; value: number | undefined; highlight?: boolean }) {
-  const v = Math.round(Number(value ?? 0) * 100);
-  return (
-    <div>
-      <div className="mb-1 flex items-center justify-between text-xs">
-        <span className={highlight ? "font-semibold" : "text-muted-foreground"}>{label}</span>
-        <span className={highlight ? "font-semibold" : ""}>{v}%</span>
-      </div>
-      <div className="h-2 overflow-hidden rounded-full bg-muted">
-        <div className={`h-full ${highlight ? "bg-primary" : "bg-primary/70"}`} style={{ width: `${v}%` }} />
-      </div>
-    </div>
-  );
-}
