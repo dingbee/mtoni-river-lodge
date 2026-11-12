@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS public.staynas_guest_portal_access_events (
   event_type text NOT NULL CHECK (event_type IN (
     'issued','activated','accessed','regenerated','superseded','revoked',
     'expired','qr_generated','link_shared','delivery_queued','delivery_sent',
-    'delivery_delivered','delivery_retrying','delivery_failed','access_denied','checkout_grace_started','issue_failed','qr_generation_failed'
+    'delivery_delivered','delivery_retrying','delivery_failed','access_denied','checkout_grace_started','issue_failed','qr_generation_failed','occupant_added','occupant_removed'
   )),
   token_fingerprint text CHECK (token_fingerprint IS NULL OR length(token_fingerprint) = 12),
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
@@ -60,6 +60,52 @@ CREATE INDEX IF NOT EXISTS staynas_guest_portal_access_events_booking_idx
   ON public.staynas_guest_portal_access_events(property_id, booking_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS staynas_guest_portal_access_events_access_idx
   ON public.staynas_guest_portal_access_events(access_id, created_at DESC);
+
+-- Registered occupants are explicit booking relationships, not arbitrary guest IDs.
+CREATE TABLE IF NOT EXISTS public.staynas_booking_guest_occupants (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id uuid NOT NULL REFERENCES public.staynas_properties(id) ON DELETE CASCADE,
+  booking_id uuid NOT NULL REFERENCES public.bookings(id) ON DELETE CASCADE,
+  guest_id uuid NOT NULL REFERENCES public.guests(id) ON DELETE RESTRICT,
+  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active','removed')),
+  created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (property_id, booking_id, guest_id)
+);
+CREATE INDEX IF NOT EXISTS staynas_booking_guest_occupants_booking_idx
+  ON public.staynas_booking_guest_occupants(property_id, booking_id, status);
+
+ALTER TABLE public.staynas_booking_guest_occupants ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.staynas_booking_guest_occupants FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.staynas_booking_guest_occupants TO service_role;
+
+CREATE OR REPLACE FUNCTION public.staynas_validate_booking_guest_occupant()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $function$
+DECLARE
+  v_property_id uuid;
+  v_lead_guest_id uuid;
+BEGIN
+  SELECT property_id, guest_id INTO v_property_id, v_lead_guest_id
+  FROM public.bookings WHERE id = NEW.booking_id;
+  IF NOT FOUND OR v_property_id IS DISTINCT FROM NEW.property_id THEN
+    RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='Occupant does not belong to the selected booking property';
+  END IF;
+  IF v_lead_guest_id IS NOT NULL AND v_lead_guest_id = NEW.guest_id THEN
+    RAISE EXCEPTION USING ERRCODE='23505', MESSAGE='Lead guest cannot be added as an additional occupant';
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.staynas_validate_booking_guest_occupant() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS staynas_booking_guest_occupant_validate ON public.staynas_booking_guest_occupants;
+CREATE TRIGGER staynas_booking_guest_occupant_validate
+  BEFORE INSERT OR UPDATE OF property_id, booking_id, guest_id
+  ON public.staynas_booking_guest_occupants
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_validate_booking_guest_occupant();
 
 ALTER TABLE public.staynas_guest_portal_access_events ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.staynas_guest_portal_access_events FROM PUBLIC, anon, authenticated;
@@ -99,8 +145,17 @@ BEGIN
   FOR UPDATE;
 
   IF NOT FOUND OR v_booking.status::text <> 'checked_in'
-     OR v_booking.guest_id IS NULL
-     OR v_booking.guest_id IS DISTINCT FROM _guest_id
+     OR _guest_id IS NULL
+     OR NOT (
+       v_booking.guest_id IS NOT DISTINCT FROM _guest_id
+       OR EXISTS (
+         SELECT 1 FROM public.staynas_booking_guest_occupants occupant
+         WHERE occupant.property_id = _property_id
+           AND occupant.booking_id = _booking_id
+           AND occupant.guest_id = _guest_id
+           AND occupant.status = 'active'
+       )
+     )
      OR NOT (
        (
          public.staynas_user_has_property_access(_actor_id, _property_id)
@@ -345,10 +400,26 @@ DECLARE
   v_event text;
   v_status text;
 BEGIN
-  IF NEW.property_id IS DISTINCT FROM OLD.property_id
-     OR NEW.guest_id IS DISTINCT FROM OLD.guest_id THEN
+  IF NEW.property_id IS DISTINCT FROM OLD.property_id THEN
     v_event := 'revoked';
     v_status := 'revoked';
+  ELSIF NEW.guest_id IS DISTINCT FROM OLD.guest_id THEN
+    WITH retired AS (
+      UPDATE public.staynas_guest_portal_access
+      SET status = 'revoked', revoked_at = now(), revoked_by = auth.uid()
+      WHERE property_id = OLD.property_id
+        AND booking_id = NEW.id
+        AND guest_id = OLD.guest_id
+        AND status IN ('active','pending')
+        AND revoked_at IS NULL
+      RETURNING id, property_id, booking_id, guest_id
+    )
+    INSERT INTO public.staynas_guest_portal_access_events
+      (access_id, property_id, booking_id, guest_id, actor_id, event_type, metadata)
+    SELECT id, property_id, booking_id, guest_id, auth.uid(), 'revoked',
+           jsonb_build_object('reason','lead_guest_reassigned')
+    FROM retired;
+    RETURN NEW;
   ELSIF NEW.status IS DISTINCT FROM OLD.status AND NEW.status::text = 'completed' THEN
     -- Checkout starts the configured grace period. Never extend beyond the
     -- scheduled checkout expiry; an early checkout shortens it to now + grace.
