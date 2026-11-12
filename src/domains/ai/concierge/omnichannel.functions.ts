@@ -640,10 +640,13 @@ export const updateEscalationSlaPolicy = createServerFn({ method: "POST" })
     resolution_minutes?: number; business_hours_only?: boolean; operating_hours?: Record<string, unknown>;
     warning_percent?: number;
   }) => {
-    if (!input?.id) throw new Error("Policy id is required.");
+    if (!input?.id || typeof input.id !== "string") throw new Error("Policy id is required.");
+    if (input.enabled !== undefined && typeof input.enabled !== "boolean") throw new Error("Policy enabled flag must be boolean.");
+    if (input.business_hours_only !== undefined && typeof input.business_hours_only !== "boolean") throw new Error("Business-hours flag must be boolean.");
     const bounds = [["acknowledgement_minutes",input.acknowledgement_minutes,1,10080],["assignment_minutes",input.assignment_minutes,1,10080],["resolution_minutes",input.resolution_minutes,1,43200],["warning_percent",input.warning_percent,1,99]] as const;
     for (const [key,value,min,max] of bounds) if (value !== undefined && (!Number.isInteger(value) || value < min || value > max)) throw new Error("Invalid SLA policy value: " + key);
     if (input.operating_hours !== undefined) {
+      if (!input.operating_hours || typeof input.operating_hours !== "object" || Array.isArray(input.operating_hours)) throw new Error("Operating calendar must be a JSON object.");
       const mode = input.operating_hours.mode;
       if (mode !== "24x7" && mode !== "weekly") throw new Error("Operating calendar mode must be 24x7 or weekly.");
       if (mode === "weekly") {
