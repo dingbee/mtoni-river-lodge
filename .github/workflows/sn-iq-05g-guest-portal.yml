@@ -24,6 +24,7 @@ on:
   push:
     branches:
       - feat/sn-iq-05g-guest-self-service
+      - feat/guest-portal-access-management-release
 
 jobs:
   guest-portal:
