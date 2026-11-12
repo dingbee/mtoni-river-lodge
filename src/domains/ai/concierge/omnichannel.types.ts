@@ -33,7 +33,7 @@ export type EscalationReason =
   | "human_requested"
   | "other";
 
-export type EscalationStatus = "open" | "assigned" | "in_progress" | "resolved" | "dismissed";
+export type EscalationStatus = "open" | "assigned" | "acknowledged" | "in_progress" | "resolved" | "dismissed";
 
 export interface ChannelRow {
   id: string;
@@ -92,6 +92,11 @@ export interface EscalationRow {
   assigned_to: string | null;
   resolution_notes: string | null;
   resolved_at: string | null;
+  assignment_due_at?: string | null;
+  acknowledgement_due_at?: string | null;
+  resolution_due_at?: string | null;
+  reopened_at?: string | null;
+  acknowledged_at?: string | null;
   created_at: string;
   updated_at: string;
 }
