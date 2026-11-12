@@ -239,8 +239,7 @@ export function GuestPortalPage({ token }: { token: string }) {
           <ShieldAlert className="mx-auto h-8 w-8 text-muted-foreground" />
           <h1 className="mt-3 font-display text-2xl">Guest access unavailable</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {(snapshot.error as Error)?.message ??
-              "This link is invalid, expired or no longer active."}
+            This link is invalid, expired or no longer active.
           </p>
           <p className="mt-4 text-xs text-muted-foreground">
             Please contact the property reception team for a new access link.
