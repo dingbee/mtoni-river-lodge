@@ -246,7 +246,7 @@ function EscalationCard({ row, assignees, onPatch }: {
         {history.isLoading && <p>Loading history…</p>}
         {(history.data ?? []).map((event: any) => <div key={event.id} className="border-l-2 pl-3 py-1">
           <div className="font-medium">{event.event_type.replaceAll("_"," ")}</div>
-          <div className="text-xs text-muted-foreground">{formatPropertyTime(event.occurred_at,row.property_timezone ?? "UTC")} · {event.actor_id ?? "System"} {event.from_status ? "· "+event.from_status+" → "+event.to_status : ""}</div>
+          <div className="text-xs text-muted-foreground">{formatPropertyTime(event.occurred_at,row.property_timezone ?? "UTC")} · {event.actor_id ?? "System"} {event.from_status ? "· "+event.from_status+" → "+event.to_status : ""} {event.from_assignee || event.to_assignee ? "· "+(event.from_assignee ?? "unassigned")+" → "+(event.to_assignee ?? "unassigned") : ""}</div>
         </div>)}
         {history.data?.length === 0 && <p className="text-xs text-muted-foreground">No lifecycle events recorded.</p>}
       </div>}
