@@ -107,19 +107,25 @@ INSERT INTO auth.users(id) VALUES
 INSERT INTO public.user_roles(user_id,role) VALUES
   ('91000000-0000-4000-8000-000000000001','owner');
 INSERT INTO public.staynas_organisations(id,slug,name) VALUES
-  ('92000000-0000-4000-8000-000000000001','cps06-e2e-org','CPS-06 E2E Organisation');
+  ('92000000-0000-4000-8000-000000000001','cps06-e2e-org','CPS-06 E2E Organisation'),
+  ('92000000-0000-4000-8000-000000000002','cps06-e2e-org-two','CPS-06 E2E Organisation Two');
 INSERT INTO public.staynas_properties(id,organisation_id,slug,code,name,status,currency,timezone) VALUES
   ('93000000-0000-4000-8000-000000000001','92000000-0000-4000-8000-000000000001',
-   'cps06-e2e-property','CPS06E2E','CPS-06 E2E Property','active','TZS','Africa/Dar_es_Salaam');
+   'cps06-e2e-property','CPS06E2E','CPS-06 E2E Property','active','TZS','Africa/Dar_es_Salaam'),
+  ('93000000-0000-4000-8000-000000000002','92000000-0000-4000-8000-000000000002',
+   'cps06-e2e-property-two','CPS06E2E2','CPS-06 E2E Property Two','active','TZS','Africa/Dar_es_Salaam');
 INSERT INTO public.staynas_property_members(property_id,user_id,role,status) VALUES
   ('93000000-0000-4000-8000-000000000001','91000000-0000-4000-8000-000000000001','owner','active');
 INSERT INTO public.staynas_user_property_context(user_id,property_id) VALUES
   ('91000000-0000-4000-8000-000000000001','93000000-0000-4000-8000-000000000001');
 INSERT INTO public.staynas_room_catalogue_types(id,slug,name,status) VALUES
-  ('94000000-0000-4000-8000-000000000001','cps06-e2e-room-type','CPS-06 E2E Room Type','active');
+  ('94000000-0000-4000-8000-000000000001','cps06-e2e-room-type','CPS-06 E2E Room Type','active'),
+  ('94000000-0000-4000-8000-000000000002','cps06-e2e-room-type-two','CPS-06 E2E Room Type Two','active');
 INSERT INTO public.rooms(id,property_id,catalogue_type_id,slug,name,status,base_price,currency) VALUES
   ('95000000-0000-4000-8000-000000000001','93000000-0000-4000-8000-000000000001',
-   '94000000-0000-4000-8000-000000000001','cps06-e2e-room','CPS-06 E2E Room','active',100,'TZS');
+   '94000000-0000-4000-8000-000000000001','cps06-e2e-room','CPS-06 E2E Room','active',100,'TZS'),
+  ('95000000-0000-4000-8000-000000000002','93000000-0000-4000-8000-000000000002',
+   '94000000-0000-4000-8000-000000000002','cps06-e2e-room-two','CPS-06 E2E Room Two','active',100,'TZS');
 INSERT INTO public.booking_campaigns(id,organisation_id,property_id,slug,name,status) VALUES
   ('96000000-0000-4000-8000-000000000001','92000000-0000-4000-8000-000000000001',
    '93000000-0000-4000-8000-000000000001','cps06-e2e-campaign','CPS-06 E2E Campaign','published');
@@ -145,6 +151,21 @@ DECLARE
   v_last_touch jsonb;
   v_rejected boolean := false;
 BEGIN
+  BEGIN
+    INSERT INTO public.staynas_reservation_quotes(
+      id,property_id,room_id,request,quote_snapshot,quote_hash,expires_at,attribution_id
+    ) VALUES (
+      '97000000-0000-4000-8000-000000000099',
+      '93000000-0000-4000-8000-000000000002',
+      '95000000-0000-4000-8000-000000000002',
+      '{}'::jsonb,'{}'::jsonb,'cps06-cross-property-attribution',now()+interval '1 day',
+      '00000000-0000-4000-8000-000000000001'
+    );
+    RAISE EXCEPTION 'Cross-property quote attribution unexpectedly succeeded';
+  EXCEPTION WHEN foreign_key_violation THEN
+    NULL;
+  END;
+
   SELECT (public.staynas_upsert_booking_attribution(
     '93000000-0000-4000-8000-000000000001',
     '92000000-0000-4000-8000-000000000001',
