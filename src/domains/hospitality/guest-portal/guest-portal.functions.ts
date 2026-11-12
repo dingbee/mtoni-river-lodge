@@ -790,7 +790,7 @@ export const issueGuestPortalAccess = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => staffBookingSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const propertyId = await requireReservationProperty(context);
+    const propertyId = await requireReservationProperty(context, data.bookingId);
     const result = await issueGuestPortalAccessForBooking({
       propertyId,
       bookingId: data.bookingId,
@@ -806,7 +806,7 @@ export const revokeGuestPortalAccess = createServerFn({ method: "POST" })
     z.object({ bookingId: z.string().uuid(), guestId: z.string().uuid().nullable().optional() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const propertyId = await requireReservationProperty(context);
+    const propertyId = await requireReservationProperty(context, data.bookingId);
     const admin = await adminClient();
     const { data: count, error } = await admin.rpc("staynas_revoke_guest_portal_access", {
       _property_id: propertyId,
@@ -830,7 +830,7 @@ export const recordGuestPortalAccessEvent = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     let propertyId: string;
     try {
-      propertyId = await requireReservationProperty(context);
+      propertyId = await requireReservationProperty(context, data.bookingId);
     } catch {
       await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
       const { data: staff, error: staffError } = await context.supabase.rpc("is_any_staff", {
