@@ -9,6 +9,15 @@ import { publicCampaignBookingSchema, resolvePublicCampaignBookingContext } from
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date");
 
+function safeAnalyticsReferrer(value?: string) {
+  try {
+    const url = new URL(value ?? "");
+    return url.origin + url.pathname;
+  } catch {
+    return null;
+  }
+}
+
 const availabilitySchema = z.object({
   checkIn: dateStr,
   checkOut: dateStr,
@@ -137,7 +146,7 @@ export const checkAvailability = createServerFn({ method: "POST" })
           _touch: {
             source: data.utmSource ?? null, medium: data.utmMedium ?? null,
             utm_campaign: data.utmCampaign ?? null, utm_content: data.utmContent ?? null,
-            utm_term: data.utmTerm ?? null, referrer: data.referrer ?? null,
+            utm_term: data.utmTerm ?? null, referrer: safeAnalyticsReferrer(data.referrer),
           },
           _touch_at: new Date().toISOString(),
           _is_external_acquisition: Boolean(data.utmSource || data.utmMedium || data.utmCampaign || externalReferrer),
@@ -158,7 +167,7 @@ export const checkAvailability = createServerFn({ method: "POST" })
               _utm_campaign: data.utmCampaign ?? null,
               _utm_content: data.utmContent ?? null,
               _utm_term: data.utmTerm ?? null,
-              _referrer: data.referrer ?? null,
+              _referrer: safeAnalyticsReferrer(data.referrer),
               _landing_page: campaignContext ? "/p/" + data.propertySlug + "/campaign/" + data.campaignSlug : "/p/" + data.propertySlug + "/book",
               _metadata: { check_in: data.checkIn, check_out: data.checkOut, adults: data.adults, children_below_6: data.childrenBelow6, children_7_plus: data.children7Plus },
             });
@@ -332,7 +341,7 @@ export const getBookingQuote = createServerFn({ method: "POST" })
         utm_campaign: data.utmCampaign ?? null,
         utm_content: data.utmContent ?? null,
         utm_term: data.utmTerm ?? null,
-        referrer: data.referrer ?? null,
+        referrer: safeAnalyticsReferrer(data.referrer),
       };
       try {
         const { data: attributionResult, error: attributionError } = await (supabaseAdmin as any).rpc(
@@ -375,7 +384,7 @@ export const getBookingQuote = createServerFn({ method: "POST" })
               _utm_campaign: data.utmCampaign ?? null,
               _utm_content: data.utmContent ?? null,
               _utm_term: data.utmTerm ?? null,
-              _referrer: data.referrer ?? null,
+              _referrer: safeAnalyticsReferrer(data.referrer),
               _landing_page: campaignContext ? `/p/${data.propertySlug}/campaign/${data.campaignSlug}` : `/p/${data.propertySlug}/book`,
               _metadata: { offer_id: campaignContext?.offerId ?? null },
             });
