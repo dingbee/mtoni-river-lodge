@@ -85,6 +85,16 @@ CREATE TABLE IF NOT EXISTS public.ai_escalation_events (
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
   occurred_at timestamptz NOT NULL DEFAULT now()
 );
+CREATE INDEX IF NOT EXISTS ai_escalations_sla_assignment_due_idx
+  ON public.ai_escalations(assignment_due_at)
+  WHERE status IN ('open','assigned','acknowledged','in_progress') AND assigned_to IS NULL;
+CREATE INDEX IF NOT EXISTS ai_escalations_sla_acknowledgement_due_idx
+  ON public.ai_escalations(acknowledgement_due_at)
+  WHERE status IN ('open','assigned','acknowledged','in_progress') AND acknowledged_at IS NULL;
+CREATE INDEX IF NOT EXISTS ai_escalations_sla_resolution_due_idx
+  ON public.ai_escalations(resolution_due_at)
+  WHERE status IN ('open','assigned','acknowledged','in_progress');
+
 CREATE INDEX IF NOT EXISTS ai_escalation_events_property_time_idx
   ON public.ai_escalation_events(property_id, occurred_at DESC);
 CREATE INDEX IF NOT EXISTS ai_escalation_events_escalation_time_idx
