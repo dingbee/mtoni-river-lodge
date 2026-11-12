@@ -32,6 +32,7 @@ export function CheckInWizard({ workspace }: { workspace: any }) {
   const [guestPortalLink, setGuestPortalLink] = useState<string | null>(null);
   const [guestPortalQr, setGuestPortalQr] = useState<string | null>(null);
   const [guestPortalAccessId, setGuestPortalAccessId] = useState<string | null>(null);
+  const [guestPortalIssueError, setGuestPortalIssueError] = useState<string | null>(null);
   const [roomStateId, setRoomStateId] = useState<string | undefined>(
     workspace.roomStates?.find((r: any) => r.state === "vacant_clean")?.id,
   );
@@ -42,6 +43,7 @@ export function CheckInWizard({ workspace }: { workspace: any }) {
     mutationFn: () => fn({ data: { bookingId: workspace.booking.id, roomStateId, arrivalTime, notes: notes || undefined } }),
     onSuccess: (result) => {
       toast.success("Check-in complete");
+      setGuestPortalIssueError(result?.guestPortalAccess?.error ?? null);
       const token = result?.guestPortalAccess?.token;
       if (token) {
         setGuestPortalLink(buildGuestPortalUrl(guestPortalOrigin(window.location.origin, import.meta.env.VITE_GUEST_PORTAL_BASE_URL), token));
@@ -208,7 +210,8 @@ export function CheckInWizard({ workspace }: { workspace: any }) {
               </div>
             ) : (
               <p className="rounded-md bg-muted/40 p-3 text-sm text-muted-foreground">
-                Check-in succeeded, but an active credential already existed or automatic issuance could not return a new bearer link. Open the reservation workspace to inspect status and regenerate access if necessary.
+                {guestPortalIssueError ??
+                  "An active credential already exists, so a new bearer link was not returned. Open the reservation workspace to inspect status and regenerate access if necessary."}
               </p>
             )}
             <Button onClick={() => nav({ to: "/admin/operations/reservations/$id", params: { id: workspace.booking.id } })}>
