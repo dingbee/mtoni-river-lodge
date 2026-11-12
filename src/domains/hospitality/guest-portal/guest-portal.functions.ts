@@ -798,7 +798,7 @@ export const revokeGuestPortalAccess = createServerFn({ method: "POST" })
 const guestPortalEventSchema = z.object({
   bookingId: z.string().uuid(),
   accessId: z.string().uuid(),
-  eventType: z.enum(["qr_generated", "link_shared"]),
+  eventType: z.enum(["qr_generated", "qr_generation_failed", "link_shared"]),
 });
 
 export const recordGuestPortalAccessEvent = createServerFn({ method: "POST" })
