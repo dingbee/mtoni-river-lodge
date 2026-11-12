@@ -30,9 +30,10 @@ export function trackGAEvent(
       : `${window.location.origin}${safePath}`;
 
   const safeParams: GAEventParams = { ...params };
-  if (typeof safeParams.destination_url === "string") {
+  const destinationUrl = safeParams.destination_url;
+  if (typeof destinationUrl === "string") {
     try {
-      const destination = new URL(safeParams.destination_url, window.location.origin);
+      const destination = new URL(destinationUrl, window.location.origin);
       if (destination.pathname.startsWith("/guest/")) {
         destination.pathname = "/guest/[credential]";
         destination.search = "";
@@ -40,7 +41,7 @@ export function trackGAEvent(
         safeParams.destination_url = destination.toString();
       }
     } catch {
-      if (safeParams.destination_url.startsWith("/guest/")) {
+      if (destinationUrl.startsWith("/guest/")) {
         safeParams.destination_url = "/guest/[credential]";
       }
     }
