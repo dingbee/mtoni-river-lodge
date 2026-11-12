@@ -174,7 +174,7 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
     const bookingIdList = [...bookingIds];
     for (let offset = 0; offset < bookingIdList.length; offset += 200) {
       const { data: bookingRows, error } = await sb.from("bookings")
-        .select("id,status,confirmed_at,cancelled_at,currency")
+        .select("id,status,confirmed_at,cancelled_at")
         .eq("property_id", propertyId).in("id", bookingIdList.slice(offset, offset + 200));
       if (error) throw new Error(error.message);
       verifiedBookings.push(...(bookingRows ?? []).filter((row: any) =>
@@ -260,8 +260,7 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         lead_to_booking_rate_reason: "No durable lead_id-to-booking_id relationship exists; an attributed booking count cannot be divided by an unrelated lead denominator.",
         revenue: null,
         revenue_available: false,
-        revenue_reason: "Realized revenue requires reconciled, verified payment and reversal ledger evidence; booking totals and paid flags are not treated as settlement proof.",
-        booking_currency_mismatch_count: currencyMismatchCount ?? 0,
+        revenue_reason: "Financial reporting is outside this sprint's scope.",
       },
       sla: {
         policy_priorities_configured: slaPolicyRows.filter((row: any) => row.enabled).length,
