@@ -422,4 +422,119 @@ create trigger staynas_payment_analytics_lifecycle
   after insert on public.payment_events
   for each row execute function public.staynas_capture_booking_analytics_lifecycle();
 
+
+-- Aggregated reporting remains server-side; tenant authorization is repeated
+-- inside the database function and all monetary totals remain currency-separated.
+create or replace function public.staynas_get_booking_analytics(
+  _property_id uuid,
+  _from timestamptz,
+  _to timestamptz
+) returns jsonb
+language plpgsql
+stable
+security invoker
+set search_path = ''
+as $function$
+declare
+  v_org uuid;
+  v_result jsonb;
+begin
+  if _property_id is null or _from is null or _to is null or _to <= _from then
+    raise exception using errcode='22023',message='A valid property and reporting window are required';
+  end if;
+  if not public.staynas_user_has_property_access(auth.uid(),_property_id) then
+    raise exception using errcode='42501',message='Property analytics access denied';
+  end if;
+  select organisation_id into v_org from public.staynas_properties where id=_property_id;
+  if v_org is null then raise exception using errcode='P0002',message='Property not found'; end if;
+
+  with e as (
+    select * from public.staynas_booking_analytics_events
+    where property_id=_property_id and occurred_at >= _from and occurred_at < _to
+  ),
+  stages as (
+    select
+      count(*) filter(where event_type in ('booking_page_viewed','campaign_page_viewed')) as views,
+      count(distinct session_key) filter(where event_type in ('booking_page_viewed','campaign_page_viewed')) as visitors,
+      count(*) filter(where event_type='booking_started') as starts,
+      count(*) filter(where event_type='availability_searched') as searches,
+      count(*) filter(where event_type='quote_generated') as quotes,
+      count(*) filter(where event_type='reservation_created') as reservations,
+      count(*) filter(where event_type='reservation_confirmed') as confirmed,
+      count(distinct booking_id) filter(where event_type='payment_completed') as paid_bookings
+    from e
+  ),
+  money as (
+    select currency,
+      coalesce(sum(amount) filter(where event_type='reservation_created'),0) as gross_booking_value,
+      coalesce(sum(amount) filter(where event_type='payment_completed'),0)
+        - coalesce(sum(abs(amount)) filter(where event_type='payment_refunded'),0) as net_collected
+    from e where currency is not null
+    group by currency
+  ),
+  campaign_rows as (
+    select c.id,c.name,c.slug,c.status,
+      count(*) filter(where e.event_type='campaign_page_viewed') as views,
+      count(distinct e.session_key) filter(where e.event_type='campaign_page_viewed') as visitors,
+      count(*) filter(where e.event_type='booking_started') as booking_starts,
+      count(*) filter(where e.event_type='quote_generated') as quotes,
+      count(distinct e.booking_id) filter(where e.event_type='reservation_created') as reservations,
+      count(distinct e.booking_id) filter(where e.event_type='payment_completed') as paid_bookings,
+      coalesce(sum(e.amount) filter(where e.event_type='payment_completed'),0)
+        - coalesce(sum(abs(e.amount)) filter(where e.event_type='payment_refunded'),0) as net_collected
+    from public.booking_campaigns c
+    left join e on e.campaign_id=c.id and e.property_id=c.property_id
+    where c.property_id=_property_id
+    group by c.id,c.name,c.slug,c.status
+  ),
+  acquisition as (
+    select coalesce(traffic_source,'(not set)') as source,
+      coalesce(traffic_medium,'(not set)') as medium,
+      count(*) filter(where event_type in ('booking_page_viewed','campaign_page_viewed')) as views,
+      count(distinct session_key) filter(where event_type in ('booking_page_viewed','campaign_page_viewed')) as visitors,
+      count(*) filter(where event_type='booking_started') as booking_starts,
+      count(distinct booking_id) filter(where event_type='reservation_created') as reservations
+    from e group by 1,2
+  )
+  select jsonb_build_object(
+    'property_id',_property_id,
+    'organisation_id',v_org,
+    'period',jsonb_build_object('from',_from,'to',_to),
+    'funnel',jsonb_build_object(
+      'page_views',(select views from stages),
+      'unique_sessions',(select visitors from stages),
+      'booking_starts',(select starts from stages),
+      'availability_searches',(select searches from stages),
+      'quotes',(select quotes from stages),
+      'reservations',(select reservations from stages),
+      'confirmed_reservations',(select confirmed from stages),
+      'paid_bookings',(select paid_bookings from stages),
+      'booking_start_rate',case when (select visitors from stages)>0 then round(100.0*(select starts from stages)/(select visitors from stages),2) else null end,
+      'reservation_rate',case when (select visitors from stages)>0 then round(100.0*(select reservations from stages)/(select visitors from stages),2) else null end,
+      'paid_rate',case when (select visitors from stages)>0 then round(100.0*(select paid_bookings from stages)/(select visitors from stages),2) else null end
+    ),
+    'currencies',coalesce((select jsonb_agg(to_jsonb(money)) from money),'[]'::jsonb),
+    'campaigns',coalesce((select jsonb_agg(to_jsonb(campaign_rows)) from campaign_rows),'[]'::jsonb),
+    'acquisition',coalesce((select jsonb_agg(to_jsonb(acquisition)) from acquisition),'[]'::jsonb),
+    'permanent_page',(
+      select jsonb_build_object(
+        'views',count(*) filter(where event_type='booking_page_viewed' and campaign_id is null),
+        'visitors',count(distinct session_key) filter(where event_type='booking_page_viewed' and campaign_id is null),
+        'booking_starts',count(*) filter(where event_type='booking_started' and campaign_id is null),
+        'quotes',count(*) filter(where event_type='quote_generated' and campaign_id is null),
+        'reservations',count(distinct booking_id) filter(where event_type='reservation_created' and campaign_id is null),
+        'paid_bookings',count(distinct booking_id) filter(where event_type='payment_completed' and campaign_id is null)
+      ) from e
+    )
+  ) into v_result;
+  return v_result;
+end
+$function$;
+
+revoke all on function public.staynas_get_booking_analytics(uuid,timestamptz,timestamptz)
+  from public,anon;
+grant execute on function public.staynas_get_booking_analytics(uuid,timestamptz,timestamptz)
+  to authenticated,service_role;
+
+
 commit;
