@@ -74,7 +74,7 @@ export function ProductSiteHeader() {
       </div>
 
       {open && <div className="fixed inset-0 z-[100] lg:hidden">
-        <button type="button" aria-label="Close navigation overlay" onClick={closeMenu} className="absolute inset-0 h-full w-full cursor-default bg-[#071710]/55 backdrop-blur-[2px]"/>
+        <button type="button" aria-label="Close navigation menu by tapping outside" onPointerDown={closeMenu} onClick={closeMenu} className="absolute inset-0 h-full w-full cursor-default touch-manipulation bg-[#071710]/55 backdrop-blur-[2px]"/>
         <aside id="staynas-mobile-navigation" role="dialog" aria-modal="true" aria-label="StayNas navigation" onClick={(event) => event.stopPropagation()} className="absolute inset-y-0 right-0 flex h-[100dvh] w-[min(100%,440px)] flex-col overflow-hidden bg-[#f6f5ef] text-[#15251f] shadow-2xl">
           <div className="flex min-h-[88px] items-center justify-between border-b border-[#deded4] px-6 sm:px-8">
             {activeMenu === "platform" ? <>
