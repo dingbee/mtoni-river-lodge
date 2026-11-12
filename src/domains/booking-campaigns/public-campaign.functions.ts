@@ -192,7 +192,7 @@ export const recordPublicBookingCampaignEvent = createServerFn({ method: "POST" 
       utm_campaign: data.utmCampaign ?? null,
       utm_content: data.utmContent ?? null,
       utm_term: data.utmTerm ?? null,
-      referrer: data.referrer ?? null,
+      referrer: safeReferrer(data.referrer),
       metadata: data.offerId ? { offerId: data.offerId } : {},
       occurred_at: new Date().toISOString(),
     }, { onConflict: "property_id,event_key", ignoreDuplicates: true });
@@ -285,7 +285,7 @@ export const recordPublicDirectBookingAnalyticsEvent = createServerFn({ method: 
       _event_source: "browser_observed", _attribution_id: attribution.attribution_id,
       _session_key: data.sessionKey, _traffic_source: data.source ?? null, _traffic_medium: data.medium ?? null,
       _utm_campaign: data.utmCampaign ?? null, _utm_content: data.utmContent ?? null, _utm_term: data.utmTerm ?? null,
-      _referrer: data.referrer ?? null, _landing_page: data.landingPage,
+      _referrer: safeReferrer(data.referrer), _landing_page: data.landingPage,
     });
     if (eventError) throw new Error("Booking page analytics event could not be recorded.");
     return { recorded: true };
