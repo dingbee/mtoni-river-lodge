@@ -93,6 +93,250 @@ BEGIN
 END
 $test$;
 
+-- Synthetic, transaction-scoped end-to-end lifecycle fixture. All rows are
+-- rolled back at the end of this test; no shared or live tenant data is touched.
+INSERT INTO auth.users(id) VALUES
+  ('91000000-0000-4000-8000-000000000001');
+INSERT INTO public.user_roles(user_id,role) VALUES
+  ('91000000-0000-4000-8000-000000000001','owner');
+INSERT INTO public.staynas_organisations(id,slug,name) VALUES
+  ('92000000-0000-4000-8000-000000000001','cps06-e2e-org','CPS-06 E2E Organisation');
+INSERT INTO public.staynas_properties(id,organisation_id,slug,code,name,status,currency,timezone) VALUES
+  ('93000000-0000-4000-8000-000000000001','92000000-0000-4000-8000-000000000001',
+   'cps06-e2e-property','CPS06E2E','CPS-06 E2E Property','active','TZS','Africa/Dar_es_Salaam');
+INSERT INTO public.staynas_property_members(property_id,user_id,role,status) VALUES
+  ('93000000-0000-4000-8000-000000000001','91000000-0000-4000-8000-000000000001','owner','active');
+INSERT INTO public.staynas_user_property_context(user_id,property_id) VALUES
+  ('91000000-0000-4000-8000-000000000001','93000000-0000-4000-8000-000000000001');
+INSERT INTO public.staynas_room_catalogue_types(id,slug,name,status) VALUES
+  ('94000000-0000-4000-8000-000000000001','cps06-e2e-room-type','CPS-06 E2E Room Type','active');
+INSERT INTO public.rooms(id,property_id,catalogue_type_id,slug,name,status,base_price,currency) VALUES
+  ('95000000-0000-4000-8000-000000000001','93000000-0000-4000-8000-000000000001',
+   '94000000-0000-4000-8000-000000000001','cps06-e2e-room','CPS-06 E2E Room','active',100,'TZS');
+INSERT INTO public.booking_campaigns(id,organisation_id,property_id,slug,name,status) VALUES
+  ('96000000-0000-4000-8000-000000000001','92000000-0000-4000-8000-000000000001',
+   '93000000-0000-4000-8000-000000000001','cps06-e2e-campaign','CPS-06 E2E Campaign','published');
+
+SELECT set_config('request.jwt.claims','{"role":"service_role","sub":"91000000-0000-4000-8000-000000000001"}',true);
+SELECT set_config('request.jwt.claim.role','service_role',true);
+SELECT set_config('request.jwt.claim.sub','91000000-0000-4000-8000-000000000001',true);
+
+DO $e2e$
+DECLARE
+  v_attribution_a uuid;
+  v_attribution_b uuid;
+  v_quote_a uuid := '97000000-0000-4000-8000-000000000001';
+  v_quote_b uuid := '97000000-0000-4000-8000-000000000002';
+  v_booking_a uuid := '98000000-0000-4000-8000-000000000001';
+  v_booking_b uuid := '98000000-0000-4000-8000-000000000002';
+  v_manual_payment uuid := '99000000-0000-4000-8000-000000000001';
+  v_report jsonb;
+  v_money jsonb;
+  v_campaign jsonb;
+  v_reversal jsonb;
+  v_first_touch jsonb;
+  v_last_touch jsonb;
+  v_rejected boolean := false;
+BEGIN
+  SELECT (public.staynas_upsert_booking_attribution(
+    '93000000-0000-4000-8000-000000000001',
+    '92000000-0000-4000-8000-000000000001',
+    'cps06-e2e-session-alpha-0001',
+    null,null,'96000000-0000-4000-8000-000000000001',null,
+    '{"source":"google","medium":"cpc"}'::jsonb,now(),true
+  )->>'attribution_id')::uuid INTO v_attribution_a;
+
+  PERFORM public.staynas_upsert_booking_attribution(
+    '93000000-0000-4000-8000-000000000001',
+    '92000000-0000-4000-8000-000000000001',
+    'cps06-e2e-session-alpha-0001',
+    null,null,'96000000-0000-4000-8000-000000000001',null,
+    '{"source":"direct","medium":"none"}'::jsonb,now(),false
+  );
+  PERFORM public.staynas_upsert_booking_attribution(
+    '93000000-0000-4000-8000-000000000001',
+    '92000000-0000-4000-8000-000000000001',
+    'cps06-e2e-session-alpha-0001',
+    null,null,'96000000-0000-4000-8000-000000000001',null,
+    '{"source":"newsletter","medium":"email"}'::jsonb,now(),true
+  );
+
+  SELECT first_touch,last_touch INTO v_first_touch,v_last_touch
+  FROM public.staynas_booking_attributions WHERE id=v_attribution_a;
+  IF v_first_touch->>'source'<>'google' OR v_last_touch->>'source'<>'newsletter' THEN
+    RAISE EXCEPTION 'First/last touch attribution update contract failed';
+  END IF;
+
+  SELECT (public.staynas_upsert_booking_attribution(
+    '93000000-0000-4000-8000-000000000001',
+    '92000000-0000-4000-8000-000000000001',
+    'cps06-e2e-session-beta-0002',
+    null,null,'96000000-0000-4000-8000-000000000001',null,
+    '{"source":"partner","medium":"referral"}'::jsonb,now(),true
+  )->>'attribution_id')::uuid INTO v_attribution_b;
+
+  PERFORM public.staynas_record_booking_analytics_event(
+    '93000000-0000-4000-8000-000000000001','92000000-0000-4000-8000-000000000001',
+    'campaign_page_viewed','cps06-e2e-page-view-alpha-0001','browser_observed',
+    v_attribution_a,'96000000-0000-4000-8000-000000000001',null,null,
+    'cps06-e2e-session-alpha-0001','google','cpc','launch','hero','stay',
+    null,'/p/cps06-e2e-property/campaign/cps06-e2e-campaign',null,null,null,'{}'::jsonb
+  );
+  PERFORM public.staynas_record_booking_analytics_event(
+    '93000000-0000-4000-8000-000000000001','92000000-0000-4000-8000-000000000001',
+    'campaign_page_viewed','cps06-e2e-page-view-alpha-0001','browser_observed',
+    v_attribution_a,'96000000-0000-4000-8000-000000000001',null,null,
+    'cps06-e2e-session-alpha-0001','google','cpc','launch','hero','stay',
+    null,'/p/cps06-e2e-property/campaign/cps06-e2e-campaign',null,null,null,'{}'::jsonb
+  );
+
+  BEGIN
+    PERFORM public.staynas_record_booking_analytics_event(
+      '93000000-0000-4000-8000-000000000001','92000000-0000-4000-8000-000000000001',
+      'payment_completed','cps06-e2e-browser-forged-payment-0001','browser_observed',
+      v_attribution_a,'96000000-0000-4000-8000-000000000001',null,null,
+      'cps06-e2e-session-alpha-0001',null,null,null,null,null,null,null,null,'TZS',100,'{}'::jsonb
+    );
+  EXCEPTION WHEN insufficient_privilege THEN
+    v_rejected := true;
+  END;
+  IF NOT v_rejected THEN RAISE EXCEPTION 'Browser-sourced financial event was not rejected'; END IF;
+
+  INSERT INTO public.staynas_reservation_quotes(id,property_id,room_id,request,quote_snapshot,quote_hash,expires_at)
+  VALUES
+    (v_quote_a,'93000000-0000-4000-8000-000000000001','95000000-0000-4000-8000-000000000001',
+     '{"source":"cps06-e2e"}','{"total":100,"currency":"TZS"}','cps06-e2e-quote-alpha',now()+interval '1 day'),
+    (v_quote_b,'93000000-0000-4000-8000-000000000001','95000000-0000-4000-8000-000000000001',
+     '{"source":"cps06-e2e"}','{"total":200,"currency":"TZS"}','cps06-e2e-quote-beta',now()+interval '1 day');
+
+  IF NOT public.staynas_attach_quote_attribution(v_quote_a,'93000000-0000-4000-8000-000000000001',v_attribution_a)
+     OR NOT public.staynas_attach_quote_attribution(v_quote_b,'93000000-0000-4000-8000-000000000001',v_attribution_b) THEN
+    RAISE EXCEPTION 'Quote attribution attachment failed';
+  END IF;
+
+  PERFORM public.staynas_record_booking_analytics_event(
+    '93000000-0000-4000-8000-000000000001','92000000-0000-4000-8000-000000000001',
+    'quote_generated','cps06-e2e-quote-event-alpha-0001','server_confirmed',
+    v_attribution_a,'96000000-0000-4000-8000-000000000001',null,v_quote_a,
+    'cps06-e2e-session-alpha-0001',null,null,null,null,null,null,'/p/cps06-e2e-property/book',null,null,null,'{}'::jsonb
+  );
+  PERFORM public.staynas_record_booking_analytics_event(
+    '93000000-0000-4000-8000-000000000001','92000000-0000-4000-8000-000000000001',
+    'booking_started','cps06-e2e-booking-start-alpha-0001','server_confirmed',
+    v_attribution_a,'96000000-0000-4000-8000-000000000001',null,v_quote_a,
+    'cps06-e2e-session-alpha-0001',null,null,null,null,null,null,'/p/cps06-e2e-property/book',null,null,null,'{}'::jsonb
+  );
+
+  INSERT INTO public.bookings(
+    id,reference,room_id,check_in,check_out,nights,adults,guest_name,guest_email,
+    total,currency,status,payment_status,property_id,reservation_quote_id,balance_amount,paid_amount
+  ) VALUES
+    (v_booking_a,'CPS06-E2E-A','95000000-0000-4000-8000-000000000001',
+     current_date+30,current_date+31,1,1,'CPS06 Guest A','cps06-a@example.test',
+     100,'TZS','pending','deposit_paid','93000000-0000-4000-8000-000000000001',v_quote_a,50,50),
+    (v_booking_b,'CPS06-E2E-B','95000000-0000-4000-8000-000000000001',
+     current_date+32,current_date+33,1,1,'CPS06 Guest B','cps06-b@example.test',
+     200,'TZS','pending','paid','93000000-0000-4000-8000-000000000001',v_quote_b,0,200);
+
+  IF (SELECT count(*) FROM public.bookings
+      WHERE id IN (v_booking_a,v_booking_b) AND attribution_id IS NOT NULL)<>2 THEN
+    RAISE EXCEPTION 'Quote-to-reservation attribution inheritance failed';
+  END IF;
+
+  UPDATE public.bookings SET status='confirmed' WHERE id IN (v_booking_a,v_booking_b);
+  UPDATE public.bookings
+  SET pesapal_order_tracking_id='cps06-e2e-pesapal-track',
+      payment_provider='pesapal'
+  WHERE id=v_booking_b;
+
+  INSERT INTO public.payment_events(id,booking_id,provider,event_type,amount,currency,raw)
+  VALUES (v_manual_payment,v_booking_a,'manual','manual_payment',60,'TZS','{"note":"E2E manual settlement"}');
+
+  INSERT INTO public.payment_events(id,booking_id,provider,event_type,amount,currency,reverses_event_id,raw)
+  VALUES ('99000000-0000-4000-8000-000000000002',v_booking_a,'manual','refund',-10,'TZS',
+          v_manual_payment,'{"note":"E2E cash refund"}');
+
+  INSERT INTO public.payment_events(id,booking_id,provider,event_type,amount,currency,order_tracking_id,status_code,raw)
+  VALUES ('99000000-0000-4000-8000-000000000003',v_booking_b,'pesapal','payment_completed',200,'TZS',
+          'cps06-e2e-pesapal-track',1,'{"status":"COMPLETED"}');
+
+  v_reversal := public.finalize_pesapal_reversal(
+    v_booking_b,'cps06-e2e-pesapal-track',200,'TZS','status_check','{"fixture":"cps06-e2e"}'::jsonb
+  );
+  IF coalesce((v_reversal->>'ok')::boolean,false) IS NOT TRUE THEN
+    RAISE EXCEPTION 'Pesapal provider reversal fixture failed: %',v_reversal;
+  END IF;
+
+  IF (SELECT count(*) FROM public.staynas_booking_analytics_events
+      WHERE property_id='93000000-0000-4000-8000-000000000001'
+        AND event_key='cps06-e2e-page-view-alpha-0001')<>1 THEN
+    RAISE EXCEPTION 'Analytics event idempotency failed';
+  END IF;
+  IF (SELECT count(*) FROM public.staynas_booking_analytics_events
+      WHERE booking_id=v_booking_a AND event_type='payment_completed')<>1
+     OR (SELECT count(*) FROM public.staynas_booking_analytics_events
+      WHERE booking_id=v_booking_a AND event_type='payment_refunded')<>1
+     OR (SELECT count(*) FROM public.staynas_booking_analytics_events
+      WHERE booking_id=v_booking_b AND event_type='payment_completed')<>1
+     OR (SELECT count(*) FROM public.staynas_booking_analytics_events
+      WHERE booking_id=v_booking_b AND event_type='payment_reversed')<>1 THEN
+    RAISE EXCEPTION 'Authoritative payment lifecycle events were not normalized exactly once';
+  END IF;
+END
+$e2e$;
+
+SELECT set_config('request.jwt.claims','{"role":"authenticated","sub":"91000000-0000-4000-8000-000000000001"}',true);
+SELECT set_config('request.jwt.claim.role','authenticated',true);
+SELECT set_config('request.jwt.claim.sub','91000000-0000-4000-8000-000000000001',true);
+SET LOCAL ROLE authenticated;
+
+DO $report$
+DECLARE
+  v_report jsonb;
+  v_money jsonb;
+  v_campaign jsonb;
+BEGIN
+  v_report := public.staynas_get_booking_analytics(
+    '93000000-0000-4000-8000-000000000001',now()-interval '1 day',now()+interval '1 day'
+  );
+  SELECT value INTO v_money
+  FROM jsonb_array_elements(v_report->'currencies') value
+  WHERE value->>'currency'='TZS';
+  IF v_money IS NULL
+     OR (v_money->>'gross_booking_value')::numeric<>300
+     OR (v_money->>'confirmed_booking_value')::numeric<>300
+     OR (v_money->>'amount_paid')::numeric<>260
+     OR (v_money->>'outstanding')::numeric<>250
+     OR (v_money->>'refunds')::numeric<>10
+     OR (v_money->>'provider_reversals')::numeric<>200
+     OR (v_money->>'net_collected')::numeric<>50 THEN
+    RAISE EXCEPTION 'Currency-safe financial reconciliation failed: %',v_money;
+  END IF;
+
+  SELECT value INTO v_campaign
+  FROM jsonb_array_elements(v_report->'campaigns') value
+  WHERE value->>'id'='96000000-0000-4000-8000-000000000001';
+  IF v_campaign IS NULL
+     OR (v_campaign->>'views')::integer<>1
+     OR (v_campaign->>'reservations')::integer<>2
+     OR (v_campaign->>'paid_bookings')::integer<>2
+     OR (v_campaign->'net_collected_by_currency'->0->>'net_collected')::numeric<>50 THEN
+    RAISE EXCEPTION 'Campaign conversion/revenue attribution failed: %',v_campaign;
+  END IF;
+
+  BEGIN
+    PERFORM public.staynas_get_booking_analytics(
+      '93000000-0000-4000-8000-000000000099',now()-interval '1 day',now()+interval '1 day'
+    );
+    RAISE EXCEPTION 'Property analytics access did not reject an unknown/foreign property';
+  EXCEPTION WHEN insufficient_privilege OR no_data_found THEN
+    NULL;
+  END;
+END
+$report$;
+
+RESET ROLE;
+
 SELECT pass('CPS-06 attribution, RLS, idempotency, lifecycle and currency contracts passed');
 SELECT * FROM finish();
 ROLLBACK;
