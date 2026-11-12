@@ -33,6 +33,10 @@ FROM public.staynas_properties p
 CROSS JOIN (VALUES (1::smallint),(2::smallint),(3::smallint)) priorities(priority)
 ON CONFLICT (property_id,priority) DO NOTHING;
 
+ALTER TABLE public.ai_escalations DROP CONSTRAINT IF EXISTS ai_escalations_status_check;
+ALTER TABLE public.ai_escalations ADD CONSTRAINT ai_escalations_status_check
+  CHECK (status IN ('open','assigned','acknowledged','in_progress','resolved','dismissed'));
+
 ALTER TABLE public.ai_escalations
   ADD COLUMN IF NOT EXISTS assignment_due_at timestamptz,
   ADD COLUMN IF NOT EXISTS acknowledgement_due_at timestamptz,
@@ -254,9 +258,10 @@ BEGIN
       v_event := CASE
         WHEN NEW.status='resolved' THEN 'resolved'
         WHEN NEW.status='dismissed' THEN 'dismissed'
+        WHEN NEW.status='acknowledged' THEN 'acknowledged'
         WHEN NEW.status='in_progress' THEN 'in_progress'
         WHEN NEW.status='open' AND OLD.status IN ('resolved','dismissed') THEN 'reopened'
-        WHEN NEW.status='assigned' THEN 'acknowledged'
+        WHEN NEW.status='acknowledged' THEN 'acknowledged'
         ELSE NULL END;
       IF v_event IS NOT NULL THEN
         INSERT INTO public.ai_escalation_events(property_id,escalation_id,event_type,from_status,to_status,actor_id)
@@ -349,8 +354,8 @@ BEGIN
     LOOP
       IF NOT a.pending OR a.due_at IS NULL THEN CONTINUE; END IF;
       SELECT CASE WHEN policy.business_hours_only
-        THEN public.staynas_sla_add_minutes(e.created_at,GREATEST(1,round(a.target_minutes*e.warning_percent/100.0)::integer),v_timezone,v_hours)
-        ELSE e.created_at+make_interval(mins=>GREATEST(1,round(a.target_minutes*e.warning_percent/100.0)::integer)) END
+        THEN public.staynas_sla_add_minutes(COALESCE(e.reopened_at,e.created_at),GREATEST(1,round(a.target_minutes*e.warning_percent/100.0)::integer),v_timezone,v_hours)
+        ELSE COALESCE(e.reopened_at,e.created_at)+make_interval(mins=>GREATEST(1,round(a.target_minutes*e.warning_percent/100.0)::integer)) END
       INTO v_warning_at
       FROM public.ai_escalation_sla_policies policy WHERE policy.id=e.sla_policy_id;
       IF now() >= a.due_at THEN
@@ -412,7 +417,7 @@ BEGIN
   IF auth.role() <> 'service_role' AND NOT public.staynas_ai_property_in_active_context(
     p_property_id,ARRAY['owner','manager','admin','reservations']::public.app_role[]
   ) THEN RAISE EXCEPTION 'Active property authorization is required' USING ERRCODE='42501'; END IF;
-  IF p_status IS NOT NULL AND p_status NOT IN ('open','assigned','in_progress','resolved','dismissed') THEN
+  IF p_status IS NOT NULL AND p_status NOT IN ('open','assigned','acknowledged','in_progress','resolved','dismissed') THEN
     RAISE EXCEPTION 'Invalid escalation status' USING ERRCODE='22023';
   END IF;
   SELECT * INTO v_escalation FROM public.ai_escalations
@@ -428,13 +433,16 @@ BEGIN
      AND p_status NOT IN ('open',v_escalation.status) THEN
     RAISE EXCEPTION 'Closed escalations may only be reopened to open' USING ERRCODE='23514';
   END IF;
-  IF v_escalation.status='assigned' AND p_status='open'
-     OR v_escalation.status='in_progress' AND p_status IN ('open','assigned') THEN
+  IF v_escalation.status='acknowledged' AND p_status='assigned'
+     OR v_escalation.status='in_progress' AND p_status IN ('assigned','acknowledged') THEN
     RAISE EXCEPTION 'Escalation status cannot move backwards' USING ERRCODE='23514';
   END IF;
 
   v_next_status := coalesce(p_status,
     CASE WHEN p_assigned_to IS NOT NULL AND v_escalation.status='open' THEN 'assigned' ELSE v_escalation.status END);
+  IF v_next_status IN ('assigned','acknowledged') AND COALESCE(p_assigned_to,v_escalation.assigned_to) IS NULL THEN
+    RAISE EXCEPTION 'Assignment is required before acknowledgement' USING ERRCODE='23514';
+  END IF;
 
   UPDATE public.ai_escalations SET
     status=v_next_status,
@@ -442,9 +450,9 @@ BEGIN
       WHEN v_escalation.status IN ('resolved','dismissed') AND v_next_status='open' THEN NULL
       ELSE assigned_to END,
     resolution_notes=CASE WHEN p_resolution_notes IS NOT NULL THEN left(p_resolution_notes,2000) ELSE resolution_notes END,
-    acknowledged_at=CASE WHEN v_next_status IN ('assigned','in_progress') THEN COALESCE(acknowledged_at,now())
+    acknowledged_at=CASE WHEN v_next_status IN ('acknowledged','in_progress') THEN COALESCE(acknowledged_at,now())
       WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN NULL ELSE acknowledged_at END,
-    acknowledged_by=CASE WHEN v_next_status IN ('assigned','in_progress') THEN COALESCE(acknowledged_by,auth.uid())
+    acknowledged_by=CASE WHEN v_next_status IN ('acknowledged','in_progress') THEN COALESCE(acknowledged_by,auth.uid())
       WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN NULL ELSE acknowledged_by END,
     resolved_at=CASE WHEN v_next_status IN ('resolved','dismissed') THEN now()
       WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN NULL ELSE resolved_at END,
