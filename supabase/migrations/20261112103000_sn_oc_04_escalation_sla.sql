@@ -107,9 +107,9 @@ CREATE TABLE IF NOT EXISTS public.ai_escalation_sla_alerts (
   milestone text NOT NULL CHECK (milestone IN ('assignment','acknowledgement','resolution')),
   alert_type text NOT NULL CHECK (alert_type IN ('approaching_breach','breached')),
   due_at timestamptz NOT NULL,
-  threshold_percent integer,
+  threshold_percent integer NOT NULL CHECK (threshold_percent BETWEEN 1 AND 99),
   created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(escalation_id,milestone,alert_type,due_at)
+  UNIQUE(escalation_id,milestone,alert_type,due_at,threshold_percent)
 );
 CREATE INDEX IF NOT EXISTS ai_escalation_sla_alerts_property_time_idx
   ON public.ai_escalation_sla_alerts(property_id,created_at DESC);
