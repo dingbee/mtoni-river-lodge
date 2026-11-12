@@ -279,7 +279,7 @@ export function GuestPortalAccessPanel({
                 {occupants.data.leadGuest && (
                   <SelectItem value={occupants.data.leadGuest.id}>{occupants.data.leadGuest.full_name} (Lead guest)</SelectItem>
                 )}
-                {occupants.data.occupants.map((guest: { id: string; full_name: string }) => (
+                {occupants.data.occupants.map((guest: { id: string; full_name: string | null }) => (
                   <SelectItem key={guest.id} value={guest.id}>{guest.full_name} (Occupant)</SelectItem>
                 ))}
               </SelectContent>
