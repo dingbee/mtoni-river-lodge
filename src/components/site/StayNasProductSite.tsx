@@ -162,24 +162,44 @@ export function ProductSiteHeader() {
 }
 
 export function ProductSiteFooter() {
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const sections = [
+    { title: "Platform", links: [{ label: "Overview", to: "/platform" }, { label: "Modules", to: "/modules" }, { label: "Product walkthrough", to: "/product-tour" }, { label: "Architecture", to: "/architecture" }] },
+    { title: "Solutions", links: [{ label: "By hospitality business", to: "/solutions" }, { label: "Integrations & ecosystem", to: "/integrations" }] },
+    { title: "Resources", links: [{ label: "Trust & security", to: "/security" }, { label: "Plans & pricing", to: "/pricing" }] },
+    { title: "Company", links: [{ label: "About Nolmark CDMA", href: "https://nolmark.co" }] },
+    { title: "Support", links: [{ label: "Request a demonstration", to: "/request-demo" }, { label: "Commercial enquiries", to: "/pricing" }, { label: "Product questions", to: "/request-demo" }] },
+  ] as const;
   return (
-    <footer className="bg-[#091914] text-white">
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-14 md:grid-cols-[1.4fr_1fr_1fr] lg:px-10">
-        <div>
-          <div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#c7a96b] font-semibold text-[#10251e]">S</span><span className="font-semibold tracking-[0.16em]">STAYNAS</span></div>
-          <p className="mt-5 max-w-md text-sm leading-7 text-white/55">A connected Hospitality Operating System for reservations, guest experience, property operations, financial control and intelligence.</p>
+    <footer className="bg-[#1d1926] text-[#f6f3ed]">
+      <div className="mx-auto max-w-7xl px-6 pb-12 pt-14 lg:px-10 lg:pb-16 lg:pt-20">
+        <nav aria-label="Footer navigation" className="border-t border-white/15">
+          {sections.map((section) => {
+            const isOpen = expanded === section.title;
+            return <section key={section.title} className="border-b border-white/15">
+              <button type="button" aria-expanded={isOpen} onClick={() => setExpanded(isOpen ? null : section.title)} className="flex min-h-[76px] w-full items-center justify-between gap-6 text-left text-[21px] font-medium tracking-tight transition-colors hover:text-[#d7bd85] sm:text-[23px]">
+                <span>{section.title}</span><span aria-hidden="true" className="text-[25px] font-light text-white/75">{isOpen ? "−" : "+"}</span>
+              </button>
+              {isOpen && <div className="grid grid-cols-1 gap-x-8 gap-y-5 pb-8 pt-1 sm:grid-cols-2">
+                {section.links.map((item) => {
+                  const cls = "text-[16px] leading-7 text-white/75 transition-colors hover:text-[#d7bd85] sm:text-[18px]";
+                  return "to" in item ? <Link key={item.label} to={item.to} className={cls}>{item.label}</Link> : <a key={item.label} href={item.href} target="_blank" rel="noreferrer" className={cls}>{item.label}</a>;
+                })}
+              </div>}
+            </section>;
+          })}
+        </nav>
+        <div className="pt-16 sm:pt-20">
+          <Link to="/" aria-label="StayNas home" className="inline-flex items-center gap-3 text-white transition-opacity hover:opacity-80">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c7a96b] text-lg font-semibold text-[#10251e]">S</span>
+            <span className="text-[23px] font-semibold tracking-[0.14em] sm:text-[27px]">STAYNAS</span>
+            <span className="text-[17px] font-light text-white/75 sm:text-[20px]">Hospitality OS</span>
+          </Link>
+          <p className="mt-5 max-w-xl text-sm leading-7 text-white/55">A connected hospitality operating system for reservations, guest experience, property operations, financial control and intelligence.</p>
           <p className="mt-5 text-xs text-white/40">A hospitality technology product by Nolmark CDMA.</p>
         </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/40">Explore</p>
-          <div className="mt-5 flex flex-col gap-3 text-sm text-white/70"><Link to="/platform">Platform</Link><Link to="/modules">Modules</Link><Link to="/product-tour">Product walkthrough</Link><Link to="/solutions">Solutions</Link><Link to="/integrations">Integrations</Link><Link to="/pricing">Plans & pricing</Link><Link to="/request-demo">Request a demo</Link></div>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/40">Company</p>
-          <div className="mt-5 flex flex-col gap-3 text-sm text-white/70"><Link to="/architecture">Architecture</Link><Link to="/security">Trust & security</Link><a href="https://nolmark.co" target="_blank" rel="noreferrer">Nolmark CDMA</a></div>
-        </div>
       </div>
-      <div className="border-t border-white/10"><div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-5 text-xs text-white/35 sm:flex-row sm:items-center sm:justify-between lg:px-10"><span>© {new Date().getFullYear()} StayNas. All rights reserved.</span><span>Hospitality Operating System · staynas.com</span></div></div>
+      <div className="border-t border-white/10"><div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-5 text-xs text-white/40 sm:flex-row sm:items-center sm:justify-between lg:px-10"><span>© {new Date().getFullYear()} StayNas. All rights reserved.</span><span>Hospitality Operating System · staynas.com</span></div></div>
     </footer>
   );
 }
