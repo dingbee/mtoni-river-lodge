@@ -70,7 +70,7 @@ function Page() {
       ]),
       ...campaigns.flatMap((item) => [
         ["campaign", "views", item.views, "", item.name],
-        ["campaign", "visitors", item.visitors, "", item.name],
+        ["campaign", "sessions", item.visitors, "", item.name],
         ["campaign", "booking_starts", item.booking_starts, "", item.name],
         ["campaign", "quotes", item.quotes, "", item.name],
         ["campaign", "reservations", item.reservations, "", item.name],
@@ -164,7 +164,7 @@ function Page() {
       <SectionCard title="Campaign performance">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
-            <thead><tr className="border-b text-muted-foreground"><th className="py-2">Campaign</th><th>Status</th><th>Views</th><th>Visitors</th><th>Starts</th><th>Quotes</th><th>Reservations</th><th>Paid</th><th>Net collected</th></tr></thead>
+            <thead><tr className="border-b text-muted-foreground"><th className="py-2">Campaign</th><th>Status</th><th>Views</th><th>Sessions</th><th>Starts</th><th>Quotes</th><th>Reservations</th><th>Paid</th><th>Net collected</th></tr></thead>
             <tbody>{campaigns.map((row) => <tr key={row.id} className="border-b last:border-0">
               <td className="py-2"><div className="font-medium">{row.name}</div><div className="text-xs text-muted-foreground">{row.slug}</div></td>
               <td>{row.status}</td><td>{number(row.views)}</td><td>{number(row.visitors)}</td><td>{number(row.booking_starts)}</td><td>{number(row.quotes)}</td><td>{number(row.reservations)}</td><td>{number(row.paid_bookings)}</td><td>{row.net_collected_by_currency.map((item) => money(Number(item.net_collected), item.currency)).join(" · ") || "—"}</td>
@@ -177,7 +177,7 @@ function Page() {
       <SectionCard title="Permanent booking page">
         <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {["views","visitors","booking_starts","quotes","reservations","paid_bookings"].map((key) =>
-            <div key={key} className="rounded-md border p-3"><div className="text-xs text-muted-foreground">{key.replaceAll("_"," ")}</div><div className="text-xl font-semibold">{number(permanent[key])}</div></div>
+            <div key={key} className="rounded-md border p-3"><div className="text-xs text-muted-foreground">{key.replaceAll("_"," ").replace("visitors", "sessions")}</div><div className="text-xl font-semibold">{number(permanent[key])}</div></div>
           )}
         </div>
       </SectionCard>
