@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   listEscalations, updateEscalation, listEscalationSlaPolicies,
-  updateEscalationSlaPolicy, updateEscalationReasonPriorityMap, listEscalationEvents, listEscalationAssignees,
+  updateEscalationSlaPolicy, updateEscalationReasonPriorityMap, listEscalationEvents, listEscalationSlaAlerts, listEscalationAssignees,
 } from "@/domains/ai/concierge/omnichannel.functions";
 import type { EscalationRow, EscalationStatus } from "@/domains/ai/concierge/omnichannel.types";
 
@@ -54,7 +54,7 @@ function EscalationsPage() {
             <SlaPolicyEditor key={policy.id} policy={policy} saving={savePolicy.isPending} onSave={savePolicy.mutate} />
           ))}
         </div>
-        {policies.data?.[0] && <ReasonPriorityEditor initial={policies.data[0].reason_priority_map} saving={saveReasonMap.isPending} onSave={saveReasonMap.mutate} />}
+        {policies.data?.[0] && <ReasonPriorityEditor key={JSON.stringify(policies.data[0].reason_priority_map)} initial={policies.data[0].reason_priority_map} saving={saveReasonMap.isPending} onSave={saveReasonMap.mutate} />}
         {savePolicy.isError && <p className="text-sm text-destructive">{String(savePolicy.error)}</p>}
         {saveReasonMap.isError && <p className="text-sm text-destructive">{String(saveReasonMap.error)}</p>}
       </SectionCard>
@@ -148,6 +148,7 @@ function EscalationCard({ row, assignees, onPatch }: {
   onPatch: (v: {id:string;status?:EscalationStatus;assigned_to?:string|null;resolution_notes?:string}) => void;
 }) {
   const eventsFn = useServerFn(listEscalationEvents);
+  const alertsFn = useServerFn(listEscalationSlaAlerts);
   const [notes, setNotes] = useState(row.resolution_notes ?? "");
   const [assignee, setAssignee] = useState(row.assigned_to ?? "");
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -155,6 +156,10 @@ function EscalationCard({ row, assignees, onPatch }: {
     queryKey: ["oc.escalation-events", row.id],
     queryFn: () => eventsFn({ data: { escalation_id: row.id } }),
     enabled: historyOpen,
+  });
+  const alerts = useQuery({
+    queryKey: ["oc.escalation-sla-alerts", row.id],
+    queryFn: () => alertsFn({ data: { escalation_id: row.id } }),
   });
   const due = [
     ["Assignment",row.assignment_due_at,row.assigned_to ? "complete" : "pending"],
@@ -171,6 +176,11 @@ function EscalationCard({ row, assignees, onPatch }: {
         {typeof row.ai_confidence === "number" && <span className="text-muted-foreground">conf {Math.round(row.ai_confidence*100)}%</span>}
       </div>
       {row.summary && <p className="whitespace-pre-wrap">{row.summary}</p>}
+      {(alerts.data ?? []).length > 0 && <div className="flex flex-wrap gap-2">
+        {alerts.data?.map((alert: any) => <Badge key={alert.id} variant={alert.alert_type === "breached" ? "destructive" : "secondary"}>
+          {alert.milestone} {alert.alert_type === "breached" ? "breached" : "approaching"}
+        </Badge>)}
+      </div>}
       <div className="grid gap-2 sm:grid-cols-3">
         {due.map(([label,at,state]) => {
           const late = state === "pending" && at && new Date(at).getTime() < now;
