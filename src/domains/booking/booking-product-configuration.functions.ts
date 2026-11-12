@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
+import { resolvePublicDirectBookingChannel } from "@/lib/public-booking-channel.server";
 
 const uuid = z.string().uuid();
 const slug = z.string().trim().min(2).max(100).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
@@ -114,32 +115,34 @@ export const publishBookingProductConfiguration = createServerFn({method:"POST"}
   });
 
 export const getPublicBookingProducts = createServerFn({method:"GET"})
-  .inputValidator((value:unknown)=>z.object({propertyId:uuid,channel:z.enum(["permanent","campaign"]),campaignSlug:slug.optional()}).parse(value))
-  .handler(async({data})=>{
-    if(data.channel==="campaign"&&!data.campaignSlug) throw new Error("Campaign slug is required.");
+  .inputValidator((value:unknown)=>z.object({channel:z.literal("permanent")}).parse(value))
+  .handler(async()=>{
     const {supabaseAdmin}=await import("@/integrations/supabase/client.server");
     const sb=supabaseAdmin as any;
-    const {data:property,error:propertyError}=await sb.from("staynas_properties").select("id,currency,status").eq("id",data.propertyId).maybeSingle();
+    // Property identity is derived exclusively from the verified request host.
+    // A public caller cannot select another tenant by supplying a property UUID.
+    const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
+    const propertyId = channel.propertyId;
+    const {data:property,error:propertyError}=await sb.from("staynas_properties").select("id,currency,status").eq("id",propertyId).maybeSingle();
     if(propertyError||!property||property.status!=="active"||!/^[A-Z]{3}$/.test(property.currency??"")) throw new Error("Booking property is unavailable or currency is not configured.");
-    let query=sb.from("staynas_booking_product_configurations").select("id,room_id,rate_plan_publication_id,display_order,channel,campaign_slug,offer_code,offer_name,offer_description,booking_starts_at,booking_ends_at,stay_starts_on,stay_ends_on,minimum_stay,maximum_stay,guest_eligibility,inclusions,exclusions,terms_and_conditions,configuration_version").eq("property_id",data.propertyId).eq("channel",data.channel).eq("publication_status","published").eq("public_visible",true).order("display_order");
-    if(data.channel==="campaign") query=query.eq("campaign_slug",data.campaignSlug);
-    else query=query.is("campaign_slug",null);
+    let query=sb.from("staynas_booking_product_configurations").select("id,room_id,rate_plan_publication_id,display_order,channel,campaign_slug,offer_code,offer_name,offer_description,booking_starts_at,booking_ends_at,stay_starts_on,stay_ends_on,minimum_stay,maximum_stay,guest_eligibility,inclusions,exclusions,terms_and_conditions,configuration_version").eq("property_id",propertyId).eq("channel","permanent").eq("publication_status","published").eq("public_visible",true).order("display_order");
+    query=query.is("campaign_slug",null);
     const {data:rows,error}=await query;
     if(error) throw new Error("Published booking products could not be resolved.");
     const roomIds=[...new Set((rows??[]).map((x:any)=>x.room_id))];
     const publicationIds=[...new Set((rows??[]).map((x:any)=>x.rate_plan_publication_id))];
     if(!roomIds.length||!publicationIds.length) return {currency:property.currency,products:[]};
     const [{data:rooms,error:roomsError},{data:publications,error:publicationsError}]=await Promise.all([
-      sb.from("rooms").select("id,catalogue_type_id,status").eq("property_id",data.propertyId).in("id",roomIds),
-      sb.from("staynas_rate_plan_publications").select("id,rate_plan_id,publication_number,currency,effective_from,effective_to,room_type_assignments").eq("property_id",data.propertyId).in("id",publicationIds),
+      sb.from("rooms").select("id,catalogue_type_id,status").eq("property_id",propertyId).in("id",roomIds),
+      sb.from("staynas_rate_plan_publications").select("id,rate_plan_id,publication_number,currency,effective_from,effective_to,room_type_assignments").eq("property_id",propertyId).in("id",publicationIds),
     ]);
     if(roomsError||publicationsError) throw new Error("Published room and rate evidence could not be verified.");
     const roomById=new Map((rooms??[]).map((x:any)=>[x.id,x]));
     const publicationById=new Map((publications??[]).map((x:any)=>[x.id,x]));
     const planIds=[...new Set((publications??[]).map((x:any)=>x.rate_plan_id))];
     const [{data:plans,error:plansError},{data:latestRows,error:latestError}]=await Promise.all([
-      sb.from("staynas_rate_plans").select("id,active,publication_status,currency").eq("property_id",data.propertyId).in("id",planIds),
-      sb.from("staynas_rate_plan_publications").select("id,rate_plan_id,publication_number").eq("property_id",data.propertyId).in("rate_plan_id",planIds).order("publication_number",{ascending:false}),
+      sb.from("staynas_rate_plans").select("id,active,publication_status,currency").eq("property_id",propertyId).in("id",planIds),
+      sb.from("staynas_rate_plan_publications").select("id,rate_plan_id,publication_number").eq("property_id",propertyId).in("rate_plan_id",planIds).order("publication_number",{ascending:false}),
     ]);
     if(plansError||latestError) throw new Error("Current published rate-plan status could not be verified.");
     const activePlanIds=new Set((plans??[]).filter((x:any)=>x.active&&x.publication_status==="published"&&x.currency===property.currency).map((x:any)=>x.id));
