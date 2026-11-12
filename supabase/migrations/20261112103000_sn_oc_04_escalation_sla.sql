@@ -108,13 +108,8 @@ ALTER TABLE public.ai_escalation_sla_policies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_escalation_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_escalation_sla_alerts ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.ai_escalation_sla_policies, public.ai_escalation_events, public.ai_escalation_sla_alerts FROM PUBLIC, anon;
-GRANT SELECT, UPDATE ON public.ai_escalation_sla_policies TO authenticated;
-GRANT SELECT ON public.ai_escalation_events, public.ai_escalation_sla_alerts TO authenticated;
-DROP POLICY IF EXISTS "Escalation SLA policies update in active property" ON public.ai_escalation_sla_policies;
-CREATE POLICY "Escalation SLA policies update in active property"
-  ON public.ai_escalation_sla_policies FOR UPDATE TO authenticated
-  USING (public.staynas_ai_property_in_active_context(property_id, ARRAY['owner','manager','admin']::public.app_role[]))
-  WITH CHECK (public.staynas_ai_property_in_active_context(property_id, ARRAY['owner','manager','admin']::public.app_role[]));
+GRANT SELECT ON public.ai_escalation_sla_policies, public.ai_escalation_events, public.ai_escalation_sla_alerts TO authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.ai_escalation_sla_policies FROM authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_escalation_sla_policies TO service_role;
 GRANT SELECT, INSERT ON public.ai_escalation_events, public.ai_escalation_sla_alerts TO service_role;
 REVOKE UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON public.ai_escalation_events, public.ai_escalation_sla_alerts FROM anon, authenticated, service_role;
