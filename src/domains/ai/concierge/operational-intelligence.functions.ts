@@ -150,15 +150,16 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
     for (const row of [...conciergeAttributionRows, ...campaignAttributionRows]) {
       if (row.booking_id) bookingIds.add(String(row.booking_id));
     }
-    let verifiedBookings: any[] = [];
-    if (bookingIds.size) {
+    const verifiedBookings: any[] = [];
+    const bookingIdList = [...bookingIds];
+    for (let offset = 0; offset < bookingIdList.length; offset += 200) {
       const { data: bookingRows, error } = await sb.from("bookings")
-        .select("id,status,confirmed_at,cancelled_at,currency,total")
-        .eq("property_id", propertyId).in("id", [...bookingIds]);
+        .select("id,status,confirmed_at,cancelled_at,currency")
+        .eq("property_id", propertyId).in("id", bookingIdList.slice(offset, offset + 200));
       if (error) throw new Error(error.message);
-      verifiedBookings = (bookingRows ?? []).filter((row: any) =>
+      verifiedBookings.push(...(bookingRows ?? []).filter((row: any) =>
         row.confirmed_at && !row.cancelled_at && ["confirmed", "checked_in", "completed"].includes(String(row.status)),
-      );
+      ));
     }
     const confirmedBookingCount = new Set(verifiedBookings.map((row: any) => row.id)).size;
     const { count: currencyMismatchCount, error: currencyError } = await sb.from("bookings")
