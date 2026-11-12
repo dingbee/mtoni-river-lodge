@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
-import { LayoutDashboard, Calendar, Globe, TrendingUp, Megaphone, ClipboardCheck, Bot, Crown, FileText, LineChart, Sparkles } from "lucide-react";
+import { LayoutDashboard, Calendar, Globe, TrendingUp, Megaphone, ClipboardCheck, Bot, Crown, FileText, LineChart, Sparkles, Network } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/analytics")({
   head: () => ({ meta: [{ title: "Analytics & Intelligence Hub — StayNas" }, { name: "robots", content: "noindex,nofollow" }] }),
@@ -11,6 +11,7 @@ const TABS = [
   { to: "/admin/analytics/bookings", label: "Bookings", icon: Calendar },
   { to: "/admin/analytics/website", label: "Website", icon: Globe },
   { to: "/admin/analytics/revenue", label: "Revenue", icon: TrendingUp },
+  { to: "/admin/analytics/distribution", label: "Distribution", icon: Network },
   { to: "/admin/analytics/marketing", label: "Marketing", icon: Megaphone },
   { to: "/admin/analytics/operations", label: "Operations", icon: ClipboardCheck },
   { to: "/admin/analytics/ai", label: "AI", icon: Bot },

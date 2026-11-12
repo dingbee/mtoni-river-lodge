@@ -1,0 +1,43 @@
+name: StayNas DC-05 reservation ingestion
+
+on:
+  push:
+    branches:
+      - feat/dc05-*
+  pull_request:
+    branches:
+      - integration/dc05-foundation
+    paths:
+      - "src/domains/distribution/reservations/**"
+      - "src/domains/distribution/adapters/**"
+      - "supabase/migrations/**"
+      - ".github/workflows/dc-05-reservation-ingestion.yml"
+
+jobs:
+  reservation-ingestion:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Reservation ingestion contract tests
+        run: >-
+          bunx vitest run
+          src/domains/distribution/reservations
+          src/domains/distribution/adapters/mapping-contracts.test.ts
+          src/domains/distribution/adapters/mapping-resolution.test.ts
+          src/domains/distribution/adapters/webhook-processing.server.test.ts
+          src/domains/finance/payment-contract.test.ts
+          src/domains/finance/finance-currency.test.ts
+          src/domains/finance/finance-reconciliation.test.ts
+          src/lib/pesapal-currency.test.ts
+      - name: TypeScript verifi¶»§q«^

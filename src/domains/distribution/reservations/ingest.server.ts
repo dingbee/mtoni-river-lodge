@@ -1,0 +1,110 @@
+import type { AdapterExecutionContext } from "../adapters/contracts";
+import { assertVerifiedReservationWebhook, type VerifiedReservationWebhook } from "./provider-signature-verification.server";
+import { receiveDistributionWebhook, storeEncryptedReservationPayload } from "../adapters/operation-ledger.server";
+import {
+  encryptReservationPayload,
+  readReservationPayloadKey,
+  readReservationPayloadKeyVersion,
+  reservationPayloadAad,
+} from "./reservation-payload-crypto.server";
+import { toSafeReservationEventEnvelope, type ExternalReservationEvent } from "./reservation-ingestion.contracts";
+
+/**
+ * Reservation ingress context is assembled by the trusted server-side connection
+ * resolver. Grant and external-account identifiers are deliberately part of this
+ * context rather than independent ingress arguments, so a webhook caller cannot
+ * pair an authorized connection with a different grant/account identifier.
+ */
+export type ReservationIngressExecutionContext = AdapterExecutionContext & Readonly<{
+  accountGrantId: string;
+  externalAccountId: string;
+}>;
+
+export type IngestExternalReservationInput = Readonly<{
+  verifiedWebhook: VerifiedReservationWebhook;
+}>;
+
+export type IngestExternalReservationResult = Readonly<{
+  inboxId: string;
+  created: boolean;
+  correlationId: string;
+}>;
+
+export function requiredReservationCapability(
+  event: Pick<ExternalReservationEvent, "eventType" | "providerStatus">,
+): "reservation.import" | "reservation.update" | "reservation.cancel" {
+  if (event.eventType === "reservation.created" || event.eventType === "reservation.confirmed") {
+    return "reservation.import";
+  }
+  if (event.eventType === "reservation.cancelled" ||
+      (event.eventType === "reservation.modified" &&
+        ["cancelled", "canceled"].includes(event.providerStatus.toLowerCase()))) {
+    return "reservation.cancel";
+  }
+  return "reservation.update";
+}
+
+/**
+ * Durable provider-neutral ingress. The caller must complete provider-specific
+ * signature verification and resolve the execution context from trusted
+ * server-side records before invoking this function. No caller-supplied
+ * organisation/property identifiers or raw provider body are accepted.
+ *
+ * Guest contact and monetary values are intentionally excluded from the
+ * ordinary inbox envelope. The full verified event is AES-256-GCM encrypted
+ * and stored separately so a leased worker can safely retry materialization.
+ */
+export async function ingestExternalReservationEvent(
+  input: IngestExternalReservationInput,
+): Promise<IngestExternalReservationResult> {
+  assertVerifiedReservationWebhook(input.verifiedWebhook);
+  const event: ExternalReservationEvent = input.verifiedWebhook.event;
+  const context = input.verifiedWebhook.context;
+  if (!context.accountGrantId.trim() || !context.externalAccountId.trim()) {
+    throw new Error("Distribution account grant and external account must be resolved server-side.");
+  }
+  if (event.providerKey !== context.providerKey ||
+      event.externalAccountReference !== context.externalAccountReference) {
+    throw new Error("Provider event does not match the authorized distribution connection.");
+  }
+  const requiredCapability = requiredReservationCapability(event);
+  if (context.capability !== requiredCapability) {
+    throw new Error("Distribution connection does not grant the capability required by this reservation event.");
+  }
+
+  const keyVersion = readReservationPayloadKeyVersion();
+  const key = readReservationPayloadKey(keyVersion);
+  const encryptedPayload = encryptReservationPayload(
+    event,
+    key,
+    reservationPayloadAad(context.providerKey, context.externalAccountId, event.providerEventId),
+    keyVersion,
+  );
+  const safeEnvelope = toSafeReservationEventEnvelope(event);
+  const payloadFingerprint = encryptedPayload.payloadFingerprint;
+
+  const stored = await receiveDistributionWebhook({
+    context,
+    accountGrantId: context.accountGrantId,
+    externalAccountId: context.externalAccountId,
+    providerEventId: event.providerEventId,
+    eventType: event.eventType,
+    normalizedEvent: safeEnvelope,
+    payloadFingerprint,
+  });
+
+  await storeEncryptedReservationPayload({
+    inboxId: stored.inboxId,
+    payloadFingerprint,
+    ciphertext: encryptedPayload.ciphertext,
+    nonce: encryptedPayload.nonce,
+    authTag: encryptedPayload.authTag,
+    keyVersion: encryptedPayload.keyVersion,
+  });
+
+  return Object.freeze({
+    inboxId: stored.inboxId,
+    created: stored.created,
+    correlationId: context.correlationId,
+  });
+}

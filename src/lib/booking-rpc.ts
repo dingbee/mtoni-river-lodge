@@ -1,10 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-// Local contracts for the property-scoped booking RPCs defined in
-// supabase/review/20261024090000_staynas_booking_property_isolation.sql.
-// The generated database types are stale (they predate the property
-// hardening), so — as with staynas-rpc.ts and housekeeping-rpc.ts — these
-// contracts live here until the migration is applied and types regenerate.
+// Local contracts for the property-scoped booking RPCs. The generated database
+// types predate DC-03R and remain stale until the migration is applied and types
+// are regenerated; keep the named RPC contract explicit here.
 
 type Result<T> = Promise<{ data: T | null; error: { message: string } | null }>;
 
@@ -43,6 +41,9 @@ export interface CreateBookingRow {
   reference: string;
   total: number;
   currency: string;
+  taxes?: number;
+  tax_addition?: number;
+  tax_breakdown?: unknown;
 }
 
 export interface CreateBookingArgs {
@@ -68,10 +69,6 @@ export interface BookingPropertyRpc {
   rpc(fn: "staynas_booking_property_id"): Result<string>;
   rpc(
     fn: "get_room_availability",
-    args: { _check_in: string; _check_out: string; _property_id: string },
-  ): Result<AvailabilityRow[]>;
-  rpc(
-    fn: "get_room_availability_for_property",
     args: { _check_in: string; _check_out: string; _property_id: string },
   ): Result<AvailabilityRow[]>;
   rpc(

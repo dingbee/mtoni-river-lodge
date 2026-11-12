@@ -235,6 +235,41 @@ function Payments() {
                   {!timelineError && !(timeline?.events ?? []).length && <p className="text-muted-foreground">No events yet.</p>}
                 </div>
               </div>
+              {!timelineError && (timeline?.providerEvidence ?? []).length > 0 && (
+                <div className="rounded border border-border p-3">
+                  <p className="mb-1 text-xs font-medium uppercase text-muted-foreground">
+                    Channel financial evidence · Not posted to payment ledger
+                  </p>
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    Provider notifications are reconciliation evidence only. They do not record a payment, refund or settlement in StayNas.
+                  </p>
+                  <div className="space-y-2">
+                    {timeline!.providerEvidence.map((item: any) => {
+                      const evidence = (item.evidence ?? {}) as Record<string, unknown>;
+                      const amount = evidence.settlementAmount ?? evidence.paymentAmount
+                        ?? evidence.refundAmount ?? evidence.grossAmount;
+                      const currency = evidence.settlementCurrency ?? evidence.paymentCurrency
+                        ?? evidence.refundCurrency;
+                      return (
+                        <div key={item.id} className="rounded bg-muted/40 px-2 py-2 text-xs">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="font-medium">{item.provider_key} · {item.event_type}</span>
+                            <Badge variant="outline">{item.reconciliation_status}</Badge>
+                          </div>
+                          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground">
+                            {item.provider_reference && <span>Reference: {item.provider_reference}</span>}
+                            {amount != null && <span>Evidence amount: {String(currency ?? "")} {String(amount)}</span>}
+                            <span>{new Date(item.received_at).toLocaleString()}</span>
+                          </div>
+                          {item.reconciliation_code && (
+                            <p className="mt-1 text-muted-foreground">Review: {item.reconciliation_code}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           <DialogFooter>
