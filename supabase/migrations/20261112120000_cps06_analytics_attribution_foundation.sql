@@ -400,7 +400,7 @@ begin
         payment_reference=coalesce(payment_reference,new.order_tracking_id,new.merchant_reference),
         updated_at=now()
     where id=v_attribution and property_id=(select property_id from public.bookings where id=new.booking_id);
-    if new.event_type='payment_completed' then v_type:='payment_completed';
+    if new.event_type in ('manual_payment','payment_completed') then v_type:='payment_completed';
     elsif new.event_type in ('refund','provider_reversal') then v_type:='payment_refunded';
     else return new;
     end if;
@@ -410,7 +410,7 @@ begin
       event_source,currency,amount,metadata
     )
     select v_org,b.property_id,v_attribution,v_campaign,new.booking_id,v_type,v_key,
-      'server_confirmed',upper(new.currency),new.amount,
+      'server_confirmed',upper(new.currency),abs(new.amount),
       jsonb_build_object('payment_event_id',new.id,'provider',new.provider,'payment_event_type',new.event_type)
     from public.bookings b where b.id=new.booking_id
     on conflict(property_id,event_key) do nothing;
