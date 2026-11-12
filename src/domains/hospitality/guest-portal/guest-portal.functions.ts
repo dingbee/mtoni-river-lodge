@@ -758,12 +758,16 @@ export const getGuestPortalAccessStatus = createServerFn({ method: "POST" })
       throw new Error("Guest portal access history could not be loaded.");
     }
     const access = accessResult.data;
-    const expired = Boolean(access && Date.parse(access.expires_at) <= Date.now() && !access.revoked_at);
-    const status = access?.revoked_at
-      ? (access.status === "superseded" ? "superseded" : "revoked")
-      : expired
-        ? "expired"
-        : access?.status ?? "not_issued";
+    const expired = Boolean(
+      access && (access.status === "expired" || Date.parse(access.expires_at) <= Date.now()),
+    );
+    const status = access?.status === "superseded"
+      ? "superseded"
+      : access?.status === "revoked" || (access?.revoked_at && !expired)
+        ? "revoked"
+        : expired
+          ? "expired"
+          : access?.status ?? "not_issued";
 
     return {
       eligible: booking.status === "checked_in",
