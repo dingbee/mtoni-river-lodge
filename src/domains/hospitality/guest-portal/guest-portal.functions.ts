@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -129,7 +129,7 @@ async function authorizeGuestPortal(token: string): Promise<GuestPortalContext> 
 
   const { data: access, error: accessError } = await admin
     .from("staynas_guest_portal_access")
-    .select("id, property_id, booking_id, guest_id, concierge_session_id, expires_at, revoked_at, status")
+    .select("id, property_id, booking_id, guest_id, concierge_session_id, token_hash, expires_at, revoked_at, status")
     .eq("token_hash", tokenHash)
     .maybeSingle();
 
