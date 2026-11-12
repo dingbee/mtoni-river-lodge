@@ -6,7 +6,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 import { GUEST_REQUEST_CATEGORIES } from "@/domains/ai/concierge/request-categorization";
 import { handleConciergeChat } from "@/domains/ai/concierge/concierge.server";
-import { isGuestPortalStayEligible, validateGuestPortalPhotoMeta } from "./guest-portal.shared";
+import { guestPortalOrigin, isGuestPortalStayEligible, validateGuestPortalPhotoMeta } from "./guest-portal.shared";
 
 const BUCKET = "guest-request-evidence";
 type GuestRequestAttachmentMeta = {
@@ -845,6 +845,58 @@ export const getGuestPortalAccessStatus = createServerFn({ method: "POST" })
       throw new Error("Guest portal access history could not be loaded.");
     }
     const access = accessResult.data;
+    let deliveryStatus = "not_sent";
+    let deliveryDraftId: string | null = null;
+    if (access) {
+      const { data: deliveryDrafts, error: deliveryDraftError } = await admin
+        .from("ai_communication_drafts")
+        .select("id,created_at")
+        .eq("booking_id", data.bookingId)
+        .contains("supporting_context", { guest_portal_access_id: access.id })
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (deliveryDraftError) {
+        deliveryStatus = "unknown";
+      } else if (deliveryDrafts?.length) {
+        deliveryDraftId = deliveryDrafts[0].id;
+        deliveryStatus = "draft";
+        const draftIds = deliveryDrafts.map((draft: any) => draft.id);
+        const { data: attempts, error: attemptsError } = await admin
+          .from("ai_communication_dispatch_attempts")
+          .select("id,draft_id,message_id,status,attempt_number,finished_at")
+          .eq("property_id", propertyId)
+          .in("draft_id", draftIds)
+          .order("attempt_number", { ascending: false })
+          .limit(10);
+        if (attemptsError) {
+          deliveryStatus = "unknown";
+        } else if (attempts?.length) {
+          const latestAttempt = attempts[0];
+          const attemptStatus = String(latestAttempt.status);
+          deliveryStatus = attemptStatus === "accepted"
+            ? "sent"
+            : attemptStatus === "processing"
+              ? "queued"
+              : attemptStatus === "retryable_failure"
+                ? "retrying"
+                : ["permanent_failure", "cancelled"].includes(attemptStatus)
+                  ? "failed"
+                  : "draft";
+          if (latestAttempt.message_id) {
+            const { data: deliveryEvents } = await admin
+              .from("ai_omnichannel_delivery_events")
+              .select("event_type")
+              .eq("property_id", propertyId)
+              .eq("message_id", latestAttempt.message_id)
+              .order("occurred_at", { ascending: false })
+              .limit(1);
+            const eventType = deliveryEvents?.[0]?.event_type;
+            if (eventType === "delivered" || eventType === "read") deliveryStatus = "delivered";
+            else if (["bounced", "rejected", "failed", "complained"].includes(String(eventType))) deliveryStatus = "failed";
+          }
+        }
+      }
+    }
     const expired = Boolean(
       access && (access.status === "expired" || Date.parse(access.expires_at) <= Date.now()),
     );
@@ -872,22 +924,127 @@ export const getGuestPortalAccessStatus = createServerFn({ method: "POST" })
       createdBy: access?.created_by ?? null,
       lastUsedAt: access?.last_used_at ?? null,
       events: eventsResult.data ?? [],
-      deliveryStatus: (() => {
-        const latestDelivery = (eventsResult.data ?? []).find((event: any) =>
-          ["delivery_queued", "delivery_sent", "delivery_delivered", "delivery_retrying", "delivery_failed"].includes(event.event_type),
-        );
-        return latestDelivery
-          ? ({
-              delivery_queued: "queued",
-              delivery_sent: "sent",
-              delivery_delivered: "delivered",
-              delivery_retrying: "retrying",
-              delivery_failed: "failed",
-            } as Record<string, string>)[latestDelivery.event_type] ?? "not_sent"
-          : "not_sent";
-      })(),
+      deliveryStatus,
+      deliveryDraftId,
       multipleGuestAccess: true,
     };
+  });
+
+const guestPortalDeliveryDraftSchema = z.object({
+  bookingId: z.string().uuid(),
+  accessId: z.string().uuid(),
+  channel: z.enum(["whatsapp", "email"]),
+  portalUrl: z.string().url().max(2048),
+});
+
+export const prepareGuestPortalDeliveryDraft = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => guestPortalDeliveryDraftSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const propertyId = await requireReservationProperty(context, data.bookingId);
+    await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
+    const { data: membership, error: membershipError } = await context.supabase
+      .from("staynas_property_members")
+      .select("role")
+      .eq("property_id", propertyId)
+      .eq("user_id", context.userId)
+      .eq("status", "active")
+      .in("role", ["owner", "manager", "admin"])
+      .maybeSingle();
+    if (membershipError || !membership) throw new Error("Property manager authorization is required to prepare guest delivery.");
+
+    const admin = await adminClient();
+    const [{ data: access, error: accessError }, { data: booking, error: bookingError }] = await Promise.all([
+      admin.from("staynas_guest_portal_access")
+        .select("id,property_id,booking_id,guest_id,concierge_session_id,status,revoked_at,expires_at")
+        .eq("id", data.accessId).eq("property_id", propertyId).eq("booking_id", data.bookingId).maybeSingle(),
+      admin.from("bookings")
+        .select("id,property_id,guest_id,guest_name,status")
+        .eq("id", data.bookingId).eq("property_id", propertyId).maybeSingle(),
+    ]);
+    if (accessError || !access || access.status !== "active" || access.revoked_at || Date.parse(access.expires_at) <= Date.now()) {
+      throw new Error("Only an active, unexpired guest credential can be prepared for delivery.");
+    }
+    if (bookingError || !booking || !isGuestPortalStayEligible(booking.status, access.expires_at)) {
+      throw new Error("The reservation is not eligible for Guest Portal delivery.");
+    }
+    if (!(await isRegisteredBookingGuest(admin, propertyId, data.bookingId, booking.guest_id, access.guest_id))) {
+      throw new Error("The credential is not bound to a registered reservation guest.");
+    }
+    const parsedUrl = new URL(data.portalUrl);
+    const approvedOrigin = guestPortalOrigin(parsedUrl.origin);
+    if (approvedOrigin !== parsedUrl.origin || !/^\/guest\/[A-Za-z0-9_-]{40,200}$/.test(parsedUrl.pathname) || parsedUrl.search || parsedUrl.hash) {
+      throw new Error("Only the canonical approved Guest Portal URL can be sent.");
+    }
+    const { data: session, error: sessionError } = await admin
+      .from("ai_concierge_sessions")
+      .select("id,property_id,guest_id,guest_name,guest_email,guest_phone")
+      .eq("id", access.concierge_session_id)
+      .eq("property_id", propertyId)
+      .maybeSingle();
+    if (sessionError || !session || session.guest_id !== access.guest_id) {
+      throw new Error("The guest delivery conversation could not be verified.");
+    }
+    const provider = data.channel === "whatsapp" ? "meta_cloud_api" : "resend";
+    const contact = data.channel === "whatsapp" ? session.guest_phone : session.guest_email;
+    if (typeof contact !== "string" || !contact.trim()) {
+      throw new Error("The registered guest has no contact address for this channel.");
+    }
+    if (data.channel === "whatsapp" && !/^\+[1-9]\d{7,14}$/.test(contact.trim())) {
+      throw new Error("The registered guest has no valid WhatsApp E.164 number.");
+    }
+    const { data: settings, error: settingsError } = await admin
+      .from("ai_property_channel_settings")
+      .select("enabled,outbound_enabled,sender_email")
+      .eq("property_id", propertyId)
+      .eq("channel", data.channel)
+      .maybeSingle();
+    if (settingsError || !settings?.enabled || !settings?.outbound_enabled) {
+      throw new Error("Outbound delivery is not enabled for this property channel.");
+    }
+    if (data.channel === "email" && !settings.sender_email) {
+      throw new Error("A property-specific email sender must be configured before preparing delivery.");
+    }
+    let bindingQuery = admin.from("ai_provider_property_bindings")
+      .select("id,external_endpoint_id")
+      .eq("property_id", propertyId)
+      .eq("provider", provider)
+      .eq("enabled", true)
+      .eq("outbound_enabled", true)
+      .eq("verification_status", "verified");
+    if (data.channel === "email") bindingQuery = bindingQuery.eq("external_endpoint_id", settings.sender_email);
+    const { data: binding, error: bindingError } = await bindingQuery.limit(1).maybeSingle();
+    if (bindingError || !binding) throw new Error("No verified outbound provider binding is configured for this property.");
+
+    const guestName = String(session.guest_name || booking.guest_name || "Guest");
+    const expiry = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" })
+      .format(new Date(access.expires_at));
+    const subject = "Your StayNas Guest Portal access";
+    const body = `Hello ${guestName},\n\nYour private Guest Portal link is ready:\n${data.portalUrl}\n\nThis link expires ${expiry} (UTC). Please keep it private and do not forward it.\n\nThe property team`;
+    const { data: draft, error: draftError } = await admin.from("ai_communication_drafts")
+      .insert({
+        session_id: session.id,
+        guest_id: access.guest_id,
+        booking_id: data.bookingId,
+        channel: data.channel,
+        draft_type: "concierge_response",
+        subject: data.channel === "email" ? subject : null,
+        body,
+        reasoning: "Guest Portal credential delivery. Dispatch remains subject to staff approval, guest consent, and the property's provider policy.",
+        supporting_context: {
+          source: "guest_portal_access",
+          guest_portal_access_id: access.id,
+          credential_expires_at: access.expires_at,
+          provider_binding_id: binding.id,
+        },
+        status: "pending",
+        notes: "Review recipient, content, consent and provider template requirements before dispatch.",
+        created_by: context.userId,
+      })
+      .select("id")
+      .single();
+    if (draftError || !draft) throw new Error("The Guest Portal delivery draft could not be created.");
+    return { id: draft.id, channel: data.channel };
   });
 
 export const listGuestPortalOccupants = createServerFn({ method: "POST" })
