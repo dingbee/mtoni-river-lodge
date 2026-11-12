@@ -19,6 +19,7 @@ import {
   getGuestPortalAccessStatus,
   issueGuestPortalAccess,
   revokeGuestPortalAccess,
+  recordGuestPortalAccessEvent,
 } from "./guest-portal.functions";
 
 function formatDate(value: string | null | undefined, timezone: string | null | undefined) {
@@ -40,9 +41,11 @@ export function GuestPortalAccessPanel({
   const qc = useQueryClient();
   const [link, setLink] = useState<string | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [accessId, setAccessId] = useState<string | null>(null);
   const statusFn = useServerFn(getGuestPortalAccessStatus);
   const issueFn = useServerFn(issueGuestPortalAccess);
   const revokeFn = useServerFn(revokeGuestPortalAccess);
+  const recordEventFn = useServerFn(recordGuestPortalAccessEvent);
 
   const access = useQuery({
     queryKey: ["guest-portal-access", bookingId],
@@ -60,8 +63,13 @@ export function GuestPortalAccessPanel({
       width: 1200,
       color: { dark: "#111827", light: "#FFFFFF" },
     })
-      .then((dataUrl) => {
-        if (!cancelled) setQrDataUrl(dataUrl);
+      .then(async (dataUrl) => {
+        if (!cancelled) {
+          setQrDataUrl(dataUrl);
+          if (accessId) {
+            try { await recordEventFn({ data: { bookingId, accessId, eventType: "qr_generated" } }); } catch { /* QR remains valid if audit telemetry is unavailable. */ }
+          }
+        }
       })
       .catch(() => {
         if (!cancelled) toast.error("QR image could not be generated. The secure link remains valid.");
@@ -69,12 +77,13 @@ export function GuestPortalAccessPanel({
     return () => {
       cancelled = true;
     };
-  }, [link]);
+  }, [link, accessId, bookingId, recordEventFn]);
 
   const issue = useMutation({
     mutationFn: () => issueFn({ data: { bookingId, rotate: true } }),
     onSuccess: (result) => {
       if (result.token) {
+        setAccessId(result.accessId);
         setLink(window.location.origin + "/guest/" + result.token);
         toast.success("Guest Portal access generated");
       } else {
@@ -92,6 +101,7 @@ export function GuestPortalAccessPanel({
     onSuccess: (result) => {
       setLink(null);
       setQrDataUrl(null);
+      setAccessId(null);
       toast.success(result.revokedCount ? "Guest Portal access revoked" : "No active credential to revoke");
       qc.invalidateQueries({ queryKey: ["guest-portal-access", bookingId] });
     },
@@ -102,6 +112,7 @@ export function GuestPortalAccessPanel({
     if (!link) return;
     try {
       await navigator.clipboard.writeText(link);
+      if (accessId) { try { await recordEventFn({ data: { bookingId, accessId, eventType: "link_shared" } }); } catch { /* Sharing succeeds independently of audit telemetry. */ } }
       toast.success("Guest Portal link copied");
     } catch {
       toast.error("Clipboard access is unavailable on this device.");
@@ -117,6 +128,7 @@ export function GuestPortalAccessPanel({
           text: "Open your secure guest portal for this stay.",
           url: link,
         });
+        if (accessId) { try { await recordEventFn({ data: { bookingId, accessId, eventType: "link_shared" } }); } catch { /* Sharing succeeds independently of audit telemetry. */ } }
       } catch (error) {
         if ((error as Error).name !== "AbortError") toast.error("The share action could not be completed.");
       }
