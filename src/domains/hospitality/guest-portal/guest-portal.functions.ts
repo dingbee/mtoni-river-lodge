@@ -172,7 +172,7 @@ async function authorizeGuestPortal(token: string): Promise<GuestPortalContext> 
     await recordGuestPortalAccessDenied(admin, tokenHash, "booking_not_eligible", access);
     throw new Error("Guest Portal access is available during an active stay or its configured checkout grace period.");
   }
-  if (access.guest_id && booking.guest_id && access.guest_id !== booking.guest_id) {
+  if (access.guest_id !== booking.guest_id) {
     await recordGuestPortalAccessDenied(admin, tokenHash, "guest_identity_mismatch", access);
     throw new Error("This guest access link does not match the reservation.");
   }
