@@ -330,9 +330,9 @@ BEGIN
   v_report := public.staynas_get_booking_analytics(
     '93000000-0000-4000-8000-000000000001',now()-interval '1 day',now()+interval '1 day'
   );
-  SELECT value INTO v_money
-  FROM jsonb_array_elements(v_report->'currencies') value
-  WHERE value->>'currency'='TZS';
+  SELECT item.value INTO v_money
+  FROM jsonb_array_elements(v_report->'currencies') AS item(value)
+  WHERE item.value->>'currency'='TZS';
   IF v_money IS NULL
      OR (v_money->>'gross_booking_value')::numeric<>300
      OR (v_money->>'confirmed_booking_value')::numeric<>300
@@ -348,9 +348,9 @@ BEGIN
     RAISE EXCEPTION 'Net-positive paid booking funnel count included a fully reversed settlement';
   END IF;
 
-  SELECT value INTO v_campaign
-  FROM jsonb_array_elements(v_report->'campaigns') value
-  WHERE value->>'id'='96000000-0000-4000-8000-000000000001';
+  SELECT item.value INTO v_campaign
+  FROM jsonb_array_elements(v_report->'campaigns') AS item(value)
+  WHERE item.value->>'id'='96000000-0000-4000-8000-000000000001';
   IF v_campaign IS NULL
      OR (v_campaign->>'views')::integer<>1
      OR (v_campaign->>'reservations')::integer<>2
@@ -359,12 +359,12 @@ BEGIN
     RAISE EXCEPTION 'Campaign conversion/revenue attribution failed: %',v_campaign;
   END IF;
 
-  SELECT value INTO v_first_touch
-  FROM jsonb_array_elements(v_report->'acquisition') value
-  WHERE value->>'source'='google' AND value->>'medium'='cpc';
-  SELECT value INTO v_last_touch
-  FROM jsonb_array_elements(v_report->'last_touch_acquisition') value
-  WHERE value->>'source'='newsletter' AND value->>'medium'='email';
+  SELECT item.value INTO v_first_touch
+  FROM jsonb_array_elements(v_report->'acquisition') AS item(value)
+  WHERE item.value->>'source'='google' AND item.value->>'medium'='cpc';
+  SELECT item.value INTO v_last_touch
+  FROM jsonb_array_elements(v_report->'last_touch_acquisition') AS item(value)
+  WHERE item.value->>'source'='newsletter' AND item.value->>'medium'='email';
   IF v_first_touch IS NULL OR (v_first_touch->>'paid_bookings')::integer<>1
      OR v_last_touch IS NULL OR (v_last_touch->>'paid_bookings')::integer<>1 THEN
     RAISE EXCEPTION 'First-touch or last-touch conversion attribution did not reconcile';
