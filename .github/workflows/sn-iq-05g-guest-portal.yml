@@ -9,6 +9,8 @@ on:
       - 'src/routes/guest.$token.tsx'
       - 'src/routes/api/public/ops/drain.ts'
       - 'supabase/migrations/*sn_iq_05*.sql'
+      - 'supabase/migrations/*sn_gpa_*.sql'
+      - 'supabase/tests/staynas_guest_portal_access.test.sql'
   push:
     branches:
       - feat/sn-iq-05g-guest-self-service
