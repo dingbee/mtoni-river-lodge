@@ -66,13 +66,29 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_schema='public' AND table_name='ai_escalations'
-      AND column_name='acknowledged_at'
+      AND column_name='resolved_at'
   ) OR NOT EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_schema='public' AND table_name='ai_escalations'
-      AND column_name='resolved_at'
+      AND column_name='assigned_to'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='ai_escalations'
+      AND column_name='status'
   ) THEN
-    RAISE EXCEPTION 'SN-OC-04 escalation acknowledgement/resolution timestamps are missing';
+    RAISE EXCEPTION 'SN-OC-04 escalation current-state/resolution contract is incomplete';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='staynas_properties'
+      AND column_name='timezone'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='staynas_properties'
+      AND column_name='currency'
+  ) THEN
+    RAISE EXCEPTION 'SN-OC-04 property timezone/currency contract is incomplete';
   END IF;
 
   IF NOT EXISTS (
