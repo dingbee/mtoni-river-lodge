@@ -80,7 +80,7 @@ function Page() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "st aynas-booking-analytics-" + data.period.from + "-to-" + data.period.to + ".csv";
+    anchor.download = "stayn​as-booking-analytics-" + data.period.from + "-to-" + data.period.to + ".csv";
     anchor.click();
     URL.revokeObjectURL(url);
   };
