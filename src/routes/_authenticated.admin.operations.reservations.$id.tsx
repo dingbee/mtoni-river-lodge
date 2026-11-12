@@ -99,6 +99,48 @@ function ReservationWorkspace() {
         </SectionCard>
       </div>
 
+      <SectionCard title="Channel provenance" description="Origin, provider lifecycle and operational reconciliation">
+        {d.channel ? (
+          <dl className="grid gap-2 text-sm sm:grid-cols-2">
+            <Row label="Provider" value={d.channel.provider_key} />
+            <Row label="External reservation" value={d.channel.external_reservation_id} />
+            <Row label="Provider status" value={d.channel.provider_status} />
+            <Row label="Integration" value={String(d.channel.integration_status).replaceAll("_", " ")} />
+            <Row label="Last provider event" value={d.channel.last_provider_event_id ?? "—"} />
+            <Row label="Last integrated" value={d.channel.last_integrated_at ? new Date(d.channel.last_integrated_at).toLocaleString() : "—"} />
+            {d.channel.last_error_code && (
+              <div className="sm:col-span-2 rounded border border-[color:var(--os-warn)]/30 bg-[color:var(--os-warn)]/5 p-2 text-xs">
+                Reconciliation required: {d.channel.last_error_code}
+              </div>
+            )}
+          </dl>
+        ) : (
+          <p className="text-sm text-muted-foreground">Direct reservation · no external channel link.</p>
+        )}
+        {(d.channelEvents ?? []).length > 0 && (
+          <div className="mt-4 border-t pt-3">
+            <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Provider event history</p>
+            <ul className="space-y-2">
+              {d.channelEvents.map((event: any) => (
+                <li key={event.provider_event_id} className="rounded bg-muted/40 p-2 text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-medium">{event.event_type}</span>
+                    <span className="text-muted-foreground">{event.processing_status.replaceAll("_", " ")}</span>
+                  </div>
+                  <p className="mt-1 text-muted-foreground">
+                    {event.provider_event_id} · {new Date(event.received_at).toLocaleString()}
+                    {event.provider_status ? ` · ${event.provider_status}` : ""}
+                  </p>
+                  {event.safe_error_summary && (
+                    <p className="mt-1 text-[color:var(--os-warn)]">{event.safe_error_summary}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </SectionCard>
+
       <div className="grid gap-6 lg:grid-cols-2">
         <SectionCard title="Tasks" description="Reservation-linked ops tasks">
           {d.tasks.length === 0 ? <p className="text-sm text-muted-foreground">No tasks yet.</p> : (
@@ -116,6 +158,17 @@ function ReservationWorkspace() {
           )}
         </SectionCard>
         <SectionCard title="Room assignments" description="Physical units for this room type">
+          {d.roomAllocation && (
+            <div className="mb-3 rounded-md border border-primary/20 bg-muted/30 p-3 text-sm">
+              <p className="text-xs font-medium uppercase text-muted-foreground">Physical room allocation</p>
+              <p className="mt-1 font-medium">
+                {d.roomStates.find((r: any) => r.id === d.roomAllocation.room_state_id)?.unit_label ?? "Room assignment recorded"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {d.roomAllocation.check_in} – {d.roomAllocation.check_out} · {String(d.roomAllocation.allocation_status).replaceAll("_", " ")}
+              </p>
+            </div>
+          )}
           {d.roomStates.length === 0 ? <p className="text-sm text-muted-foreground">No units configured.</p> : (
             <ul className="divide-y">
               {d.roomStates.map((r: any) => (
