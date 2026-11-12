@@ -98,12 +98,18 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
     const periodStart = new Date(periodEnd.getTime() - days * 86_400_000);
     const since = periodStart.toISOString();
 
-    const [property, sessions, messageRows, leadRows, escalationRows, documentRows, chunkRows, searchRows, conciergeAttributionRows, campaignAttributionRows] = await Promise.all([
+    const [property, sessions, messageRows, legacyMessages, feedbackRows, leadRows, escalationRows, documentRows, chunkRows, searchRows, conciergeAttributionRows, campaignAttributionRows] = await Promise.all([
       sb.from("staynas_properties").select("id,currency,timezone").eq("id", propertyId).maybeSingle(),
       sb.from("ai_concierge_sessions").select("id", { count: "exact", head: true }).eq("property_id", propertyId).gte("created_at", since),
       fetchAllRows(() => sb.from("ai_omnichannel_messages")
         .select("id,property_id,session_id,channel,direction,actor_type,message_type,status,provider,provider_message_id,client_message_id,occurred_at")
         .eq("property_id", propertyId).gte("occurred_at", since).order("occurred_at", { ascending: true })),
+      fetchAllRows(() => sb.from("ai_concierge_messages")
+        .select("id,session_id,role,citations,created_at,ai_concierge_sessions!inner(property_id)")
+        .eq("ai_concierge_sessions.property_id", propertyId).eq("role", "assistant").gte("created_at", since)),
+      fetchAllRows(() => sb.from("ai_concierge_feedback")
+        .select("id,session_id,message_id,rating,created_at,ai_concierge_sessions!inner(property_id)")
+        .eq("ai_concierge_sessions.property_id", propertyId).gte("created_at", since)),
       fetchAllRows(() => sb.from("ai_concierge_leads").select("id,status,created_at").eq("property_id", propertyId).gte("created_at", since)),
       fetchAllRows(() => sb.from("ai_escalations")
         .select("id,session_id,status,priority,assigned_to,created_at,resolved_at,ai_concierge_sessions!inner(property_id)")
@@ -162,6 +168,11 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
     const campaignEventCounts = Object.fromEntries(["page_view", "booking_click", "booking_started", "lead_submitted", "booking_completed"].map((eventType) => [
       eventType, campaignAttributionRows.filter((row: any) => row.event_type === eventType).length,
     ]));
+    const assistantRows = legacyMessages;
+    const citedAnswers = assistantRows.filter((row: any) => Array.isArray(row.citations) && row.citations.length > 0).length;
+    const citationCount = assistantRows.reduce((sum: number, row: any) => sum + (Array.isArray(row.citations) ? row.citations.length : 0), 0);
+    const helpfulFeedback = feedbackRows.filter((row: any) => row.rating === "helpful").length;
+    const notHelpfulFeedback = feedbackRows.filter((row: any) => row.rating === "not_helpful").length;
     const campaignSources = new Map<string, number>();
     for (const event of campaignAttributionRows) {
       const key = [event.source ?? "unknown", event.medium ?? "unknown", event.utm_campaign ?? "unlabelled"].join(" / ");
@@ -187,7 +198,14 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         unanswered_conversations: response.unanswered,
         response_metric_note: "Pairs eligible guest inbound messages with the next assistant/staff outbound message; excludes event/template messages, outbound messages not recorded/delivered/read, and duplicate provider/client message identifiers.",
       },
-      leads: { total: leadRows.length, by_status: leadStatusCounts, qualified: leadStatusCounts.qualified, consent_evidence_available: false, limitation: "The current lead schema does not persist an explicit consent evidence field; this count is all lead records, not a consent-verified audience." },
+      leads: { total: leadRows.length, by_status: leadStatusCounts, qualified: leadStatusCounts.qualified, consent_evidence_available: false, limitation: "The deployed shared schema inspected for UAT has not yet applied SN-RT-01 consent_at/consent_version columns; lead counts are not presented as a consent-verified audience." },
+      feedback: {
+        total: feedbackRows.length,
+        helpful: helpfulFeedback,
+        not_helpful: notHelpfulFeedback,
+        satisfaction_rate: feedbackRows.length ? round(helpfulFeedback / feedbackRows.length, 4) : null,
+        factual_accuracy_available: false,
+      },
       campaign: {
         events: campaignAttributionRows.length,
         funnel: campaignEventCounts,
@@ -223,8 +241,13 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         current_published_chunks: currentChunkCount,
         retrieval_searches: searchRows.length,
         zero_result_searches: searchRows.filter((row: any) => Number(row.result_count) === 0).length,
-        answer_grounding_rate_available: false,
-        limitation: "Search logs do not persist a verified session/message/answer foreign-key trace; retrieval counts cannot establish answer grounding or factual accuracy.",
+        assistant_answers: assistantRows.length,
+        answers_with_validated_citations: citedAnswers,
+        validated_citation_coverage: assistantRows.length ? round(citedAnswers / assistantRows.length, 4) : null,
+        validated_citation_count: citationCount,
+        citation_coverage_available: true,
+        factual_accuracy_available: false,
+        limitation: "Citation coverage uses citations persisted on assistant messages after runtime validation against retrieved property evidence. It is not a human-labelled factual-accuracy score. Search-log rows are property-wide knowledge searches and are not assumed to be Concierge retrievals.",
       },
       measurement: {
         attributed_confirmed_booking_count_available: true,
