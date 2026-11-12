@@ -656,6 +656,25 @@ export const updateEscalationSlaPolicy = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const updateEscalationReasonPriorityMap = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { reason_priority_map: Record<string, number> }) => {
+    const allowed = ["low_confidence","complaint","payment_issue","complex_request","human_requested","other"];
+    if (!input?.reason_priority_map || Object.keys(input.reason_priority_map).some((key) => !allowed.includes(key))
+      || allowed.some((key) => ![1,2,3].includes(input.reason_priority_map[key]))) {
+      throw new Error("Every escalation reason must map to priority 1, 2 or 3.");
+    }
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
+    const { error } = await (context.supabase as any).from("ai_escalation_sla_policies")
+      .update({ reason_priority_map: data.reason_priority_map, updated_by: context.userId, updated_at: new Date().toISOString() })
+      .eq("property_id", propertyId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const listEscalationEvents = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { escalation_id: string }) => { if (!input?.escalation_id) throw new Error("Escalation id is required."); return input; })
