@@ -44,7 +44,7 @@ function Page() {
     enabled: customReady,
     queryFn: () => fn({ data: range === "custom" ? { range: "custom", from: customFrom, to: customTo } : { range } }),
   });
-  if (isLoading || !customReady) return <LoadingState />;
+  if (isLoading) return <LoadingState />;
   if (error || !data) return <div className="space-y-4"><PageHeader title="Performance & Attribution" description="Direct booking and campaign conversion evidence." /><p className="rounded-md border p-4 text-sm text-destructive">{error instanceof Error ? error.message : "Analytics could not be loaded."}</p></div>;
 
   const report = data.report as Report;
@@ -80,7 +80,7 @@ function Page() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "stayn​as-booking-analytics-" + data.period.from + "-to-" + data.period.to + ".csv";
+    anchor.download = "st aynas-booking-analytics-" + data.period.from + "-to-" + data.period.to + ".csv";
     anchor.click();
     URL.revokeObjectURL(url);
   };
@@ -105,10 +105,10 @@ function Page() {
           </button>
         ))}
         <label className="grid gap-1 text-xs text-muted-foreground">From
-          <input type="date" value={customFrom} onChange={(event) => { setCustomFrom(event.target.value); setRange("custom"); }} className="rounded-md border bg-background px-2 py-2 text-sm text-foreground" />
+          <input type="date" value={customFrom} onChange={(event) => setCustomFrom(event.target.value)} className="rounded-md border bg-background px-2 py-2 text-sm text-foreground" />
         </label>
         <label className="grid gap-1 text-xs text-muted-foreground">To
-          <input type="date" value={customTo} onChange={(event) => { setCustomTo(event.target.value); setRange("custom"); }} className="rounded-md border bg-background px-2 py-2 text-sm text-foreground" />
+          <input type="date" value={customTo} onChange={(event) => setCustomTo(event.target.value)} className="rounded-md border bg-background px-2 py-2 text-sm text-foreground" />
         </label>
         <button type="button" onClick={() => setRange("custom")} disabled={!customFrom || !customTo || customTo < customFrom}
           className="rounded-md border px-3 py-2 text-sm disabled:opacity-50">Apply dates</button>
@@ -151,10 +151,10 @@ function Page() {
       <SectionCard title="Campaign performance">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
-            <thead><tr className="border-b text-muted-foreground"><th className="py-2">Campaign</th><th>Status</th><th>Views</th><th>Visitors</th><th>Starts</th><th>Quotes</th><th>Reservations</th><th>Paid</th></tr></thead>
+            <thead><tr className="border-b text-muted-foreground"><th className="py-2">Campaign</th><th>Status</th><th>Views</th><th>Visitors</th><th>Starts</th><th>Quotes</th><th>Reservations</th><th>Paid</th><th>Net collected</th></tr></thead>
             <tbody>{campaigns.map((row) => <tr key={row.id} className="border-b last:border-0">
               <td className="py-2"><div className="font-medium">{row.name}</div><div className="text-xs text-muted-foreground">{row.slug}</div></td>
-              <td>{row.status}</td><td>{number(row.views)}</td><td>{number(row.visitors)}</td><td>{number(row.booking_starts)}</td><td>{number(row.quotes)}</td><td>{number(row.reservations)}</td><td>{number(row.paid_bookings)}</td>
+              <td>{row.status}</td><td>{number(row.views)}</td><td>{number(row.visitors)}</td><td>{number(row.booking_starts)}</td><td>{number(row.quotes)}</td><td>{number(row.reservations)}</td><td>{number(row.paid_bookings)}</td><td>{row.net_collected_by_currency.map((item) => money(Number(item.net_collected), item.currency)).join(" · ") || "—"}</td>
             </tr>)}</tbody>
           </table>
           {!campaigns.length && <p className="py-3 text-sm text-muted-foreground">No campaign performance evidence for this period.</p>}
