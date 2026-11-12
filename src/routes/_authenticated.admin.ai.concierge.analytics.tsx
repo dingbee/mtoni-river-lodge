@@ -144,6 +144,9 @@ function AnalyticsPage() {
             <Stat label="Current published chunks" value={ops?.knowledge.current_published_chunks} />
             <Stat label="Retrieval searches" value={ops?.knowledge.retrieval_searches} />
             <Stat label="Zero-result searches" value={ops?.knowledge.zero_result_searches} />
+            <Stat label="Assistant answers" value={ops?.knowledge.assistant_answers} />
+            <Stat label="Answers with validated citations" value={ops?.knowledge.answers_with_validated_citations} />
+            <Stat label="Validated citation coverage" value={ops?.knowledge.validated_citation_coverage ?? undefined} />
           </div>
           <p className="mt-3 text-xs text-muted-foreground">{ops?.knowledge.limitation ?? "Knowledge evidence is loading."}</p>
         </SectionCard>
@@ -158,6 +161,18 @@ function AnalyticsPage() {
         <p className="mt-3 text-xs text-muted-foreground">
           Lead-to-booking rate unavailable: {ops?.conversion.lead_to_booking_rate_reason ?? "relationship evidence is loading."}
           {" "}Revenue unavailable: {ops?.conversion.revenue_reason ?? "financial evidence is loading."}
+        </p>
+      </SectionCard>
+
+      <SectionCard title="Guest feedback" description="Recorded guest sentiment; not a factual-accuracy evaluation.">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Stat label="Feedback responses" value={ops?.feedback.total} />
+          <Stat label="Helpful" value={ops?.feedback.helpful} />
+          <Stat label="Not helpful" value={ops?.feedback.not_helpful} />
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Satisfaction rate: {ops?.feedback.satisfaction_rate == null ? "—" : pct(ops.feedback.satisfaction_rate)}
+          {" "}· Factual accuracy remains unavailable without human-labelled evaluations.
         </p>
       </SectionCard>
 
