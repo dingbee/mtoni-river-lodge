@@ -611,6 +611,12 @@ BEGIN
      OR v_escalation.status='in_progress' AND p_status IN ('assigned','acknowledged') THEN
     RAISE EXCEPTION 'Escalation status cannot move backwards' USING ERRCODE='23514';
   END IF;
+  IF p_status='open' AND p_assigned_to IS NOT NULL THEN
+    RAISE EXCEPTION 'Reopen an escalation before assigning it'; 
+  END IF;
+  IF p_assigned_to IS NOT NULL AND v_escalation.status IN ('resolved','dismissed') THEN
+    RAISE EXCEPTION 'Reopen a closed escalation before assigning it';
+  END IF;
   IF p_status='acknowledged' AND v_escalation.status<>'assigned' THEN
     RAISE EXCEPTION 'Only an assigned escalation can be acknowledged' USING ERRCODE='23514';
   END IF;
