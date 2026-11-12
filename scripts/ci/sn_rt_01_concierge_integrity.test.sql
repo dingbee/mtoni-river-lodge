@@ -321,6 +321,14 @@ BEGIN
   IF (SELECT priority FROM public.ai_escalations WHERE id=result.escalation_id) <> 1 THEN
     RAISE EXCEPTION 'reason-to-priority mapping must override the supplied priority when configured';
   END IF;
+  PERFORM public.staynas_transition_concierge_escalation(
+    result.escalation_id,'11111111-1111-4111-8111-111111111111',NULL,NULL,NULL,3::smallint
+  );
+  IF NOT EXISTS (SELECT 1 FROM public.ai_escalations e
+    JOIN public.ai_escalation_sla_policies p ON p.id=e.sla_policy_id
+    WHERE e.id=result.escalation_id AND e.priority=3 AND p.priority=3) THEN
+    RAISE EXCEPTION 'manual severity change must bind the escalation to its new property SLA policy';
+  END IF;
 
   PERFORM public.staynas_transition_concierge_escalation(
     result.escalation_id,
@@ -429,6 +437,7 @@ BEGIN
     RAISE EXCEPTION 'reopened escalation must have a fresh complete set of SLA deadlines';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.ai_escalation_events WHERE event_type='acknowledged')
+     OR NOT EXISTS (SELECT 1 FROM public.ai_escalation_events WHERE event_type='priority_changed')
      OR NOT EXISTS (SELECT 1 FROM public.ai_escalation_events WHERE event_type='reopened')
      OR NOT EXISTS (SELECT 1 FROM public.ai_escalation_events WHERE event_type='assigned') THEN
     RAISE EXCEPTION 'assignment, acknowledgement and reopen lifecycle history must be durable';
