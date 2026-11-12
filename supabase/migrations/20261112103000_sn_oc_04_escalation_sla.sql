@@ -422,8 +422,9 @@ BEGIN
     FROM public.ai_escalations escalation
     JOIN public.ai_escalation_sla_policies policy
       ON policy.id=escalation.sla_policy_id AND policy.enabled
-    WHERE escalation.status IN ('open','assigned','in_progress')
+    WHERE escalation.status IN ('open','assigned','acknowledged','in_progress')
   LOOP
+    BEGIN
     SELECT property.timezone, policy.operating_hours INTO v_timezone,v_hours
     FROM public.staynas_properties property
     JOIN public.ai_escalation_sla_policies policy ON policy.id=e.sla_policy_id
@@ -441,8 +442,8 @@ BEGIN
     LOOP
       IF NOT a.pending OR a.due_at IS NULL THEN CONTINUE; END IF;
       SELECT CASE WHEN policy.business_hours_only
-        THEN public.staynas_sla_add_minutes(COALESCE(e.reopened_at,e.created_at),GREATEST(1,round(a.target_minutes*e.warning_percent/100.0)::integer),v_timezone,v_hours)
-        ELSE COALESCE(e.reopened_at,e.created_at)+make_interval(mins=>GREATEST(1,round(a.target_minutes*e.warning_percent/100.0)::integer)) END
+        THEN public.staynas_sla_add_minutes(COALESCE(e.sla_cycle_started_at,e.created_at),GREATEST(1,round(a.target_minutes*e.warning_percent/100.0)::integer),v_timezone,v_hours)
+        ELSE COALESCE(e.sla_cycle_started_at,e.created_at)+make_interval(mins=>GREATEST(1,round(a.target_minutes*e.warning_percent/100.0)::integer)) END
       INTO v_warning_at
       FROM public.ai_escalation_sla_policies policy WHERE policy.id=e.sla_policy_id;
       IF now() >= a.due_at THEN
@@ -479,6 +480,9 @@ BEGIN
       END IF;
       v_alert_id := NULL;
     END LOOP;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE WARNING 'Concierge SLA monitor skipped escalation % for property %: %',e.id,e.property_id,SQLERRM;
+    END;
   END LOOP;
   RETURN v_count;
 END
