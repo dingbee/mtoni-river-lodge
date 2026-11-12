@@ -151,6 +151,14 @@ DECLARE
   v_last_touch jsonb;
   v_rejected boolean := false;
 BEGIN
+  SELECT (public.staynas_upsert_booking_attribution(
+    '93000000-0000-4000-8000-000000000001',
+    '92000000-0000-4000-8000-000000000001',
+    'cps06-e2e-session-alpha-0001',
+    null,null,'96000000-0000-4000-8000-000000000001',null,
+    '{"source":"google","medium":"cpc"}'::jsonb,now(),true
+  )->>'attribution_id')::uuid INTO v_attribution_a;
+
   BEGIN
     INSERT INTO public.staynas_reservation_quotes(
       id,property_id,room_id,request,quote_snapshot,quote_hash,expires_at,attribution_id
@@ -159,20 +167,13 @@ BEGIN
       '93000000-0000-4000-8000-000000000002',
       '95000000-0000-4000-8000-000000000002',
       '{}'::jsonb,'{}'::jsonb,'cps06-cross-property-attribution',now()+interval '1 day',
-      '00000000-0000-4000-8000-000000000001'
+      v_attribution_a
     );
     RAISE EXCEPTION 'Cross-property quote attribution unexpectedly succeeded';
   EXCEPTION WHEN foreign_key_violation THEN
     NULL;
   END;
 
-  SELECT (public.staynas_upsert_booking_attribution(
-    '93000000-0000-4000-8000-000000000001',
-    '92000000-0000-4000-8000-000000000001',
-    'cps06-e2e-session-alpha-0001',
-    null,null,'96000000-0000-4000-8000-000000000001',null,
-    '{"source":"google","medium":"cpc"}'::jsonb,now(),true
-  )->>'attribution_id')::uuid INTO v_attribution_a;
 
   PERFORM public.staynas_upsert_booking_attribution(
     '93000000-0000-4000-8000-000000000001',
