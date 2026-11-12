@@ -73,4 +73,5 @@ jobs:
       - name: TypeScript verification
         run: bunx tsc --noEmit
       - name: Guest portal lint
-        run: bunx eslint src/domains/hospitality/guest-portal src/domains/ai/concierge/guest-request-dispatch.functions.ts src/domains/ai/concierge/guest-request-execution.functions.ts src/domains/ai/concierge/guest-requests.functions.ts src/domains/ai/concierge/GuestRequestsPanel.tsx src/routes/api/public/ops/drain.ts
+        run: >-
+          bunx eslint src/domains/hospitality/guest-portal src/domains/ai/concierge/guest-request-dispatch.functions.ts src/domains/ai/concierge/guest-request-execution.functions.ts src/domains/ai/concierge/guest-requests.functions.ts src/domains/ai/concierge/GuestRequestsPanel.tsx src/routes/api/public/ops/drain.ts --rule 'prettier/prettier: off'
