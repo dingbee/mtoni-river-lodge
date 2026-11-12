@@ -638,7 +638,7 @@ export async function ensureGuestPortalAccessAfterCheckIn(
   supabase: SupabaseClient,
   actorId: string,
   bookingId: string,
-): Promise<{ issued: boolean; alreadyActive: boolean; expiresAt: string | null }> {
+): Promise<{ issued: boolean; alreadyActive: boolean; expiresAt: string | null; token: string | null; accessId: string }> {
   const { data: propertyId, error } = await supabase.rpc("staynas_active_property_id", {
     _uid: actorId,
   });
@@ -653,6 +653,8 @@ export async function ensureGuestPortalAccessAfterCheckIn(
     issued: !result.alreadyActive,
     alreadyActive: result.alreadyActive,
     expiresAt: result.expiresAt,
+    token: result.token,
+    accessId: result.accessId,
   };
 }
 
