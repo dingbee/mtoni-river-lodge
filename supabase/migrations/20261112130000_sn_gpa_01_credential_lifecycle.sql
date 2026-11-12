@@ -91,10 +91,23 @@ BEGIN
 
   IF NOT FOUND OR v_booking.status::text <> 'checked_in'
      OR v_booking.guest_id IS DISTINCT FROM _guest_id
-     OR NOT public.staynas_user_has_property_access(_actor_id, _property_id)
-     OR NOT public.is_any_staff(_actor_id)
-     OR NOT public.has_any_role(
-       _actor_id, ARRAY['owner','manager','admin','reception','reservations']::public.app_role[]
+     OR NOT (
+       (
+         public.staynas_user_has_property_access(_actor_id, _property_id)
+         AND public.is_any_staff(_actor_id)
+         AND public.has_any_role(
+           _actor_id, ARRAY['owner','manager','admin','reception','reservations']::public.app_role[]
+         )
+       )
+       OR EXISTS (
+         SELECT 1
+         FROM public.commercial_founder_admin_memberships fam
+         JOIN public.commercial_founder_tenant_config cfg
+           ON cfg.singleton = true
+          AND cfg.founder_organisation_id = fam.organisation_id
+         WHERE fam.principal_id = _actor_id
+           AND fam.status = 'active'
+       )
      ) THEN
     RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='Guest access issuance is not authorized for this checked-in booking';
   END IF;
@@ -221,12 +234,24 @@ DECLARE
   v_booking public.bookings%ROWTYPE;
   v_count integer := 0;
 BEGIN
-  IF _actor_id IS NULL
-     OR NOT public.staynas_user_has_property_access(_actor_id, _property_id)
-     OR NOT public.is_any_staff(_actor_id)
-     OR NOT public.has_any_role(
-       _actor_id, ARRAY['owner','manager','admin','reception']::public.app_role[]
-     ) THEN
+  IF _actor_id IS NULL OR NOT (
+    (
+      public.staynas_user_has_property_access(_actor_id, _property_id)
+      AND public.is_any_staff(_actor_id)
+      AND public.has_any_role(
+        _actor_id, ARRAY['owner','manager','admin','reception','reservations']::public.app_role[]
+      )
+    )
+    OR EXISTS (
+      SELECT 1
+      FROM public.commercial_founder_admin_memberships fam
+      JOIN public.commercial_founder_tenant_config cfg
+        ON cfg.singleton = true
+       AND cfg.founder_organisation_id = fam.organisation_id
+      WHERE fam.principal_id = _actor_id
+        AND fam.status = 'active'
+    )
+  ) THEN
     RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='Guest access revocation is not authorized';
   END IF;
 
@@ -266,6 +291,8 @@ REVOKE ALL ON FUNCTION public.staynas_issue_guest_portal_access(uuid,uuid,uuid,u
 GRANT EXECUTE ON FUNCTION public.staynas_issue_guest_portal_access(uuid,uuid,uuid,uuid,text,uuid,boolean)
   TO service_role;
 REVOKE ALL ON FUNCTION public.staynas_revoke_guest_portal_access(uuid,uuid,uuid,uuid)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.staynas_revoke_guest_portal_access_on_lifecycle()
   FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.staynas_revoke_guest_portal_access(uuid,uuid,uuid,uuid)
   TO service_role;
