@@ -65,6 +65,26 @@ BEGIN
 
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='ai_concierge_leads'
+      AND column_name='consent_at'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='ai_concierge_leads'
+      AND column_name='consent_version'
+  ) THEN
+    RAISE EXCEPTION 'SN-OC-04 lead consent evidence contract is incomplete';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='ai_escalations'
+      AND column_name='property_id'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='ai_escalations'
+      AND column_name='acknowledged_at'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
     WHERE table_schema='public' AND table_name='ai_escalations'
       AND column_name='resolved_at'
   ) OR NOT EXISTS (
