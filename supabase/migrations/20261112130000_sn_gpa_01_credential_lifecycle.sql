@@ -18,6 +18,14 @@ ALTER TABLE public.staynas_guest_portal_access
   ADD COLUMN IF NOT EXISTS superseded_by uuid
     REFERENCES public.staynas_guest_portal_access(id) ON DELETE SET NULL;
 
+-- Reconcile legacy rows from the pre-lifecycle revoked_at/expires_at fields.
+UPDATE public.staynas_guest_portal_access
+SET status = CASE
+  WHEN revoked_at IS NOT NULL THEN 'revoked'
+  WHEN expires_at <= now() THEN 'expired'
+  ELSE 'active'
+END;
+
 ALTER TABLE public.staynas_guest_portal_access
   DROP CONSTRAINT IF EXISTS staynas_guest_portal_access_status_check;
 ALTER TABLE public.staynas_guest_portal_access
