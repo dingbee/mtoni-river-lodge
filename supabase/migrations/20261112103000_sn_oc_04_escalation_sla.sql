@@ -321,6 +321,9 @@ DECLARE
   v_alert_id uuid;
   v_count integer := 0;
   v_warning_at timestamptz;
+  v_timezone text;
+  v_hours jsonb;
+  v_target_minutes integer;
 BEGIN
   FOR e IN
     SELECT escalation.*, policy.warning_percent
@@ -329,16 +332,27 @@ BEGIN
       ON policy.id=escalation.sla_policy_id AND policy.enabled
     WHERE escalation.status IN ('open','assigned','in_progress')
   LOOP
+    SELECT property.timezone, policy.operating_hours INTO v_timezone,v_hours
+    FROM public.staynas_properties property
+    JOIN public.ai_escalation_sla_policies policy ON policy.id=e.sla_policy_id
+    WHERE property.id=e.property_id;
     FOR a IN
       SELECT 'assignment'::text AS milestone, e.assignment_due_at AS due_at,
-        (e.assigned_to IS NULL) AS pending
+        (e.assigned_to IS NULL) AS pending, policy.assignment_minutes AS target_minutes
+      FROM public.ai_escalation_sla_policies policy WHERE policy.id=e.sla_policy_id
       UNION ALL
-      SELECT 'acknowledgement', e.acknowledgement_due_at, (e.acknowledged_at IS NULL)
+      SELECT 'acknowledgement', e.acknowledgement_due_at, (e.acknowledged_at IS NULL), policy.acknowledgement_minutes
+      FROM public.ai_escalation_sla_policies policy WHERE policy.id=e.sla_policy_id
       UNION ALL
-      SELECT 'resolution', e.resolution_due_at, true
+      SELECT 'resolution', e.resolution_due_at, true, policy.resolution_minutes
+      FROM public.ai_escalation_sla_policies policy WHERE policy.id=e.sla_policy_id
     LOOP
       IF NOT a.pending OR a.due_at IS NULL THEN CONTINUE; END IF;
-      v_warning_at := a.due_at - ((a.due_at-e.created_at) * (100-e.warning_percent)/100.0);
+      SELECT CASE WHEN policy.business_hours_only
+        THEN public.staynas_sla_add_minutes(e.created_at,GREATEST(1,round(a.target_minutes*e.warning_percent/100.0)::integer),v_timezone,v_hours)
+        ELSE e.created_at+make_interval(mins=>GREATEST(1,round(a.target_minutes*e.warning_percent/100.0)::integer)) END
+      INTO v_warning_at
+      FROM public.ai_escalation_sla_policies policy WHERE policy.id=e.sla_policy_id;
       IF now() >= a.due_at THEN
         INSERT INTO public.ai_escalation_sla_alerts(property_id,escalation_id,milestone,alert_type,due_at,threshold_percent)
         VALUES (e.property_id,e.id,a.milestone,'breached',a.due_at,e.warning_percent)
@@ -435,7 +449,16 @@ BEGIN
     resolved_at=CASE WHEN v_next_status IN ('resolved','dismissed') THEN now()
       WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN NULL ELSE resolved_at END,
     reopened_at=CASE WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN now() ELSE reopened_at END,
+    assignment_due_at=CASE WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN
+      CASE WHEN policy.business_hours_only THEN public.staynas_sla_add_minutes(now(),policy.assignment_minutes,property.timezone,policy.operating_hours) ELSE now()+make_interval(mins=>policy.assignment_minutes) END ELSE assignment_due_at END,
+    acknowledgement_due_at=CASE WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN
+      CASE WHEN policy.business_hours_only THEN public.staynas_sla_add_minutes(now(),policy.acknowledgement_minutes,property.timezone,policy.operating_hours) ELSE now()+make_interval(mins=>policy.acknowledgement_minutes) END ELSE acknowledgement_due_at END,
+    resolution_due_at=CASE WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN
+      CASE WHEN policy.business_hours_only THEN public.staynas_sla_add_minutes(now(),policy.resolution_minutes,property.timezone,policy.operating_hours) ELSE now()+make_interval(mins=>policy.resolution_minutes) END ELSE resolution_due_at END,
     updated_at=now()
+  FROM public.ai_escalation_sla_policies policy
+  JOIN public.staynas_properties property ON property.id=policy.property_id
+  WHERE id=p_escalation_id AND property_id=p_property_id AND policy.id=v_escalation.sla_policy_id
   WHERE id=p_escalation_id AND property_id=p_property_id;
 
   IF v_escalation.ops_task_id IS NOT NULL THEN
