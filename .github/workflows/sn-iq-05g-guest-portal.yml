@@ -7,6 +7,8 @@ on:
       - 'src/components/os/operations/CheckInWizard.tsx'
       - 'src/lib/operations.functions.ts'
       - 'src/lib/front-desk.functions.ts'
+      - 'src/lib/admin.functions.ts'
+      - 'src/routes/_authenticated.admin.bookings.tsx'
       - 'src/lib/analytics.ts'
       - 'src/lib/analytics.security.test.ts'
       - 'vite.config.ts'
