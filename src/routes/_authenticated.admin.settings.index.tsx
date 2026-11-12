@@ -25,10 +25,7 @@ import { usePropertyContext } from "@/modules/property/PropertyContext";
 
 export const Route = createFileRoute("/_authenticated/admin/settings/")({
   head: () => ({
-    meta: [
-      { title: "Settings — StayNas" },
-      { name: "robots", content: "noindex,nofollow" },
-    ],
+    meta: [{ title: "Settings — StayNas" }, { name: "robots", content: "noindex,nofollow" }],
   }),
   component: SettingsHub,
 });
@@ -46,7 +43,10 @@ function SettingsHub() {
   const founderStatusFn = useServerFn(getFounderAdminStatus);
   const { organisation, property: propertyContext } = usePropertyContext();
   const brand = useQuery({ queryKey: ["settings.brand-summary"], queryFn: () => brandFn() });
-  const founderStatus = useQuery({ queryKey: ["settings.founder-admin-status"], queryFn: () => founderStatusFn() });
+  const founderStatus = useQuery({
+    queryKey: ["settings.founder-admin-status"],
+    queryFn: () => founderStatusFn(),
+  });
 
   const contentTiles: LinkTile[] = [
     {
@@ -106,8 +106,15 @@ function SettingsHub() {
     {
       to: "/admin/settings/payment-providers",
       title: "Payment Providers",
-      description: "Configure property guest-payment integrations and platform collection providers.",
+      description:
+        "Configure property guest-payment integrations and platform collection providers.",
       Icon: CreditCard,
+    },
+    {
+      to: "/admin/settings/distribution",
+      title: "Distribution Connections",
+      description: "Configure property-scoped channel manager connections.",
+      Icon: Network,
     },
     {
       to: "/admin/system/health",
@@ -125,15 +132,13 @@ function SettingsHub() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Settings"
-        description="Property, integrations, access and preferences."
-      />
+      <PageHeader title="Settings" description="Property, integrations, access and preferences." />
 
       <SectionCard title="Appearance">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-[color:var(--os-ink-3)]">
-            Choose Light, Dark, or follow your device setting. Applies to the StayNas admin experience; the public guest website keeps its own identity.
+            Choose Light, Dark, or follow your device setting. Applies to the StayNas admin
+            experience; the public guest website keeps its own identity.
           </p>
           <AppearanceControl />
         </div>
@@ -141,18 +146,40 @@ function SettingsHub() {
 
       <SectionCard title="Property">
         <div className="mb-4">
-          <Link to="/admin/settings/branding" className="group flex items-center gap-3 rounded-md border border-[color:var(--os-hairline)] bg-[color:var(--os-surface-2)] p-3 transition hover:border-[color:var(--os-ink-3)]">
-            <span className="flex size-9 flex-none items-center justify-center rounded-full bg-[color:var(--os-surface)] text-[color:var(--os-ink-2)]"><Palette className="size-4" aria-hidden /></span>
-            <div className="min-w-0 flex-1"><div className="text-sm text-[color:var(--os-ink)]">Property Branding</div><div className="mt-0.5 text-xs text-[color:var(--os-ink-3)]">Logo, colours, photography and guest-facing identity.</div></div>
+          <Link
+            to="/admin/settings/branding"
+            className="group flex items-center gap-3 rounded-md border border-[color:var(--os-hairline)] bg-[color:var(--os-surface-2)] p-3 transition hover:border-[color:var(--os-ink-3)]"
+          >
+            <span className="flex size-9 flex-none items-center justify-center rounded-full bg-[color:var(--os-surface)] text-[color:var(--os-ink-2)]">
+              <Palette className="size-4" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm text-[color:var(--os-ink)]">Property Branding</div>
+              <div className="mt-0.5 text-xs text-[color:var(--os-ink-3)]">
+                Logo, colours, photography and guest-facing identity.
+              </div>
+            </div>
             <ArrowRight className="size-4 text-[color:var(--os-ink-3)]" aria-hidden />
           </Link>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <PropertyFact label="Owner" value={organisation.name} hint="Current StayNas property owner for this project" />
-          <PropertyFact label="Property" value={propertyContext.name} hint={`Property code: ${propertyContext.code}`} />
+          <PropertyFact
+            label="Owner"
+            value={organisation.name}
+            hint="Current StayNas property owner for this project"
+          />
+          <PropertyFact
+            label="Property"
+            value={propertyContext.name}
+            hint={`Property code: ${propertyContext.code}`}
+          />
           <PropertyFact
             label="Brand tokens"
-            value={brand.data ? String(Object.values(brand.data).reduce((n, arr) => n + (arr?.length ?? 0), 0)) : "—"}
+            value={
+              brand.data
+                ? String(Object.values(brand.data).reduce((n, arr) => n + (arr?.length ?? 0), 0))
+                : "—"
+            }
             hint="Voice, tone and guest-promise tokens"
           />
           <PropertyFact
@@ -164,7 +191,10 @@ function SettingsHub() {
       </SectionCard>
 
       {founderStatus.data?.isFounderAdmin === true && (
-        <SectionCard title="Nolmark Founder Administration" description="Platform-level controls for the StayNas service. These controls are separate from property administration.">
+        <SectionCard
+          title="Nolmark Founder Administration"
+          description="Platform-level controls for the StayNas service. These controls are separate from property administration."
+        >
           <div className="grid gap-3 md:grid-cols-2">
             <FounderTile
               to="/admin/ai/concierge/providers"
@@ -180,7 +210,8 @@ function SettingsHub() {
             />
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            Founder access is verified server-side. Each destination independently enforces founder-only authorization; tenant owner roles do not grant these permissions.
+            Founder access is verified server-side. Each destination independently enforces
+            founder-only authorization; tenant owner roles do not grant these permissions.
           </p>
         </SectionCard>
       )}
@@ -204,9 +235,14 @@ function FounderTile({ to, title, description, Icon }: LinkTile) {
       </span>
       <div className="min-w-0 flex-1">
         <div className="text-sm text-[color:var(--os-ink)]">{title}</div>
-        <div className="mt-0.5 line-clamp-2 text-xs text-[color:var(--os-ink-3)]">{description}</div>
+        <div className="mt-0.5 line-clamp-2 text-xs text-[color:var(--os-ink-3)]">
+          {description}
+        </div>
       </div>
-      <ArrowRight className="mt-1 size-4 flex-none text-[color:var(--os-ink-3)] transition group-hover:translate-x-0.5" aria-hidden />
+      <ArrowRight
+        className="mt-1 size-4 flex-none text-[color:var(--os-ink-3)] transition group-hover:translate-x-0.5"
+        aria-hidden
+      />
     </Link>
   );
 }
@@ -214,7 +250,9 @@ function FounderTile({ to, title, description, Icon }: LinkTile) {
 function PropertyFact({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="rounded-md border border-[color:var(--os-hairline)] bg-[color:var(--os-surface-2)] p-3">
-      <div className="text-[10px] uppercase tracking-widest text-[color:var(--os-ink-3)]">{label}</div>
+      <div className="text-[10px] uppercase tracking-widest text-[color:var(--os-ink-3)]">
+        {label}
+      </div>
       <div className="mt-1 text-sm text-[color:var(--os-ink)]">{value}</div>
       {hint && <div className="mt-0.5 text-xs text-[color:var(--os-ink-3)]">{hint}</div>}
     </div>
@@ -239,9 +277,14 @@ function TileGrid({ title, tiles }: { title: string; tiles: LinkTile[] }) {
                 <div className="text-sm text-[color:var(--os-ink)]">{t.title}</div>
                 {t.status && <Badge variant="secondary">{t.status}</Badge>}
               </div>
-              <div className="mt-0.5 line-clamp-2 text-xs text-[color:var(--os-ink-3)]">{t.description}</div>
+              <div className="mt-0.5 line-clamp-2 text-xs text-[color:var(--os-ink-3)]">
+                {t.description}
+              </div>
             </div>
-            <ArrowRight className="mt-1 size-4 flex-none text-[color:var(--os-ink-3)] transition group-hover:translate-x-0.5" aria-hidden />
+            <ArrowRight
+              className="mt-1 size-4 flex-none text-[color:var(--os-ink-3)] transition group-hover:translate-x-0.5"
+              aria-hidden
+            />
           </Link>
         ))}
       </div>
