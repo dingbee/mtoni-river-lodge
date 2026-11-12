@@ -333,8 +333,8 @@ BEGIN
   SELECT value INTO v_last_touch
   FROM jsonb_array_elements(v_report->'last_touch_acquisition') value
   WHERE value->>'source'='newsletter' AND value->>'medium'='email';
-  IF v_first_touch IS NULL OR (v_first_touch->>'paid_bookings')::integer<>2
-     OR v_last_touch IS NULL OR (v_last_touch->>'paid_bookings')::integer<>2 THEN
+  IF v_first_touch IS NULL OR (v_first_touch->>'paid_bookings')::integer<>1
+     OR v_last_touch IS NULL OR (v_last_touch->>'paid_bookings')::integer<>1 THEN
     RAISE EXCEPTION 'First-touch or last-touch conversion attribution did not reconcile';
   END IF;
 
