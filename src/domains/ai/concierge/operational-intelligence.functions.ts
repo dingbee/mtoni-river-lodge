@@ -52,9 +52,9 @@ function responseIntervals(rows: any[]) {
   const unique = new Map<string, any>();
   for (const row of rows) {
     const key = row.provider_message_id
-      ? `provider:${row.property_id}:${row.provider}:${row.provider_message_id}`
+      ? `provider:${row.property_id}:${row.channel}:${row.provider}:${row.provider_message_id}`
       : row.client_message_id
-        ? `client:${row.property_id}:${row.client_message_id}`
+        ? `client:${row.property_id}:${row.session_id}:${row.client_message_id}`
         : `row:${row.id}`;
     if (!unique.has(key)) unique.set(key, row);
   }
@@ -77,7 +77,8 @@ function responseIntervals(rows: any[]) {
     let firstAnswered = false;
     for (const message of messages) {
       const at = Date.parse(message.occurred_at);
-      if (!Number.isFinite(at) || ["event", "template"].includes(message.message_type) || ["failed", "undeliverable"].includes(message.status)) continue;
+      if (!Number.isFinite(at) || ["event", "template"].includes(message.message_type)) continue;
+      if (message.direction === "outbound" && !["recorded", "delivered", "read"].includes(message.status)) continue;
       if (message.direction === "inbound" && message.actor_type === "guest") {
         pending.push(at);
         if (firstInboundAt === null) firstInboundAt = at;
@@ -113,7 +114,7 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
       sb.from("staynas_properties").select("id,currency,timezone").eq("id", propertyId).maybeSingle(),
       sb.from("ai_concierge_sessions").select("id", { count: "exact", head: true }).eq("property_id", propertyId).gte("created_at", since),
       fetchAllRows(() => sb.from("ai_omnichannel_messages")
-        .select("id,property_id,session_id,direction,actor_type,message_type,status,provider,provider_message_id,client_message_id,occurred_at")
+        .select("id,property_id,session_id,channel,direction,actor_type,message_type,status,provider,provider_message_id,client_message_id,occurred_at")
         .eq("property_id", propertyId).gte("occurred_at", since).order("occurred_at", { ascending: true })),
       fetchAllRows(() => sb.from("ai_concierge_leads").select("id,status,created_at").eq("property_id", propertyId).gte("created_at", since)),
       fetchAllRows(() => sb.from("ai_escalations")
@@ -185,9 +186,9 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         ai_response_minutes: { p50: percentile(response.ai, 0.5), p90: percentile(response.ai, 0.9), sample_size: response.ai.length },
         human_response_minutes: { p50: percentile(response.human, 0.5), p90: percentile(response.human, 0.9), sample_size: response.human.length },
         unanswered_conversations: response.unanswered,
-        response_metric_note: "Pairs eligible guest inbound messages with the next assistant/staff outbound message; excludes event/template messages, failed or undeliverable outbound messages, and duplicate provider/client message identifiers.",
+        response_metric_note: "Pairs eligible guest inbound messages with the next assistant/staff outbound message; excludes event/template messages, outbound messages not recorded/delivered/read, and duplicate provider/client message identifiers.",
       },
-      leads: { total: leadRows.length, by_status: leadStatusCounts, qualified: leadStatusCounts.qualified },
+      leads: { total: leadRows.length, by_status: leadStatusCounts, qualified: leadStatusCounts.qualified, consent_evidence_available: false, limitation: "The current lead schema does not persist an explicit consent evidence field; this count is all lead records, not a consent-verified audience." },
       conversion: {
         verified_attributed_bookings: confirmedBookingCount,
         lead_to_booking_rate: null,
