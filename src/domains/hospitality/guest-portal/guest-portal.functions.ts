@@ -834,6 +834,16 @@ export const recordGuestPortalAccessEvent = createServerFn({ method: "POST" })
         Date.parse(access.expires_at) <= Date.now()) {
       throw new Error("The guest credential is no longer active.");
     }
+    const { data: booking, error: bookingError } = await admin
+      .from("bookings")
+      .select("status, guest_id")
+      .eq("id", data.bookingId)
+      .eq("property_id", propertyId)
+      .maybeSingle();
+    if (bookingError || !booking || booking.status !== "checked_in" ||
+        booking.guest_id !== access.guest_id) {
+      throw new Error("The guest credential is no longer bound to an eligible checked-in guest.");
+    }
     const { error } = await admin.from("staynas_guest_portal_access_events").insert({
       access_id: access.id,
       property_id: propertyId,
