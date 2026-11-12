@@ -207,6 +207,7 @@ function BookPage() {
       data: {
         propertySlug,
         sessionKey: sessionId,
+        eventId: pageViewEventId.current ??= window.crypto.randomUUID(),
         source: utmSource,
         medium: utmMedium,
         utmCampaign,
