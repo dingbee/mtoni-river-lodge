@@ -103,7 +103,7 @@ async function authorizeGuestPortal(token: string): Promise<GuestPortalContext> 
   const admin = await adminClient();
   const tokenHash = hashToken(cleanToken);
   if (cleanToken.length < 40 || cleanToken.length > 200) {
-    await recordGuestPortalAccessDenied(admin, tokenHash);
+    await recordGuestPortalAccessDenied(admin, tokenHash, "malformed_credential");
     throw new Error("This guest access link is invalid.");
   }
 
