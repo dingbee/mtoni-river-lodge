@@ -632,6 +632,9 @@ async function issueGuestPortalAccessForBooking(input: {
   if (booking.status !== "checked_in") {
     throw new Error("Guest portal access can be issued only after the guest is checked in.");
   }
+  if (!booking.guest_id) {
+    throw new Error("Register the lead guest profile before issuing Guest Portal access.");
+  }
 
   if (!input.rotate) {
     const { data: existing, error: existingError } = await admin
