@@ -1016,7 +1016,7 @@ export const prepareGuestPortalDeliveryDraft = createServerFn({ method: "POST" }
       throw new Error("A property-specific email sender must be configured before preparing delivery.");
     }
     let bindingQuery = admin.from("ai_provider_property_bindings")
-      .select("id,external_endpoint_id")
+      .select("id,external_endpoint_id,credential_secret_ref")
       .eq("property_id", propertyId)
       .eq("provider", provider)
       .eq("enabled", true)
@@ -1024,7 +1024,7 @@ export const prepareGuestPortalDeliveryDraft = createServerFn({ method: "POST" }
       .eq("verification_status", "verified");
     if (data.channel === "email") bindingQuery = bindingQuery.eq("external_endpoint_id", settings.sender_email);
     const { data: binding, error: bindingError } = await bindingQuery.limit(1).maybeSingle();
-    if (bindingError || !binding) throw new Error("No verified outbound provider binding is configured for this property.");
+    if (bindingError || !binding || !binding.credential_secret_ref) throw new Error("No verified outbound provider binding with a credential reference is configured for this property.");
 
     const { data: existingDraft, error: existingDraftError } = await admin
       .from("ai_communication_drafts")
