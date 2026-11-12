@@ -371,7 +371,7 @@ BEGIN
         ELSE NULL END;
       IF v_event IS NOT NULL THEN
         INSERT INTO public.ai_escalation_events(property_id,escalation_id,event_type,from_status,to_status,actor_id,metadata)
-        VALUES (NEW.property_id,NEW.id,v_event,OLD.status,NEW.status,v_actor,jsonb_build_object('assignment_due_at',NEW.assignment_due_at,'acknowledgement_due_at',NEW.acknowledgement_due_at,'resolution_due_at',NEW.resolution_due_at,'priority',NEW.priority,'reopened_at',NEW.reopened_at,'sla_cycle_started_at',NEW.sla_cycle_started_at));
+        VALUES (NEW.property_id,NEW.id,v_event,OLD.status,NEW.status,v_actor,jsonb_build_object('assignment_due_at',NEW.assignment_due_at,'acknowledgement_due_at',NEW.acknowledgement_due_at,'resolution_due_at',NEW.resolution_due_at,'priority',NEW.priority,'reopened_at',NEW.reopened_at,'sla_cycle_started_at',NEW.sla_cycle_started_at,'resolution_notes',NEW.resolution_notes));
       END IF;
     END IF;
     IF OLD.priority IS DISTINCT FROM NEW.priority THEN
