@@ -16,6 +16,7 @@ import {
   listConciergeInsights,
   updateConciergeInsight,
 } from "@/domains/ai/concierge/analytics.functions";
+import { getConciergeOperationalIntelligence } from "@/domains/ai/concierge/operational-intelligence.functions";
 
 type Window = "7d" | "30d" | "90d";
 
@@ -39,12 +40,14 @@ function AnalyticsPage() {
   const gapsFn = useServerFn(getKnowledgeGaps);
   const classifyFn = useServerFn(classifyConciergeOutcomes);
   const insightsFn = useServerFn(listConciergeInsights);
+  const operationalFn = useServerFn(getConciergeOperationalIntelligence);
   const updateInsightFn = useServerFn(updateConciergeInsight);
 
   const analytics = useQuery({ queryKey: ["concierge.analytics", win], queryFn: () => analyticsFn({ data: { window: win } }) });
   const outcomes = useQuery({ queryKey: ["concierge.outcomes", win], queryFn: () => outcomesFn({ data: { window: win } }) });
   const gaps = useQuery({ queryKey: ["concierge.gaps", win], queryFn: () => gapsFn({ data: { window: win } }) });
   const insights = useQuery({ queryKey: ["concierge.insights"], queryFn: () => insightsFn() });
+  const operational = useQuery({ queryKey: ["concierge.operational", win], queryFn: () => operationalFn({ data: { window: win } }) });
 
   const classify = useMutation({
     mutationFn: () => classifyFn({ data: { window: win } }),
@@ -60,6 +63,7 @@ function AnalyticsPage() {
   });
 
   const a = analytics.data;
+  const ops = operational.data;
 
   return (
     <div className="space-y-6">
@@ -106,6 +110,56 @@ function AnalyticsPage() {
           </p>
         </SectionCard>
       </div>
+
+      <SectionCard title="Operational response performance" description={`Evidence-backed omnichannel response intervals · ${ops?.timezone ?? "property timezone"}`}>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Stat label="First response P50 (min)" value={ops?.operations.first_response_minutes.p50 ?? undefined} />
+          <Stat label="First response P90 (min)" value={ops?.operations.first_response_minutes.p90 ?? undefined} />
+          <Stat label="AI response P50 (min)" value={ops?.operations.ai_response_minutes.p50 ?? undefined} />
+          <Stat label="Human response P50 (min)" value={ops?.operations.human_response_minutes.p50 ?? undefined} />
+          <Stat label="Unanswered conversations" value={ops?.operations.unanswered_conversations} />
+          <Stat label="Eligible messages" value={ops?.operations.omnichannel_messages} />
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Response samples: {ops?.operations.first_response_minutes.sample_size ?? "—"} · {ops?.operations.response_metric_note ?? "Operational source is loading."}
+        </p>
+      </SectionCard>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <SectionCard title="Escalation operations" description="Current status counts and recorded resolution intervals.">
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <Stat label="Total escalations" value={ops?.escalations.total} />
+            <Stat label="Open" value={ops?.escalations.by_status.open} />
+            <Stat label="Assigned" value={ops?.escalations.by_status.assigned} />
+            <Stat label="In progress" value={ops?.escalations.by_status.in_progress} />
+            <Stat label="Resolved" value={ops?.escalations.by_status.resolved} />
+            <Stat label="Median resolution (min)" value={ops?.escalations.median_resolution_minutes ?? undefined} />
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">{ops?.escalations.limitation ?? "Escalation evidence is loading."}</p>
+        </SectionCard>
+        <SectionCard title="Knowledge operations" description="Published content and retrieval activity; not a factual-accuracy score.">
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <Stat label="Documents" value={ops?.knowledge.documents} />
+            <Stat label="Published" value={ops?.knowledge.published_documents} />
+            <Stat label="Current published chunks" value={ops?.knowledge.current_published_chunks} />
+            <Stat label="Retrieval searches" value={ops?.knowledge.retrieval_searches} />
+            <Stat label="Zero-result searches" value={ops?.knowledge.zero_result_searches} />
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">{ops?.knowledge.limitation ?? "Knowledge evidence is loading."}</p>
+        </SectionCard>
+      </div>
+
+      <SectionCard title="Verified booking attribution" description="Booking outcomes are linked to confirmed booking records; revenue is separately gated by financial reconciliation.">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Stat label="Confirmed attributed bookings" value={ops?.conversion.verified_attributed_bookings} />
+          <Stat label="Leads in period" value={ops?.leads.total} />
+          <Stat label="Bookings with currency mismatch" value={ops?.conversion.booking_currency_mismatch_count} />
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Lead-to-booking rate unavailable: {ops?.conversion.lead_to_booking_rate_reason ?? "relationship evidence is loading."}
+          {" "}Revenue unavailable: {ops?.conversion.revenue_reason ?? "financial evidence is loading."}
+        </p>
+      </SectionCard>
 
       <SectionCard title="Conversation outcomes" description="Classified session outcomes across the selected window.">
         {(outcomes.data ?? []).length === 0 ? (
