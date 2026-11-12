@@ -182,7 +182,6 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
       leads: { total: leadRows.length, by_status: leadStatusCounts, qualified: leadStatusCounts.qualified },
       conversion: {
         verified_attributed_bookings: confirmedBookingCount,
-        eligible_leads: eligibleLeads,
         lead_to_booking_rate: null,
         lead_to_booking_rate_available: false,
         lead_to_booking_rate_reason: "No durable lead_id-to-booking_id relationship exists; an attributed booking count cannot be divided by an unrelated lead denominator.",
