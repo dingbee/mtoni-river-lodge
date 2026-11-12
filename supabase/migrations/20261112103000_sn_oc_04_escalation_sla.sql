@@ -512,6 +512,18 @@ BEGIN
      OR v_escalation.status='in_progress' AND p_status IN ('assigned','acknowledged') THEN
     RAISE EXCEPTION 'Escalation status cannot move backwards' USING ERRCODE='23514';
   END IF;
+  IF p_status='acknowledged' AND v_escalation.status<>'assigned' THEN
+    RAISE EXCEPTION 'Only an assigned escalation can be acknowledged' USING ERRCODE='23514';
+  END IF;
+  IF p_status='in_progress' AND v_escalation.status<>'acknowledged' THEN
+    RAISE EXCEPTION 'An escalation must be acknowledged before work starts' USING ERRCODE='23514';
+  END IF;
+  IF p_status='resolved' AND v_escalation.status<>'in_progress' THEN
+    RAISE EXCEPTION 'An escalation must be in progress before resolution' USING ERRCODE='23514';
+  END IF;
+  IF p_status='assigned' AND v_escalation.status NOT IN ('open','assigned') THEN
+    RAISE EXCEPTION 'Only an open escalation can be assigned or reassigned' USING ERRCODE='23514';
+  END IF;
 
   v_next_status := coalesce(p_status,
     CASE WHEN p_assigned_to IS NOT NULL AND v_escalation.status='open' THEN 'assigned' ELSE v_escalation.status END);
