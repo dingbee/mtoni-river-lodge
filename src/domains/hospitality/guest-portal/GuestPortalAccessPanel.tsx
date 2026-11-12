@@ -198,11 +198,13 @@ export function GuestPortalAccessPanel({
         <div className="mt-3 space-y-3">
           {bookingStatus !== "checked_in" && (
             <p className="rounded-md bg-muted/40 p-3 text-muted-foreground">
-              {bookingStatus === "completed"
-                ? "This stay has checked out. Guest Portal access is no longer eligible and any active credential is revoked."
-                : bookingStatus === "cancelled" || bookingStatus === "no_show"
-                  ? "This reservation is no longer eligible for Guest Portal access."
-                  : "Guest Portal access becomes eligible after successful check-in."}
+              {bookingStatus === "completed" && access.data?.active
+                ? `This stay has checked out. The configured grace period keeps Guest Portal access active until ${formatDate(access.data.expiresAt, access.data.timezone)}.`
+                : bookingStatus === "completed"
+                  ? "This stay has checked out. Guest Portal access has expired or the configured checkout grace period has ended."
+                  : bookingStatus === "cancelled" || bookingStatus === "no_show"
+                    ? "This reservation is no longer eligible for Guest Portal access."
+                    : "Guest Portal access becomes eligible after successful check-in."}
             </p>
           )}
           <div className="grid gap-2 sm:grid-cols-2">
@@ -253,21 +255,22 @@ export function GuestPortalAccessPanel({
             </div>
           )}
 
-          {bookingStatus === "checked_in" && (
           <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              onClick={() => {
-                const message = active
-                  ? "Regenerate guest access? The previous link and QR code will be invalidated."
-                  : "Generate a secure Guest Portal credential for this checked-in guest?";
-                if (window.confirm(message)) issue.mutate();
-              }}
-              disabled={issue.isPending || revoke.isPending}
-            >
-              {issue.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}
-              {active ? "Regenerate access" : "Generate access"}
-            </Button>
+            {bookingStatus === "checked_in" && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  const message = active
+                    ? "Regenerate guest access? The previous link and QR code will be invalidated."
+                    : "Generate a secure Guest Portal credential for this checked-in guest?";
+                  if (window.confirm(message)) issue.mutate();
+                }}
+                disabled={issue.isPending || revoke.isPending}
+              >
+                {issue.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}
+                {active ? "Regenerate access" : "Generate access"}
+              </Button>
+            )}
             {active && (
               <Button
                 size="sm"
@@ -282,7 +285,6 @@ export function GuestPortalAccessPanel({
               </Button>
             )}
           </div>
-          )}
 
           <div className="border-t border-border pt-3">
             <p className="text-xs font-medium">Credential history</p>
