@@ -129,6 +129,7 @@ function AnalyticsPage() {
         <SectionCard title="Escalation operations" description="Current status counts and recorded resolution intervals.">
           <div className="grid grid-cols-2 gap-3 text-sm">
             <Stat label="Total escalations" value={ops?.escalations.total} />
+            <Stat label="Median acknowledgement (min)" value={ops?.escalations.median_acknowledgement_minutes ?? undefined} />
             <Stat label="Open" value={ops?.escalations.by_status.open} />
             <Stat label="Assigned" value={ops?.escalations.by_status.assigned} />
             <Stat label="In progress" value={ops?.escalations.by_status.in_progress} />
@@ -146,7 +147,7 @@ function AnalyticsPage() {
             <Stat label="Zero-result searches" value={ops?.knowledge.zero_result_searches} />
             <Stat label="Assistant answers" value={ops?.knowledge.assistant_answers} />
             <Stat label="Answers with validated citations" value={ops?.knowledge.answers_with_validated_citations} />
-            <Stat label="Validated citation coverage" value={ops?.knowledge.validated_citation_coverage ?? undefined} />
+            <Stat label="Validated citation coverage (%)" value={ops?.knowledge.validated_citation_coverage == null ? undefined : Number((ops.knowledge.validated_citation_coverage * 100).toFixed(1))} />
           </div>
           <p className="mt-3 text-xs text-muted-foreground">{ops?.knowledge.limitation ?? "Knowledge evidence is loading."}</p>
         </SectionCard>
@@ -156,6 +157,7 @@ function AnalyticsPage() {
         <div className="grid gap-3 sm:grid-cols-3">
           <Stat label="Confirmed attributed bookings" value={ops?.conversion.verified_attributed_bookings} />
           <Stat label="Leads in period" value={ops?.leads.total} />
+          <Stat label="Consent-verified leads" value={ops?.leads.consent_verified} />
           <Stat label="Bookings with currency mismatch" value={ops?.conversion.booking_currency_mismatch_count} />
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
