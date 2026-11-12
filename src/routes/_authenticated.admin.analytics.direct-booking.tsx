@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_authenticated/admin/analytics/direct-boo
 type Range = "today" | "yesterday" | "7d" | "30d" | "90d" | "custom";
 type Report = {
   funnel?: Record<string, number | null>;
-  currencies?: Array<{ currency: string; gross_booking_value: number; confirmed_booking_value: number; amount_paid: number; outstanding: number; refunds: number; net_collected: number }>;
+  currencies?: Array<{ currency: string; gross_booking_value: number; confirmed_booking_value: number; amount_paid: number; outstanding: number; refunds: number; provider_reversals: number; net_collected: number }>;
   campaigns?: Array<{ id: string; name: string; slug: string; status: string; views: number; visitors: number; booking_starts: number; quotes: number; reservations: number; paid_bookings: number; net_collected_by_currency: Array<{ currency: string; net_collected: number }> }>;
   acquisition?: Array<{ source: string; medium: string; views: number; visitors: number; booking_starts: number; reservations: number }>;
   permanent_page?: Record<string, number>;
@@ -66,6 +66,7 @@ function Page() {
         ["revenue", "amount_paid", item.amount_paid, item.currency],
         ["revenue", "current_outstanding", item.outstanding, item.currency],
         ["revenue", "refunds", item.refunds, item.currency],
+        ["revenue", "provider_reversals", item.provider_reversals, item.currency],
         ["revenue", "net_collected", item.net_collected, item.currency],
       ]),
       ...campaigns.flatMap((item) => [
@@ -153,7 +154,8 @@ function Page() {
               ["Confirmed booking value", money(Number(row.confirmed_booking_value), row.currency)],
               ["Amount paid", money(Number(row.amount_paid), row.currency)],
               ["Current outstanding", money(Number(row.outstanding), row.currency)],
-              ["Refunds", money(Number(row.refunds), row.currency)],
+              ["Cash refunds", money(Number(row.refunds), row.currency)],
+              ["Provider reversals", money(Number(row.provider_reversals), row.currency)],
               ["Net collected", money(Number(row.net_collected), row.currency)],
             ].map(([label, value]) => <div key={label}><div className="text-xs text-muted-foreground">{label}</div><div className="font-medium">{value}</div></div>)}
           </div>)}
