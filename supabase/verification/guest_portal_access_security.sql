@@ -12,17 +12,23 @@ DECLARE
   v_user_c uuid := '30000000-0000-0000-0000-000000000003';
   v_guest_a uuid := '40000000-0000-0000-0000-000000000001';
   v_guest_b uuid := '40000000-0000-0000-0000-000000000002';
+  v_guest_c uuid := '40000000-0000-0000-0000-000000000003';
   v_booking_a uuid := '50000000-0000-0000-0000-000000000001';
   v_booking_b uuid := '50000000-0000-0000-0000-000000000002';
   v_booking_b2 uuid := '50000000-0000-0000-0000-000000000003';
   v_booking_b3 uuid := '50000000-0000-0000-0000-000000000004';
   v_booking_a2 uuid := '50000000-0000-0000-0000-000000000005';
   v_booking_b4 uuid := '50000000-0000-0000-0000-000000000006';
+  v_booking_a3 uuid := '50000000-0000-0000-0000-000000000007';
   v_session_1 uuid := '60000000-0000-0000-0000-000000000001';
   v_session_2 uuid := '60000000-0000-0000-0000-000000000002';
   v_session_3 uuid := '60000000-0000-0000-0000-000000000003';
   v_session_4 uuid := '60000000-0000-0000-0000-000000000004';
   v_session_5 uuid := '60000000-0000-0000-0000-000000000005';
+  v_session_11 uuid := '60000000-0000-0000-0000-000000000011';
+  v_session_12 uuid := '60000000-0000-0000-0000-000000000012';
+  v_occupant_lead jsonb;
+  v_occupant_access jsonb;
   v_first jsonb;
   v_retry jsonb;
   v_rotated jsonb;
@@ -55,7 +61,7 @@ BEGIN
     VALUES (true,v_a_org);
 
   INSERT INTO public.guests(id,full_name)
-    VALUES (v_guest_a,'Guest A'),(v_guest_b,'Guest B');
+    VALUES (v_guest_a,'Guest A'),(v_guest_b,'Guest B'),(v_guest_c,'Registered Occupant C');
   INSERT INTO public.bookings(id,property_id,guest_id,status,check_out)
     VALUES
       (v_booking_a,v_a_property,v_guest_a,'checked_in',current_date + 2),
@@ -63,7 +69,8 @@ BEGIN
       (v_booking_b2,v_b_property,v_guest_b,'checked_in',current_date + 2),
       (v_booking_b3,v_b_property,v_guest_b,'checked_in',current_date + 2),
       (v_booking_a2,v_a_property,v_guest_a,'checked_in',current_date + 2),
-      (v_booking_b4,v_b_property,v_guest_b,'checked_in',current_date + 2);
+      (v_booking_b4,v_b_property,v_guest_b,'checked_in',current_date + 2),
+      (v_booking_a3,v_a_property,v_guest_a,'checked_in',current_date + 2);
 
   INSERT INTO public.ai_concierge_sessions(id,session_token,property_id,guest_id,guest_name,channel)
     VALUES
@@ -72,7 +79,9 @@ BEGIN
       (v_session_3,'session-test-3',v_a_property,v_guest_a,'Guest A','web'),
       (v_session_4,'session-test-4',v_a_property,v_guest_a,'Guest A','web'),
       (v_session_5,'session-test-5',v_b_property,v_guest_b,'Guest B','web'),
-      ('60000000-0000-0000-0000-000000000010','session-test-10',v_b_property,v_guest_b,'Guest B','web');
+      ('60000000-0000-0000-0000-000000000010','session-test-10',v_b_property,v_guest_b,'Guest B','web'),
+      (v_session_11,'session-test-11',v_a_property,v_guest_a,'Guest A','web'),
+      (v_session_12,'session-test-12',v_a_property,v_guest_c,'Registered Occupant C','web');
 
   PERFORM set_config('request.jwt.claim.role','service_role',true);
 
@@ -186,6 +195,32 @@ BEGIN
     SELECT 1 FROM public.staynas_guest_portal_access
     WHERE id=(v_checkout->>'access_id')::uuid AND status='revoked' AND revoked_at IS NOT NULL
   ) THEN RAISE EXCEPTION 'Check-in reversal did not revoke guest access'; END IF;
+
+  -- Multiple registered guests can receive independent credentials on one booking.
+  INSERT INTO public.staynas_booking_guest_occupants(property_id,booking_id,guest_id,created_by)
+    VALUES (v_a_property,v_booking_a3,v_guest_c,v_user_a);
+  v_occupant_lead := public.staynas_issue_guest_portal_access(
+    v_a_property,v_booking_a3,v_guest_a,v_session_11,repeat('j',64),v_user_a,false
+  );
+  v_occupant_access := public.staynas_issue_guest_portal_access(
+    v_a_property,v_booking_a3,v_guest_c,v_session_12,repeat('k',64),v_user_a,false
+  );
+  IF NOT EXISTS (
+    SELECT 1 FROM public.staynas_guest_portal_access
+    WHERE id=(v_occupant_access->>'access_id')::uuid AND guest_id=v_guest_c AND status='active'
+  ) THEN RAISE EXCEPTION 'Registered occupant credential was not issued'; END IF;
+  v_count := public.staynas_revoke_guest_portal_access(v_a_property,v_booking_a3,v_guest_c,v_user_a);
+  IF v_count <> 1 OR NOT EXISTS (
+    SELECT 1 FROM public.staynas_guest_portal_access
+    WHERE id=(v_occupant_lead->>'access_id')::uuid AND guest_id=v_guest_a AND status='active'
+  ) THEN RAISE EXCEPTION 'Revoking one occupant affected the lead guest or failed to revoke occupant'; END IF;
+  BEGIN
+    INSERT INTO public.staynas_booking_guest_occupants(property_id,booking_id,guest_id,created_by)
+      VALUES (v_a_property,v_booking_b,v_guest_c,v_user_a);
+    RAISE EXCEPTION 'Cross-property occupant relationship was accepted';
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL;
+  END;
 
   -- A property administrator cannot cross into another tenant's property.
   INSERT INTO public.ai_concierge_sessions(id,session_token,property_id,guest_id,guest_name,channel)
