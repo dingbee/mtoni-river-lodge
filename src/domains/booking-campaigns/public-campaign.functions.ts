@@ -5,6 +5,15 @@ import { resolvePublicDirectBookingChannel } from "@/lib/public-booking-channel.
 const campaignSlug = z.string().trim().min(2).max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 const campaignIdSchema = z.string().uuid();
 
+function safeReferrer(value?: string) {
+  try {
+    const url = new URL(value ?? "");
+    return url.origin + url.pathname;
+  } catch {
+    return null;
+  }
+}
+
 function campaignLocalDate(timezone: string) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit",
@@ -195,7 +204,7 @@ export const recordPublicBookingCampaignEvent = createServerFn({ method: "POST" 
     const touch = {
       source: data.source ?? null, medium: data.medium ?? null,
       utm_campaign: data.utmCampaign ?? null, utm_content: data.utmContent ?? null,
-      utm_term: data.utmTerm ?? null, referrer: data.referrer ?? null,
+      utm_term: data.utmTerm ?? null, referrer: safeReferrer(data.referrer),
       landing_page: `/p/${data.propertySlug}/campaign/${campaign.slug}`,
     };
     const { data: attribution, error: durableAttributionError } = await sb.rpc("staynas_upsert_booking_attribution", {
@@ -226,7 +235,7 @@ export const recordPublicBookingCampaignEvent = createServerFn({ method: "POST" 
       _utm_campaign: data.utmCampaign ?? null,
       _utm_content: data.utmContent ?? null,
       _utm_term: data.utmTerm ?? null,
-      _referrer: data.referrer ?? null,
+      _referrer: safeReferrer(data.referrer),
       _landing_page: `/p/${data.propertySlug}/campaign/${campaign.slug}`,
       _metadata: { offer_id: data.offerId ?? null },
     });
@@ -245,7 +254,7 @@ export const recordPublicDirectBookingAnalyticsEvent = createServerFn({ method: 
     utmContent: z.string().trim().max(200).optional(),
     utmTerm: z.string().trim().max(200).optional(),
     referrer: z.string().url().max(2000).optional(),
-    landingPage: z.string().trim().max(2000),
+    landingPage: z.string().trim().regex(/^\/p\/[a-z0-9-]+\/book$/),
   }).parse(input))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -260,7 +269,7 @@ export const recordPublicDirectBookingAnalyticsEvent = createServerFn({ method: 
       catch { return false; }
     })();
     const touch = { source: data.source ?? null, medium: data.medium ?? null, utm_campaign: data.utmCampaign ?? null,
-      utm_content: data.utmContent ?? null, utm_term: data.utmTerm ?? null, referrer: data.referrer ?? null,
+      utm_content: data.utmContent ?? null, utm_term: data.utmTerm ?? null, referrer: safeReferrer(data.referrer),
       landing_page: data.landingPage };
     const { data: attribution, error: attributionError } = await sb.rpc("staynas_upsert_booking_attribution", {
       _property_id: property.id, _organisation_id: channel.organisationId, _session_key: data.sessionKey,
