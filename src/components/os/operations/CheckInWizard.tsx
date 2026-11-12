@@ -67,7 +67,12 @@ export function CheckInWizard({ workspace }: { workspace: any }) {
           }
         }
       })
-      .catch(() => { if (!cancelled) toast.error("Guest Portal QR generation failed. The secure link is still available."); });
+      .catch(async () => {
+        if (!cancelled) {
+          if (guestPortalAccessId) { try { await recordAccessEvent({ data: { bookingId: workspace.booking.id, accessId: guestPortalAccessId, eventType: "qr_generation_failed" } }); } catch { /* QR failure remains visible in the UI. */ } }
+          toast.error("Guest Portal QR generation failed. The secure link is still available.");
+        }
+      });
     return () => { cancelled = true; };
   }, [guestPortalLink, guestPortalAccessId, recordAccessEvent, workspace.booking.id]);
 
