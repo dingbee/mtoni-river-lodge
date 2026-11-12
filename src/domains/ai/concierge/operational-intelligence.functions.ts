@@ -126,8 +126,8 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
       fetchAllRows(() => sb.from("ai_concierge_attributions")
         .select("id,booking_id,conversion_type,created_at,ai_concierge_sessions!inner(property_id)")
         .eq("ai_concierge_sessions.property_id", propertyId).gte("created_at", since)),
-      fetchAllRows(() => sb.from("campaign_attribution").select("id,booking_id,event_type,occurred_at")
-        .eq("property_id", propertyId).eq("event_type", "booking_completed").gte("occurred_at", since)),
+      fetchAllRows(() => sb.from("campaign_attribution").select("id,booking_id,event_type,source,medium,utm_campaign,occurred_at")
+        .eq("property_id", propertyId).gte("occurred_at", since)),
     ]);
 
     for (const result of [property, sessions]) {
@@ -148,8 +148,11 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
     ]));
 
     const bookingIds = new Set<string>();
-    for (const row of [...conciergeAttributionRows, ...campaignAttributionRows]) {
-      if (row.booking_id) bookingIds.add(String(row.booking_id));
+    for (const row of conciergeAttributionRows) {
+      if (row.booking_id && ["assisted_booking", "direct_booking"].includes(row.conversion_type)) bookingIds.add(String(row.booking_id));
+    }
+    for (const row of campaignAttributionRows) {
+      if (row.booking_id && row.event_type === "booking_completed") bookingIds.add(String(row.booking_id));
     }
     const verifiedBookings: any[] = [];
     const bookingIdList = [...bookingIds];
@@ -168,6 +171,14 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
       .or(`currency.is.null,currency.neq.${property.data.currency}`);
     if (currencyError) throw new Error(currencyError.message);
 
+    const campaignEventCounts = Object.fromEntries(["page_view", "booking_click", "booking_started", "lead_submitted", "booking_completed"].map((eventType) => [
+      eventType, campaignAttributionRows.filter((row: any) => row.event_type === eventType).length,
+    ]));
+    const campaignSources = new Map<string, number>();
+    for (const event of campaignAttributionRows) {
+      const key = [event.source ?? "unknown", event.medium ?? "unknown", event.utm_campaign ?? "unlabelled"].join(" / ");
+      campaignSources.set(key, (campaignSources.get(key) ?? 0) + 1);
+    }
     const currentChunkCount = chunkRows.filter((chunk: any) =>
       documentRows.some((doc: any) => doc.id === chunk.document_id && doc.current_version === chunk.version && doc.status === "published"),
     ).length;
@@ -189,6 +200,13 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         response_metric_note: "Pairs eligible guest inbound messages with the next assistant/staff outbound message; excludes event/template messages, outbound messages not recorded/delivered/read, and duplicate provider/client message identifiers.",
       },
       leads: { total: leadRows.length, by_status: leadStatusCounts, qualified: leadStatusCounts.qualified, consent_evidence_available: false, limitation: "The current lead schema does not persist an explicit consent evidence field; this count is all lead records, not a consent-verified audience." },
+      campaign: {
+        events: campaignAttributionRows.length,
+        funnel: campaignEventCounts,
+        source_breakdown: [...campaignSources.entries()].map(([source, count]) => ({ source, count })).sort((a, b) => b.count - a.count).slice(0, 20),
+        identity_stitching_available: false,
+        limitation: "Campaign session keys are not joined to a verified cross-channel guest identity; source breakdown is event-level and not unique-visitor attribution.",
+      },
       conversion: {
         verified_attributed_bookings: confirmedBookingCount,
         lead_to_booking_rate: null,
