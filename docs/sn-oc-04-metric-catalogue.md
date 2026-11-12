@@ -117,6 +117,6 @@ Read-only scoped counts at inspection time:
 - Escalations: 0 (joined through property-owned sessions)
 - Knowledge documents/chunks/search logs: 0
 - Campaign attribution events: 0
-- Bookings: 4
+- Bookings: 4 (baseline count only; financial integrity and revenue analysis excluded from this sprint)
 
-These counts are a baseline, not evidence of zero historical conversion. The four booking records currently group as: 1 checked-in/paid USD 1,320; 1 completed/unpaid USD 120; 2 pending/unpaid USD 528. All four stored booking currencies are USD although the property currency is TZS. The four bookings have no PMS folio postings; only one has a payment-event row, which has not been established as a verified settlement. This is a material currency-integrity discrepancy: do not aggregate or display these totals as TZS, do not convert them using an assumed FX rate, and keep revenue unavailable until booking-currency provenance and authoritative payment/reversal evidence are reconciled. A completed-but-unpaid booking is not realized revenue. No synthetic activity has been inserted.
+These counts are a baseline, not evidence of zero historical conversion. No financial amounts, booking currencies, payment events, folio postings or revenue values are changed or interpreted by SN-OC-04. No synthetic activity has been inserted.
