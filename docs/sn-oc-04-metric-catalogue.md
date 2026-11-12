@@ -108,4 +108,4 @@ Read-only scoped counts at inspection time:
 - Campaign attribution events: 0
 - Bookings: 4
 
-These counts are a baseline, not evidence of zero historical conversion. The four booking records must be reconciled against confirmed/cancelled status and finance evidence before any revenue metric is exposed. No synthetic activity has been inserted.
+These counts are a baseline, not evidence of zero historical conversion. The four booking records currently group as: 1 checked-in/paid USD 1,320; 1 completed/unpaid USD 120; 2 pending/unpaid USD 528. All four stored booking currencies are USD although the property currency is TZS. This is a material currency-integrity discrepancy: do not aggregate or display these totals as TZS, do not convert them using an assumed FX rate, and keep attributed revenue unavailable until booking-currency provenance and authoritative finance postings/reversals are reconciled. A completed-but-unpaid booking is not realized revenue. No synthetic activity has been inserted.
