@@ -161,6 +161,27 @@ function AnalyticsPage() {
         </p>
       </SectionCard>
 
+      <SectionCard title="Campaign attribution funnel" description="Event-level funnel counts and UTM source breakdown for the selected property and period.">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <Stat label="Page views" value={ops?.campaign.funnel.page_view} />
+          <Stat label="Booking clicks" value={ops?.campaign.funnel.booking_click} />
+          <Stat label="Booking starts" value={ops?.campaign.funnel.booking_started} />
+          <Stat label="Lead submissions" value={ops?.campaign.funnel.lead_submitted} />
+          <Stat label="Booking completed events" value={ops?.campaign.funnel.booking_completed} />
+        </div>
+        {(ops?.campaign.source_breakdown ?? []).length > 0 && (
+          <ul className="mt-3 divide-y text-sm">
+            {ops?.campaign.source_breakdown.map((row) => (
+              <li key={row.source} className="flex justify-between gap-3 py-2">
+                <span className="min-w-0 truncate">{row.source}</span>
+                <span className="font-medium tabular-nums">{row.count}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="mt-3 text-xs text-muted-foreground">{ops?.campaign.limitation ?? "Campaign attribution is loading."}</p>
+      </SectionCard>
+
       <SectionCard title="Conversation outcomes" description="Classified session outcomes across the selected window.">
         {(outcomes.data ?? []).length === 0 ? (
           <p className="text-sm text-muted-foreground">
