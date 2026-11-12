@@ -6,6 +6,7 @@ import {
   validateGuestPortalPhotoMeta,
   buildGuestPortalUrl,
   guestPortalOrigin,
+  isGuestPortalStayEligible,
 } from "./guest-portal.shared";
 
 describe("guest portal photo validation", () => {
@@ -90,5 +91,18 @@ describe("guest portal environment origin", () => {
     expect(() => guestPortalOrigin("https://preview.vercel.app")).toThrow();
     expect(() => guestPortalOrigin("http://localhost:3000")).toThrow();
     expect(() => guestPortalOrigin("http://staynas.nolmark.co")).toThrow();
+  });
+});
+
+
+describe("guest portal checkout grace eligibility", () => {
+  it("allows checked-in stays and only unexpired completed-stay grace", () => {
+    const future = new Date(Date.now() + 60_000).toISOString();
+    const past = new Date(Date.now() - 60_000).toISOString();
+    expect(isGuestPortalStayEligible("checked_in", past)).toBe(true);
+    expect(isGuestPortalStayEligible("completed", future)).toBe(true);
+    expect(isGuestPortalStayEligible("completed", past)).toBe(false);
+    expect(isGuestPortalStayEligible("cancelled", future)).toBe(false);
+    expect(isGuestPortalStayEligible("confirmed", future)).toBe(false);
   });
 });
