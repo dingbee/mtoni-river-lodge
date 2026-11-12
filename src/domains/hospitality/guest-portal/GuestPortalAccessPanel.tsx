@@ -292,7 +292,7 @@ export function GuestPortalAccessPanel({
                 <Select value={availableGuestId} onValueChange={setAvailableGuestId}>
                   <SelectTrigger><SelectValue placeholder="Choose existing guest" /></SelectTrigger>
                   <SelectContent>
-                    {occupants.data.availableGuests.map((guest: { id: string; full_name: string }) => (
+                    {occupants.data.availableGuests.map((guest: { id: string; full_name: string | null }) => (
                       <SelectItem key={guest.id} value={guest.id}>{guest.full_name}</SelectItem>
                     ))}
                   </SelectContent>
