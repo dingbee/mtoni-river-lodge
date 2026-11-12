@@ -257,7 +257,7 @@ BEGIN
   WITH retired AS (
     UPDATE public.staynas_guest_portal_access
     SET status = v_status, revoked_at = now(), revoked_by = auth.uid()
-    WHERE property_id = NEW.property_id
+    WHERE property_id = OLD.property_id
       AND booking_id = NEW.id
       AND status IN ('active','pending')
       AND revoked_at IS NULL
