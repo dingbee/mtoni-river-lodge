@@ -27,6 +27,7 @@ DECLARE
   v_session_5 uuid := '60000000-0000-0000-0000-000000000005';
   v_session_11 uuid := '60000000-0000-0000-0000-000000000011';
   v_session_12 uuid := '60000000-0000-0000-0000-000000000012';
+  v_session_13 uuid := '60000000-0000-0000-0000-000000000013';
   v_occupant_lead jsonb;
   v_occupant_access jsonb;
   v_first jsonb;
@@ -81,7 +82,8 @@ BEGIN
       (v_session_5,'session-test-5',v_b_property,v_guest_b,'Guest B','web'),
       ('60000000-0000-0000-0000-000000000010','session-test-10',v_b_property,v_guest_b,'Guest B','web'),
       (v_session_11,'session-test-11',v_a_property,v_guest_a,'Guest A','web'),
-      (v_session_12,'session-test-12',v_a_property,v_guest_c,'Registered Occupant C','web');
+      (v_session_12,'session-test-12',v_a_property,v_guest_c,'Registered Occupant C','web'),
+      (v_session_13,'session-test-13',v_a_property,v_guest_c,'Registered Occupant C','web');
 
   PERFORM set_config('request.jwt.claim.role','service_role',true);
 
@@ -218,6 +220,16 @@ BEGIN
     INSERT INTO public.staynas_booking_guest_occupants(property_id,booking_id,guest_id,created_by)
       VALUES (v_a_property,v_booking_b,v_guest_c,v_user_a);
     RAISE EXCEPTION 'Cross-property occupant relationship was accepted';
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL;
+  END;
+  UPDATE public.staynas_booking_guest_occupants SET status='removed'
+    WHERE property_id=v_a_property AND booking_id=v_booking_a3 AND guest_id=v_guest_c;
+  BEGIN
+    PERFORM public.staynas_issue_guest_portal_access(
+      v_a_property,v_booking_a3,v_guest_c,v_session_13,repeat('l',64),v_user_a,true
+    );
+    RAISE EXCEPTION 'Removed occupant was allowed to receive a credential';
   EXCEPTION WHEN insufficient_privilege THEN
     NULL;
   END;
