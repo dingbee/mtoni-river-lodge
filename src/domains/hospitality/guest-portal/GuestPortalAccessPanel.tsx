@@ -47,7 +47,7 @@ export function GuestPortalAccessPanel({
   const access = useQuery({
     queryKey: ["guest-portal-access", bookingId],
     queryFn: () => statusFn({ data: { bookingId } }),
-    enabled: bookingStatus === "checked_in",
+    enabled: true,
   });
 
   useEffect(() => {
@@ -127,7 +127,7 @@ export function GuestPortalAccessPanel({
 
   function printCard() {
     if (!qrDataUrl || !access.data) return;
-    const printWindow = window.open("", "_blank", "noopener,noreferrer,width=640,height=760");
+    const printWindow = window.open("", "_blank", "width=640,height=760");
     if (!printWindow) {
       toast.error("Allow pop-ups to print the guest access card.");
       return;
@@ -138,7 +138,7 @@ export function GuestPortalAccessPanel({
       );
     const property = escapeHtml(access.data.propertyName);
     const guest = escapeHtml(access.data.guestName);
-    printWindow.document.write(`<!doctype html><html><head><title>Guest Portal Access</title>
+    printWindow.opener = null;\n    printWindow.document.write(`<!doctype html><html><head><title>Guest Portal Access</title>
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <style>body{font-family:Arial,sans-serif;display:flex;justify-content:center;padding:32px;color:#111}
       .card{width:440px;text-align:center;border:1px solid #ddd;border-radius:18px;padding:28px}
@@ -163,11 +163,7 @@ export function GuestPortalAccessPanel({
         </p>
       </div>
 
-      {bookingStatus !== "checked_in" ? (
-        <p className="mt-2 text-muted-foreground">
-          Guest access is issued automatically after successful check-in. It can also be managed here once the stay is active.
-        </p>
-      ) : access.isLoading ? (
+      {access.isLoading ? (
         <p className="mt-2 flex items-center gap-2 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Checking access…
         </p>
@@ -175,6 +171,15 @@ export function GuestPortalAccessPanel({
         <p className="mt-2 text-destructive">{(access.error as Error).message}</p>
       ) : (
         <div className="mt-3 space-y-3">
+          {bookingStatus !== "checked_in" && (
+            <p className="rounded-md bg-muted/40 p-3 text-muted-foreground">
+              {bookingStatus === "completed"
+                ? "This stay has checked out. Guest Portal access is no longer eligible and any active credential is revoked."
+                : bookingStatus === "cancelled" || bookingStatus === "no_show"
+                  ? "This reservation is no longer eligible for Guest Portal access."
+                  : "Guest Portal access becomes eligible after successful check-in."}
+            </p>
+          )}
           <div className="grid gap-2 sm:grid-cols-2">
             <div><span className="text-muted-foreground">Guest</span><p className="font-medium">{access.data?.guestName}</p></div>
             <div><span className="text-muted-foreground">Reservation</span><p className="font-medium">{access.data?.reservationReference}</p></div>
@@ -203,7 +208,7 @@ export function GuestPortalAccessPanel({
                   </div>
                 )}
                 {qrDataUrl && (
-                  <a href={qrDataUrl} download={`stayn​​as-guest-portal-${bookingId}.png`} className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                  <a href={qrDataUrl} download={`staynas-guest-portal-${bookingId}.png`} className="inline-flex items-center gap-1 text-xs font-medium text-primary">
                     <Download className="h-3.5 w-3.5" /> Download QR PNG
                   </a>
                 )}
@@ -223,6 +228,7 @@ export function GuestPortalAccessPanel({
             </div>
           )}
 
+          {bookingStatus === "checked_in" && (
           <div className="flex flex-wrap gap-2">
             <Button
               size="sm"
@@ -251,6 +257,7 @@ export function GuestPortalAccessPanel({
               </Button>
             )}
           </div>
+          )}
 
           <div className="border-t border-border pt-3">
             <p className="text-xs font-medium">Credential history</p>
