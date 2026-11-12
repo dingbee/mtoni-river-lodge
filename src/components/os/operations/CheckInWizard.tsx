@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { CheckCircle2, Circle, Copy, Download } from "lucide-react";
-import { buildGuestPortalUrl } from "@/domains/hospitality/guest-portal/guest-portal.shared";
+import { buildGuestPortalUrl, guestPortalOrigin } from "@/domains/hospitality/guest-portal/guest-portal.shared";
 import { recordGuestPortalAccessEvent } from "@/domains/hospitality/guest-portal/guest-portal.functions";
 
 type Step = "verify" | "guest" | "payment" | "assign" | "notes" | "confirm" | "portal";
@@ -44,7 +44,7 @@ export function CheckInWizard({ workspace }: { workspace: any }) {
       toast.success("Check-in complete");
       const token = result?.guestPortalAccess?.token;
       if (token) {
-        setGuestPortalLink(buildGuestPortalUrl(window.location.origin, token));
+        setGuestPortalLink(buildGuestPortalUrl(guestPortalOrigin(window.location.origin, import.meta.env.VITE_GUEST_PORTAL_BASE_URL), token));
         setGuestPortalAccessId(result.guestPortalAccess.accessId);
       }
       setStep("portal");
