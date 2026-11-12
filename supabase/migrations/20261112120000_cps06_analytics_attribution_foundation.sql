@@ -549,7 +549,7 @@ begin
       count(*) filter(where event_type='quote_generated') as quotes,
       count(*) filter(where event_type='reservation_created') as reservations,
       count(*) filter(where event_type='reservation_confirmed') as confirmed,
-      (select count(*) from paid_booking_rollup where net_collected>0) as paid_bookings
+      (select count(distinct booking_id) from paid_booking_rollup where net_collected>0) as paid_bookings
     from e
   ),
   booking_money as (
@@ -593,8 +593,7 @@ begin
       coalesce((
         select count(distinct pb.booking_id)
         from paid_booking_rollup pb
-        join public.staynas_booking_analytics_events pe on pe.booking_id=pb.booking_id
-          and pe.property_id=c.property_id and pe.campaign_id=c.id
+        join e pe on pe.booking_id=pb.booking_id and pe.campaign_id=c.id
         where pb.net_collected>0
       ),0) as paid_bookings,
       coalesce((
