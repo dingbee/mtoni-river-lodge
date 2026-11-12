@@ -878,9 +878,13 @@ export const recordGuestPortalAccessEvent = createServerFn({ method: "POST" })
       .eq("id", data.bookingId)
       .eq("property_id", propertyId)
       .maybeSingle();
-    if (bookingError || !booking || booking.status !== "checked_in" ||
+    const withinCheckoutGrace = Boolean(
+      booking && booking.status === "completed" && Date.parse(access.expires_at) > Date.now(),
+    );
+    if (bookingError || !booking ||
+        (booking.status !== "checked_in" && !withinCheckoutGrace) ||
         booking.guest_id !== access.guest_id) {
-      throw new Error("The guest credential is no longer bound to an eligible checked-in guest.");
+      throw new Error("The guest credential is no longer bound to an eligible guest stay.");
     }
     const { error } = await admin.from("staynas_guest_portal_access_events").insert({
       access_id: access.id,
