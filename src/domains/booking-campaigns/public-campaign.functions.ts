@@ -188,6 +188,10 @@ export const recordPublicBookingCampaignEvent = createServerFn({ method: "POST" 
     }, { onConflict: "property_id,event_key", ignoreDuplicates: true });
     if (error) throw new Error("Campaign attribution could not be persisted.");
 
+    const externalReferrer = (() => {
+      try { return !!data.referrer && new URL(data.referrer).hostname !== channel.hostname; }
+      catch { return false; }
+    })();
     const touch = {
       source: data.source ?? null, medium: data.medium ?? null,
       utm_campaign: data.utmCampaign ?? null, utm_content: data.utmContent ?? null,
@@ -201,7 +205,7 @@ export const recordPublicBookingCampaignEvent = createServerFn({ method: "POST" 
       _campaign_offer_id: data.offerId ?? null,
       _touch: touch,
       _touch_at: new Date().toISOString(),
-      _is_external_acquisition: Boolean(data.source || data.medium || data.utmCampaign || data.referrer),
+      _is_external_acquisition: Boolean(data.source || data.medium || data.utmCampaign || externalReferrer),
     });
     if (durableAttributionError || !attribution?.attribution_id) {
       throw new Error("Campaign analytics attribution could not be initialized.");
@@ -250,6 +254,10 @@ export const recordPublicDirectBookingAnalyticsEvent = createServerFn({ method: 
       .select("id,organisation_id,status").eq("id", channel.propertyId).eq("slug", data.propertySlug).maybeSingle();
     if (propertyError || !property || property.status !== "active" || property.organisation_id !== channel.organisationId)
       throw new Error("Booking analytics property does not match the verified public domain.");
+    const externalReferrer = (() => {
+      try { return !!data.referrer && new URL(data.referrer).hostname !== channel.hostname; }
+      catch { return false; }
+    })();
     const touch = { source: data.source ?? null, medium: data.medium ?? null, utm_campaign: data.utmCampaign ?? null,
       utm_content: data.utmContent ?? null, utm_term: data.utmTerm ?? null, referrer: data.referrer ?? null,
       landing_page: data.landingPage };
