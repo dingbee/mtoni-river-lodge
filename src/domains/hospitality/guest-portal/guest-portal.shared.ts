@@ -72,8 +72,8 @@ export function isGuestPortalStayEligible(
   expiresAt: string,
   now = Date.now(),
 ): boolean {
-  return bookingStatus === "checked_in" ||
-    (bookingStatus === "completed" && Date.parse(expiresAt) > now);
+  return Date.parse(expiresAt) > now &&
+    (bookingStatus === "checked_in" || bookingStatus === "completed");
 }
 
 export function buildGuestPortalUrl(origin: string, token: string): string {
