@@ -47,7 +47,7 @@ select ok(
 select ok(
   not has_function_privilege(
     'anon',
-    'public.staynas_issue_guest_portal_access(uuid,uuid,uuid,uuid,text,uuid)',
+    'public.staynas_issue_guest_portal_access(uuid,uuid,uuid,uuid,text,uuid,boolean)',
     'EXECUTE'
   ),
   'anonymous role cannot issue guest credentials'
