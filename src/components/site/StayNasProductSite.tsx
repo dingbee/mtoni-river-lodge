@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { trackGAEvent, trackPageView } from "@/lib/analytics";
 import { ArrowRight, ArrowUpRight, BedDouble, Building2, CalendarCheck, ChartNoAxesCombined, Check, ChevronDown, ChevronRight, CircleDot, CreditCard, ExternalLink, Globe2, House, Layers3, Menu, Network, ShieldCheck, Sparkles, Users, Workflow, Wrench, X } from "lucide-react";
@@ -20,25 +20,23 @@ const capabilityIcons: Record<string, typeof BedDouble> = {
   ecosystem: Layers3,
 };
 
-const statusStyles: Record<PublicCapability["status"], string> = {
-  implemented: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  "configuration-dependent": "border-amber-200 bg-amber-50 text-amber-800",
-  "integration-dependent": "border-sky-200 bg-sky-50 text-sky-800",
-  planned: "border-stone-200 bg-stone-100 text-stone-700",
-};
-
 export function ProductSiteHeader() {
   const [open, setOpen] = useState(false);
-  const [expanded, setExpanded] = useState<string | null>("Platform");
+  const [activeMenu, setActiveMenu] = useState<"root" | "platform">("root");
   const links = [
     { to: "/platform", label: "Platform" },
     { to: "/modules", label: "Modules" },
     { to: "/product-tour", label: "Product walkthrough" },
   ] as const;
+  const [expanded, setExpanded] = useState<string | null>("Platform");
   const groups = [
-    { label: "Platform", items: [{ to: "/platform", label: "Overview" }, { to: "/modules", label: "Modules" }, { to: "/product-tour", label: "Product walkthrough" }, { to: "/architecture", label: "Architecture" }] },
     { label: "Solutions", items: [{ to: "/solutions", label: "By hospitality business" }, { to: "/integrations", label: "Integrations & ecosystem" }] },
-    { label: "Resources", items: [{ to: "/security", label: "Trust & security" }, { to: "/architecture", label: "Platform architecture" }] },
+    { label: "Resources", items: [{ to: "/security", label: "Trust & security" }, { to: "/architecture", label: "Platform architecture" }, { to: "/product-tour", label: "Product walkthrough" }] },
+  ] as const;
+  const platformSections = [
+    { heading: "Operations", items: [{ to: "/modules#reservations", label: "Reservations & booking" }, { to: "/modules#front-desk", label: "Front desk" }, { to: "/modules#housekeeping", label: "Housekeeping" }, { to: "/modules#rooms-inventory", label: "Rooms & inventory" }] },
+    { heading: "Guest", items: [{ to: "/modules#staynas-ai", label: "AI Concierge" }, { to: "/modules#guest-intelligence", label: "Guest profiles & intelligence" }] },
+    { heading: "Revenue", items: [{ to: "/modules#revenue", label: "Revenue & pricing" }, { to: "/modules#finance", label: "Finance" }, { to: "/integrations", label: "Booking & distribution" }] },
   ] as const;
 
   useEffect(() => {
@@ -76,59 +74,46 @@ export function ProductSiteHeader() {
       </div>
 
       {open && <div className="fixed inset-0 z-[100] lg:hidden">
-        <button type="button" aria-label="Close navigation overlay" onClick={closeMenu} className="absolute inset-0 h-full w-full bg-black/45 backdrop-blur-[2px]"/>
-        <aside id="staynas-mobile-navigation" role="dialog" aria-modal="true" aria-label="StayNas navigation" className="absolute inset-y-0 right-0 flex h-[100dvh] w-full max-w-[440px] flex-col overflow-hidden bg-[#fffaf0] text-[#201d25] shadow-2xl">
-          <div className="flex min-h-[88px] items-center justify-between border-b border-[#e8e1d5] px-6 sm:px-8">
-            <Link to="/" onClick={closeMenu} className="flex items-center gap-3" aria-label="StayNas home">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c7a96b] text-lg font-semibold text-[#10251e]">S</span>
-              <span className="text-[17px] font-semibold tracking-[0.1em] text-[#25232a]">STAYNAS <span className="font-normal tracking-normal text-[#8b8278]">Hospitality OS</span></span>
-            </Link>
-            <button type="button" aria-label="Close navigation menu" onClick={closeMenu} className="inline-flex h-11 w-11 items-center justify-center rounded-full text-[#29242c] transition hover:bg-[#f0eade]">
-              <X className="h-7 w-7"/>
-            </button>
+        <button type="button" aria-label="Close navigation overlay" onClick={closeMenu} className="absolute inset-0 h-full w-full cursor-default bg-[#071710]/55 backdrop-blur-[2px]"/>
+        <aside id="staynas-mobile-navigation" role="dialog" aria-modal="true" aria-label="StayNas navigation" onClick={(event) => event.stopPropagation()} className="absolute inset-y-0 right-0 flex h-[100dvh] w-[min(100%,440px)] flex-col overflow-hidden bg-[#f6f5ef] text-[#15251f] shadow-2xl">
+          <div className="flex min-h-[88px] items-center justify-between border-b border-[#deded4] px-6 sm:px-8">
+            <div className="flex min-w-0 items-center gap-3">
+              {activeMenu === "platform" && <button type="button" aria-label="Back to main navigation" onClick={() => setActiveMenu("root")} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#29242c] transition hover:bg-[#e9ede6]"><ChevronRight className="h-6 w-6 rotate-180"/></button>}
+              <Link to="/" onClick={closeMenu} className="flex items-center gap-3" aria-label="StayNas home">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c7a96b] text-lg font-semibold text-[#10251e]">S</span>
+                <span className="truncate text-[17px] font-semibold tracking-[0.1em] text-[#25232a]">STAYNAS <span className="font-normal tracking-normal text-[#8b8278]">Hospitality OS</span></span>
+              </Link>
+            </div>
+            <div className="flex items-center gap-2">
+              {activeMenu === "platform" && <span className="text-base font-semibold text-[#25232a]">Platform</span>}
+              <button type="button" aria-label="Close navigation menu" onClick={closeMenu} className="inline-flex h-11 w-11 items-center justify-center rounded-full text-[#29242c] transition hover:bg-[#e9ede6]"><X className="h-7 w-7"/></button>
+            </div>
           </div>
 
-          <nav aria-label="Mobile navigation" className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 pt-3 sm:px-8">
-            {groups.map((group) => {
-              const isExpanded = expanded === group.label;
-              return <section key={group.label} className="border-b border-[#e8e1d5]">
-                <button type="button" aria-expanded={isExpanded} onClick={() => toggleGroup(group.label)} className={"flex min-h-[76px] w-full items-center justify-between text-left text-[22px] font-medium transition-colors " + (isExpanded ? "text-[#c65a36]" : "text-[#25232a] hover:text-[#c65a36]")}>
-                  {group.label}
-                  {isExpanded ? <ChevronDown className="h-6 w-6"/> : <ChevronRight className="h-6 w-6"/>}
-                </button>
-                {isExpanded && <div className="space-y-1 pb-5 pl-1">
-                  {group.items.map((item) => <Link key={item.to} to={item.to} onClick={closeMenu} className="flex items-center justify-between rounded-lg px-3 py-3 text-base text-[#625d61] transition hover:bg-[#f3eee4] hover:text-[#b94d2c]">
-                    {item.label}<ArrowUpRight className="h-4 w-4 opacity-60"/>
-                  </Link>)}
-                </div>}
-              </section>;
-            })}
-
-            <Link to="/pricing" onClick={closeMenu} className="flex min-h-[76px] items-center justify-between border-b border-[#e8e1d5] text-[22px] font-medium text-[#25232a] transition hover:text-[#c65a36]">
-              Pricing<ArrowUpRight className="h-5 w-5"/>
-            </Link>
-
-            <section className="border-b border-[#e8e1d5]">
-              <button type="button" aria-expanded={expanded === "Company"} onClick={() => toggleGroup("Company")} className={"flex min-h-[76px] w-full items-center justify-between text-left text-[22px] font-medium " + (expanded === "Company" ? "text-[#c65a36]" : "text-[#25232a]")}>
-                Company{expanded === "Company" ? <ChevronDown className="h-6 w-6"/> : <ChevronRight className="h-6 w-6"/>}
-              </button>
-              {expanded === "Company" && <div className="pb-5 pl-1"><a href="https://nolmark.co" target="_blank" rel="noreferrer" onClick={closeMenu} className="flex items-center justify-between rounded-lg px-3 py-3 text-base text-[#625d61] hover:bg-[#f3eee4]">Nolmark CDMA <ExternalLink className="h-4 w-4"/></a></div>}
-            </section>
-
-            <section className="border-b border-[#e8e1d5]">
-              <div className="flex min-h-[76px] items-center justify-between text-[22px] font-medium text-[#25232a]">Hotelier Stories<span className="rounded-full bg-[#f0eade] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#81786d]">Coming soon</span></div>
-            </section>
-
-            <Link to="/request-demo" onClick={closeMenu} className="flex min-h-[76px] items-center justify-between border-b border-[#e8e1d5] text-[22px] font-medium text-[#25232a] transition hover:text-[#c65a36]">
-              Support<ArrowUpRight className="h-5 w-5"/>
-            </Link>
-            <Link to="/admin" onClick={closeMenu} className="mt-6 flex min-h-[54px] items-center justify-center rounded-full border border-[#8f877d] px-6 text-base font-medium text-[#37323a] transition hover:bg-[#f3eee4]">Login</Link>
+          <nav aria-label="Mobile navigation" className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-8 pt-3 sm:px-8">
+            {activeMenu === "platform" ? <>
+              <Link to="/platform" onClick={closeMenu} className="flex min-h-[112px] items-center border-b border-[#e8e1d5] text-[25px] font-medium text-[#25232a] transition hover:text-[#315744]">Overview</Link>
+              {platformSections.map(section => <section key={section.heading} className="border-b border-[#e8e1d5] py-7">
+                <h3 className="mb-5 text-[17px] font-medium text-[#8d8580]">{section.heading}</h3>
+                <div className="space-y-1">{section.items.map(item => <a key={item.label} href={item.to} onClick={closeMenu} className="flex min-h-[58px] items-center py-3 text-[21px] font-normal tracking-tight text-[#25232a] transition-colors hover:text-[#315744]">{item.label}</a>)}</div>
+              </section>)}
+              <Link to="/architecture" onClick={closeMenu} className="flex min-h-[76px] items-center border-b border-[#e8e1d5] text-[20px] text-[#25232a]">Architecture</Link>
+            </> : <>
+              <button type="button" onClick={() => setActiveMenu("platform")} className="flex min-h-[76px] w-full items-center justify-between border-b border-[#e8e1d5] text-left text-[22px] font-medium text-[#25232a] transition hover:text-[#315744]">Platform<ChevronRight className="h-6 w-6"/></button>
+              {groups.map(group => {
+                const isExpanded = expanded === group.label;
+                return <section key={group.label} className="border-b border-[#e8e1d5]">
+                  <button type="button" aria-expanded={isExpanded} onClick={() => setExpanded(current => current === group.label ? null : group.label)} className={"flex min-h-[76px] w-full items-center justify-between text-left text-[22px] font-medium transition-colors " + (isExpanded ? "text-[#315744]" : "text-[#25232a] hover:text-[#c65a36]")}>{group.label}{isExpanded ? <ChevronDown className="h-6 w-6"/> : <ChevronRight className="h-6 w-6"/>}</button>
+                  {isExpanded && <div className="space-y-1 pb-5 pl-1">{group.items.map(item => <Link key={item.to} to={item.to} onClick={closeMenu} className="flex items-center justify-between rounded-lg px-3 py-3 text-base text-[#625d61] transition hover:bg-[#e9ede6] hover:text-[#315744]">{item.label}<ArrowUpRight className="h-4 w-4 opacity-60"/></Link>)}</div>}
+                </section>;
+              })}
+              <Link to="/pricing" onClick={closeMenu} className="flex min-h-[76px] items-center justify-between border-b border-[#e8e1d5] text-[22px] font-medium text-[#25232a] transition hover:text-[#c65a36]">Pricing<ArrowUpRight className="h-5 w-5"/></Link>
+              <Link to="/admin" onClick={closeMenu} className="mt-6 flex min-h-[54px] items-center justify-center rounded-full border border-[#8f877d] px-6 text-base font-medium text-[#37323a] transition hover:bg-[#f3eee4]">Login</Link>
+            </>}
           </nav>
 
-          <div className="shrink-0 border-t border-[#e8e1d5] bg-[#fffaf0] px-5 pb-[max(18px,env(safe-area-inset-bottom))] pt-4 sm:px-8">
-            <Link to="/request-demo" onClick={closeMenu} className="flex min-h-[58px] w-full items-center justify-center rounded-full bg-[#f04b24] px-6 text-base font-semibold text-white shadow-sm transition hover:bg-[#dc401d]">
-              Book a Demo
-            </Link>
+          <div className="shrink-0 border-t border-[#e8e1d5] bg-[#f6f5ef] px-5 pb-[max(18px,env(safe-area-inset-bottom))] pt-4 sm:px-8">
+            <Link to="/request-demo" onClick={closeMenu} className="flex min-h-[58px] w-full items-center justify-center rounded-full bg-[#f04b2a] px-6 text-base font-semibold text-white shadow-sm transition hover:bg-[#dc4325]">Book a Demo</Link>
           </div>
         </aside>
       </div>}
@@ -154,10 +139,22 @@ export function ProductSiteHeader() {
         border-radius: 0;
         box-shadow: none;
       }
+      html { scroll-behavior: smooth; }
+      .staynas-public-site main section { scroll-margin-top: 6rem; }
+      .capability-reveal { transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.2,1), border-color .3s ease; }
+      .capability-reveal[data-reveal-pending="true"] { opacity: .28; transform: translateY(22px); }
+      .capability-reveal[data-revealed="true"] { opacity: 1; transform: translateY(0); }
+      .capability-reveal:hover { border-color: #c7a96b; }
+      [data-scroll-emphasis] p, [data-scroll-emphasis] h2 { transition: opacity .5s ease, font-weight .5s ease, letter-spacing .5s ease; }
+      [data-scroll-emphasis] h2 { opacity: .62; font-weight: 500; }
+      [data-scroll-emphasis][data-active="true"] h2 { opacity: 1; font-weight: 750; letter-spacing: -.025em; }
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+      @media (prefers-reduced-motion: reduce) {
+        html { scroll-behavior: auto; }
+        .capability-reveal, [data-scroll-emphasis] p, [data-scroll-emphasis] h2 { transition: none; transform: none; opacity: 1; }
+      }
       @media (max-width: 640px) {
-        .staynas-public-site main section { scroll-margin-top: 5rem; }
-        .staynas-public-site main h1 { text-wrap: balance; }
-        .staynas-public-site main h2 { text-wrap: balance; }
+        .staynas-public-site main h1, .staynas-public-site main h2 { text-wrap: balance; }
       }
     `}</style>
     </header>
@@ -264,14 +261,51 @@ function Eyebrow({ children }: { children: ReactNode }) {
   return <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#967747]">{children}</p>;
 }
 
-function CapabilityCard({ item }: { item: PublicCapability }) {
+function ScrollEmphasis({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => {
+      node.dataset.active = entry.isIntersecting ? "true" : "false";
+    }, { threshold: 0.45 });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  return <div ref={ref} data-scroll-emphasis>{children}</div>;
+}
+
+function CapabilityCard({ item, index }: { item: PublicCapability; index: number }) {
   const Icon = capabilityIcons[item.id] ?? CircleDot;
+  const [expanded, setExpanded] = useState(false);
+  const cardRef = useRef<HTMLElementTagNameMap["article"]>(null!);
+
+  useEffect(() => {
+    const node = cardRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") return;
+    node.dataset.revealPending = "true";
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        node.dataset.revealed = "true";
+        observer.disconnect();
+      }
+    }, { threshold: 0.16, rootMargin: "0px 0px -32px 0px" });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <article className="site-editorial-item flex h-full flex-col p-6">
-      <div className="flex items-start justify-between gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#edf1eb] text-[#315744]"><Icon className="h-5 w-5"/></span><span className={"rounded-full border px-2.5 py-1 text-[10px] font-semibold " + statusStyles[item.status]}>{item.statusLabel}</span></div>
-      <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9a835b]">{item.pillar}</p>
-      <h3 className="mt-2 text-lg font-semibold tracking-tight">{item.name}</h3>
-      <p className="mt-3 text-sm leading-6 text-[#68746d]">{item.summary}</p>
+    <article ref={cardRef} data-reveal="true" className="site-editorial-item capability-reveal group flex h-full flex-col p-7" style={{ transitionDelay: `${(index % 6) * 65}ms` }}>
+      <button type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)} className="flex h-full w-full flex-col text-left">
+        <div className="flex items-start justify-between gap-3"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e9ede6] text-[#315744] transition duration-300 group-hover:-translate-y-1 group-hover:bg-[#d7bd85]"><Icon className="h-5 w-5"/></span><span className="mt-2 text-xs font-medium text-[#9a835b] transition group-hover:text-[#315744]">{expanded ? "Close details −" : "Explore capability +"}</span></div>
+        <p className="mt-7 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#9a835b]">{item.pillar}</p>
+        <h3 className="mt-3 text-lg font-semibold tracking-tight transition-colors duration-300 group-hover:text-[#315744]">{item.name}</h3>
+        <p className="mt-3 text-sm leading-7 text-[#68746d]">{item.summary}</p>
+      </button>
+      {expanded && <div className="mt-5 rounded-2xl bg-[#e9ede6] p-5 motion-safe:animate-[fadeIn_.25s_ease-out]">
+        <p className="text-xs font-semibold text-[#315744]">Inside this capability</p>
+        <ul className="mt-3 space-y-2.5">{item.details.map(detail => <li key={detail} className="flex gap-2 text-sm leading-6 text-[#526057]"><Check className="mt-1 h-4 w-4 shrink-0 text-[#53765c]"/>{detail}</li>)}</ul>
+      </div>}
     </article>
   );
 }
@@ -303,7 +337,7 @@ export function ProductHomePage() {
             <div className="rounded-[28px] border border-white/15 bg-white/[0.07] p-5 shadow-2xl backdrop-blur-sm sm:p-7">
               <div className="flex items-center justify-between border-b border-white/10 pb-5"><div><p className="text-xs uppercase tracking-[0.2em] text-white/45">The connected property</p><p className="mt-1 text-lg font-semibold">One operating environment</p></div><span className="rounded-full border border-emerald-300/25 bg-emerald-300/10 px-3 py-1 text-[10px] text-emerald-200">Platform overview</span></div>
               <div className="mt-5 grid grid-cols-2 gap-3">
-                {STAYNAS_PILLARS.map((pillar,index)=><div key={pillar.name} className="rounded-2xl border border-white/10 bg-[#102c23] p-4"><span className="text-[10px] font-semibold text-[#d7bd85]">0{index+1}</span><p className="mt-3 text-sm font-semibold">{pillar.name}</p><p className="mt-2 text-xs leading-5 text-white/45">{pillar.description}</p></div>)}
+                {STAYNAS_PILLARS.map((pillar)=><div key={pillar.name} className="rounded-2xl border border-white/10 bg-[#102c23] p-5"><p className="text-sm font-semibold">{pillar.name}</p><p className="mt-2 text-xs leading-5 text-white/45">{pillar.description}</p></div>)}
               </div>
               <div className="mt-4 rounded-2xl border border-[#d7bd85]/25 bg-[#d7bd85]/10 p-4"><div className="flex items-center gap-2 text-sm font-semibold text-[#ead8b3]"><Sparkles className="h-4 w-4"/> Intelligence across the operation</div><p className="mt-2 text-xs leading-5 text-white/55">A connected view of the guest journey, property activity and management decisions.</p></div>
               <p className="mt-4 text-[10px] text-white/35">Conceptual platform overview · Not a live operational dashboard</p>
@@ -313,13 +347,13 @@ export function ProductHomePage() {
       </section>
       <section className="mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-24">
         <div className="max-w-2xl"><Eyebrow>One connected platform</Eyebrow><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">The systems behind a better-run property.</h2><p className="mt-5 text-base leading-7 text-[#69756e]">Hospitality teams should not have to coordinate their entire operation across disconnected tools. StayNas brings the core work of running a property into one environment.</p></div>
-        <div className="mt-10 grid gap-x-8 gap-y-0 sm:grid-cols-2 lg:grid-cols-3">{STAYNAS_PILLARS.map((pillar,index)=><div key={pillar.name} className="site-editorial-item p-6"><span className="text-xs font-semibold text-[#a1844f]">0{index+1}</span><h3 className="mt-4 text-lg font-semibold">{pillar.name}</h3><p className="mt-2 text-sm leading-6 text-[#69756e]">{pillar.description}</p></div>)}</div>
+        <div className="mt-10 grid gap-x-8 gap-y-0 sm:grid-cols-2 lg:grid-cols-3">{STAYNAS_PILLARS.map((pillar)=><div key={pillar.name} className="site-editorial-item p-7"><h3 className="text-lg font-semibold">{pillar.name}</h3><p className="mt-2 text-sm leading-6 text-[#69756e]">{pillar.description}</p></div>)}</div>
         <div className="mt-8"><Link to="/platform" className="inline-flex items-center gap-2 text-sm font-semibold text-[#315744]">Explore platform capabilities <ArrowRight className="h-4 w-4"/></Link></div>
       </section>
       <section className="bg-[#e9ede6]">
         <div className="mx-auto grid max-w-7xl gap-12 px-6 py-20 lg:grid-cols-2 lg:items-center lg:px-10">
           <div><Eyebrow>From first enquiry to departure</Eyebrow><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">A guest journey that connects to the operation.</h2><p className="mt-5 text-base leading-7 text-[#647169]">A reservation is not an isolated transaction. It creates work across reception, rooms, housekeeping, guest communication and finance. StayNas is designed to connect those steps.</p><Link to="/platform" className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-[#315744]">See how the platform works <ArrowRight className="h-4 w-4"/></Link></div>
-          <div className="space-y-3">{[{n:"01",t:"Discover & book",d:"Direct booking and reservation capture."},{n:"02",t:"Prepare for arrival",d:"Guest details and online check-in."},{n:"03",t:"Welcome & operate",d:"Reception, room readiness and service coordination."},{n:"04",t:"Manage & improve",d:"Financial visibility, guest context and operational intelligence."}].map(step=><div key={step.n} className="flex gap-4 border-b border-[#d4dbd1] py-5"><span className="text-sm font-semibold text-[#a1844f]">{step.n}</span><div><h3 className="font-semibold">{step.t}</h3><p className="mt-1 text-sm text-[#69756e]">{step.d}</p></div></div>)}</div>
+          <div className="space-y-3">{[{t:"Discover & book",d:"Direct booking and reservation capture."},{t:"Prepare for arrival",d:"Guest details and online check-in."},{t:"Welcome & operate",d:"Reception, room readiness and service coordination."},{t:"Manage & improve",d:"Financial visibility, guest context and operational intelligence."}].map(step=><div key={step.t} className="flex gap-4 border-b border-[#d4dbd1] py-7"><div><h3 className="font-semibold">{step.t}</h3><p className="mt-1 text-sm text-[#69756e]">{step.d}</p></div></div>)}</div>
         </div>
       </section>
       <section className="mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-24">
@@ -335,7 +369,7 @@ export function ProductHomePage() {
 export function ProductInfoPage({ page }: { page: "platform" | "solutions" | "integrations" | "demo" }) {
   if (page === "platform") return <SiteShell><main>
     <section className="bg-[#0c211b] px-6 py-16 text-white lg:px-10 lg:py-20"><div className="mx-auto max-w-7xl"><Eyebrow>Platform capabilities</Eyebrow><h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl">The operating system behind every part of the stay.</h1><p className="mt-6 max-w-2xl text-base leading-8 text-white/65">Explore the capabilities StayNas brings together. Availability and activation can vary by property configuration, deployment and connected provider.</p></div></section>
-    <section className="mx-auto max-w-7xl px-6 py-16 lg:px-10"><div className="mb-8 flex flex-wrap items-center gap-2 text-xs text-[#657168]"><span className="font-semibold">Capability status:</span><span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800">Implemented in code</span><span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-800">Configuration dependent</span><span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sky-800">Integration dependent</span><span className="rounded-full border border-stone-200 bg-stone-100 px-3 py-1 text-stone-700">Roadmap</span></div><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{STAYNAS_PUBLIC_CAPABILITIES.map(item=><CapabilityCard key={item.id} item={item}/>)}</div><p className="mt-8 max-w-3xl text-xs leading-6 text-[#7a847e]">Capability labels describe repository implementation evidence and the current product architecture. They are not a guarantee that every capability is enabled, contracted or production-certified for every customer environment.</p></section>
+    <section className="mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-24"><ScrollEmphasis><div className="mb-12 max-w-2xl"><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9a835b]">A connected operating environment</p><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Every capability works toward a smoother stay.</h2><p className="mt-5 text-base leading-8 text-[#69756e]">Explore the capabilities that bring the guest journey and property operation together. Open any capability to see what it brings into the day-to-day workflow.</p></div></ScrollEmphasis><div className="grid gap-x-10 gap-y-10 sm:grid-cols-2 xl:grid-cols-3">{[...STAYNAS_PUBLIC_CAPABILITIES].sort((a,b)=>["ai-concierge","reservations","front-desk","property","guest","housekeeping","finance","automation","payments","multi-property","distribution","ecosystem"].indexOf(a.id)-["ai-concierge","reservations","front-desk","property","guest","housekeeping","finance","automation","payments","multi-property","distribution","ecosystem"].indexOf(b.id)).map((item,index)=><CapabilityCard key={item.id} item={item} index={index}/>)}</div></section>
     <section className="bg-[#e9ede6]"><div className="mx-auto max-w-7xl px-6 py-16 lg:px-10"><div className="max-w-2xl"><Eyebrow>One operating model</Eyebrow><h2 className="mt-4 text-3xl font-semibold">Six connected pillars.</h2></div><div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{STAYNAS_PILLARS.map(p=><div key={p.name} className="site-editorial-item p-5"><h3 className="font-semibold">{p.name}</h3><p className="mt-2 text-sm leading-6 text-[#69756e]">{p.description}</p></div>)}</div></div></section>
     <CallToAction/>
   </main></SiteShell>;
