@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { formatDistanceToNow, format } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { Badge } from "@/components/ui/badge";
@@ -51,7 +51,7 @@ function EscalationsPage() {
         {policies.isLoading && <p className="text-sm text-muted-foreground">Loading SLA policies…</p>}
         <div className="grid gap-3 lg:grid-cols-3">
           {(policies.data ?? []).map((policy: any) => (
-            <SlaPolicyEditor key={policy.id} policy={policy} saving={savePolicy.isPending} onSave={savePolicy.mutate} />
+            <SlaPolicyEditor key={policy.id} policy={policy} timezone={policy.property_timezone} saving={savePolicy.isPending} onSave={savePolicy.mutate} />
           ))}
         </div>
         {policies.data?.[0] && <ReasonPriorityEditor key={JSON.stringify(policies.data[0].reason_priority_map)} initial={policies.data[0].reason_priority_map} saving={saveReasonMap.isPending} onSave={saveReasonMap.mutate} />}
@@ -99,7 +99,7 @@ function ReasonPriorityEditor({ initial, saving, onSave }: { initial: Record<str
   </div>;
 }
 
-function SlaPolicyEditor({ policy, saving, onSave }: { policy: any; saving: boolean; onSave: (v: any) => void }) {
+function SlaPolicyEditor({ policy, timezone, saving, onSave }: { policy: any; timezone: string; saving: boolean; onSave: (v: any) => void }) {
   const [ack, setAck] = useState(String(policy.acknowledgement_minutes));
   const [assign, setAssign] = useState(String(policy.assignment_minutes));
   const [resolve, setResolve] = useState(String(policy.resolution_minutes));
@@ -134,7 +134,7 @@ function SlaPolicyEditor({ policy, saving, onSave }: { policy: any; saving: bool
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={businessHours} onChange={(e) => setBusinessHours(e.target.checked)} /> Count operating hours only</label>
       <details className="text-xs">
         <summary className="cursor-pointer font-medium">Operating calendar (property local time)</summary>
-        <p className="my-2 text-muted-foreground">Use mode 24x7 or weekly with mon–sun arrays of {"{start,end}"} windows.</p>
+        <p className="my-2 text-muted-foreground">Use property timezone {timezone} · mode 24x7 or weekly with mon–sun arrays of {"{start,end}"} windows.</p>
         <Textarea rows={7} value={calendar} onChange={(e) => setCalendar(e.target.value)} />
         {calendarError && <p className="text-destructive">{calendarError}</p>}
       </details>
@@ -143,7 +143,7 @@ function SlaPolicyEditor({ policy, saving, onSave }: { policy: any; saving: bool
   );
 }
 
-function EscalationCard({ row, assignees, onPatch }: {
+function formatPropertyTime(value: string, timezone: string): string {\n  return new Intl.DateTimeFormat(undefined,{timeZone:timezone,dateStyle:"medium",timeStyle:"short"}).format(new Date(value));\n}\n\nfunction EscalationCard({ row, assignees, onPatch }: {
   row: EscalationRow; assignees: Array<{user_id:string;role:string}>;
   onPatch: (v: {id:string;status?:EscalationStatus;assigned_to?:string|null;resolution_notes?:string}) => void;
 }) {
@@ -186,7 +186,7 @@ function EscalationCard({ row, assignees, onPatch }: {
           const late = state === "pending" && at && new Date(at).getTime() < now;
           return <div key={label} className="rounded bg-muted/50 p-2">
             <div className="text-xs text-muted-foreground">{label} SLA</div>
-            <div className="font-medium">{state === "complete" ? "Met / recorded" : at ? format(new Date(at),"dd MMM HH:mm") : "No deadline"}</div>
+            <div className="font-medium">{state === "complete" ? "Met / recorded" : at ? formatPropertyTime(at,row.property_timezone ?? "UTC") : "No deadline"}</div>
             {late && <Badge variant="destructive">Overdue</Badge>}
           </div>;
         })}
@@ -215,7 +215,7 @@ function EscalationCard({ row, assignees, onPatch }: {
         {history.isLoading && <p>Loading history…</p>}
         {(history.data ?? []).map((event: any) => <div key={event.id} className="border-l-2 pl-3 py-1">
           <div className="font-medium">{event.event_type.replaceAll("_"," ")}</div>
-          <div className="text-xs text-muted-foreground">{format(new Date(event.occurred_at),"dd MMM yyyy HH:mm:ss")} · {event.actor_id ?? "System"} {event.from_status ? "· "+event.from_status+" → "+event.to_status : ""}</div>
+          <div className="text-xs text-muted-foreground">{formatPropertyTime(event.occurred_at,row.property_timezone ?? "UTC")} · {event.actor_id ?? "System"} {event.from_status ? "· "+event.from_status+" → "+event.to_status : ""}</div>
         </div>)}
         {history.data?.length === 0 && <p className="text-xs text-muted-foreground">No lifecycle events recorded.</p>}
       </div>}
