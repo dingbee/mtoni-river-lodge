@@ -37,6 +37,27 @@ ALTER TABLE public.ai_escalations DROP CONSTRAINT IF EXISTS ai_escalations_statu
 ALTER TABLE public.ai_escalations ADD CONSTRAINT ai_escalations_status_check
   CHECK (status IN ('open','assigned','acknowledged','in_progress','resolved','dismissed'));
 
+CREATE OR REPLACE FUNCTION public.staynas_seed_property_escalation_sla_policies()
+RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $function$
+BEGIN
+  INSERT INTO public.ai_escalation_sla_policies
+    (property_id,priority,acknowledgement_minutes,assignment_minutes,resolution_minutes)
+  VALUES
+    (NEW.id,1,15,10,120),
+    (NEW.id,2,30,20,240),
+    (NEW.id,3,60,30,480)
+  ON CONFLICT (property_id,priority) DO NOTHING;
+  RETURN NEW;
+END
+$function$;
+DROP TRIGGER IF EXISTS staynas_property_seed_escalation_sla ON public.staynas_properties;
+CREATE TRIGGER staynas_property_seed_escalation_sla
+  AFTER INSERT ON public.staynas_properties
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_seed_property_escalation_sla_policies();
+
 ALTER TABLE public.ai_escalations
   ADD COLUMN IF NOT EXISTS assignment_due_at timestamptz,
   ADD COLUMN IF NOT EXISTS acknowledgement_due_at timestamptz,
@@ -216,9 +237,17 @@ SET search_path = pg_catalog, public
 AS $function$
 DECLARE
   v_policy public.ai_escalation_sla_policies%ROWTYPE;
+  v_reason_map jsonb;
+  v_mapped_priority smallint;
   v_timezone text;
   v_now timestamptz := COALESCE(NEW.created_at,now());
 BEGIN
+  SELECT reason_priority_map INTO v_reason_map FROM public.ai_escalation_sla_policies
+  WHERE property_id=NEW.property_id ORDER BY priority LIMIT 1;
+  IF v_reason_map ? NEW.reason THEN
+    v_mapped_priority := (v_reason_map->>NEW.reason)::smallint;
+    IF v_mapped_priority BETWEEN 1 AND 3 THEN NEW.priority := v_mapped_priority; END IF;
+  END IF;
   SELECT * INTO v_policy FROM public.ai_escalation_sla_policies
   WHERE property_id=NEW.property_id AND priority=NEW.priority AND enabled=true;
   IF NOT FOUND THEN
