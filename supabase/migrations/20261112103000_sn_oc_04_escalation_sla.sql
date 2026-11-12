@@ -243,10 +243,13 @@ DECLARE
   v_now timestamptz := COALESCE(NEW.created_at,now());
 BEGIN
   SELECT reason_priority_map INTO v_reason_map FROM public.ai_escalation_sla_policies
-  WHERE property_id=NEW.property_id ORDER BY priority LIMIT 1;
+  WHERE property_id=NEW.property_id AND enabled ORDER BY priority LIMIT 1;
   IF v_reason_map ? NEW.reason THEN
     v_mapped_priority := (v_reason_map->>NEW.reason)::smallint;
-    IF v_mapped_priority BETWEEN 1 AND 3 THEN NEW.priority := v_mapped_priority; END IF;
+    IF v_mapped_priority BETWEEN 1 AND 3 AND EXISTS (
+      SELECT 1 FROM public.ai_escalation_sla_policies
+      WHERE property_id=NEW.property_id AND priority=v_mapped_priority AND enabled
+    ) THEN NEW.priority := v_mapped_priority; END IF;
   END IF;
   SELECT * INTO v_policy FROM public.ai_escalation_sla_policies
   WHERE property_id=NEW.property_id AND priority=NEW.priority AND enabled=true;
