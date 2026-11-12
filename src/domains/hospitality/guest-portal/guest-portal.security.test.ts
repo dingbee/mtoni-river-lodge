@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
+import QRCode from "qrcode";
 import {
   guestPortalCategories,
   guestRequestStatusLabel,
   validateGuestPortalPhotoMeta,
+  buildGuestPortalUrl,
 } from "./guest-portal.shared";
 
 describe("guest portal photo validation", () => {
@@ -39,5 +41,32 @@ describe("guest portal request presentation", () => {
       "other",
     ]);
     expect(guestPortalCategories("service")).toContain("housekeeping");
+  });
+});
+
+describe("guest portal bearer URL and QR generation", () => {
+  const token = "a".repeat(43);
+
+  it("builds only the canonical guest route from the bearer credential", () => {
+    expect(buildGuestPortalUrl("https://staynas.nolmark.co", token)).toBe(
+      `https://staynas.nolmark.co/guest/${token}`,
+    );
+  });
+
+  it("rejects malformed credentials and unsafe origins", () => {
+    expect(() => buildGuestPortalUrl("https://staynas.nolmark.co", "short")).toThrow();
+    expect(() => buildGuestPortalUrl("javascript:alert(1)", token)).toThrow();
+    expect(() => buildGuestPortalUrl("https://user:pass@staynas.nolmark.co", token)).toThrow();
+  });
+
+  it("generates a local high-correction PNG QR from the exact share URL", async () => {
+    const url = buildGuestPortalUrl("https://staynas.nolmark.co", token);
+    const png = await QRCode.toDataURL(url, {
+      errorCorrectionLevel: "H",
+      margin: 4,
+      width: 1200,
+    });
+    expect(png.startsWith("data:image/png;base64,")).toBe(true);
+    expect(QRCode.create(url, { errorCorrectionLevel: "H" }).modules.size).toBeGreaterThan(0);
   });
 });
