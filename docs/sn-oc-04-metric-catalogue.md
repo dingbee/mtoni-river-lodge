@@ -60,7 +60,7 @@ First-touch, last-touch and conversion-touch must preserve original event timest
 
 ### Response and resolution
 
-Incoming message: `direction='inbound'`, `actor_type='guest'`, `message_type<>'event'`. Valid response: `direction='outbound'`, `actor_type IN ('assistant','staff')`, `message_type NOT IN ('event','template')`, and delivery status recorded/delivered/read. System/provider events, webhook retries and duplicate provider/client message IDs are excluded.
+Incoming message: `direction='inbound'`, `actor_type='guest'`, `message_type<>'event'`. Valid response: `direction='outbound'`, `actor_type IN ('assistant','staff')`, `message_type NOT IN ('event','template')`, and outbound delivery status recorded/accepted/delivered/read (queued and failed sends are excluded). System/provider events, webhook retries and duplicate provider/client message IDs are excluded.
 
 - First response: first valid outbound message after the first eligible inbound message in the conversation.
 - Subsequent response: each valid outbound response after the preceding eligible inbound message, using a deterministic chronological pairing contract.
