@@ -16,26 +16,19 @@ export const Route = createFileRoute("/api/public/hooks/scheduled-jobs")({
         }
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: jobs } = await supabaseAdmin.from("scheduled_jobs").select("*").eq("enabled", true);
+        const { data: escalated, error: escalationError } = await (supabaseAdmin as any).rpc("staynas_escalate_operational_notifications");
+        if (escalationError) return Response.json({ error: escalationError.message }, { status: 500 });
         const now = new Date();
         let ran = 0;
         for (const j of jobs ?? []) {
           const last = j.last_run_at ? new Date(j.last_run_at) : null;
           if (last && now.getTime() - last.getTime() < 23 * 60 * 60 * 1000) continue;
-          // Emit a signal notification (per-job real logic lives in workflow templates).
-          await supabaseAdmin.from("notifications").insert({
-            channel: "in_app",
-            role: "manager",
-            title: `Scheduled: ${j.name}`,
-            body: j.description ?? null,
-            kind: j.job_type,
-            meta: { scheduled_job_id: j.id },
-          });
           await supabaseAdmin.from("scheduled_jobs").update({
             last_run_at: now.toISOString(), last_status: "succeeded", last_error: null,
           }).eq("id", j.id);
           ran += 1;
         }
-        return Response.json({ ok: true, ran });
+        return Response.json({ ok: true, ran, escalated: Number(escalated ?? 0) });
       },
     },
   },

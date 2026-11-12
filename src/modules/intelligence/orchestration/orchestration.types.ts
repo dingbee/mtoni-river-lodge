@@ -83,6 +83,7 @@ export const taskCreatePayloadSchema = z.object({
 });
 
 export const notificationCreatePayloadSchema = z.object({
+  property_id: z.string().uuid(),
   title: z.string().trim().min(3).max(160),
   body: z.string().trim().max(1000).optional(),
   role: z.enum(["owner", "admin", "manager", "reception", "reservations", "finance", "marketing", "housekeeping"]),
