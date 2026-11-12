@@ -118,7 +118,7 @@ async function authorizeGuestPortal(token: string): Promise<GuestPortalContext> 
     await recordGuestPortalAccessDenied(admin, tokenHash, "invalid_or_unknown_credential");
     throw new Error("This guest access link is invalid.");
   }
-  if (access.revoked_at || access.status === "revoked" || access.status === "superseded") {
+  if (access.status === "revoked" || access.status === "superseded" || (access.revoked_at && access.status !== "expired")) {
     await recordGuestPortalAccessDenied(admin, tokenHash, "revoked_or_superseded_credential", access);
     throw new Error("This guest access link has been revoked.");
   }
