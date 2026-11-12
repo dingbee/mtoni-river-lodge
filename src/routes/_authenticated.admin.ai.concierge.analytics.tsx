@@ -163,6 +163,8 @@ function AnalyticsPage() {
             <Stat label="In progress" value={ops?.escalations.by_status.in_progress} />
             <Stat label="Resolved" value={ops?.escalations.by_status.resolved} />
             <Stat label="Median resolution (min)" value={ops?.escalations.median_resolution_minutes ?? undefined} />
+            <Stat label="Reopened escalations" value={ops?.escalations.reopened_escalations} />
+            <Stat label="Same-window reopen rate (%)" value={ops?.escalations.same_window_reopen_rate_available ? Number((ops.escalations.same_window_reopen_rate * 100).toFixed(1)) : undefined} />
           </div>
           <p className="mt-3 text-xs text-muted-foreground">{ops?.escalations.limitation ?? "Escalation evidence is loading."}</p>
         </SectionCard>
