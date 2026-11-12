@@ -617,12 +617,15 @@ GRANT EXECUTE ON FUNCTION public.staynas_transition_concierge_escalation(uuid,uu
 -- Invoke the alert processor every minute through Supabase pg_cron. The job is
 -- idempotent and does not depend on Vercel Cron or a Vercel deployment.
 DO $cron$
+DECLARE v_job record;
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname='pg_cron') THEN
-    IF NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname='staynas-concierge-sla-monitor') THEN
-      PERFORM cron.schedule('staynas-concierge-sla-monitor','* * * * *',
-        'SELECT public.staynas_process_concierge_sla_alerts();');
-    END IF;
+    FOR v_job IN SELECT jobid FROM cron.job WHERE jobname='staynas-concierge-sla-monitor'
+    LOOP
+      PERFORM cron.unschedule(v_job.jobid);
+    END LOOP;
+    PERFORM cron.schedule('staynas-concierge-sla-monitor','* * * * *',
+      'SELECT public.staynas_process_concierge_sla_alerts();');
   END IF;
 END
 $cron$;
