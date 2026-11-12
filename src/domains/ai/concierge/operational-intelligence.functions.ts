@@ -12,14 +12,7 @@ function round(value: number, digits = 2): number {
   return Math.round(value * factor) / factor;
 }
 
-function percentile(values: number[], p: number): number | null {
-  if (!values.length) return null;
-  const sorted = [...values].sort((a, b) => a - b);
-  const position = (sorted.length - 1) * p;
-  const lower = Math.floor(position);
-  const upper = Math.ceil(position);
-  return round(sorted[lower] + (sorted[upper] - sorted[lower]) * (position - lower) / 60_000);
-}
+import { percentileMinutes, responseIntervals } from "./operational-intelligence.metrics";
 
 async function fetchAllRows(buildQuery: () => any): Promise<any[]> {
   const rows: any[] = [];
@@ -193,9 +186,9 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
       operations: {
         sessions: sessions.count ?? 0,
         omnichannel_messages: messageRows.length,
-        first_response_minutes: { p50: percentile(response.first, 0.5), p90: percentile(response.first, 0.9), sample_size: response.first.length },
-        ai_response_minutes: { p50: percentile(response.ai, 0.5), p90: percentile(response.ai, 0.9), sample_size: response.ai.length },
-        human_response_minutes: { p50: percentile(response.human, 0.5), p90: percentile(response.human, 0.9), sample_size: response.human.length },
+        first_response_minutes: { p50: percentileMinutes(response.first, 0.5), p90: percentileMinutes(response.first, 0.9), sample_size: response.first.length },
+        ai_response_minutes: { p50: percentileMinutes(response.ai, 0.5), p90: percentileMinutes(response.ai, 0.9), sample_size: response.ai.length },
+        human_response_minutes: { p50: percentileMinutes(response.human, 0.5), p90: percentileMinutes(response.human, 0.9), sample_size: response.human.length },
         unanswered_conversations: response.unanswered,
         response_metric_note: "Pairs eligible guest inbound messages with the next assistant/staff outbound message; excludes event/template messages, outbound messages not recorded/delivered/read, and duplicate provider/client message identifiers.",
       },
@@ -221,7 +214,7 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         total: escalationRows.length,
         by_status: escalationStatusCounts,
         median_resolution_minutes: resolvedIntervals.length
-          ? percentile(resolvedIntervals, 0.5)
+          ? percentileMinutes(resolvedIntervals, 0.5)
           : null,
         resolution_sample_size: resolvedIntervals.length,
         acknowledgement_latency_available: false,
