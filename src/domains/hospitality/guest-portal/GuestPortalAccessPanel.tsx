@@ -151,7 +151,8 @@ export function GuestPortalAccessPanel({
       );
     const property = escapeHtml(access.data.propertyName);
     const guest = escapeHtml(access.data.guestName);
-    printWindow.opener = null;\n    printWindow.document.write(`<!doctype html><html><head><title>Guest Portal Access</title>
+    printWindow.opener = null;
+    printWindow.document.write(`<!doctype html><html><head><title>Guest Portal Access</title>
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <style>body{font-family:Arial,sans-serif;display:flex;justify-content:center;padding:32px;color:#111}
       .card{width:440px;text-align:center;border:1px solid #ddd;border-radius:18px;padding:28px}
