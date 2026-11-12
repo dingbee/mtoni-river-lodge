@@ -157,5 +157,5 @@ export const updateBookingStatus = createServerFn({ method: "POST" })
         error: "Check-in succeeded, but Guest Portal access issuance failed. Retry from the reservation access panel.",
       };
     }
-    return { ...(result ?? { ok: true }), guestPortalAccess };
+    return { ...(result !== null && typeof result === "object" && !Array.isArray(result) ? result as Record<string, unknown> : { ok: true }), guestPortalAccess };
   });
