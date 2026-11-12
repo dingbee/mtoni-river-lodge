@@ -88,7 +88,8 @@ function PublicCampaignPage() {
         },
       }).catch((error) => console.error("Campaign booking-click attribution failed", error));
       await navigate({
-        to: "/book",
+        to: "/p/$propertySlug/book",
+        params: { propertySlug: data.property.slug },
         search: {
           property: data.property.slug,
           campaign: data.campaign.slug,
