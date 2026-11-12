@@ -68,7 +68,9 @@ describe("guest portal bearer URL and QR generation", () => {
       width: 1200,
     });
     expect(png.startsWith("data:image/png;base64,")).toBe(true);
-    expect(QRCode.create(url, { errorCorrectionLevel: "H" }).modules.size).toBeGreaterThan(0);
+    const qr = QRCode.create(url, { errorCorrectionLevel: "H" });
+    expect(qr.modules.size).toBeGreaterThan(0);
+    expect(qr.segments.map((segment) => String(segment.data)).join("")).toBe(url);
   });
 });
 
