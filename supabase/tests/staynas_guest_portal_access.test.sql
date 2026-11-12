@@ -1,6 +1,6 @@
 begin;
 
-select plan(9);
+select plan(11);
 
 select has_table(
   'public',
@@ -54,12 +54,28 @@ select ok(
 );
 
 select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.staynas_issue_guest_portal_access(uuid,uuid,uuid,uuid,text,uuid,boolean)',
+    'EXECUTE'
+  ),
+  'authenticated role cannot invoke credential issuance RPC directly'
+);
+
+select ok(
   has_function_privilege(
     'service_role',
-    'public.staynas_issue_guest_portal_access(uuid,uuid,uuid,uuid,text,uuid)',
+    'public.staynas_issue_guest_portal_access(uuid,uuid,uuid,uuid,text,uuid,boolean)',
     'EXECUTE'
   ),
   'only trusted server-side service role can invoke issuance RPC'
+);
+
+select has_index(
+  'public',
+  'staynas_guest_portal_access',
+  'staynas_guest_portal_access_one_active_identity_uidx',
+  'one active credential per booking guest identity is enforced'
 );
 
 select * from finish();
