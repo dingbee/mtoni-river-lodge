@@ -314,10 +314,13 @@ BEGIN
   SELECT * INTO result FROM public.staynas_create_concierge_escalation(
     '11111111-1111-4111-8111-111111111111',
     '11111111-1111-4111-8111-111111111112',
-    NULL, 'web', 'complaint', 'Guest reported a complaint.', 0.4, 1::smallint,
+    NULL, 'web', 'complaint', 'Guest reported a complaint.', 0.4, 3::smallint,
     repeat('d',64)
   );
   IF NOT result.created THEN RAISE EXCEPTION 'authorized staff escalation should be created'; END IF;
+  IF (SELECT priority FROM public.ai_escalations WHERE id=result.escalation_id) <> 1 THEN
+    RAISE EXCEPTION 'reason-to-priority mapping must override the supplied priority when configured';
+  END IF;
 
   PERFORM public.staynas_transition_concierge_escalation(
     result.escalation_id,
@@ -387,8 +390,11 @@ RESET request.jwt.claim.sub;
 -- SLA lifecycle, policy calendar and idempotent alert acceptance tests.
 DO $sla_schema_tests$
 BEGIN
+  INSERT INTO public.staynas_properties(id,status,timezone,currency)
+  VALUES ('33333333-3333-4333-8333-333333333333','active','UTC','TZS');
   IF (SELECT count(*) FROM public.ai_escalation_sla_policies WHERE property_id='11111111-1111-4111-8111-111111111111') <> 3
-     OR (SELECT count(*) FROM public.ai_escalation_sla_policies WHERE property_id='22222222-2222-4222-8222-222222222222') <> 3 THEN
+     OR (SELECT count(*) FROM public.ai_escalation_sla_policies WHERE property_id='22222222-2222-4222-8222-222222222222') <> 3
+     OR (SELECT count(*) FROM public.ai_escalation_sla_policies WHERE property_id='33333333-3333-4333-8333-333333333333') <> 3 THEN
     RAISE EXCEPTION 'each property must receive three priority-specific SLA policies';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.ai_escalations WHERE status='open' AND reopened_at IS NOT NULL
@@ -419,6 +425,7 @@ SET request.jwt.claim.role = 'service_role';
 SET ROLE service_role;
 DO $sla_alert_tests$
 DECLARE v_escalation uuid;
+DECLARE v_approaching_escalation uuid;
 DECLARE v_first integer;
 DECLARE v_second integer;
 BEGIN
@@ -430,9 +437,16 @@ BEGIN
     acknowledgement_due_at=now()-interval '2 minutes',
     resolution_due_at=now()-interval '2 minutes'
   WHERE id=v_escalation;
+  SELECT id INTO v_approaching_escalation FROM public.ai_escalations
+  WHERE property_id='22222222-2222-4222-8222-222222222222' AND status='open' LIMIT 1;
+  UPDATE public.ai_escalation_sla_policies SET acknowledgement_minutes=10,assignment_minutes=10,resolution_minutes=10,warning_percent=80
+  WHERE property_id='22222222-2222-4222-8222-222222222222' AND priority=2;
+  UPDATE public.ai_escalations SET sla_cycle_started_at=now()-interval '9 minutes',
+    assignment_due_at=now()+interval '1 minute',acknowledgement_due_at=now()+interval '1 minute',resolution_due_at=now()+interval '1 minute'
+  WHERE id=v_approaching_escalation;
   v_first := public.staynas_process_concierge_sla_alerts();
   v_second := public.staynas_process_concierge_sla_alerts();
-  IF v_first < 3 OR v_second <> 0 THEN
+  IF v_first < 6 OR v_second <> 0 THEN
     RAISE EXCEPTION 'SLA breach alerts must be generated once and remain idempotent';
   END IF;
   IF (SELECT count(*) FROM public.ai_escalation_sla_alerts WHERE escalation_id=v_escalation AND alert_type='breached') <> 3 THEN
@@ -440,6 +454,9 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.notifications WHERE kind='concierge_sla' AND meta->>'escalation_id'=v_escalation::text) THEN
     RAISE EXCEPTION 'SLA breach must notify authorized property staff in-app';
+  END IF;
+  IF (SELECT count(*) FROM public.ai_escalation_sla_alerts WHERE escalation_id=v_approaching_escalation AND alert_type='approaching_breach') <> 3 THEN
+    RAISE EXCEPTION 'approaching-breach warnings must be emitted for each SLA milestone';
   END IF;
 END
 $sla_alert_tests$;
