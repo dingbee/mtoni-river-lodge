@@ -128,6 +128,7 @@ export const updateBookingStatus = createServerFn({ method: "POST" })
       alreadyActive: boolean;
       expiresAt: string | null;
       accessId: string;
+      token?: string | null;
       error?: string;
     } = { issued: false, alreadyActive: false, expiresAt: null, accessId: "" };
 
