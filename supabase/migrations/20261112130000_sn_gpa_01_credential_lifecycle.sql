@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS public.staynas_guest_portal_access_events (
   event_type text NOT NULL CHECK (event_type IN (
     'issued','activated','accessed','regenerated','superseded','revoked',
     'expired','qr_generated','link_shared','delivery_queued','delivery_sent',
-    'delivery_delivered','delivery_retrying','delivery_failed','access_denied','issue_failed','qr_generation_failed'
+    'delivery_delivered','delivery_retrying','delivery_failed','access_denied','checkout_grace_started','issue_failed','qr_generation_failed'
   )),
   token_fingerprint text CHECK (token_fingerprint IS NULL OR length(token_fingerprint) = 12),
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
@@ -349,8 +349,51 @@ BEGIN
     v_event := 'revoked';
     v_status := 'revoked';
   ELSIF NEW.status IS DISTINCT FROM OLD.status AND NEW.status::text = 'completed' THEN
-    v_event := 'expired';
-    v_status := 'expired';
+    -- Checkout starts the configured grace period. Never extend beyond the
+    -- scheduled checkout expiry; an early checkout shortens it to now + grace.
+    WITH updated AS (
+      UPDATE public.staynas_guest_portal_access access
+      SET expires_at = LEAST(
+            access.expires_at,
+            now() + make_interval(mins => COALESCE(property.guest_portal_grace_minutes, 0))
+          ),
+          status = CASE
+            WHEN LEAST(
+              access.expires_at,
+              now() + make_interval(mins => COALESCE(property.guest_portal_grace_minutes, 0))
+            ) <= now() THEN 'expired'
+            ELSE 'active'
+          END,
+          revoked_at = CASE
+            WHEN LEAST(
+              access.expires_at,
+              now() + make_interval(mins => COALESCE(property.guest_portal_grace_minutes, 0))
+            ) <= now() THEN now()
+            ELSE NULL
+          END,
+          revoked_by = CASE
+            WHEN LEAST(
+              access.expires_at,
+              now() + make_interval(mins => COALESCE(property.guest_portal_grace_minutes, 0))
+            ) <= now() THEN auth.uid()
+            ELSE NULL
+          END
+      FROM public.staynas_properties property
+      WHERE property.id = OLD.property_id
+        AND access.property_id = OLD.property_id
+        AND access.booking_id = NEW.id
+        AND access.status = 'active'
+        AND access.revoked_at IS NULL
+      RETURNING access.id, access.property_id, access.booking_id, access.guest_id,
+                access.status, access.expires_at
+    )
+    INSERT INTO public.staynas_guest_portal_access_events
+      (access_id, property_id, booking_id, guest_id, actor_id, event_type, metadata)
+    SELECT id, property_id, booking_id, guest_id, auth.uid(),
+           CASE WHEN status = 'expired' THEN 'expired' ELSE 'checkout_grace_started' END,
+           jsonb_build_object('expires_at', expires_at, 'booking_status', NEW.status::text)
+    FROM updated;
+    RETURN NEW;
   ELSIF NEW.status IS DISTINCT FROM OLD.status AND NEW.status::text IN ('cancelled','no_show') THEN
     v_event := 'revoked';
     v_status := 'revoked';
