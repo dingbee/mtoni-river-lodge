@@ -100,6 +100,7 @@ export interface EscalationRow {
   reopened_at?: string | null;
   sla_cycle_started_at?: string | null;
   property_timezone?: string;
+  sla_alerts?: Array<{id:string;milestone:string;alert_type:string;due_at:string;threshold_percent:number;created_at:string}>;
   created_at: string;
   updated_at: string;
 }
