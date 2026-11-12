@@ -334,6 +334,13 @@ BEGIN
   PERFORM public.staynas_transition_concierge_escalation(
     result.escalation_id,
     '11111111-1111-4111-8111-111111111111',
+    'acknowledged',
+    NULL,
+    NULL
+  );
+  PERFORM public.staynas_transition_concierge_escalation(
+    result.escalation_id,
+    '11111111-1111-4111-8111-111111111111',
     'in_progress',
     NULL,
     NULL
@@ -344,6 +351,13 @@ BEGIN
     'resolved',
     NULL,
     'Guest issue resolved.'
+  );
+  PERFORM public.staynas_transition_concierge_escalation(
+    result.escalation_id,
+    '11111111-1111-4111-8111-111111111111',
+    'open',
+    NULL,
+    'Reopened after guest follow-up.'
   );
 
   IF (SELECT count(*) FROM public.ai_escalations) <> 2
@@ -367,6 +381,68 @@ $staff_tests$;
 RESET ROLE;
 RESET request.jwt.claim.role;
 RESET request.jwt.claim.sub;
+
+-- SLA lifecycle, policy calendar and idempotent alert acceptance tests.
+DO $sla_schema_tests$
+BEGIN
+  IF (SELECT count(*) FROM public.ai_escalation_sla_policies WHERE property_id='11111111-1111-4111-8111-111111111111') <> 3
+     OR (SELECT count(*) FROM public.ai_escalation_sla_policies WHERE property_id='22222222-2222-4222-8222-222222222222') <> 3 THEN
+    RAISE EXCEPTION 'each property must receive three priority-specific SLA policies';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.ai_escalations WHERE status='open' AND reopened_at IS NOT NULL
+    AND assignment_due_at IS NOT NULL AND acknowledgement_due_at IS NOT NULL AND resolution_due_at IS NOT NULL) THEN
+    RAISE EXCEPTION 'reopened escalation must have a fresh complete set of SLA deadlines';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.ai_escalation_events WHERE event_type='acknowledged')
+     OR NOT EXISTS (SELECT 1 FROM public.ai_escalation_events WHERE event_type='reopened')
+     OR NOT EXISTS (SELECT 1 FROM public.ai_escalation_events WHERE event_type='assigned') THEN
+    RAISE EXCEPTION 'assignment, acknowledgement and reopen lifecycle history must be durable';
+  END IF;
+  IF public.staynas_sla_business_minutes(
+    '2026-11-09 09:00:00+00','2026-11-09 10:00:00+00','UTC',
+    '{"mode":"weekly","mon":[{"start":"09:00","end":"17:00"}],"tue":[],"wed":[],"thu":[],"fri":[],"sat":[],"sun":[]}'::jsonb
+  ) <> 60 THEN
+    RAISE EXCEPTION 'weekly operating-hours calculation must count the exact business minutes';
+  END IF;
+  IF public.staynas_sla_add_minutes(
+    '2026-11-09 16:30:00+00',60,'UTC',
+    '{"mode":"weekly","mon":[{"start":"09:00","end":"17:00"}],"tue":[{"start":"09:00","end":"17:00"}],"wed":[],"thu":[],"fri":[],"sat":[],"sun":[]}'::jsonb
+  ) <> '2026-11-10 09:30:00+00'::timestamptz THEN
+    RAISE EXCEPTION 'business-hours due date must carry remaining time into next operating window';
+  END IF;
+END
+$sla_schema_tests$;
+
+SET request.jwt.claim.role = 'service_role';
+SET ROLE service_role;
+DO $sla_alert_tests$
+DECLARE v_escalation uuid;
+DECLARE v_first integer;
+DECLARE v_second integer;
+BEGIN
+  SELECT id INTO v_escalation FROM public.ai_escalations
+  WHERE property_id='11111111-1111-4111-8111-111111111111' AND status='open'
+  ORDER BY created_at LIMIT 1;
+  UPDATE public.ai_escalations SET
+    assignment_due_at=now()-interval '2 minutes',
+    acknowledgement_due_at=now()-interval '2 minutes',
+    resolution_due_at=now()-interval '2 minutes'
+  WHERE id=v_escalation;
+  v_first := public.staynas_process_concierge_sla_alerts();
+  v_second := public.staynas_process_concierge_sla_alerts();
+  IF v_first < 3 OR v_second <> 0 THEN
+    RAISE EXCEPTION 'SLA breach alerts must be generated once and remain idempotent';
+  END IF;
+  IF (SELECT count(*) FROM public.ai_escalation_sla_alerts WHERE escalation_id=v_escalation AND alert_type='breached') <> 3 THEN
+    RAISE EXCEPTION 'assignment, acknowledgement and resolution breach alerts must all persist';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.notifications WHERE kind='concierge_sla' AND meta->>'escalation_id'=v_escalation::text) THEN
+    RAISE EXCEPTION 'SLA breach must notify authorized property staff in-app';
+  END IF;
+END
+$sla_alert_tests$;
+RESET ROLE;
+RESET request.jwt.claim.role;
 
 -- A second authenticated property must see only its own escalation records.
 SET request.jwt.claim.role = 'authenticated';
