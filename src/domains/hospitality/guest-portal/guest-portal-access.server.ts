@@ -86,6 +86,14 @@ export async function ensureGuestPortalAccessAfterCheckIn(
     .single();
 
   if (sessionError || !session) {
+    await admin.from("staynas_guest_portal_access_events").insert({
+      property_id: propertyId,
+      booking_id: booking.id,
+      guest_id: booking.guest_id,
+      actor_id: actorId,
+      event_type: "issue_failed",
+      metadata: { phase: "session_preparation", source: "check_in" },
+    });
     throw new Error("Guest assistance session could not be prepared.");
   }
 
@@ -101,6 +109,14 @@ export async function ensureGuestPortalAccessAfterCheckIn(
 
   if (issueError || !issued?.access_id || !issued?.expires_at) {
     await admin.from("ai_concierge_sessions").delete().eq("id", session.id);
+    await admin.from("staynas_guest_portal_access_events").insert({
+      property_id: propertyId,
+      booking_id: booking.id,
+      guest_id: booking.guest_id,
+      actor_id: actorId,
+      event_type: "issue_failed",
+      metadata: { phase: "credential_rpc", source: "check_in" },
+    });
     throw new Error("Guest Portal access issuance failed after check-in.");
   }
 
