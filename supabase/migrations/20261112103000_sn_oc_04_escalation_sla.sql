@@ -348,6 +348,7 @@ AS $function$
 DECLARE
   v_event text;
   v_actor uuid := auth.uid();
+  v_event_id uuid;
 BEGIN
   IF TG_OP='INSERT' THEN
     v_event := 'created';
@@ -375,8 +376,15 @@ BEGIN
     END IF;
     IF OLD.priority IS DISTINCT FROM NEW.priority THEN
       INSERT INTO public.ai_escalation_events(property_id,escalation_id,event_type,metadata,actor_id)
-      VALUES (NEW.property_id,NEW.id,'priority_changed',jsonb_build_object('from',OLD.priority,'to',NEW.priority),v_actor);
+      VALUES (NEW.property_id,NEW.id,'priority_changed',jsonb_build_object('from',OLD.priority,'to',NEW.priority),v_actor)
+      RETURNING id INTO v_event_id;
       PERFORM public.staynas_set_concierge_escalation_deadlines_for_row(NEW.id);
+      UPDATE public.ai_escalation_events event SET metadata=event.metadata || jsonb_build_object(
+        'assignment_due_at',escalation.assignment_due_at,
+        'acknowledgement_due_at',escalation.acknowledgement_due_at,
+        'resolution_due_at',escalation.resolution_due_at,
+        'sla_policy_id',escalation.sla_policy_id
+      ) FROM public.ai_escalations escalation WHERE event.id=v_event_id AND escalation.id=NEW.id;
     END IF;
   END IF;
   RETURN NEW;
