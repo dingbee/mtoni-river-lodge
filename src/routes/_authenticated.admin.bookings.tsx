@@ -69,8 +69,16 @@ function AdminBookings() {
   const update = useMutation({
     mutationFn: (vars: { id: string; status: BookingLifecycleAction }) =>
       updateFn({ data: vars }),
-    onSuccess: () => {
-      toast.success("Booking updated");
+    onSuccess: (result) => {
+      if (result?.guestPortalAccess?.error) {
+        toast.error(result.guestPortalAccess.error);
+      } else if (result?.guestPortalAccess?.issued) {
+        toast.success("Booking updated and Guest Portal access issued. Open the reservation access panel to retrieve the QR code or link.");
+      } else if (result?.guestPortalAccess?.alreadyActive) {
+        toast.success("Booking updated. The existing Guest Portal credential remains active.");
+      } else {
+        toast.success("Booking updated");
+      }
       qc.invalidateQueries({ queryKey: ["admin-bookings"] });
       qc.invalidateQueries({ queryKey: ["admin-booking"] });
     },
