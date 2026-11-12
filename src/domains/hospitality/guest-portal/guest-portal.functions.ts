@@ -630,34 +630,6 @@ async function issueGuestPortalAccessForBooking(input: {
   };
 }
 
-/**
- * Called only after the authoritative booking transition succeeds.
- * It is safe to retry: an existing active credential is not rotated.
- */
-export async function ensureGuestPortalAccessAfterCheckIn(
-  supabase: SupabaseClient,
-  actorId: string,
-  bookingId: string,
-): Promise<{ issued: boolean; alreadyActive: boolean; expiresAt: string | null; token: string | null; accessId: string }> {
-  const { data: propertyId, error } = await supabase.rpc("staynas_active_property_id", {
-    _uid: actorId,
-  });
-  if (error || !propertyId) throw new Error("Active property could not be resolved for guest access.");
-  const result = await issueGuestPortalAccessForBooking({
-    propertyId: String(propertyId),
-    bookingId,
-    actorId,
-    rotate: false,
-  });
-  return {
-    issued: !result.alreadyActive,
-    alreadyActive: result.alreadyActive,
-    expiresAt: result.expiresAt,
-    token: result.token,
-    accessId: result.accessId,
-  };
-}
-
 export const getGuestPortalAccessStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => staffBookingSchema.pick({ bookingId: true }).parse(input))
