@@ -59,6 +59,7 @@ function Page() {
       ["period", "from", data.period.from, "", data.property.timezone],
       ["period", "to", data.period.to, "", data.property.name],
       ...Object.entries(funnel).map(([key, value]) => ["funnel", key, value as number]),
+      ...Object.entries(permanent).map(([key, value]) => ["permanent_page", key, value as number]),
       ...currencies.flatMap((item) => [
         ["revenue", "gross_booking_value", item.gross_booking_value, item.currency],
         ["revenue", "net_collected", item.net_collected, item.currency],
