@@ -86,7 +86,13 @@ ALTER TABLE public.ai_escalation_sla_policies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_escalation_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_escalation_sla_alerts ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.ai_escalation_sla_policies, public.ai_escalation_events, public.ai_escalation_sla_alerts FROM PUBLIC, anon;
-GRANT SELECT ON public.ai_escalation_sla_policies, public.ai_escalation_events, public.ai_escalation_sla_alerts TO authenticated;
+GRANT SELECT, UPDATE ON public.ai_escalation_sla_policies TO authenticated;
+GRANT SELECT ON public.ai_escalation_events, public.ai_escalation_sla_alerts TO authenticated;
+DROP POLICY IF EXISTS "Escalation SLA policies update in active property" ON public.ai_escalation_sla_policies;
+CREATE POLICY "Escalation SLA policies update in active property"
+  ON public.ai_escalation_sla_policies FOR UPDATE TO authenticated
+  USING (public.staynas_ai_property_in_active_context(property_id, ARRAY['owner','manager','admin']::public.app_role[]))
+  WITH CHECK (public.staynas_ai_property_in_active_context(property_id, ARRAY['owner','manager','admin']::public.app_role[]));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_escalation_sla_policies TO service_role;
 GRANT SELECT, INSERT ON public.ai_escalation_events, public.ai_escalation_sla_alerts TO service_role;
 REVOKE UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON public.ai_escalation_events, public.ai_escalation_sla_alerts FROM anon, authenticated, service_role;
@@ -248,11 +254,13 @@ DECLARE
 BEGIN
   IF TG_OP='INSERT' THEN
     v_event := 'created';
+    INSERT INTO public.ai_escalation_events(property_id,escalation_id,event_type,metadata,occurred_at)
+    VALUES (NEW.property_id,NEW.id,'created',jsonb_build_object('priority',NEW.priority,'assignment_due_at',NEW.assignment_due_at,'acknowledgement_due_at',NEW.acknowledgement_due_at,'resolution_due_at',NEW.resolution_due_at),NEW.created_at);
   ELSE
     IF OLD.assigned_to IS DISTINCT FROM NEW.assigned_to THEN
       v_event := CASE WHEN NEW.assigned_to IS NULL THEN 'unassigned' WHEN OLD.assigned_to IS NULL THEN 'assigned' ELSE 'reassigned' END;
-      INSERT INTO public.ai_escalation_events(property_id,escalation_id,event_type,from_status,to_status,from_assignee,to_assignee,actor_id)
-      VALUES (NEW.property_id,NEW.id,v_event,OLD.status,NEW.status,OLD.assigned_to,NEW.assigned_to,v_actor);
+      INSERT INTO public.ai_escalation_events(property_id,escalation_id,event_type,from_status,to_status,from_assignee,to_assignee,actor_id,metadata)
+      VALUES (NEW.property_id,NEW.id,v_event,OLD.status,NEW.status,OLD.assigned_to,NEW.assigned_to,v_actor,jsonb_build_object('assignment_due_at',NEW.assignment_due_at,'acknowledgement_due_at',NEW.acknowledgement_due_at,'resolution_due_at',NEW.resolution_due_at,'priority',NEW.priority));
     END IF;
     IF OLD.status IS DISTINCT FROM NEW.status THEN
       v_event := CASE
@@ -264,8 +272,8 @@ BEGIN
         WHEN NEW.status='acknowledged' THEN 'acknowledged'
         ELSE NULL END;
       IF v_event IS NOT NULL THEN
-        INSERT INTO public.ai_escalation_events(property_id,escalation_id,event_type,from_status,to_status,actor_id)
-        VALUES (NEW.property_id,NEW.id,v_event,OLD.status,NEW.status,v_actor);
+        INSERT INTO public.ai_escalation_events(property_id,escalation_id,event_type,from_status,to_status,actor_id,metadata)
+        VALUES (NEW.property_id,NEW.id,v_event,OLD.status,NEW.status,v_actor,jsonb_build_object('assignment_due_at',NEW.assignment_due_at,'acknowledgement_due_at',NEW.acknowledgement_due_at,'resolution_due_at',NEW.resolution_due_at,'priority',NEW.priority,'reopened_at',NEW.reopened_at));
       END IF;
     END IF;
     IF OLD.priority IS DISTINCT FROM NEW.priority THEN
@@ -292,7 +300,7 @@ BEGIN
   SELECT * INTO e FROM public.ai_escalations WHERE id=p_id;
   SELECT * INTO p FROM public.ai_escalation_sla_policies WHERE property_id=e.property_id AND priority=e.priority AND enabled;
   SELECT timezone INTO tz FROM public.staynas_properties WHERE id=e.property_id;
-  IF FOUND THEN
+  IF p.id IS NOT NULL THEN
     UPDATE public.ai_escalations SET
       sla_policy_id=p.id,
       assignment_due_at=CASE WHEN p.business_hours_only THEN public.staynas_sla_add_minutes(e.created_at,p.assignment_minutes,tz,p.operating_hours) ELSE e.created_at+make_interval(mins=>p.assignment_minutes) END,
