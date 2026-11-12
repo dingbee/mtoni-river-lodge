@@ -112,6 +112,7 @@ GRANT SELECT ON public.ai_escalation_sla_policies, public.ai_escalation_events, 
 REVOKE INSERT, UPDATE, DELETE ON public.ai_escalation_sla_policies FROM authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_escalation_sla_policies TO service_role;
 GRANT SELECT, INSERT ON public.ai_escalation_events, public.ai_escalation_sla_alerts TO service_role;
+REVOKE TRUNCATE, REFERENCES, TRIGGER ON public.ai_escalation_sla_policies, public.ai_escalation_events, public.ai_escalation_sla_alerts FROM PUBLIC, anon, authenticated, service_role;
 REVOKE UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON public.ai_escalation_events, public.ai_escalation_sla_alerts FROM anon, authenticated, service_role;
 DROP POLICY IF EXISTS "Escalation SLA policies read in active property" ON public.ai_escalation_sla_policies;
 CREATE POLICY "Escalation SLA policies read in active property"
