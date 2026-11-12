@@ -164,7 +164,7 @@ BEGIN
     ) AS days(day_value)
   LOOP
     v_key := (ARRAY['mon','tue','wed','thu','fri','sat','sun'])[extract(isodow FROM v_day)::integer];
-    FOR v_window IN SELECT value FROM jsonb_array_elements(COALESCE(p_hours->v_key,'[]'::jsonb))
+    FOR v_window IN SELECT value FROM jsonb_array_elements(COALESCE(p_hours->v_key,'[]'::jsonb)) ORDER BY value->>'start'
     LOOP
       v_local_start := v_day + (v_window->>'start')::time;
       v_local_end := v_day + (v_window->>'end')::time;
@@ -209,7 +209,7 @@ BEGIN
     interval '1 day'
   ) AS days(day_value)
   LOOP
-    v_key := lower(to_char(v_day,'Dy'));
+    v_key := (ARRAY['mon','tue','wed','thu','fri','sat','sun'])[extract(isodow FROM v_day)::integer];
     FOR v_window IN SELECT value FROM jsonb_array_elements(COALESCE(p_hours->v_key,'[]'::jsonb))
     LOOP
       v_local_start := v_day + (v_window->>'start')::time;
