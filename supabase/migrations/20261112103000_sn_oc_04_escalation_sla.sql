@@ -290,7 +290,7 @@ BEGIN
     IF OLD.assigned_to IS DISTINCT FROM NEW.assigned_to THEN
       v_event := CASE WHEN NEW.assigned_to IS NULL THEN 'unassigned' WHEN OLD.assigned_to IS NULL THEN 'assigned' ELSE 'reassigned' END;
       INSERT INTO public.ai_escalation_events(property_id,escalation_id,event_type,from_status,to_status,from_assignee,to_assignee,actor_id,metadata)
-      VALUES (NEW.property_id,NEW.id,v_event,OLD.status,NEW.status,OLD.assigned_to,NEW.assigned_to,v_actor,jsonb_build_object('assignment_due_at',NEW.assignment_due_at,'acknowledgement_due_at',NEW.acknowledgement_due_at,'resolution_due_at',NEW.resolution_due_at,'priority',NEW.priority));
+      VALUES (NEW.property_id,NEW.id,v_event,OLD.status,NEW.status,OLD.assigned_to,NEW.assigned_to,v_actor,jsonb_build_object('assignment_due_at',NEW.assignment_due_at,'acknowledgement_due_at',NEW.acknowledgement_due_at,'resolution_due_at',NEW.resolution_due_at,'priority',NEW.priority,'sla_cycle_started_at',NEW.sla_cycle_started_at));
     END IF;
     IF OLD.status IS DISTINCT FROM NEW.status THEN
       v_event := CASE
@@ -303,7 +303,7 @@ BEGIN
         ELSE NULL END;
       IF v_event IS NOT NULL THEN
         INSERT INTO public.ai_escalation_events(property_id,escalation_id,event_type,from_status,to_status,actor_id,metadata)
-        VALUES (NEW.property_id,NEW.id,v_event,OLD.status,NEW.status,v_actor,jsonb_build_object('assignment_due_at',NEW.assignment_due_at,'acknowledgement_due_at',NEW.acknowledgement_due_at,'resolution_due_at',NEW.resolution_due_at,'priority',NEW.priority,'reopened_at',NEW.reopened_at));
+        VALUES (NEW.property_id,NEW.id,v_event,OLD.status,NEW.status,v_actor,jsonb_build_object('assignment_due_at',NEW.assignment_due_at,'acknowledgement_due_at',NEW.acknowledgement_due_at,'resolution_due_at',NEW.resolution_due_at,'priority',NEW.priority,'reopened_at',NEW.reopened_at,'sla_cycle_started_at',NEW.sla_cycle_started_at));
       END IF;
     END IF;
     IF OLD.priority IS DISTINCT FROM NEW.priority THEN
