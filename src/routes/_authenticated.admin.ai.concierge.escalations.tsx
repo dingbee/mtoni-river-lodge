@@ -185,10 +185,10 @@ function EscalationCard({ row, assignees, onPatch }: {
     queryFn: () => alertsFn({ data: { escalation_id: row.id } }),
   });
   const due = [
-    ["Assignment",row.assignment_due_at,row.assigned_to ? "complete" : "pending"],
-    ["Acknowledgement",row.acknowledgement_due_at,row.acknowledged_at ? "complete" : "pending"],
-    ["Resolution",row.resolution_due_at,["resolved","dismissed"].includes(row.status) ? "complete" : "pending"],
-  ] as const;
+    { label:"Assignment", at:row.assignment_due_at, completedAt:row.assigned_at, cancelled:false },
+    { label:"Acknowledgement", at:row.acknowledgement_due_at, completedAt:row.acknowledged_at, cancelled:false },
+    { label:"Resolution", at:row.resolution_due_at, completedAt:row.status === "resolved" ? row.resolved_at : null, cancelled:row.status === "dismissed" },
+  ];
   const now = Date.now();
   return (
     <div className="rounded-lg border p-3 text-sm space-y-3">
@@ -205,12 +205,18 @@ function EscalationCard({ row, assignees, onPatch }: {
         </Badge>)}
       </div>}
       <div className="grid gap-2 sm:grid-cols-3">
-        {due.map(([label,at,state]) => {
-          const late = state === "pending" && at && new Date(at).getTime() < now;
+        {due.map(({label,at,completedAt,cancelled}) => {
+          const dueTime = at ? new Date(at).getTime() : null;
+          const completedTime = completedAt ? new Date(completedAt).getTime() : null;
+          const overdue = completedTime === null && !cancelled && dueTime !== null && dueTime < now;
+          const breached = completedTime !== null && dueTime !== null && completedTime > dueTime;
+          const met = completedTime !== null && dueTime !== null && completedTime <= dueTime;
+          const result = cancelled ? "Cancelled" : completedTime !== null ? (dueTime === null ? "Completed" : met ? "Met" : "Breached") : at ? formatPropertyTime(at,row.property_timezone ?? "UTC") : "No deadline";
           return <div key={label} className="rounded bg-muted/50 p-2">
             <div className="text-xs text-muted-foreground">{label} SLA</div>
-            <div className="font-medium">{state === "complete" ? "Met / recorded" : at ? formatPropertyTime(at,row.property_timezone ?? "UTC") : "No deadline"}</div>
-            {late && <Badge variant="destructive">Overdue</Badge>}
+            <div className="font-medium">{result}</div>
+            {overdue && <Badge variant="destructive">Overdue</Badge>}
+            {breached && <Badge variant="destructive">Missed target</Badge>}
           </div>;
         })}
       </div>
