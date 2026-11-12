@@ -93,7 +93,7 @@ BEGIN
      OR NOT public.staynas_user_has_property_access(_actor_id, _property_id)
      OR NOT public.is_any_staff(_actor_id)
      OR NOT public.has_any_role(
-       _actor_id, ARRAY['owner','manager','admin','reception']::public.app_role[]
+       _actor_id, ARRAY['owner','manager','admin','reception','reservations']::public.app_role[]
      ) THEN
     RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='Guest access issuance is not authorized for this checked-in booking';
   END IF;
