@@ -132,7 +132,8 @@ BEGIN
      OR to_regclass('public.ai_escalation_sla_policy_events') IS NULL THEN
     RAISE EXCEPTION 'SN-OC-04 SLA policy, lifecycle and alert tables are required';
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='ai_escalations' AND column_name='assignment_due_at')
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='ai_escalations' AND column_name='assigned_at')
+     OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='ai_escalations' AND column_name='assignment_due_at')
      OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='ai_escalations' AND column_name='acknowledgement_due_at')
      OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='ai_escalations' AND column_name='resolution_due_at')
      OR NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='ai_escalations' AND column_name='sla_cycle_started_at') THEN
