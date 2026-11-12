@@ -182,6 +182,9 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
       ));
     }
     const confirmedBookingCount = new Set(verifiedBookings.map((row: any) => row.id)).size;
+    const closedInWindow = new Set(slaEventRows.filter((event: any) => ["resolved","dismissed"].includes(event.event_type)).map((event: any) => event.escalation_id));
+    const reopenedInWindow = new Set(slaEventRows.filter((event: any) => event.event_type === "reopened").map((event: any) => event.escalation_id));
+    const reopenedAfterWindowClosure = [...reopenedInWindow].filter((id) => closedInWindow.has(id)).length;
     const slaCompletionEvents = slaEventRows.flatMap((event: any) => {
       const milestone = event.event_type === "assigned" ? "assignment" : event.event_type === "acknowledged" ? "acknowledgement" : event.event_type === "resolved" ? "resolution" : null;
       const dueAt = milestone ? event.metadata?.[milestone === "assignment" ? "assignment_due_at" : milestone === "acknowledgement" ? "acknowledgement_due_at" : "resolution_due_at"] : null;
@@ -275,8 +278,9 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         median_acknowledgement_minutes: acknowledgedIntervals.length ? percentileMinutes(acknowledgedIntervals, 0.5) : null,
         acknowledgement_sample_size: acknowledgedIntervals.length,
         acknowledgement_latency_available: true,
-        reopen_rate: escalationRows.length ? round(escalationRows.filter((row: any) => row.reopened_at).length / escalationRows.length, 4) : null,
-        reopen_rate_available: true,
+        reopened_escalations: reopenedInWindow.size,
+        same_window_reopen_rate: closedInWindow.size ? round(reopenedAfterWindowClosure / closedInWindow.size, 4) : null,
+        same_window_reopen_rate_available: closedInWindow.size > 0,
         sla_compliance_available: false,
         limitation: "SN-RT-01 provides acknowledged_at, but immutable status/reassignment/reopen history and versioned SLA policy snapshots are not yet present.",
       },
