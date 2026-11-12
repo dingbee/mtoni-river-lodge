@@ -500,6 +500,14 @@ BEGIN
      OR EXISTS (SELECT 1 FROM public.ai_escalations WHERE property_id <> '22222222-2222-4222-8222-222222222222') THEN
     RAISE EXCEPTION 'property B staff must only read property B escalations';
   END IF;
+  IF (SELECT count(*) FROM public.ai_escalation_sla_policies) <> 3
+     OR EXISTS (SELECT 1 FROM public.ai_escalation_sla_policies WHERE property_id <> '22222222-2222-4222-8222-222222222222') THEN
+    RAISE EXCEPTION 'property B staff must only read property B SLA policies';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.ai_escalation_events WHERE property_id <> '22222222-2222-4222-8222-222222222222')
+     OR EXISTS (SELECT 1 FROM public.ai_escalation_sla_alerts WHERE property_id <> '22222222-2222-4222-8222-222222222222') THEN
+    RAISE EXCEPTION 'property B staff must not read other properties lifecycle or alert evidence';
+  END IF;
 END
 $property_b_staff_tests$;
 RESET ROLE;
