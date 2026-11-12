@@ -1103,9 +1103,23 @@ export const listGuestPortalOccupants = createServerFn({ method: "POST" })
       (profiles ?? []).map((profile: GuestPortalGuestProfile) => [profile.id, profile] as const),
     );
     return {
-      leadGuest: booking.guest_id ? byId.get(booking.guest_id) ?? { id: booking.guest_id, full_name: booking.guest_name } : null,
-      occupants: (relations ?? []).map((row: GuestPortalOccupantRow) => ({ ...byId.get(row.guest_id), addedAt: row.created_at })),
-      availableGuests: availableIds.map((id: string) => byId.get(id)).filter(Boolean),
+      leadGuest: booking.guest_id
+        ? byId.get(booking.guest_id) ?? { id: booking.guest_id, full_name: booking.guest_name }
+        : null,
+      occupants: (relations ?? []).map((row: GuestPortalOccupantRow) => {
+        const profile = byId.get(row.guest_id);
+        return {
+          id: row.guest_id,
+          full_name: profile?.full_name ?? null,
+          email: profile?.email ?? null,
+          phone_e164: profile?.phone_e164 ?? null,
+          addedAt: row.created_at,
+        };
+      }),
+      availableGuests: availableIds.flatMap((id: string) => {
+        const profile = byId.get(id);
+        return profile ? [profile] : [];
+      }),
     };
   });
 
