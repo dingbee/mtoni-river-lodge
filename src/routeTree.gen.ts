@@ -132,14 +132,6 @@ import { Route as ApiPublicOpsMorningDigestRouteImport } from './routes/api/publ
 import { Route as ApiPublicPesapalIpnRouteImport } from './routes/api/public/pesapal.ipn'
 import { Route as ApiPublicRoomsCatalogRouteImport } from './routes/api/public/rooms.catalog'
 import { Route as ApiPublicRoomsStatusRouteImport } from './routes/api/public/rooms.status'
-import { Route as ApiIntegrationsLb02EventsRouteImport } from './routes/api/integrations.lb02.events'
-import { Route as ApiInternalIntegrationsLb02DispatchRouteImport } from './routes/api/internal/integrations.lb02.dispatch'
-import { Route as ApiIntegrationsLb03AuthorizeRouteImport } from './routes/api/integrations.lb03.authorize'
-import { Route as ApiIntegrationsLb03PostRouteImport } from './routes/api/integrations.lb03.post'
-import { Route as ApiIntegrationsLb03ReversalApprovalRouteImport } from './routes/api/integrations.lb03.reversal-approval'
-import { Route as ApiIntegrationsLb03ReversalQueueRouteImport } from './routes/api/integrations.lb03.reversal-queue'
-import { Route as ApiIntegrationsLb03ReversalRequestRouteImport } from './routes/api/integrations.lb03.reversal-request'
-import { Route as ApiIntegrationsLb03StatusRouteImport } from './routes/api/integrations.lb03.status'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -369,46 +361,6 @@ const AuthenticatedAdminReviewsRoute =
 const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
   id: '/api/public/health',
   path: '/api/public/health',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiIntegrationsLb02EventsRoute = ApiIntegrationsLb02EventsRouteImport.update({
-  id: '/api/integrations/lb02/events',
-  path: '/api/integrations/lb02/events',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiInternalIntegrationsLb02DispatchRoute = ApiInternalIntegrationsLb02DispatchRouteImport.update({
-  id: '/api/internal/integrations/lb02/dispatch',
-  path: '/api/internal/integrations/lb02/dispatch',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiIntegrationsLb03AuthorizeRoute = ApiIntegrationsLb03AuthorizeRouteImport.update({
-  id: '/api/integrations/lb03/authorize',
-  path: '/api/integrations/lb03/authorize',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiIntegrationsLb03PostRoute = ApiIntegrationsLb03PostRouteImport.update({
-  id: '/api/integrations/lb03/post',
-  path: '/api/integrations/lb03/post',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiIntegrationsLb03ReversalApprovalRoute = ApiIntegrationsLb03ReversalApprovalRouteImport.update({
-  id: '/api/integrations/lb03/reversal-approval',
-  path: '/api/integrations/lb03/reversal-approval',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiIntegrationsLb03ReversalQueueRoute = ApiIntegrationsLb03ReversalQueueRouteImport.update({
-  id: '/api/integrations/lb03/reversal-queue',
-  path: '/api/integrations/lb03/reversal-queue',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiIntegrationsLb03ReversalRequestRoute = ApiIntegrationsLb03ReversalRequestRouteImport.update({
-  id: '/api/integrations/lb03/reversal-request',
-  path: '/api/integrations/lb03/reversal-request',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiIntegrationsLb03StatusRoute = ApiIntegrationsLb03StatusRouteImport.update({
-  id: '/api/integrations/lb03/status',
-  path: '/api/integrations/lb03/status',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckInPassPassTokenRoute = CheckInPassPassTokenRouteImport.update({
@@ -1392,14 +1344,6 @@ export interface FileRoutesByFullPath {
   '/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/api/public/health': typeof ApiPublicHealthRoute
-  '/api/integrations/lb02/events': typeof ApiIntegrationsLb02EventsRoute
-  '/api/internal/integrations/lb02/dispatch': typeof ApiInternalIntegrationsLb02DispatchRoute
-  '/api/integrations/lb03/authorize': typeof ApiIntegrationsLb03AuthorizeRoute
-  '/api/integrations/lb03/post': typeof ApiIntegrationsLb03PostRoute
-  '/api/integrations/lb03/reversal-approval': typeof ApiIntegrationsLb03ReversalApprovalRoute
-  '/api/integrations/lb03/reversal-queue': typeof ApiIntegrationsLb03ReversalQueueRoute
-  '/api/integrations/lb03/reversal-request': typeof ApiIntegrationsLb03ReversalRequestRoute
-  '/api/integrations/lb03/status': typeof ApiIntegrationsLb03StatusRoute
   '/check-in/pass/$passToken': typeof CheckInPassPassTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -1585,14 +1529,6 @@ export interface FileRoutesByTo {
   '/admin/front-desk': typeof AuthenticatedAdminFrontDeskRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/api/public/health': typeof ApiPublicHealthRoute
-  '/api/integrations/lb02/events': typeof ApiIntegrationsLb02EventsRoute
-  '/api/internal/integrations/lb02/dispatch': typeof ApiInternalIntegrationsLb02DispatchRoute
-  '/api/integrations/lb03/authorize': typeof ApiIntegrationsLb03AuthorizeRoute
-  '/api/integrations/lb03/post': typeof ApiIntegrationsLb03PostRoute
-  '/api/integrations/lb03/reversal-approval': typeof ApiIntegrationsLb03ReversalApprovalRoute
-  '/api/integrations/lb03/reversal-queue': typeof ApiIntegrationsLb03ReversalQueueRoute
-  '/api/integrations/lb03/reversal-request': typeof ApiIntegrationsLb03ReversalRequestRoute
-  '/api/integrations/lb03/status': typeof ApiIntegrationsLb03StatusRoute
   '/check-in/pass/$passToken': typeof CheckInPassPassTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -1782,14 +1718,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/operations': typeof AuthenticatedAdminOperationsRouteWithChildren
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/api/public/health': typeof ApiPublicHealthRoute
-  '/api/integrations/lb02/events': typeof ApiIntegrationsLb02EventsRoute
-  '/api/internal/integrations/lb02/dispatch': typeof ApiInternalIntegrationsLb02DispatchRoute
-  '/api/integrations/lb03/authorize': typeof ApiIntegrationsLb03AuthorizeRoute
-  '/api/integrations/lb03/post': typeof ApiIntegrationsLb03PostRoute
-  '/api/integrations/lb03/reversal-approval': typeof ApiIntegrationsLb03ReversalApprovalRoute
-  '/api/integrations/lb03/reversal-queue': typeof ApiIntegrationsLb03ReversalQueueRoute
-  '/api/integrations/lb03/reversal-request': typeof ApiIntegrationsLb03ReversalRequestRoute
-  '/api/integrations/lb03/status': typeof ApiIntegrationsLb03StatusRoute
   '/check-in/pass/$passToken': typeof CheckInPassPassTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -1984,14 +1912,6 @@ export interface FileRouteTypes {
     | '/admin/operations'
     | '/admin/reviews'
     | '/api/public/health'
-    | '/api/integrations/lb02/events'
-    | '/api/internal/integrations/lb02/dispatch'
-    | '/api/integrations/lb03/authorize'
-    | '/api/integrations/lb03/post'
-    | '/api/integrations/lb03/reversal-approval'
-    | '/api/integrations/lb03/reversal-queue'
-    | '/api/integrations/lb03/reversal-request'
-    | '/api/integrations/lb03/status'
     | '/check-in/pass/$passToken'
     | '/lovable/email/suppression'
     | '/admin/'
@@ -2177,14 +2097,6 @@ export interface FileRouteTypes {
     | '/admin/front-desk'
     | '/admin/reviews'
     | '/api/public/health'
-    | '/api/integrations/lb02/events'
-    | '/api/internal/integrations/lb02/dispatch'
-    | '/api/integrations/lb03/authorize'
-    | '/api/integrations/lb03/post'
-    | '/api/integrations/lb03/reversal-approval'
-    | '/api/integrations/lb03/reversal-queue'
-    | '/api/integrations/lb03/reversal-request'
-    | '/api/integrations/lb03/status'
     | '/check-in/pass/$passToken'
     | '/lovable/email/suppression'
     | '/admin'
@@ -2373,14 +2285,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/operations'
     | '/_authenticated/admin/reviews'
     | '/api/public/health'
-    | '/api/integrations/lb02/events'
-    | '/api/internal/integrations/lb02/dispatch'
-    | '/api/integrations/lb03/authorize'
-    | '/api/integrations/lb03/post'
-    | '/api/integrations/lb03/reversal-approval'
-    | '/api/integrations/lb03/reversal-queue'
-    | '/api/integrations/lb03/reversal-request'
-    | '/api/integrations/lb03/status'
     | '/check-in/pass/$passToken'
     | '/lovable/email/suppression'
     | '/_authenticated/admin/'
@@ -2561,14 +2465,6 @@ export interface RootRouteChildren {
   CheckInSuccessRoute: typeof CheckInSuccessRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
-  ApiIntegrationsLb02EventsRoute: typeof ApiIntegrationsLb02EventsRoute
-  ApiInternalIntegrationsLb02DispatchRoute: typeof ApiInternalIntegrationsLb02DispatchRoute
-  ApiIntegrationsLb03AuthorizeRoute: typeof ApiIntegrationsLb03AuthorizeRoute
-  ApiIntegrationsLb03PostRoute: typeof ApiIntegrationsLb03PostRoute
-  ApiIntegrationsLb03ReversalApprovalRoute: typeof ApiIntegrationsLb03ReversalApprovalRoute
-  ApiIntegrationsLb03ReversalQueueRoute: typeof ApiIntegrationsLb03ReversalQueueRoute
-  ApiIntegrationsLb03ReversalRequestRoute: typeof ApiIntegrationsLb03ReversalRequestRoute
-  ApiIntegrationsLb03StatusRoute: typeof ApiIntegrationsLb03StatusRoute
   CheckInPassPassTokenRoute: typeof CheckInPassPassTokenRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicAvailabilitySearchRoute: typeof ApiPublicAvailabilitySearchRoute
@@ -2807,62 +2703,6 @@ declare module '@tanstack/react-router' {
       path: '/api/public/health'
       fullPath: '/api/public/health'
       preLoaderRoute: typeof ApiPublicHealthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/integrations/lb02/events': {
-      id: '/api/integrations/lb02/events'
-      path: '/api/integrations/lb02/events'
-      fullPath: '/api/integrations/lb02/events'
-      preLoaderRoute: typeof ApiIntegrationsLb02EventsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/internal/integrations/lb02/dispatch': {
-      id: '/api/internal/integrations/lb02/dispatch'
-      path: '/api/internal/integrations/lb02/dispatch'
-      fullPath: '/api/internal/integrations/lb02/dispatch'
-      preLoaderRoute: typeof ApiInternalIntegrationsLb02DispatchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/integrations/lb03/authorize': {
-      id: '/api/integrations/lb03/authorize'
-      path: '/api/integrations/lb03/authorize'
-      fullPath: '/api/integrations/lb03/authorize'
-      preLoaderRoute: typeof ApiIntegrationsLb03AuthorizeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/integrations/lb03/post': {
-      id: '/api/integrations/lb03/post'
-      path: '/api/integrations/lb03/post'
-      fullPath: '/api/integrations/lb03/post'
-      preLoaderRoute: typeof ApiIntegrationsLb03PostRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/integrations/lb03/reversal-approval': {
-      id: '/api/integrations/lb03/reversal-approval'
-      path: '/api/integrations/lb03/reversal-approval'
-      fullPath: '/api/integrations/lb03/reversal-approval'
-      preLoaderRoute: typeof ApiIntegrationsLb03ReversalApprovalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/integrations/lb03/reversal-queue': {
-      id: '/api/integrations/lb03/reversal-queue'
-      path: '/api/integrations/lb03/reversal-queue'
-      fullPath: '/api/integrations/lb03/reversal-queue'
-      preLoaderRoute: typeof ApiIntegrationsLb03ReversalQueueRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/integrations/lb03/reversal-request': {
-      id: '/api/integrations/lb03/reversal-request'
-      path: '/api/integrations/lb03/reversal-request'
-      fullPath: '/api/integrations/lb03/reversal-request'
-      preLoaderRoute: typeof ApiIntegrationsLb03ReversalRequestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/integrations/lb03/status': {
-      id: '/api/integrations/lb03/status'
-      path: '/api/integrations/lb03/status'
-      fullPath: '/api/integrations/lb03/status'
-      preLoaderRoute: typeof ApiIntegrationsLb03StatusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/check-in/pass/$passToken': {
@@ -4634,14 +4474,6 @@ const rootRouteChildren: RootRouteChildren = {
   CheckInSuccessRoute: CheckInSuccessRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
-  ApiIntegrationsLb02EventsRoute: ApiIntegrationsLb02EventsRoute,
-  ApiInternalIntegrationsLb02DispatchRoute: ApiInternalIntegrationsLb02DispatchRoute,
-  ApiIntegrationsLb03AuthorizeRoute: ApiIntegrationsLb03AuthorizeRoute,
-  ApiIntegrationsLb03PostRoute: ApiIntegrationsLb03PostRoute,
-  ApiIntegrationsLb03ReversalApprovalRoute: ApiIntegrationsLb03ReversalApprovalRoute,
-  ApiIntegrationsLb03ReversalQueueRoute: ApiIntegrationsLb03ReversalQueueRoute,
-  ApiIntegrationsLb03ReversalRequestRoute: ApiIntegrationsLb03ReversalRequestRoute,
-  ApiIntegrationsLb03StatusRoute: ApiIntegrationsLb03StatusRoute,
   CheckInPassPassTokenRoute: CheckInPassPassTokenRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicAvailabilitySearchRoute: ApiPublicAvailabilitySearchRoute,
