@@ -17,6 +17,7 @@ DECLARE
   v_booking_b2 uuid := '50000000-0000-0000-0000-000000000003';
   v_booking_b3 uuid := '50000000-0000-0000-0000-000000000004';
   v_booking_a2 uuid := '50000000-0000-0000-0000-000000000005';
+  v_booking_b4 uuid := '50000000-0000-0000-0000-000000000006';
   v_session_1 uuid := '60000000-0000-0000-0000-000000000001';
   v_session_2 uuid := '60000000-0000-0000-0000-000000000002';
   v_session_3 uuid := '60000000-0000-0000-0000-000000000003';
@@ -61,7 +62,8 @@ BEGIN
       (v_booking_b,v_b_property,v_guest_b,'checked_in',current_date + 2),
       (v_booking_b2,v_b_property,v_guest_b,'checked_in',current_date + 2),
       (v_booking_b3,v_b_property,v_guest_b,'checked_in',current_date + 2),
-      (v_booking_a2,v_a_property,v_guest_a,'checked_in',current_date + 2);
+      (v_booking_a2,v_a_property,v_guest_a,'checked_in',current_date + 2),
+      (v_booking_b4,v_b_property,v_guest_b,'checked_in',current_date + 2);
 
   INSERT INTO public.ai_concierge_sessions(id,session_token,property_id,guest_id,guest_name,channel)
     VALUES
@@ -69,7 +71,8 @@ BEGIN
       (v_session_2,'session-test-2',v_a_property,v_guest_a,'Guest A','web'),
       (v_session_3,'session-test-3',v_a_property,v_guest_a,'Guest A','web'),
       (v_session_4,'session-test-4',v_a_property,v_guest_a,'Guest A','web'),
-      (v_session_5,'session-test-5',v_b_property,v_guest_b,'Guest B','web');
+      (v_session_5,'session-test-5',v_b_property,v_guest_b,'Guest B','web'),
+      ('60000000-0000-0000-0000-000000000010','session-test-10',v_b_property,v_guest_b,'Guest B','web');
 
   PERFORM set_config('request.jwt.claim.role','service_role',true);
 
@@ -159,6 +162,17 @@ BEGIN
     SELECT 1 FROM public.staynas_guest_portal_access
     WHERE id=(v_founder->>'access_id')::uuid AND status='revoked' AND revoked_at IS NOT NULL
   ) THEN RAISE EXCEPTION 'Cancellation did not revoke guest access'; END IF;
+
+  -- A property with the default zero-minute grace expires immediately at checkout.
+  v_checkout := public.staynas_issue_guest_portal_access(
+    v_b_property,v_booking_b4,v_guest_b,'60000000-0000-0000-0000-000000000010',
+    repeat('i',64),v_user_b,false
+  );
+  UPDATE public.bookings SET status='completed' WHERE id=v_booking_b4;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.staynas_guest_portal_access
+    WHERE id=(v_checkout->>'access_id')::uuid AND status='expired' AND revoked_at IS NOT NULL
+  ) THEN RAISE EXCEPTION 'Zero-minute checkout grace did not expire access immediately'; END IF;
 
   -- Reversing a successful check-in also revokes access.
   INSERT INTO public.ai_concierge_sessions(id,session_token,property_id,guest_id,guest_name,channel)
