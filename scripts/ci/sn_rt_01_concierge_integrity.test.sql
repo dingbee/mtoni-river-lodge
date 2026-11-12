@@ -399,7 +399,8 @@ DO $sla_security_tests$
 BEGIN
   IF has_table_privilege('anon','public.ai_escalation_sla_policies','SELECT')
      OR has_table_privilege('anon','public.ai_escalation_events','SELECT')
-     OR has_table_privilege('anon','public.ai_escalation_sla_alerts','SELECT') THEN
+     OR has_table_privilege('anon','public.ai_escalation_sla_alerts','SELECT')
+     OR has_table_privilege('anon','public.ai_escalation_sla_policy_events','SELECT') THEN
     RAISE EXCEPTION 'anonymous callers must not read SLA policy, lifecycle or alert records';
   END IF;
   IF NOT has_table_privilege('authenticated','public.ai_escalation_sla_policies','SELECT')
@@ -409,14 +410,19 @@ BEGIN
   IF NOT has_table_privilege('authenticated','public.ai_escalation_events','SELECT')
      OR has_table_privilege('authenticated','public.ai_escalation_events','INSERT')
      OR has_table_privilege('authenticated','public.ai_escalation_events','UPDATE')
-     OR has_table_privilege('authenticated','public.ai_escalation_events','DELETE') THEN
+     OR has_table_privilege('authenticated','public.ai_escalation_events','DELETE')
+     OR NOT has_table_privilege('authenticated','public.ai_escalation_sla_policy_events','SELECT')
+     OR has_table_privilege('authenticated','public.ai_escalation_sla_policy_events','INSERT')
+     OR has_table_privilege('authenticated','public.ai_escalation_sla_policy_events','UPDATE') THEN
     RAISE EXCEPTION 'lifecycle history must be readable but immutable to tenant roles';
   END IF;
   IF NOT has_table_privilege('service_role','public.ai_escalation_sla_policies','UPDATE')
      OR NOT has_table_privilege('service_role','public.ai_escalation_events','INSERT')
      OR NOT has_table_privilege('service_role','public.ai_escalation_sla_alerts','INSERT')
      OR has_table_privilege('service_role','public.ai_escalation_events','DELETE')
-     OR has_table_privilege('service_role','public.ai_escalation_sla_alerts','TRUNCATE') THEN
+     OR has_table_privilege('service_role','public.ai_escalation_sla_alerts','TRUNCATE')
+     OR NOT has_table_privilege('service_role','public.ai_escalation_sla_policy_events','INSERT')
+     OR has_table_privilege('service_role','public.ai_escalation_sla_policy_events','DELETE') THEN
     RAISE EXCEPTION 'server role SLA privileges must be scoped to policy writes and append-only event/alert inserts';
   END IF;
 END
@@ -514,7 +520,8 @@ BEGIN
     RAISE EXCEPTION 'property B staff must only read property B SLA policies';
   END IF;
   IF EXISTS (SELECT 1 FROM public.ai_escalation_events WHERE property_id <> '22222222-2222-4222-8222-222222222222')
-     OR EXISTS (SELECT 1 FROM public.ai_escalation_sla_alerts WHERE property_id <> '22222222-2222-4222-8222-222222222222') THEN
+     OR EXISTS (SELECT 1 FROM public.ai_escalation_sla_alerts WHERE property_id <> '22222222-2222-4222-8222-222222222222')
+     OR EXISTS (SELECT 1 FROM public.ai_escalation_sla_policy_events WHERE property_id <> '22222222-2222-4222-8222-222222222222') THEN
     RAISE EXCEPTION 'property B staff must not read other properties lifecycle or alert evidence';
   END IF;
 END
