@@ -155,7 +155,7 @@ set search_path = ''
 as $function$
 declare
   v_id uuid;
-  v_role text := coalesce(auth.role(),'');
+  v_role text := coalesce(auth.jwt()->>'role','');
 begin
   if v_role <> 'service_role' then
     raise exception using errcode='42501', message='Analytics event ingestion is server-only';
@@ -165,7 +165,7 @@ begin
        'booking_page_viewed','campaign_page_viewed','campaign_cta_clicked',
        'room_selected','offer_selected','availability_searched','quote_generated',
        'booking_started','reservation_created','reservation_confirmed',
-       'payment_initiated','payment_completed','booking_cancelled','payment_refunded'
+       'payment_initiated','payment_completed','booking_cancelled','payment_refunded','payment_reversed'
      )
      or _event_source not in ('browser_observed','server_confirmed')
      or nullif(btrim(_event_key),'') is null
@@ -174,7 +174,7 @@ begin
     raise exception using errcode='22023', message='Invalid analytics event contract';
   end if;
   if _event_type in ('reservation_created','reservation_confirmed','payment_initiated',
-      'payment_completed','booking_cancelled','payment_refunded')
+      'payment_completed','booking_cancelled','payment_refunded','payment_reversed')
       and _event_source <> 'server_confirmed' then
     raise exception using errcode='42501', message='Financial and reservation lifecycle events must be server-confirmed';
   end if;
@@ -265,7 +265,7 @@ as $function$
 declare
   v_id uuid;
 begin
-  if coalesce(auth.role(),'') <> 'service_role' then
+  if coalesce(auth.jwt()->>'role','') <> 'service_role' then
     raise exception using errcode='42501',message='Attribution writes are server-only';
   end if;
   if _property_id is null or _organisation_id is null
@@ -327,7 +327,7 @@ security definer
 set search_path = ''
 as $function$
 begin
-  if coalesce(auth.role(),'') <> 'service_role' then
+  if coalesce(auth.jwt()->>'role','') <> 'service_role' then
     raise exception using errcode='42501',message='Quote attribution is server-only';
   end if;
   if not exists(select 1 from public.staynas_booking_attributions a
