@@ -114,8 +114,21 @@ BEGIN
          JOIN public.commercial_founder_tenant_config cfg
            ON cfg.singleton = true
           AND cfg.founder_organisation_id = fam.organisation_id
+         JOIN public.staynas_organisations founder_org
+           ON founder_org.id = cfg.founder_organisation_id
+          AND founder_org.status = 'active'
          WHERE fam.principal_id = _actor_id
            AND fam.status = 'active'
+           AND EXISTS (
+             SELECT 1
+             FROM public.staynas_properties founder_property
+             JOIN public.staynas_property_members founder_member
+               ON founder_member.property_id = founder_property.id
+             WHERE founder_property.organisation_id = cfg.founder_organisation_id
+               AND founder_property.status = 'active'
+               AND founder_member.user_id = _actor_id
+               AND founder_member.status = 'active'
+           )
        )
      ) THEN
     RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='Guest access issuance is not authorized for this checked-in booking';
@@ -259,8 +272,21 @@ BEGIN
       JOIN public.commercial_founder_tenant_config cfg
         ON cfg.singleton = true
        AND cfg.founder_organisation_id = fam.organisation_id
+      JOIN public.staynas_organisations founder_org
+        ON founder_org.id = cfg.founder_organisation_id
+       AND founder_org.status = 'active'
       WHERE fam.principal_id = _actor_id
         AND fam.status = 'active'
+        AND EXISTS (
+          SELECT 1
+          FROM public.staynas_properties founder_property
+          JOIN public.staynas_property_members founder_member
+            ON founder_member.property_id = founder_property.id
+          WHERE founder_property.organisation_id = cfg.founder_organisation_id
+            AND founder_property.status = 'active'
+            AND founder_member.user_id = _actor_id
+            AND founder_member.status = 'active'
+        )
     )
   ) THEN
     RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='Guest access revocation is not authorized';
