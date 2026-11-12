@@ -114,15 +114,25 @@ BEGIN
     WHERE id=v_rotated_id AND status='revoked' AND revoked_at IS NOT NULL
   ) THEN RAISE EXCEPTION 'Administrator revocation did not invalidate the active credential'; END IF;
 
-  -- Checkout and cancellation triggers must invalidate active credentials.
+  -- Checkout applies the property grace period. Early checkout shortens the
+  -- scheduled expiry to actual checkout time + configured grace.
+  UPDATE public.staynas_properties SET guest_portal_grace_minutes=60 WHERE id=v_a_property;
   v_checkout := public.staynas_issue_guest_portal_access(
     v_a_property,v_booking_a,v_guest_a,v_session_4,repeat('d',64),v_user_a,false
   );
   UPDATE public.bookings SET status='completed' WHERE id=v_booking_a;
   IF NOT EXISTS (
     SELECT 1 FROM public.staynas_guest_portal_access
-    WHERE id=(v_checkout->>'access_id')::uuid AND status='expired' AND revoked_at IS NOT NULL
-  ) THEN RAISE EXCEPTION 'Checkout did not expire the guest credential'; END IF;
+    WHERE id=(v_checkout->>'access_id')::uuid
+      AND status='active'
+      AND expires_at > now()
+      AND expires_at <= now() + interval '60 minutes'
+      AND revoked_at IS NULL
+  ) THEN RAISE EXCEPTION 'Checkout did not preserve access for the configured grace period'; END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.staynas_guest_portal_access_events
+    WHERE booking_id=v_booking_a AND event_type='checkout_grace_started'
+  ) THEN RAISE EXCEPTION 'Checkout grace-start audit event missing'; END IF;
 
   -- A property transfer invalidates credentials scoped to the old property.
   INSERT INTO public.ai_concierge_sessions(id,session_token,property_id,guest_id,guest_name,channel)
