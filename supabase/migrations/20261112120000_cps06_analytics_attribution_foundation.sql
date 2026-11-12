@@ -386,10 +386,13 @@ declare
   v_org uuid;
   v_attribution uuid;
   v_campaign uuid;
+  v_session text;
+  v_first_touch jsonb;
 begin
   if tg_table_name='payment_events' then
     if new.booking_id is null then return new; end if;
-    select p.organisation_id,b.attribution_id,a.campaign_id into v_org,v_attribution,v_campaign
+    select p.organisation_id,b.attribution_id,a.campaign_id,a.session_key,a.first_touch
+      into v_org,v_attribution,v_campaign,v_session,v_first_touch
     from public.bookings b
     join public.staynas_properties p on p.id=b.property_id
     left join public.staynas_booking_attributions a on a.id=b.attribution_id and a.property_id=b.property_id
@@ -408,11 +411,16 @@ begin
     v_key:='ledger-payment:'||new.id::text;
     insert into public.staynas_booking_analytics_events(
       organisation_id,property_id,attribution_id,campaign_id,booking_id,event_type,event_key,
-      event_source,currency,amount,metadata
+      event_source,session_key,traffic_source,traffic_medium,utm_campaign,utm_content,utm_term,
+      referrer,landing_page,currency,amount,metadata
     )
     select v_org,b.property_id,v_attribution,v_campaign,new.booking_id,v_type,v_key,
-      'server_confirmed',upper(new.currency),abs(new.amount),
-      jsonb_build_object('payment_event_id',new.id,'provider',new.provider,'payment_event_type',new.event_type)
+      'server_confirmed',v_session,v_first_touch->>'source',v_first_touch->>'medium',
+      v_first_touch->>'utm_campaign',v_first_touch->>'utm_content',v_first_touch->>'utm_term',
+      v_first_touch->>'referrer',v_first_touch->>'landing_page',
+      upper(new.currency),abs(new.amount),
+      jsonb_build_object('payment_event_id',new.id,'provider',new.provider,'payment_event_type',new.event_type,
+        'first_touch',coalesce(v_first_touch,'{}'::jsonb))
     from public.bookings b where b.id=new.booking_id
     on conflict(property_id,event_key) do nothing;
     return new;
@@ -430,7 +438,8 @@ begin
   else
     return new;
   end if;
-  select p.organisation_id,a.campaign_id into v_org,v_campaign
+  select p.organisation_id,a.campaign_id,a.session_key,a.first_touch
+    into v_org,v_campaign,v_session,v_first_touch
   from public.staynas_properties p
   left join public.staynas_booking_attributions a on a.id=new.attribution_id and a.property_id=new.property_id
   where p.id=new.property_id;
@@ -440,12 +449,15 @@ begin
   where id=new.attribution_id and property_id=new.property_id;
   insert into public.staynas_booking_analytics_events(
     organisation_id,property_id,attribution_id,campaign_id,booking_id,quote_id,event_type,
-    event_key,event_source,currency,amount,metadata
+    event_key,event_source,session_key,traffic_source,traffic_medium,utm_campaign,utm_content,utm_term,
+    referrer,landing_page,currency,amount,metadata
   ) values (
     v_org,new.property_id,new.attribution_id,v_campaign,new.id,new.reservation_quote_id,
-    v_type,v_key,'server_confirmed',upper(new.currency),
+    v_type,v_key,'server_confirmed',v_session,v_first_touch->>'source',v_first_touch->>'medium',
+    v_first_touch->>'utm_campaign',v_first_touch->>'utm_content',v_first_touch->>'utm_term',
+    v_first_touch->>'referrer',v_first_touch->>'landing_page',upper(new.currency),
     case when v_type='reservation_created' then new.total else null end,
-    jsonb_build_object('booking_status',new.status::text)
+    jsonb_build_object('booking_status',new.status::text,'first_touch',coalesce(v_first_touch,'{}'::jsonb))
   ) on conflict(property_id,event_key) do nothing;
   return new;
 end
@@ -564,8 +576,21 @@ begin
       count(*) filter(where event_type in ('booking_page_viewed','campaign_page_viewed')) as views,
       count(distinct session_key) filter(where event_type in ('booking_page_viewed','campaign_page_viewed')) as visitors,
       count(*) filter(where event_type='booking_started') as booking_starts,
-      count(distinct booking_id) filter(where event_type='reservation_created') as reservations
+      count(distinct booking_id) filter(where event_type='reservation_created') as reservations,
+      count(distinct booking_id) filter(where event_type='payment_completed') as paid_bookings
     from e group by 1,2
+  ),
+  last_touch_acquisition as (
+    select coalesce(a.last_touch->>'source','(not set)') as source,
+      coalesce(a.last_touch->>'medium','(not set)') as medium,
+      count(*) filter(where e.event_type in ('booking_page_viewed','campaign_page_viewed')) as views,
+      count(distinct e.session_key) filter(where e.event_type in ('booking_page_viewed','campaign_page_viewed')) as visitors,
+      count(*) filter(where e.event_type='booking_started') as booking_starts,
+      count(distinct e.booking_id) filter(where e.event_type='reservation_created') as reservations,
+      count(distinct e.booking_id) filter(where e.event_type='payment_completed') as paid_bookings
+    from e
+    left join public.staynas_booking_attributions a on a.id=e.attribution_id and a.property_id=e.property_id
+    group by 1,2
   )
   select jsonb_build_object(
     'property_id',_property_id,
@@ -587,6 +612,7 @@ begin
     'currencies',coalesce((select jsonb_agg(to_jsonb(money)) from money),'[]'::jsonb),
     'campaigns',coalesce((select jsonb_agg(to_jsonb(campaign_rows)) from campaign_rows),'[]'::jsonb),
     'acquisition',coalesce((select jsonb_agg(to_jsonb(acquisition)) from acquisition),'[]'::jsonb),
+    'last_touch_acquisition',coalesce((select jsonb_agg(to_jsonb(last_touch_acquisition)) from last_touch_acquisition),'[]'::jsonb),
     'permanent_page',(
       select jsonb_build_object(
         'views',count(*) filter(where event_type='booking_page_viewed' and campaign_id is null),
