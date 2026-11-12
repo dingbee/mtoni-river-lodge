@@ -473,7 +473,8 @@ BEGIN
           jsonb_build_object('property_id',e.property_id,'escalation_id',e.id,'alert_id',v_alert_id,'milestone',a.milestone,'alert_type',CASE WHEN now() >= a.due_at THEN 'breached' ELSE 'approaching_breach' END,'due_at',a.due_at)
         FROM public.staynas_property_members member
         WHERE member.property_id=e.property_id AND member.status='active'
-          AND member.role::text IN ('owner','manager','admin','reservations','reception');
+          AND member.role::text IN ('owner','manager','admin','reservations','reception')
+          AND (e.assigned_to IS NULL OR member.user_id=e.assigned_to OR member.role::text IN ('owner','manager','admin'));
         v_count := v_count+1;
       END IF;
       v_alert_id := NULL;
