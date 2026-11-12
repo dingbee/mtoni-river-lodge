@@ -521,12 +521,10 @@ export const listEscalations = createServerFn({ method: "POST" })
   .inputValidator((input: { status?: EscalationStatus | "all" }) => input ?? {})
   .handler(async ({ data, context }) => {
     const propertyId = await requirePropertyScope(context.supabase, context.userId);
-    const sessionIds = await propertySessionIds(context.supabase, propertyId);
-    if (sessionIds.length === 0) return [];
     let q = context.supabase
       .from("ai_escalations")
-      .select("*")
-      .in("session_id", sessionIds)
+      .select("*,assignment_due_at,acknowledgement_due_at,resolution_due_at,reopened_at")
+      .eq("property_id", propertyId)
       .order("priority", { ascending: true })
       .order("created_at", { ascending: false })
       .limit(200);
@@ -602,6 +600,60 @@ export const updateEscalation = createServerFn({ method: "POST" })
     });
     if (error) throw new Error("Could not update the property escalation.");
     return { ok: true };
+  });
+
+export const listEscalationSlaPolicies = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
+    const { data, error } = await (context.supabase as any).from("ai_escalation_sla_policies")
+      .select("*").eq("property_id", propertyId).order("priority");
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const updateEscalationSlaPolicy = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: {
+    id: string; enabled?: boolean; acknowledgement_minutes?: number; assignment_minutes?: number;
+    resolution_minutes?: number; business_hours_only?: boolean; operating_hours?: Record<string, unknown>;
+    warning_percent?: number;
+  }) => {
+    if (!input?.id) throw new Error("Policy id is required.");
+    const bounds = [["acknowledgement_minutes",input.acknowledgement_minutes,1,10080],["assignment_minutes",input.assignment_minutes,1,10080],["resolution_minutes",input.resolution_minutes,1,43200],["warning_percent",input.warning_percent,1,99]] as const;
+    for (const [key,value,min,max] of bounds) if (value !== undefined && (!Number.isInteger(value) || value < min || value > max)) throw new Error("Invalid SLA policy value: " + key);
+    if (input.operating_hours !== undefined) {
+      const mode = input.operating_hours.mode;
+      if (mode !== "24x7" && mode !== "weekly") throw new Error("Operating calendar mode must be 24x7 or weekly.");
+      if (mode === "weekly") for (const day of ["mon","tue","wed","thu","fri","sat","sun"]) {
+        const windows = input.operating_hours[day];
+        if (!Array.isArray(windows)) throw new Error("Weekly calendar must define all seven days.");
+        for (const window of windows as Array<{start?:string;end?:string}>) {
+          if (!window || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(window.start ?? "") || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(window.end ?? "") || (window.start ?? "") >= (window.end ?? "")) throw new Error("Calendar windows must use HH:MM and end after they start.");
+        }
+      }
+    }
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
+    const patch: Record<string, unknown> = { updated_by: context.userId, updated_at: new Date().toISOString() };
+    for (const key of ["enabled","acknowledgement_minutes","assignment_minutes","resolution_minutes","business_hours_only","operating_hours","warning_percent"] as const) if (data[key] !== undefined) patch[key] = data[key];
+    const { data: row, error } = await (context.supabase as any).from("ai_escalation_sla_policies").update(patch).eq("id",data.id).eq("property_id",propertyId).select("id").maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("SLA policy not found in the active property.");
+    return { ok: true };
+  });
+
+export const listEscalationEvents = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { escalation_id: string }) => { if (!input?.escalation_id) throw new Error("Escalation id is required."); return input; })
+  .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
+    const { data: rows, error } = await (context.supabase as any).from("ai_escalation_events").select("*")
+      .eq("property_id",propertyId).eq("escalation_id",data.escalation_id).order("occurred_at",{ascending:true}).limit(500);
+    if (error) throw new Error(error.message);
+    return rows ?? [];
   });
 
 // ── Analytics ───────────────────────────────────────────────────────────────
