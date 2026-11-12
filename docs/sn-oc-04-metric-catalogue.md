@@ -21,7 +21,7 @@ The approved UAT tenant is Nolmark CDMA (`f44ff48a-5449-4464-b0cb-83295fadb468`)
 | Concierge attribution | `ai_concierge_attributions` | Session, optional booking ID, conversion type, metadata, created_at | Booking click and assisted/direct attribution labels alone are not proof of a confirmed booking |
 | Campaign attribution | `campaign_attribution` | Property, campaign, optional booking, session key, event type, source/medium/referrer, UTM campaign/content/term, occurred_at; unique event key support | UTM source/medium/content may be carried in metadata; verify event lineage before joining to lead/session |
 | Booking | `bookings` | Property, booking ID, status, payment status, confirmed/cancelled timestamps, total, currency, paid amount, check-in/out | Booked revenue and realized revenue must be separate; use finance ledger for settled/refunded realization |
-| Escalations | `ai_escalations` joined to session | Session linkage, reason, priority, status, assigned_to, acknowledged_at, resolved_at, created_at, updated_at | Current durable schema lacks complete assignment/reopen event history and SLA policy snapshots |
+| Escalations | `ai_escalations` joined to session | Session linkage, reason, priority, status, assigned_to, resolved_at, created_at, updated_at | Current durable schema lacks complete assignment/reopen event history and SLA policy snapshots |
 | Knowledge | `knowledge_documents`, `knowledge_document_versions`, `knowledge_chunks` | Property ownership, published/draft/archived status, current version, chunk version | Document/chunk existence does not prove retrieval or answer grounding |
 | Retrieval | `ai_knowledge_search_log` | Property, query, result_count, matched_source_ids, confidence, created_at | No verified FK to Concierge session/message or generated answer; query text should not be exposed in aggregate APIs |
 | Feedback | `ai_concierge_feedback` | Session, optional message, rating, comment, created_at | Guest feedback is a perception signal, not factual correctness ground truth |
@@ -36,10 +36,10 @@ The approved UAT tenant is Nolmark CDMA (`f44ff48a-5449-4464-b0cb-83295fadb468`)
 | Qualified leads | Distinct leads with explicit qualified status or documented qualification evidence | Count qualified lead records; do not infer from intent score alone |
 | Confirmed booking conversions | Distinct attributed bookings with authoritative confirmed status and confirmed_at | Join attribution to `bookings` by booking_id and property_id; require confirmed status and non-null confirmed_at |
 | Completed stays | Distinct confirmed bookings with verified completed-stay lifecycle evidence | Do not infer completion solely from check_out date; require authoritative checkout/completion evidence |
-| Lead-to-booking rate | Confirmed attributed bookings / eligible distinct leads | Cohort leads by lead creation date; deduplicate booking and lead IDs |
+| Lead-to-booking rate | Confirmed attributed bookings / eligible distinct leads | Unavailable until a durable lead_id-to-booking_id relationship exists; do not divide unrelated booking and lead counts |
 | Booking-click rate | Booking clicks / eligible sessions or visitors | Engagement metric only; never label conversion |
 | Booked revenue | Sum booking total for verified confirmed bookings, net of cancellation treatment | Use `bookings.total` and `bookings.currency`, grouped by property currency |
-| Realized revenue | Settled amount net of posted refunds/reversals | Use authoritative finance/payment ledger; exclude unposted and pending amounts |
+| Realized revenue | Settled amount net of posted refunds/reversals | Use authoritative property payment/folio ledger with verified settlement and reversal evidence; exclude unposted and pending amounts |
 | Attribution coverage | Eligible leads with traceable source touch / eligible distinct leads | Report denominator and missing-source count |
 | Time to conversion | Confirmed booking timestamp minus first eligible lead timestamp | Require same property and verified linkage |
 
@@ -67,12 +67,12 @@ Incoming message: `direction='inbound'`, `actor_type='guest'`, `message_type<>'e
 - AI and human response times: split by outbound actor_type.
 - Automated acknowledgements: assistant-originated content counts only when it is a substantive guest-facing response; templated transport receipts/system events do not count. If the source contract cannot distinguish acknowledgement from substantive answer, expose the limitation rather than guessing.
 - Unanswered conversations: retain as unanswered; do not drop from denominator.
-- Resolution time, first-contact resolution and reopen rate: unavailable until explicit resolution/reopen lifecycle events are persisted. Session last_active_at is not a resolution timestamp.
+- Resolution time: median of `ai_escalations.resolved_at - created_at` for current rows with status `resolved`; this is a current-state snapshot, not an immutable lifecycle history. First-contact resolution and reopen rate remain unavailable. Session last_active_at is not a resolution timestamp.
 - Timezone: persist/compare UTC instants; bucket display dates using the property's configured timezone. Percentiles use continuous percentile calculation over eligible completed response intervals.
 
 ### Escalation SLA
 
-Current `ai_escalations` provides creation, assignment target, acknowledgement timestamp, resolved timestamp and current status. It does not yet provide immutable assignment/reassignment/in-progress/reopen event history or an SLA policy snapshot. Therefore assignment latency, reopen rate, business-hours SLA compliance and historical policy-correct breach calculations remain unavailable until those durable contracts are added. Current status may support open/assigned/resolved counts only, with explicit status mapping.
+Current `ai_escalations` provides creation time, assignment target, resolved timestamp and current status. It has **no `acknowledged_at` field**, immutable assignment/reassignment/in-progress/reopen event history, or SLA policy snapshot. Median resolution duration can be calculated for rows with `status=resolved` and non-null `resolved_at`; acknowledgement latency, reopen rate, business-hours SLA compliance and historical policy-correct breach calculations remain unavailable. Current status supports open/assigned/in-progress/resolved/dismissed counts.
 
 ### Knowledge and feedback
 
@@ -108,4 +108,4 @@ Read-only scoped counts at inspection time:
 - Campaign attribution events: 0
 - Bookings: 4
 
-These counts are a baseline, not evidence of zero historical conversion. The four booking records currently group as: 1 checked-in/paid USD 1,320; 1 completed/unpaid USD 120; 2 pending/unpaid USD 528. All four stored booking currencies are USD although the property currency is TZS. This is a material currency-integrity discrepancy: do not aggregate or display these totals as TZS, do not convert them using an assumed FX rate, and keep attributed revenue unavailable until booking-currency provenance and authoritative finance postings/reversals are reconciled. A completed-but-unpaid booking is not realized revenue. No synthetic activity has been inserted.
+These counts are a baseline, not evidence of zero historical conversion. The four booking records currently group as: 1 checked-in/paid USD 1,320; 1 completed/unpaid USD 120; 2 pending/unpaid USD 528. All four stored booking currencies are USD although the property currency is TZS. The four bookings have no PMS folio postings; only one has a payment-event row, which has not been established as a verified settlement. This is a material currency-integrity discrepancy: do not aggregate or display these totals as TZS, do not convert them using an assumed FX rate, and keep revenue unavailable until booking-currency provenance and authoritative payment/reversal evidence are reconciled. A completed-but-unpaid booking is not realized revenue. No synthetic activity has been inserted.
