@@ -96,7 +96,7 @@ export const getConciergeAnalytics = createServerFn({ method: "POST" })
     const confRows = (avgConfRow.data ?? []) as Array<{ confidence: number | null }>;
     const avgConfidence = confRows.length
       ? confRows.reduce((a, r) => a + (Number(r.confidence) || 0), 0) / confRows.length
-      : 0;
+      : null;
 
     const avgMessagesPerSession = sessionsCount ? messagesCount / sessionsCount : 0;
     // Booking clicks are engagement events, not verified booking outcomes.
@@ -116,7 +116,7 @@ export const getConciergeAnalytics = createServerFn({ method: "POST" })
         sessions: sessionsCount,
         messages: messagesCount,
         avg_messages_per_session: round(avgMessagesPerSession, 2),
-        avg_confidence: round(avgConfidence, 3),
+        avg_confidence: avgConfidence === null ? null : round(avgConfidence, 3),
         escalation_rate: round(escalationRate, 3),
       },
       conversion: {
@@ -299,7 +299,12 @@ export const getConciergeOutcomes = createServerFn({ method: "POST" })
       .limit(5000);
     if (error) throw new Error(error.message);
     const counts = new Map<string, number>();
-    for (const r of rows ?? []) counts.set(r.outcome_type as string, (counts.get(r.outcome_type as string) ?? 0) + 1);
+    for (const r of rows ?? []) {
+      // Legacy "converted" classifications were inferred from attribution labels,
+      // not verified bookings. Preserve their volume under an explicitly unverified name.
+      const type = r.outcome_type === "converted" ? "legacy_conversion_unverified" : String(r.outcome_type);
+      counts.set(type, (counts.get(type) ?? 0) + 1);
+    }
     return Array.from(counts.entries())
       .map(([outcome_type, count]) => ({ outcome_type, count }))
       .sort((a, b) => b.count - a.count);
