@@ -354,6 +354,9 @@ BEGIN
   ELSIF NEW.status IS DISTINCT FROM OLD.status AND NEW.status::text IN ('cancelled','no_show') THEN
     v_event := 'revoked';
     v_status := 'revoked';
+  ELSIF NEW.status IS DISTINCT FROM OLD.status AND OLD.status::text = 'checked_in' THEN
+    v_event := 'revoked';
+    v_status := 'revoked';
   ELSE
     RETURN NEW;
   END IF;
