@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { CheckCircle2, Circle, Copy, Download } from "lucide-react";
 import { buildGuestPortalUrl } from "@/domains/hospitality/guest-portal/guest-portal.shared";
+import { recordGuestPortalAccessEvent } from "@/domains/hospitality/guest-portal/guest-portal.functions";
 
 type Step = "verify" | "guest" | "payment" | "assign" | "notes" | "confirm" | "portal";
 const STEPS: { id: Step; label: string }[] = [
@@ -30,17 +31,22 @@ export function CheckInWizard({ workspace }: { workspace: any }) {
   const [notes, setNotes] = useState("");
   const [guestPortalLink, setGuestPortalLink] = useState<string | null>(null);
   const [guestPortalQr, setGuestPortalQr] = useState<string | null>(null);
+  const [guestPortalAccessId, setGuestPortalAccessId] = useState<string | null>(null);
   const [roomStateId, setRoomStateId] = useState<string | undefined>(
     workspace.roomStates?.find((r: any) => r.state === "vacant_clean")?.id,
   );
   const nav = useNavigate();
   const fn = useServerFn(checkInBooking);
+  const recordAccessEvent = useServerFn(recordGuestPortalAccessEvent);
   const m = useMutation({
     mutationFn: () => fn({ data: { bookingId: workspace.booking.id, roomStateId, arrivalTime, notes: notes || undefined } }),
     onSuccess: (result) => {
       toast.success("Check-in complete");
       const token = result?.guestPortalAccess?.token;
-      if (token) setGuestPortalLink(buildGuestPortalUrl(window.location.origin, token));
+      if (token) {
+        setGuestPortalLink(buildGuestPortalUrl(window.location.origin, token));
+        setGuestPortalAccessId(result.guestPortalAccess.accessId);
+      }
       setStep("portal");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -53,10 +59,17 @@ export function CheckInWizard({ workspace }: { workspace: any }) {
       return;
     }
     QRCode.toDataURL(guestPortalLink, { errorCorrectionLevel: "H", margin: 4, width: 1200 })
-      .then((dataUrl) => { if (!cancelled) setGuestPortalQr(dataUrl); })
+      .then(async (dataUrl) => {
+        if (!cancelled) {
+          setGuestPortalQr(dataUrl);
+          if (guestPortalAccessId) {
+            try { await recordAccessEvent({ data: { bookingId: workspace.booking.id, accessId: guestPortalAccessId, eventType: "qr_generated" } }); } catch { /* Credential access is unaffected by audit telemetry. */ }
+          }
+        }
+      })
       .catch(() => { if (!cancelled) toast.error("Guest Portal QR generation failed. The secure link is still available."); });
     return () => { cancelled = true; };
-  }, [guestPortalLink]);
+  }, [guestPortalLink, guestPortalAccessId, recordAccessEvent, workspace.booking.id]);
 
   const idx = STEPS.findIndex((s) => s.id === step);
   const next = () => setStep(STEPS[Math.min(idx + 1, STEPS.length - 1)].id);
@@ -176,6 +189,7 @@ export function CheckInWizard({ workspace }: { workspace: any }) {
                     onClick={async () => {
                       try {
                         await navigator.clipboard.writeText(guestPortalLink);
+                        if (guestPortalAccessId) { try { await recordAccessEvent({ data: { bookingId: workspace.booking.id, accessId: guestPortalAccessId, eventType: "link_shared" } }); } catch { /* Copy succeeds independently of audit telemetry. */ } }
                         toast.success("Guest Portal link copied");
                       } catch {
                         toast.error("Clipboard access is unavailable on this device.");
