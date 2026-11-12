@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware'
 import { z } from 'zod'
 import { requireStayNasModuleAccess } from '@/lib/staynas-authorization.server'
+import { ensureGuestPortalAccessAfterCheckIn } from '@/domains/hospitality/guest-portal/guest-portal.functions'
 
 // All front-desk reads/writes are staff-only — RLS enforces is_staff().
 
@@ -60,7 +61,22 @@ export const updateBookingStatus = createServerFn({ method: 'POST' })
       _notes: null,
     })
     if (error) throw new Error(error.message)
-    return result ?? { ok: true }
+    if (data.status !== 'checked_in') return result ?? { ok: true }
+
+    let guestPortalAccess: { issued: boolean; alreadyActive: boolean; expiresAt: string | null } | { issued: false; error: string }
+    try {
+      guestPortalAccess = await ensureGuestPortalAccessAfterCheckIn(
+        context.supabase,
+        context.userId,
+        data.bookingId,
+      )
+    } catch {
+      guestPortalAccess = {
+        issued: false,
+        error: 'Check-in succeeded, but Guest Portal access issuance failed. Retry from the reservation access panel.',
+      }
+    }
+    return { ...(result ?? { ok: true }), guestPortalAccess }
   })
 
 export const saveStaffNote = createServerFn({ method: 'POST' })
