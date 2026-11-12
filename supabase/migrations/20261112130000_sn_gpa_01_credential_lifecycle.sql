@@ -99,6 +99,7 @@ BEGIN
   FOR UPDATE;
 
   IF NOT FOUND OR v_booking.status::text <> 'checked_in'
+     OR v_booking.guest_id IS NULL
      OR v_booking.guest_id IS DISTINCT FROM _guest_id
      OR NOT (
        (
