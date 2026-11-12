@@ -23,7 +23,9 @@ CREATE TYPE public.ops_task_status AS ENUM ('pending','in_progress','completed',
 
 CREATE TABLE public.staynas_properties(
   id uuid PRIMARY KEY,
-  status text NOT NULL DEFAULT 'active'
+  status text NOT NULL DEFAULT 'active',
+  timezone text NOT NULL DEFAULT 'UTC',
+  currency text NOT NULL DEFAULT 'TZS'
 );
 CREATE TABLE public.staynas_property_domains(
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
