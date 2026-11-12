@@ -7,6 +7,9 @@ on:
       - 'src/components/os/operations/CheckInWizard.tsx'
       - 'src/lib/operations.functions.ts'
       - 'src/lib/front-desk.functions.ts'
+      - 'src/lib/analytics.ts'
+      - 'src/lib/analytics.security.test.ts'
+      - 'vite.config.ts'
       - 'src/domains/ai/concierge/guest-request-*.functions.ts'
       - 'src/domains/ai/concierge/GuestRequestsPanel.tsx'
       - 'src/routes/guest.$token.tsx'
@@ -57,8 +60,8 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      - name: Guest portal security and contract tests
-        run: bunx vitest run src/domains/hospitality/guest-portal/guest-portal.security.test.ts
+      - name: Guest portal and analytics security tests
+        run: bunx vitest run src/domains/hospitality/guest-portal/guest-portal.security.test.ts src/lib/analytics.security.test.ts
       - name: Build and generate route tree
         run: bun run build
       - name: TypeScript verification
