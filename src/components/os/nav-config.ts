@@ -93,7 +93,8 @@ export const NAV: NavEntry[] = [
       icon: BarChart3,
       items: [
         { id: "finance", label: "Finance", href: "/admin/finance", icon: CreditCard },
-        { id: "revenue", label: "Analytics", href: "/admin/analytics/revenue", icon: TrendingUp },\n        { id: "direct-booking.analytics", label: "Performance & Attribution", href: "/admin/analytics/direct-booking", icon: BarChart3 },
+        { id: "revenue", label: "Analytics", href: "/admin/analytics/revenue", icon: TrendingUp },
+        { id: "direct-booking.analytics", label: "Performance & Attribution", href: "/admin/analytics/direct-booking", icon: BarChart3 },
         { id: "automation", label: "Automation", href: "/admin/automation", icon: Bot },
       ],
     },
