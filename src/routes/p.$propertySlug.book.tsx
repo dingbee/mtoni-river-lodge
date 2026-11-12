@@ -377,7 +377,7 @@ function BookPage() {
       const [rooms, extrasList] = await Promise.all([
         checkAvailabilityFn({ data: {
           checkIn, checkOut, guests: totalOccupants, adults, childrenBelow6, children7Plus,
-          propertySlug, campaignSlug: campaign, offerId: offer, ratePlanId: ratePlan,
+          propertySlug, campaignSlug: campaign, offerId: offer,
           sessionKey: campaign ? (campaignSession ?? sessionId) : undefined,
           utmSource, utmMedium, utmCampaign, utmContent, utmTerm, referrer,
         } }),
