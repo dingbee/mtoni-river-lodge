@@ -83,5 +83,6 @@ describe("guest portal environment origin", () => {
   it("rejects unapproved preview and local development hosts", () => {
     expect(() => guestPortalOrigin("https://preview.vercel.app")).toThrow();
     expect(() => guestPortalOrigin("http://localhost:3000")).toThrow();
+    expect(() => guestPortalOrigin("http://staynas.nolmark.co")).toThrow();
   });
 });
