@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { percentileMinutes, responseIntervals } from "./operational-intelligence.metrics";
 
 type Window = "7d" | "30d" | "90d";
 
@@ -7,12 +8,6 @@ function parseWindow(value: unknown): Window {
   return value === "7d" || value === "90d" ? value : "30d";
 }
 
-function round(value: number, digits = 2): number {
-  const factor = 10 ** digits;
-  return Math.round(value * factor) / factor;
-}
-
-import { percentileMinutes, responseIntervals } from "./operational-intelligence.metrics";
 
 async function fetchAllRows(buildQuery: () => any): Promise<any[]> {
   const rows: any[] = [];
