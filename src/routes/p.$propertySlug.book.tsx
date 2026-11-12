@@ -377,7 +377,7 @@ function BookPage() {
         checkAvailabilityFn({ data: {
           checkIn, checkOut, guests: totalOccupants, adults, childrenBelow6, children7Plus,
           propertySlug, campaignSlug: campaign, offerId: offer, ratePlanId: ratePlan,
-          sessionKey: campaign ? (campaignSession ?? sessionId) : undefined,
+          sessionKey: campaign ? (campaignSession ?? sessionId) : sessionId,
           utmSource, utmMedium, utmCampaign, utmContent, utmTerm, referrer,
         } }),
         listExtrasFn(),
@@ -433,7 +433,7 @@ function BookPage() {
           holdId: hold && hold.roomSlug === selectedRoom.slug ? hold.id : undefined,
           sessionId,
           propertySlug, campaignSlug: campaign, offerId: offer,
-          sessionKey: campaign ? (campaignSession ?? sessionId) : undefined,
+          sessionKey: campaign ? (campaignSession ?? sessionId) : sessionId,
           utmSource, utmMedium, utmCampaign, utmContent, utmTerm, referrer,
         },
       });
@@ -468,7 +468,7 @@ function BookPage() {
               checkIn, checkOut, adults, childrenBelow6, children7Plus,
               extras: selectedExtras,
               propertySlug, campaignSlug: campaign, offerId: offer,
-              sessionKey: campaign ? (campaignSession ?? sessionId) : undefined,
+              sessionKey: campaign ? (campaignSession ?? sessionId) : sessionId,
               utmSource, utmMedium, utmCampaign, utmContent, utmTerm, referrer,
             },
           });
@@ -510,7 +510,7 @@ function BookPage() {
         children7Plus,
         extras: selectedExtras,
         propertySlug, campaignSlug: campaign, offerId: offer,
-        sessionKey: campaign ? (campaignSession ?? sessionId) : undefined,
+        sessionKey: campaign ? (campaignSession ?? sessionId) : sessionId,
         utmSource, utmMedium, utmCampaign, utmContent, utmTerm, referrer,
       },
     }).then((quote) => {
