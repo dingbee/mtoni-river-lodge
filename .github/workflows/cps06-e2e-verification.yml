@@ -60,6 +60,7 @@ jobs:
           src/routes/_authenticated.admin.analytics.direct-booking.tsx
           src/components/os/nav-config.ts
           src/lib/staynas-entitlements.ts
+          src/lib/staynas-entitlements.test.ts
           --rule 'prettier/prettier: off'
       - name: Booking, finance and analytics regression tests
         run: >-
@@ -68,6 +69,7 @@ jobs:
           src/domains/finance/payment-contract.test.ts
           src/domains/finance/finance-reconciliation.test.ts
           src/lib/pesapal-currency.test.ts
+          src/lib/staynas-entitlements.test.ts
 
   database:
     name: Full isolated Supabase migration and CPS-06 database contracts
