@@ -614,12 +614,23 @@ async function issueGuestPortalAccessForBooking(input: {
       _concierge_session_id: session.id,
       _token_hash: hashToken(token),
       _actor_id: input.actorId,
+      _rotate: input.rotate,
     },
   );
 
   if (issueError || !issued?.access_id || !issued?.expires_at) {
     await admin.from("ai_concierge_sessions").delete().eq("id", session.id);
     throw new Error("Guest portal access could not be issued. The previous credential remains valid.");
+  }
+
+  if (issued.already_active) {
+    await admin.from("ai_concierge_sessions").delete().eq("id", session.id);
+    return {
+      token: null,
+      expiresAt: String(issued.expires_at),
+      accessId: String(issued.access_id),
+      alreadyActive: true,
+    };
   }
 
   return {
