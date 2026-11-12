@@ -25,6 +25,7 @@ import {
   listGuestPortalOccupants,
   addGuestPortalOccupant,
   removeGuestPortalOccupant,
+  prepareGuestPortalDeliveryDraft,
 } from "./guest-portal.functions";
 
 function formatDate(value: string | null | undefined, timezone: string | null | undefined) {
@@ -53,6 +54,7 @@ export function GuestPortalAccessPanel({
   const [accessId, setAccessId] = useState<string | null>(null);
   const [selectedGuestId, setSelectedGuestId] = useState<string | null>(null);
   const [availableGuestId, setAvailableGuestId] = useState<string>("");
+  const [deliveryChannel, setDeliveryChannel] = useState<"whatsapp" | "email">("whatsapp");
   const statusFn = useServerFn(getGuestPortalAccessStatus);
   const issueFn = useServerFn(issueGuestPortalAccess);
   const revokeFn = useServerFn(revokeGuestPortalAccess);
@@ -60,6 +62,7 @@ export function GuestPortalAccessPanel({
   const occupantsFn = useServerFn(listGuestPortalOccupants);
   const addOccupantFn = useServerFn(addGuestPortalOccupant);
   const removeOccupantFn = useServerFn(removeGuestPortalOccupant);
+  const prepareDeliveryFn = useServerFn(prepareGuestPortalDeliveryDraft);
 
   const occupants = useQuery({
     queryKey: ["guest-portal-occupants", bookingId],
@@ -133,6 +136,19 @@ export function GuestPortalAccessPanel({
       setQrDataUrl(null);
       setAccessId(null);
       toast.success(result.revokedCount ? "Guest Portal access revoked" : "No active credential to revoke");
+      qc.invalidateQueries({ queryKey: ["guest-portal-access", bookingId] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const prepareDelivery = useMutation({
+    mutationFn: () => {
+      const currentAccessId = accessId ?? access.data?.accessId;
+      if (!link || !currentAccessId) throw new Error("Generate or reveal the active Guest Portal link before preparing delivery.");
+      return prepareDeliveryFn({ data: { bookingId, accessId: currentAccessId, channel: deliveryChannel, portalUrl: link } });
+    },
+    onSuccess: () => {
+      toast.success("Delivery draft prepared. Review and approve it in AI Concierge Drafts before dispatch.");
       qc.invalidateQueries({ queryKey: ["guest-portal-access", bookingId] });
     },
     onError: (error: Error) => toast.error(error.message),
@@ -411,9 +427,42 @@ export function GuestPortalAccessPanel({
             )}
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            Delivery: {access.data?.deliveryStatus ?? "not sent"}. Copy, QR and device sharing are available. Automated WhatsApp and email delivery are not enabled for Guest Portal credentials yet.
-          </p>
+          <div className="rounded-md border border-border p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-xs font-medium">Property messaging delivery</p>
+                <p className="text-xs text-muted-foreground">
+                  Status: <span className="capitalize">{(access.data?.deliveryStatus ?? "not_sent").replaceAll("_", " ")}</span>
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Select value={deliveryChannel} onValueChange={(value) => setDeliveryChannel(value as "whatsapp" | "email")}>
+                  <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => prepareDelivery.mutate()}
+                  disabled={!active || !link || prepareDelivery.isPending}
+                >
+                  {prepareDelivery.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+                  Prepare delivery draft
+                </Button>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Uses the property's verified provider binding and existing dispatch ledger. A manager must review and approve the draft; guest consent, WhatsApp service-window and template rules are enforced by dispatch.
+            </p>
+            {access.data?.deliveryDraftId && (
+              <a href="/admin/ai/concierge/drafts" className="mt-2 inline-block text-xs font-medium text-primary underline">
+                Review delivery draft in AI Concierge
+              </a>
+            )}
+          </div>
           {!access.data?.multipleGuestAccess && (
             <p className="text-xs text-muted-foreground">
               Current reservation data supports one linked lead-guest identity. Separate registered-occupant credentials are not yet enabled.
