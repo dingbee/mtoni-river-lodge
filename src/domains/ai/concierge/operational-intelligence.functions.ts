@@ -112,7 +112,7 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         .eq("ai_concierge_sessions.property_id", propertyId).gte("created_at", since)),
       fetchAllRows(() => sb.from("ai_concierge_leads").select("id,status,consent_at,consent_version,created_at").eq("property_id", propertyId).gte("created_at", since)),
       fetchAllRows(() => sb.from("ai_escalations")
-        .select("id,session_id,property_id,status,priority,assigned_to,created_at,acknowledged_at,resolved_at,assignment_due_at,acknowledgement_due_at,resolution_due_at,reopened_at")
+        .select("id,session_id,property_id,status,priority,assigned_to,created_at,acknowledged_at,resolved_at,assignment_due_at,acknowledgement_due_at,resolution_due_at,reopened_at,sla_cycle_started_at")
         .eq("property_id", propertyId).gte("created_at", since)),
       fetchAllRows(() => sb.from("knowledge_documents").select("id,status,current_version,source_updated_at,review_due_at").eq("property_id", propertyId)),
       fetchAllRows(() => sb.from("knowledge_chunks").select("id,document_id,version").eq("property_id", propertyId)),
@@ -135,19 +135,20 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
     if (!property.data) throw new Error("Active property configuration is unavailable.");
 
     const response = responseIntervals(messageRows);
-    const acknowledgedIntervals = escalationRows
-      .filter((row: any) => row.acknowledged_at)
-      .map((row: any) => Date.parse(row.acknowledged_at) - Date.parse(row.created_at))
+    const escalationCreatedAt = new Map(escalationRows.map((row: any) => [row.id, row.created_at]));
+    const acknowledgedIntervals = slaEventRows
+      .filter((event: any) => event.event_type === "acknowledged")
+      .map((event: any) => Date.parse(event.occurred_at) - Date.parse(event.metadata?.sla_cycle_started_at ?? escalationCreatedAt.get(event.escalation_id) ?? event.occurred_at))
       .filter((value: number) => Number.isFinite(value) && value >= 0);
-    const resolvedIntervals = escalationRows
-      .filter((row: any) => row.resolved_at && row.status === "resolved")
-      .map((row: any) => Date.parse(row.resolved_at) - Date.parse(row.created_at))
+    const resolvedIntervals = slaEventRows
+      .filter((event: any) => event.event_type === "resolved")
+      .map((event: any) => Date.parse(event.occurred_at) - Date.parse(event.metadata?.sla_cycle_started_at ?? escalationCreatedAt.get(event.escalation_id) ?? event.occurred_at))
       .filter((value: number) => Number.isFinite(value) && value >= 0);
     const consentVerifiedLeads = leadRows.filter((row: any) => row.consent_at && row.consent_version).length;
     const leadStatusCounts = Object.fromEntries(["new", "contacted", "qualified", "converted", "closed"].map((status) => [
       status, leadRows.filter((row: any) => row.status === status).length,
     ]));
-    const escalationStatusCounts = Object.fromEntries(["open", "assigned", "in_progress", "resolved", "dismissed"].map((status) => [
+    const escalationStatusCounts = Object.fromEntries(["open", "assigned", "acknowledged", "in_progress", "resolved", "dismissed"].map((status) => [
       status, escalationRows.filter((row: any) => row.status === status).length,
     ]));
 
