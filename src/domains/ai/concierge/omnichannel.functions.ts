@@ -654,7 +654,7 @@ export const updateEscalationSlaPolicy = createServerFn({ method: "POST" })
           const sorted = [...windows as Array<{start?:string;end?:string}>].sort((a,b) => String(a.start).localeCompare(String(b.start)));
           let previousEnd = "";
           for (const window of sorted) {
-            if (!window || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(window.start ?? "") || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(window.end ?? "") || (window.start ?? "") >= (window.end ?? "")) throw new Error("Calendar windows must use HH:MM and end after they start.");
+            if (!window || !/^([01]\d|2[0-3]):[0-5]\d$/.test(window.start ?? "") || !/^([01]\d|2[0-3]):[0-5]\d$/.test(window.end ?? "") || (window.start ?? "") >= (window.end ?? "")) throw new Error("Calendar windows must use HH:MM and end after they start.");
             if (previousEnd && (window.start ?? "") < previousEnd) throw new Error("Operating calendar windows cannot overlap.");
             previousEnd = window.end ?? "";
             totalWindows += 1;
