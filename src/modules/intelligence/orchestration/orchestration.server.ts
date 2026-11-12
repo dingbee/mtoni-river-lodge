@@ -110,24 +110,28 @@ function payloadForCapability(
   step: { title: string; objective: string; expected_outcome: string | null; responsible_role: string | null; module: string },
   decisionTitle: string,
 ): JsonObject {
-  const rationale = [step.objective, step.expected_outcome ? `Expected outcome: ${step.expected_outcome}` : null]
-    .filter(Boolean)
+  const title = String(step.title ?? "");
+  const objective = String(step.objective ?? "");
+  const expectedOutcome = step.expected_outcome == null ? null : String(step.expected_outcome);
+  const responsibleRole = step.responsible_role == null ? "manager" : String(step.responsible_role);
+  const rationale: string = [objective, expectedOutcome ? `Expected outcome: ${expectedOutcome}` : null]
+    .filter((value): value is string => typeof value === "string" && value.length > 0)
     .join("\n\n");
   switch (capability) {
     case "notification.create":
       return {
-        title: step.title,
-        body: `${decisionTitle}. ${step.objective}`.slice(0, 1000),
-        role: (step.responsible_role || "manager").toLowerCase(),
-        href: "/admin/intelligence/actions",
+        title,
+        body: `${decisionTitle}. ${objective}`.slice(0, 1000),
+        role: responsibleRole.toLowerCase(),
+        href: String("/admin/intelligence/actions"),
       };
     case "campaign.draft":
-      return { name: step.title.slice(0, 160), objective: step.objective.slice(0, 500), audience: "Direct guests", notes: rationale };
+      return { name: title.slice(0, 160), objective: objective.slice(0, 500), audience: "Direct guests", notes: rationale };
     case "pricing.review":
       return {
-        title: step.title.slice(0, 160),
+        title: title.slice(0, 160),
         rationale: rationale.slice(0, 2000),
-        suggestedDirection: /reduce|lower|discount/.test(`${step.title} ${step.objective}`.toLowerCase()) ? "decrease" : "increase",
+        suggestedDirection: /reduce|lower|discount/.test(`${title} ${objective}`.toLowerCase()) ? "decrease" : "increase",
         window: "Next 14 nights",
       };
     default:
