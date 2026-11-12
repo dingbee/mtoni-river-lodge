@@ -114,7 +114,13 @@ async function authorizeGuestPortal(token: string): Promise<GuestPortalContext> 
     .maybeSingle();
 
   if (accessError) throw new Error("Guest Portal access is temporarily unavailable.");
-  if (!access) {
+  const hashMatches = Boolean(
+    access &&
+    typeof access.token_hash === "string" &&
+    /^[a-f0-9]{64}$/i.test(access.token_hash) &&
+    timingSafeEqual(Buffer.from(access.token_hash, "hex"), Buffer.from(tokenHash, "hex")),
+  );
+  if (!access || !hashMatches) {
     await recordGuestPortalAccessDenied(admin, tokenHash, "invalid_or_unknown_credential");
     throw new Error("This guest access link is invalid.");
   }
