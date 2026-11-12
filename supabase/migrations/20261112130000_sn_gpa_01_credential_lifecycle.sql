@@ -34,15 +34,16 @@ CREATE UNIQUE INDEX IF NOT EXISTS staynas_guest_portal_access_one_active_identit
 CREATE TABLE IF NOT EXISTS public.staynas_guest_portal_access_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   access_id uuid REFERENCES public.staynas_guest_portal_access(id) ON DELETE SET NULL,
-  property_id uuid NOT NULL REFERENCES public.staynas_properties(id) ON DELETE CASCADE,
-  booking_id uuid NOT NULL REFERENCES public.bookings(id) ON DELETE CASCADE,
+  property_id uuid REFERENCES public.staynas_properties(id) ON DELETE SET NULL,
+  booking_id uuid REFERENCES public.bookings(id) ON DELETE SET NULL,
   guest_id uuid REFERENCES public.guests(id) ON DELETE SET NULL,
   actor_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   event_type text NOT NULL CHECK (event_type IN (
     'issued','activated','accessed','regenerated','superseded','revoked',
     'expired','qr_generated','link_shared','delivery_queued','delivery_sent',
-    'delivery_delivered','delivery_failed','access_denied'
+    'delivery_delivered','delivery_failed','access_denied','issue_failed','qr_generation_failed'
   )),
+  token_fingerprint text CHECK (token_fingerprint IS NULL OR length(token_fingerprint) = 12),
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now()
 );
