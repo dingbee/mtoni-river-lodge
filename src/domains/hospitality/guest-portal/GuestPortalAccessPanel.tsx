@@ -35,9 +35,13 @@ function formatDate(value: string | null | undefined, timezone: string | null | 
 export function GuestPortalAccessPanel({
   bookingId,
   bookingStatus,
+  issuedCredential,
+  onCredentialConsumed,
 }: {
   bookingId: string;
   bookingStatus: string;
+  issuedCredential?: { bookingId: string; token: string; accessId: string } | null;
+  onCredentialConsumed?: () => void;
 }) {
   const qc = useQueryClient();
   const [link, setLink] = useState<string | null>(null);
@@ -176,6 +180,16 @@ export function GuestPortalAccessPanel({
       setAccessId(null);
     }
   }, [access.data?.active]);
+
+  useEffect(() => {
+    if (!issuedCredential || issuedCredential.bookingId !== bookingId) return;
+    setAccessId(issuedCredential.accessId);
+    setLink(buildGuestPortalUrl(
+      guestPortalOrigin(window.location.origin, import.meta.env.VITE_GUEST_PORTAL_BASE_URL),
+      issuedCredential.token,
+    ));
+    onCredentialConsumed?.();
+  }, [issuedCredential, bookingId, onCredentialConsumed]);
 
   const active = access.data?.active ?? false;
 
