@@ -757,7 +757,7 @@ async function issueGuestPortalAccessForBooking(input: {
 
 export const getGuestPortalAccessStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => staffBookingSchema.pick({ bookingId: true }).parse(input))
+  .inputValidator((input: unknown) => z.object({ bookingId: z.string().uuid(), guestId: z.string().uuid().optional() }).parse(input))
   .handler(async ({ data, context }) => {
     const propertyId = await requireReservationProperty(context, data.bookingId);
     const admin = await adminClient();
@@ -769,12 +769,26 @@ export const getGuestPortalAccessStatus = createServerFn({ method: "POST" })
       .maybeSingle();
     if (bookingError || !booking) throw new Error("Booking not found in the active property.");
 
-    const [accessResult, propertyResult, roomResult, eventsResult] = await Promise.all([
+    const targetGuestId = data.guestId ?? booking.guest_id;
+    if (!targetGuestId) throw new Error("The reservation has no registered lead guest.");
+    if (targetGuestId !== booking.guest_id) {
+      const { data: occupant, error: occupantError } = await admin
+        .from("staynas_booking_guest_occupants")
+        .select("id")
+        .eq("property_id", propertyId)
+        .eq("booking_id", data.bookingId)
+        .eq("guest_id", targetGuestId)
+        .eq("status", "active")
+        .maybeSingle();
+      if (occupantError || !occupant) throw new Error("Guest is not an active registered occupant of this reservation.");
+    }
+    const [accessResult, propertyResult, roomResult, eventsResult, guestResult] = await Promise.all([
       admin
         .from("staynas_guest_portal_access")
         .select("id, guest_id, status, expires_at, created_at, created_by, last_used_at, revoked_at")
         .eq("booking_id", data.bookingId)
         .eq("property_id", propertyId)
+        .eq("guest_id", targetGuestId)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
@@ -785,8 +799,10 @@ export const getGuestPortalAccessStatus = createServerFn({ method: "POST" })
         .select("id, event_type, actor_id, metadata, created_at")
         .eq("booking_id", data.bookingId)
         .eq("property_id", propertyId)
+        .eq("guest_id", targetGuestId)
         .order("created_at", { ascending: false })
         .limit(25),
+      admin.from("guests").select("id,full_name").eq("id", targetGuestId).maybeSingle(),
     ]);
 
     if (accessResult.error || eventsResult.error) {
@@ -809,8 +825,8 @@ export const getGuestPortalAccessStatus = createServerFn({ method: "POST" })
       active: status === "active",
       status,
       accessId: access?.id ?? null,
-      guestId: booking.guest_id,
-      guestName: booking.guest_name,
+      guestId: targetGuestId,
+      guestName: guestResult.data?.full_name ?? booking.guest_name,
       reservationReference: booking.reference,
       propertyName: propertyResult.data?.name ?? "Property",
       timezone: propertyResult.data?.timezone ?? "UTC",
@@ -821,8 +837,84 @@ export const getGuestPortalAccessStatus = createServerFn({ method: "POST" })
       lastUsedAt: access?.last_used_at ?? null,
       events: eventsResult.data ?? [],
       deliveryStatus: "not_sent",
-      multipleGuestAccess: false,
+      multipleGuestAccess: true,
     };
+  });
+
+export const listGuestPortalOccupants = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ bookingId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const propertyId = await requireReservationProperty(context, data.bookingId);
+    const admin = await adminClient();
+    const [{ data: booking, error: bookingError }, { data: relations, error: relationError }, { data: propertyBookings, error: propertyBookingsError }] = await Promise.all([
+      admin.from("bookings").select("id,guest_id,guest_name").eq("id", data.bookingId).eq("property_id", propertyId).maybeSingle(),
+      admin.from("staynas_booking_guest_occupants").select("guest_id,status,created_at").eq("property_id", propertyId).eq("booking_id", data.bookingId).eq("status", "active").order("created_at"),
+      admin.from("bookings").select("guest_id").eq("property_id", propertyId).not("guest_id", "is", null).limit(500),
+    ]);
+    if (bookingError || !booking || relationError || propertyBookingsError) throw new Error("Registered reservation guests could not be loaded.");
+    const occupantIds = (relations ?? []).map((row: any) => row.guest_id);
+    const availableIds = [...new Set((propertyBookings ?? []).map((row: any) => row.guest_id).filter(Boolean))]
+      .filter((id: string) => id !== booking.guest_id && !occupantIds.includes(id));
+    const allIds = [...new Set([booking.guest_id, ...occupantIds, ...availableIds].filter(Boolean))];
+    const { data: profiles, error: profileError } = allIds.length
+      ? await admin.from("guests").select("id,full_name,email,phone_e164").in("id", allIds)
+      : { data: [], error: null };
+    if (profileError) throw new Error("Registered guest profiles could not be loaded.");
+    const byId = new Map((profiles ?? []).map((profile: any) => [profile.id, profile]));
+    return {
+      leadGuest: booking.guest_id ? byId.get(booking.guest_id) ?? { id: booking.guest_id, full_name: booking.guest_name } : null,
+      occupants: (relations ?? []).map((row: any) => ({ ...byId.get(row.guest_id), addedAt: row.created_at })),
+      availableGuests: availableIds.map((id: string) => byId.get(id)).filter(Boolean),
+    };
+  });
+
+export const addGuestPortalOccupant = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ bookingId: z.string().uuid(), guestId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const propertyId = await requireReservationProperty(context, data.bookingId);
+    const admin = await adminClient();
+    const { data: booking, error: bookingError } = await admin.from("bookings")
+      .select("id,guest_id,status").eq("id", data.bookingId).eq("property_id", propertyId).maybeSingle();
+    if (bookingError || !booking || booking.status !== "checked_in") throw new Error("Occupants can only be managed during a checked-in stay.");
+    if (booking.guest_id === data.guestId) throw new Error("The lead guest is already registered on this reservation.");
+    const { data: knownGuest, error: knownGuestError } = await admin.from("bookings")
+      .select("id").eq("property_id", propertyId).eq("guest_id", data.guestId).limit(1).maybeSingle();
+    if (knownGuestError || !knownGuest) throw new Error("Only guest profiles already registered with this property can be added.");
+    const { error } = await admin.from("staynas_booking_guest_occupants").upsert({
+      property_id: propertyId, booking_id: data.bookingId, guest_id: data.guestId,
+      status: "active", created_by: context.userId,
+    }, { onConflict: "property_id,booking_id,guest_id" });
+    if (error) throw new Error("Registered occupant could not be added.");
+    await admin.from("staynas_guest_portal_access_events").insert({
+      property_id: propertyId, booking_id: data.bookingId, guest_id: data.guestId,
+      actor_id: context.userId, event_type: "occupant_added", metadata: {},
+    });
+    return { ok: true };
+  });
+
+export const removeGuestPortalOccupant = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ bookingId: z.string().uuid(), guestId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const propertyId = await requireReservationProperty(context, data.bookingId);
+    const admin = await adminClient();
+    const { data: booking, error: bookingError } = await admin.from("bookings")
+      .select("id,guest_id").eq("id", data.bookingId).eq("property_id", propertyId).maybeSingle();
+    if (bookingError || !booking || booking.guest_id === data.guestId) throw new Error("Lead guest access cannot be removed as an occupant.");
+    const { error } = await admin.from("staynas_booking_guest_occupants").update({ status: "removed" })
+      .eq("property_id", propertyId).eq("booking_id", data.bookingId).eq("guest_id", data.guestId).eq("status", "active");
+    if (error) throw new Error("Registered occupant could not be removed.");
+    const { error: revokeError } = await admin.rpc("staynas_revoke_guest_portal_access", {
+      _property_id: propertyId, _booking_id: data.bookingId, _guest_id: data.guestId, _actor_id: context.userId,
+    });
+    if (revokeError) throw new Error("Occupant was removed, but its guest access could not be revoked.");
+    await admin.from("staynas_guest_portal_access_events").insert({
+      property_id: propertyId, booking_id: data.bookingId, guest_id: data.guestId,
+      actor_id: context.userId, event_type: "occupant_removed", metadata: {},
+    });
+    return { ok: true };
   });
 
 export const issueGuestPortalAccess = createServerFn({ method: "POST" })
