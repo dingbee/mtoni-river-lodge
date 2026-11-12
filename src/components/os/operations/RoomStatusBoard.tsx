@@ -13,16 +13,6 @@ type State = {
   state_note: string | null;
   booking_id: string | null;
   room: { id: string; slug: string; name: string } | undefined;
-  upcomingAllocations?: Array<{
-    id: string;
-    bookingId: string;
-    reference: string;
-    guestName: string;
-    checkIn: string;
-    checkOut: string;
-    status: "reserved" | "checked_in";
-    channel: { providerKey: string; externalReservationId: string; integrationStatus: string } | null;
-  }>;
 };
 
 export function RoomStatusBoard({ states }: { states: State[] }) {
@@ -40,4 +30,43 @@ export function RoomStatusBoard({ states }: { states: State[] }) {
     <div className="space-y-6">
       {grouped.map(([roomName, units]) => (
         <div key={roomName}>
-          <h3 className="mb-3 text-sm font-medium text-muted¶»§q«^
+          <h3 className="mb-3 text-sm font-medium text-muted-foreground">{roomName}</h3>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {units.map((u) => <RoomStateCard key={u.id} unit={u} />)}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RoomStateCard({ unit }: { unit: State }) {
+  const [state, setState] = useState<RoomStateValue>(unit.state);
+  useEffect(() => setState(unit.state), [unit.state]);
+  const qc = useQueryClient();
+  const fn = useServerFn(updateRoomState);
+  const m = useMutation({
+    mutationFn: (next: RoomStateValue) => fn({ data: { id: unit.id, state: next } }),
+    onSuccess: () => {
+      toast.success("Room state updated");
+      qc.invalidateQueries({ queryKey: ["ops-room-board"] });
+      qc.invalidateQueries({ queryKey: ["ops-dashboard"] });
+    },
+    onError: (e: Error) => { setState(unit.state); toast.error(e.message); },
+  });
+  return (
+    <div className="rounded-lg border bg-card p-3">
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <div className="text-sm font-medium">{unit.unit_label}</div>
+        <RoomStateChip state={state} />
+      </div>
+      <Select value={state} onValueChange={(v) => { setState(v as RoomStateValue); m.mutate(v as RoomStateValue); }}>
+        <SelectTrigger className="h-8 text-xs" disabled={m.isPending}><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {ROOM_STATES.map((s) => (<SelectItem key={s} value={s} className="text-xs">{s.replace(/_/g, " ")}</SelectItem>))}
+        </SelectContent>
+      </Select>
+      {unit.state_note && <p className="mt-2 text-xs text-muted-foreground">{unit.state_note}</p>}
+    </div>
+  );
+}
