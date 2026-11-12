@@ -1,0 +1,28 @@
+#
+name: StayNas DC-04â€“DC-06 distribution E2E database contracts
+# Executes the ordered DC-04/05/06 database contracts in disposable PostgreSQL.
+
+on:
+  push:
+    branches:
+      - feat/dc05-*
+      - feat/dc06-*
+      - main
+  pull_request:
+    branches: [main, integration/dc05-foundation]
+    paths:
+      - "supabase/migrations/20261106150151_dc05_canonical_booking_materialization.sql"
+      - "supabase/migrations/20261106150729_dc05_spe04_quote_success_contract.sql"
+      - "supabase/migrations/20261106151300_dc05_trigger_function_execute_privileges.sql"
+      - "supabase/migrations/20261106152219_dc05_unpaid_channel_booking_semantics.sql"
+      - "supabase/migrations/20261106154651_dc05_reservation_lifecycle_reconciliation.sql"
+      - "supabase/migrations/20261106155345_dc05_lifecycle_payload_retention_fix.sql"
+      - "supabase/migrations/20261106155350_dc05_modified_cancellation_capability_fix.sql"
+      - "supabase/migrations/20261107071300_dc05_06_provider_financial_evidence_uat.sql"
+      - "supabase/migrations/20261107074819_dc05_06_provider_reference_idempotency_fix_uat.sql"
+      - "supabase/review/20261107120000_dc05_07_operational_integration.sql"
+      - "supabase/review/20261107130000_dc06_02_housekeeping_distribution_integration.sql"
+      - "supabase/review/20261107140000_dc06_03_finance_evidence_visibility.sql"
+      - "supabase/review/20261107160000_dc06_04_distribution_analytics.sql"
+      - "scripts/ci/dc06-04-distribution-analytics-smoke.sql"
+      - "¶»§q«^

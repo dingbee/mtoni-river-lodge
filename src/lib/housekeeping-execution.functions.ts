@@ -23,6 +23,17 @@ export const listHousekeepingWork = createServerFn({ method: "POST" })
     return rows ?? [];
   });
 
+export const listDistributionHousekeepingHandoffs = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "housekeeping");
+    const { data, error } = await housekeepingClient(context.supabase).rpc(
+      "housekeeping_list_distribution_handoffs",
+    );
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
 export const claimHousekeepingTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ taskId, idempotencyKey }).parse(d))

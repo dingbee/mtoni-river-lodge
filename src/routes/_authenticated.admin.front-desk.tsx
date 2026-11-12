@@ -41,10 +41,11 @@ function FrontDeskPage() {
 
   const bookings = bookingsQ.data ?? [];
   const today = new Date().toISOString().slice(0, 10);
-  const arrivals = bookings.filter((b: any) => b.check_in === today && !["cancelled", "completed"].includes(b.status));
+  const arrivals = bookings.filter((b: any) => b.check_in === today && ["confirmed", "checked_in"].includes(b.status));
   const departures = bookings.filter((b: any) => b.check_out === today && b.status === "checked_in");
   const inHouse = bookings.filter((b: any) => b.status === "checked_in");
   const balances = bookings.filter((b: any) => Number(b.balance_amount) > 0 && !["cancelled", "completed"].includes(b.status));
+  const channelBookings = bookings.filter((b: any) => Boolean(b.channel));
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -104,6 +105,57 @@ function FrontDeskPage() {
           </Button>
         </Card>
       </div>
+
+      <Card className="p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="font-medium">Distribution arrivals</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Channel reservations and their operational handoff status. Physical check-in remains in Operations.
+            </p>
+          </div>
+          <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
+            {channelBookings.length} channel reservations
+          </span>
+        </div>
+        {channelBookings.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">
+            No channel reservations are currently in the Front Desk queue.
+          </p>
+        ) : (
+          <div className="mt-4 divide-y">
+            {channelBookings.slice(0, 8).map((booking: any) => (
+              <div key={booking.id} className="grid gap-2 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{booking.guest_name}</span>
+                    <span className="text-xs text-muted-foreground">{booking.reference}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {booking.channel.providerKey} · {booking.channel.externalReservationId}
+                    {" · "}{booking.check_in} to {booking.check_out}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Provider: {booking.channel.providerStatus}
+                    {" · "}Integration: {booking.channel.integrationStatus}
+                    {booking.channel.assignedUnit
+                      ? ` · Unit ${booking.channel.assignedUnit.unit_label} (${booking.channel.assignedUnit.state})`
+                      : " · No physical unit assigned"}
+                  </p>
+                  {booking.channel.lastErrorCode ? (
+                    <p className="mt-1 text-xs font-medium text-amber-700">
+                      Reconciliation required: {booking.channel.lastErrorCode}
+                    </p>
+                  ) : null}
+                </div>
+                <Button asChild size="sm" variant="outline">
+                  <Link to="/admin/operations">Open Operations</Link>
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       <Card className="p-5">
         <div className="flex items-center gap-2">

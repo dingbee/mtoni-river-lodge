@@ -1,18 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getRequestHeader } from "@tanstack/react-start/server";
-import { getConfiguredBookingPropertyId } from "@/lib/booking-property.server";
+import { resolvePublicBookingContext } from "@/lib/public-booking-context.server";
 import { assertSameProperty } from "@/lib/booking-property";
 
 function deriveBaseUrl(): string {
   const envUrl = process.env.PUBLIC_BASE_URL;
-  if (envUrl) return envUrl.replace(/\/$/, "");
-  const proto = getRequestHeader("x-forwarded-proto") ?? "https";
-  const host = getRequestHeader("host") ?? "";
-  if (!host) {
-    console.warn("[pesapal] deriveBaseUrl: no host header and no PUBLIC_BASE_URL set");
+  if (!envUrl) {
+    throw new Error("PUBLIC_BASE_URL must be configured for Pesapal callback URLs.");
   }
-  return `${proto}://${host}`;
+  return envUrl.replace(/\/$/, "");
 }
 
 export const initiatePayment = createServerFn({ method: "POST" })
@@ -23,10 +19,10 @@ export const initiatePayment = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { property, supabaseAdmin } = await resolvePublicBookingContext();
     const { ensureIpn, submitPesapalOrder } = await import("./pesapal.server");
 
-    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+    const propertyId = property.id;
     const { data: booking, error } = await (supabaseAdmin as any)
       .from("bookings")
       .select("id, reference, guest_name, guest_email, guest_phone, country, deposit_amount, total, currency, payment_status, pesapal_order_tracking_id, property_id")
@@ -105,9 +101,9 @@ export const getPaymentStatusByReference = createServerFn({ method: "POST" })
     z.object({ reference: z.string().min(4).max(40), email: z.string().email() }).parse(d),
   )
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { property, supabaseAdmin } = await resolvePublicBookingContext();
 
-    const propertyId = await getConfiguredBookingPropertyId(supabaseAdmin);
+    const propertyId = property.id;
     const { data: booking, error } = await (supabaseAdmin as any)
       .from("bookings")
       .select("id, reference, guest_email, payment_status, status, deposit_amount, balance_amount, total, currency, pesapal_order_tracking_id, payment_method, property_id")
