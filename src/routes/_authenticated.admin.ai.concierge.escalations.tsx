@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   listEscalations, updateEscalation, listEscalationSlaPolicies,
-  updateEscalationSlaPolicy, listEscalationEvents, listEscalationAssignees,
+  updateEscalationSlaPolicy, updateEscalationReasonPriorityMap, listEscalationEvents, listEscalationAssignees,
 } from "@/domains/ai/concierge/omnichannel.functions";
 import type { EscalationRow, EscalationStatus } from "@/domains/ai/concierge/omnichannel.types";
 
@@ -24,6 +24,7 @@ function EscalationsPage() {
   const updateFn = useServerFn(updateEscalation);
   const policiesFn = useServerFn(listEscalationSlaPolicies);
   const updatePolicyFn = useServerFn(updateEscalationSlaPolicy);
+  const updateReasonMapFn = useServerFn(updateEscalationReasonPriorityMap);
   const assigneesFn = useServerFn(listEscalationAssignees);
   const qc = useQueryClient();
   const [status, setStatus] = useState<EscalationStatus | "all">("open");
@@ -33,6 +34,10 @@ function EscalationsPage() {
   const patch = useMutation({
     mutationFn: async (v: { id: string; status?: EscalationStatus; assigned_to?: string | null; resolution_notes?: string }) => updateFn({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["oc.escalations"] }),
+  });
+  const saveReasonMap = useMutation({
+    mutationFn: async (v: any) => updateReasonMapFn({ data: v }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["oc.escalation-sla-policies"] }),
   });
   const savePolicy = useMutation({
     mutationFn: async (v: any) => updatePolicyFn({ data: v }),
@@ -49,7 +54,9 @@ function EscalationsPage() {
             <SlaPolicyEditor key={policy.id} policy={policy} saving={savePolicy.isPending} onSave={savePolicy.mutate} />
           ))}
         </div>
+        {policies.data?.[0] && <ReasonPriorityEditor initial={policies.data[0].reason_priority_map} saving={saveReasonMap.isPending} onSave={saveReasonMap.mutate} />}
         {savePolicy.isError && <p className="text-sm text-destructive">{String(savePolicy.error)}</p>}
+        {saveReasonMap.isError && <p className="text-sm text-destructive">{String(saveReasonMap.error)}</p>}
       </SectionCard>
 
       <SectionCard title="Escalation queue" actions={
@@ -71,6 +78,25 @@ function EscalationsPage() {
       </SectionCard>
     </div>
   );
+}
+
+function ReasonPriorityEditor({ initial, saving, onSave }: { initial: Record<string,number>; saving:boolean; onSave:(v:any)=>void }) {
+  const [map,setMap] = useState(JSON.stringify(initial ?? {},null,2));
+  const [error,setError] = useState("");
+  return <div className="rounded-lg border p-3 space-y-2 lg:col-span-3">
+    <strong className="text-sm">Reason-to-priority severity mapping</strong>
+    <p className="text-xs text-muted-foreground">Applied when a new Concierge escalation is created. Values: 1 = critical, 2 = high, 3 = standard.</p>
+    <Textarea rows={4} value={map} onChange={(e)=>setMap(e.target.value)} />
+    {error && <p className="text-xs text-destructive">{error}</p>}
+    <Button size="sm" disabled={saving} onClick={()=>{
+      try {
+        const reason_priority_map = JSON.parse(map);
+        const required = ["low_confidence","complaint","payment_issue","complex_request","human_requested","other"];
+        if (required.some((key)=>![1,2,3].includes(reason_priority_map[key]))) throw new Error("Map all six reasons to priority 1, 2 or 3.");
+        setError(""); onSave({reason_priority_map});
+      } catch(e) { setError(e instanceof Error ? e.message : "Invalid reason map JSON."); }
+    }}>Save reason mapping</Button>
+  </div>;
 }
 
 function SlaPolicyEditor({ policy, saving, onSave }: { policy: any; saving: boolean; onSave: (v: any) => void }) {
