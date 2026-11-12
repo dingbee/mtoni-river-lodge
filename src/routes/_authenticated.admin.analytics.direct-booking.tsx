@@ -13,11 +13,11 @@ export const Route = createFileRoute("/_authenticated/admin/analytics/direct-boo
   component: Page,
 });
 
-type Range = "today" | "yesterday" | "7d" | "30d" | "90d";
+type Range = "today" | "yesterday" | "7d" | "30d" | "90d" | "custom";
 type Report = {
   funnel?: Record<string, number | null>;
   currencies?: Array<{ currency: string; gross_booking_value: number; net_collected: number }>;
-  campaigns?: Array<{ id: string; name: string; slug: string; status: string; views: number; visitors: number; booking_starts: number; quotes: number; reservations: number; paid_bookings: number; net_collected: number }>;
+  campaigns?: Array<{ id: string; name: string; slug: string; status: string; views: number; visitors: number; booking_starts: number; quotes: number; reservations: number; paid_bookings: number; net_collected_by_currency: Array<{ currency: string; net_collected: number }> }>;
   acquisition?: Array<{ source: string; medium: string; views: number; visitors: number; booking_starts: number; reservations: number }>;
   permanent_page?: Record<string, number>;
 };
@@ -36,11 +36,15 @@ function money(value: number, currency: string) {
 function Page() {
   const fn = useServerFn(getDirectBookingAnalytics);
   const [range, setRange] = useState<Range>("30d");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const customReady = range !== "custom" || (!!customFrom && !!customTo);
   const { data, isLoading, error } = useQuery({
-    queryKey: ["direct-booking.analytics", range],
-    queryFn: () => fn({ data: { range } }),
+    queryKey: ["direct-booking.analytics", range, customFrom, customTo],
+    enabled: customReady,
+    queryFn: () => fn({ data: range === "custom" ? { range: "custom", from: customFrom, to: customTo } : { range } }),
   });
-  if (isLoading) return <LoadingState />;
+  if (isLoading || !customReady) return <LoadingState />;
   if (error || !data) return <div className="space-y-4"><PageHeader title="Performance & Attribution" description="Direct booking and campaign conversion evidence." /><p className="rounded-md border p-4 text-sm text-destructive">{error instanceof Error ? error.message : "Analytics could not be loaded."}</p></div>;
 
   const report = data.report as Report;
@@ -49,6 +53,37 @@ function Page() {
   const campaigns = report.campaigns ?? [];
   const acquisition = report.acquisition ?? [];
   const permanent = report.permanent_page ?? {};
+  const exportCsv = () => {
+    const rows: Array<Array<string | number | null | undefined>> = [
+      ["section", "metric", "value", "currency", "detail"],
+      ["period", "from", data.period.from, "", data.property.timezone],
+      ["period", "to", data.period.to, "", data.property.name],
+      ...Object.entries(funnel).map(([key, value]) => ["funnel", key, value as number]),
+      ...currencies.flatMap((item) => [
+        ["revenue", "gross_booking_value", item.gross_booking_value, item.currency],
+        ["revenue", "net_collected", item.net_collected, item.currency],
+      ]),
+      ...campaigns.flatMap((item) => [
+        ["campaign", "views", item.views, "", item.name],
+        ["campaign", "visitors", item.visitors, "", item.name],
+        ["campaign", "booking_starts", item.booking_starts, "", item.name],
+        ["campaign", "quotes", item.quotes, "", item.name],
+        ["campaign", "reservations", item.reservations, "", item.name],
+        ["campaign", "paid_bookings", item.paid_bookings, "", item.name],
+        ...item.net_collected_by_currency.map((moneyRow) => ["campaign_revenue", "net_collected", moneyRow.net_collected, moneyRow.currency, item.name]),
+      ]),
+      ...acquisition.map((item) => ["acquisition", "views", item.views, "", item.source + "/" + item.medium]),
+      ...acquisition.map((item) => ["acquisition", "reservations", item.reservations, "", item.source + "/" + item.medium]),
+    ];
+    const csv = rows.map((row) => row.map((value) => '"' + String(value ?? "").replaceAll('"', '""') + '"').join(",")).join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "stayn​as-booking-analytics-" + data.period.from + "-to-" + data.period.to + ".csv";
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
   const stages = [
     ["Page views", Number(funnel.page_views ?? 0)],
     ["Booking starts", Number(funnel.booking_starts ?? 0)],
@@ -62,13 +97,22 @@ function Page() {
   return (
     <div className="space-y-6">
       <PageHeader title="Performance & Attribution" description={`${data.property.name} · ${data.period.from} to ${data.period.to} · Reporting timezone: ${data.property.timezone}`} />
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-end gap-2">
         {(["today", "yesterday", "7d", "30d", "90d"] as Range[]).map((item) => (
           <button key={item} type="button" onClick={() => setRange(item)} aria-pressed={range === item}
             className={`rounded-md border px-3 py-2 text-sm ${range === item ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted"}`}>
             {item === "7d" ? "Last 7 days" : item === "30d" ? "Last 30 days" : item === "90d" ? "Last 90 days" : item === "today" ? "Today" : "Yesterday"}
           </button>
         ))}
+        <label className="grid gap-1 text-xs text-muted-foreground">From
+          <input type="date" value={customFrom} onChange={(event) => { setCustomFrom(event.target.value); setRange("custom"); }} className="rounded-md border bg-background px-2 py-2 text-sm text-foreground" />
+        </label>
+        <label className="grid gap-1 text-xs text-muted-foreground">To
+          <input type="date" value={customTo} onChange={(event) => { setCustomTo(event.target.value); setRange("custom"); }} className="rounded-md border bg-background px-2 py-2 text-sm text-foreground" />
+        </label>
+        <button type="button" onClick={() => setRange("custom")} disabled={!customFrom || !customTo || customTo < customFrom}
+          className="rounded-md border px-3 py-2 text-sm disabled:opacity-50">Apply dates</button>
+        <button type="button" onClick={exportCsv} className="rounded-md border px-3 py-2 text-sm">Export CSV</button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
