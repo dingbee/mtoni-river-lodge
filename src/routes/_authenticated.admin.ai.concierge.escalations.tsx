@@ -32,7 +32,7 @@ function EscalationsPage() {
   const policies = useQuery({ queryKey: ["oc.escalation-sla-policies"], queryFn: () => policiesFn() });
   const assignees = useQuery({ queryKey: ["oc.escalation-assignees"], queryFn: () => assigneesFn() });
   const patch = useMutation({
-    mutationFn: async (v: { id: string; status?: EscalationStatus; assigned_to?: string | null; resolution_notes?: string }) => updateFn({ data: v }),
+    mutationFn: async (v: { id: string; status?: EscalationStatus; assigned_to?: string | null; resolution_notes?: string; priority?: number }) => updateFn({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["oc.escalations"] }),
   });
   const saveReasonMap = useMutation({
@@ -149,12 +149,13 @@ function formatPropertyTime(value: string, timezone: string): string {
 
 function EscalationCard({ row, assignees, onPatch }: {
   row: EscalationRow; assignees: Array<{user_id:string;role:string}>;
-  onPatch: (v: {id:string;status?:EscalationStatus;assigned_to?:string|null;resolution_notes?:string}) => void;
+  onPatch: (v: {id:string;status?:EscalationStatus;assigned_to?:string|null;resolution_notes?:string;priority?:number}) => void;
 }) {
   const eventsFn = useServerFn(listEscalationEvents);
   const alertsFn = useServerFn(listEscalationSlaAlerts);
   const [notes, setNotes] = useState(row.resolution_notes ?? "");
   const [assignee, setAssignee] = useState(row.assigned_to ?? "");
+  const [priority, setPriority] = useState(String(row.priority));
   const [historyOpen, setHistoryOpen] = useState(false);
   const history = useQuery({
     queryKey: ["oc.escalation-events", row.id],
@@ -196,6 +197,14 @@ function EscalationCard({ row, assignees, onPatch }: {
         })}
       </div>
       <div className="flex flex-wrap items-end gap-2">
+        <label className="space-y-1 text-xs">Priority / severity
+          <select className="rounded border bg-background px-2 py-2 text-sm" value={priority} onChange={(e) => setPriority(e.target.value)}>
+            <option value="1">P1 · Critical</option>
+            <option value="2">P2 · High</option>
+            <option value="3">P3 · Standard</option>
+          </select>
+        </label>
+        <Button size="sm" variant="outline" disabled={Number(priority) === row.priority || ["resolved","dismissed"].includes(row.status)} onClick={() => onPatch({id:row.id,priority:Number(priority)})}>Update priority</Button>
         <label className="min-w-56 flex-1 space-y-1 text-xs">Assign to property staff
           <select className="w-full rounded border bg-background px-2 py-2 text-sm" value={assignee} onChange={(e) => setAssignee(e.target.value)}>
             <option value="">Unassigned</option>
