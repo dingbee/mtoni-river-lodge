@@ -145,6 +145,7 @@ export const updateBookingStatus = createServerFn({ method: "POST" })
         alreadyActive: issued.alreadyActive,
         expiresAt: issued.expiresAt,
         accessId: issued.accessId,
+        token: issued.issued ? issued.token : null,
       };
     } catch {
       guestPortalAccess = {
