@@ -11,6 +11,7 @@ on:
       - 'supabase/migrations/*sn_iq_05*.sql'
       - 'supabase/migrations/*sn_gpa_*.sql'
       - 'supabase/tests/staynas_guest_portal_access.test.sql'
+      - 'supabase/verification/guest_portal_access_*.sql'
   push:
     branches:
       - feat/sn-iq-05g-guest-self-service
