@@ -272,6 +272,10 @@ export const getBookingQuote = createServerFn({ method: "POST" })
     }
     const sessionKey = data.sessionKey ?? campaignContext?.sessionKey ?? null;
     if (sessionKey) {
+      const externalReferrer = (() => {
+        try { return !!data.referrer && new URL(data.referrer).hostname !== channel.hostname; }
+        catch { return false; }
+      })();
       const touch = {
         source: data.utmSource ?? null,
         medium: data.utmMedium ?? null,
@@ -292,7 +296,7 @@ export const getBookingQuote = createServerFn({ method: "POST" })
             _campaign_offer_id: campaignContext?.offerId ?? null,
             _touch: touch,
             _touch_at: new Date().toISOString(),
-            _is_external_acquisition: Boolean(data.utmSource || data.utmMedium || data.utmCampaign || data.referrer),
+            _is_external_acquisition: Boolean(data.utmSource || data.utmMedium || data.utmCampaign || externalReferrer),
           },
         );
         const attributionId = attributionResult?.attribution_id;
