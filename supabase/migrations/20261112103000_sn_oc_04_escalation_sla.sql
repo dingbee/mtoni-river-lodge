@@ -64,7 +64,7 @@ ALTER TABLE public.ai_escalations
   ADD COLUMN IF NOT EXISTS resolution_due_at timestamptz,
   ADD COLUMN IF NOT EXISTS reopened_at timestamptz,
   ADD COLUMN IF NOT EXISTS sla_cycle_started_at timestamptz,
-  ADD COLUMN IF NOT EXISTS sla_policy_id uuid REFERENCES public.ai_escalation_sla_policies(id) ON DELETE SET NULL;
+  ADD COLUMN IF NOT EXISTS sla_policy_id uuid REFERENCES public.ai_escalation_sla_policies(id) ON DELETE RESTRICT;
 
 CREATE TABLE IF NOT EXISTS public.ai_escalation_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -120,7 +120,7 @@ ALTER TABLE public.ai_escalation_sla_alerts ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.ai_escalation_sla_policies, public.ai_escalation_events, public.ai_escalation_sla_alerts FROM PUBLIC, anon;
 GRANT SELECT ON public.ai_escalation_sla_policies, public.ai_escalation_events, public.ai_escalation_sla_alerts TO authenticated;
 REVOKE INSERT, UPDATE, DELETE ON public.ai_escalation_sla_policies FROM authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_escalation_sla_policies TO service_role;
+GRANT SELECT, INSERT, UPDATE ON public.ai_escalation_sla_policies TO service_role;
 GRANT SELECT, INSERT ON public.ai_escalation_events, public.ai_escalation_sla_alerts TO service_role;
 REVOKE TRUNCATE, REFERENCES, TRIGGER ON public.ai_escalation_sla_policies, public.ai_escalation_events, public.ai_escalation_sla_alerts FROM PUBLIC, anon, authenticated, service_role;
 REVOKE UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON public.ai_escalation_events, public.ai_escalation_sla_alerts FROM anon, authenticated, service_role;
