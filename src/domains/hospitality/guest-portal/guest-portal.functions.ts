@@ -753,3 +753,39 @@ export const revokeGuestPortalAccess = createServerFn({ method: "POST" })
     if (error) throw new Error("Guest portal access could not be revoked.");
     return { ok: true, revokedCount: Number(count ?? 0) };
   });
+
+const guestPortalEventSchema = z.object({
+  bookingId: z.string().uuid(),
+  accessId: z.string().uuid(),
+  eventType: z.enum(["qr_generated", "link_shared"]),
+});
+
+export const recordGuestPortalAccessEvent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => guestPortalEventSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const propertyId = await requireReservationProperty(context);
+    const admin = await adminClient();
+    const { data: access, error: accessError } = await admin
+      .from("staynas_guest_portal_access")
+      .select("id, booking_id, guest_id, status, revoked_at, expires_at")
+      .eq("id", data.accessId)
+      .eq("booking_id", data.bookingId)
+      .eq("property_id", propertyId)
+      .maybeSingle();
+    if (accessError || !access || access.status !== "active" || access.revoked_at ||
+        Date.parse(access.expires_at) <= Date.now()) {
+      throw new Error("The guest credential is no longer active.");
+    }
+    const { error } = await admin.from("staynas_guest_portal_access_events").insert({
+      access_id: access.id,
+      property_id: propertyId,
+      booking_id: data.bookingId,
+      guest_id: access.guest_id,
+      actor_id: context.userId,
+      event_type: data.eventType,
+      metadata: { source: "reservation_access_panel" },
+    });
+    if (error) throw new Error("Guest access event could not be recorded.");
+    return { ok: true };
+  });
