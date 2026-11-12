@@ -240,12 +240,14 @@ DECLARE
   v_event text;
   v_status text;
 BEGIN
-  IF NEW.status IS NOT DISTINCT FROM OLD.status THEN RETURN NEW; END IF;
-
-  IF NEW.status::text = 'completed' THEN
+  IF NEW.property_id IS DISTINCT FROM OLD.property_id
+     OR NEW.guest_id IS DISTINCT FROM OLD.guest_id THEN
+    v_event := 'revoked';
+    v_status := 'revoked';
+  ELSIF NEW.status IS DISTINCT FROM OLD.status AND NEW.status::text = 'completed' THEN
     v_event := 'expired';
     v_status := 'expired';
-  ELSIF NEW.status::text IN ('cancelled','no_show') THEN
+  ELSIF NEW.status IS DISTINCT FROM OLD.status AND NEW.status::text IN ('cancelled','no_show') THEN
     v_event := 'revoked';
     v_status := 'revoked';
   ELSE
@@ -274,7 +276,7 @@ $function$;
 DROP TRIGGER IF EXISTS staynas_guest_portal_access_booking_lifecycle
   ON public.bookings;
 CREATE TRIGGER staynas_guest_portal_access_booking_lifecycle
-  AFTER UPDATE OF status ON public.bookings
+  AFTER UPDATE OF status, property_id, guest_id ON public.bookings
   FOR EACH ROW
   EXECUTE FUNCTION public.staynas_revoke_guest_portal_access_on_lifecycle();
 
