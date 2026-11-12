@@ -203,11 +203,12 @@ function BookPage() {
   useEffect(() => {
     if (!sessionId || pageViewRecordedFor.current === sessionId) return;
     pageViewRecordedFor.current = sessionId;
+    pageViewEventId.current = window.crypto.randomUUID();
     recordPageViewFn({
       data: {
         propertySlug,
         sessionKey: sessionId,
-        eventId: pageViewEventId.current ??= window.crypto.randomUUID(),
+        eventId: pageViewEventId.current,
         source: utmSource,
         medium: utmMedium,
         utmCampaign,
