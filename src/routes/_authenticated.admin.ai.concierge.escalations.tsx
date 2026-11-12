@@ -198,13 +198,13 @@ function EscalationCard({ row, assignees, onPatch }: {
             {assignees.map((m) => <option key={m.user_id} value={m.user_id}>{m.role} · {m.user_id.slice(0,8)}</option>)}
           </select>
         </label>
-        <Button size="sm" variant="outline" disabled={!assignee || assignee === row.assigned_to} onClick={() => onPatch({id:row.id,status:"assigned",assigned_to:assignee})}>Assign / reassign</Button>
-        {row.assigned_to && <Button size="sm" variant="outline" onClick={() => onPatch({id:row.id,status:"open",assigned_to:null})}>Unassign</Button>}
+        <Button size="sm" variant="outline" disabled={!assignee || assignee === row.assigned_to || ["resolved","dismissed"].includes(row.status)} onClick={() => onPatch({id:row.id,status:"assigned",assigned_to:assignee})}>Assign / reassign</Button>
+        {row.assigned_to && !["resolved","dismissed"].includes(row.status) && <Button size="sm" variant="outline" onClick={() => onPatch({id:row.id,status:"open",assigned_to:null})}>Unassign</Button>}
       </div>
       <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Resolution notes…" />
       <div className="flex flex-wrap gap-2">
         {row.status === "assigned" && <Button size="sm" onClick={() => onPatch({id:row.id,status:"acknowledged"})}>Acknowledge</Button>}
-        {["assigned","acknowledged"].includes(row.status) && <Button size="sm" variant="secondary" onClick={() => onPatch({id:row.id,status:"in_progress"})}>Start work</Button>}
+        {row.status === "acknowledged" && <Button size="sm" variant="secondary" onClick={() => onPatch({id:row.id,status:"in_progress"})}>Start work</Button>}
         {row.status === "in_progress" && <Button size="sm" variant="secondary" onClick={() => onPatch({id:row.id,status:"resolved",resolution_notes:notes})}>Resolve</Button>}
         {!["resolved","dismissed"].includes(row.status) && <Button size="sm" variant="outline" onClick={() => onPatch({id:row.id,status:"dismissed",resolution_notes:notes})}>Cancel</Button>}
         {["resolved","dismissed"].includes(row.status) && <Button size="sm" variant="outline" onClick={() => onPatch({id:row.id,status:"open"})}>Reopen</Button>}
