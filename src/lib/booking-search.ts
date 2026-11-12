@@ -7,6 +7,17 @@ export interface BookingSearch {
   adults?: number;
   children_below_6?: number;
   children_7_plus?: number;
+  property?: string;
+  campaign?: string;
+  offer?: string;
+  ratePlan?: string;
+  campaignSession?: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmContent?: string;
+  utmTerm?: string;
+  referrer?: string;
 }
 
 function isValidDate(value: unknown): value is string {
@@ -48,5 +59,16 @@ export function validateBookingSearch(search: Record<string, unknown>): BookingS
     adults,
     children_below_6: validChildBuckets ? below6 : undefined,
     children_7_plus: validChildBuckets ? plus7 : undefined,
+    property: typeof search.property === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(search.property) ? search.property : undefined,
+    campaign: typeof search.campaign === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(search.campaign) ? search.campaign : undefined,
+    offer: typeof search.offer === "string" && /^[0-9a-f-]{36}$/i.test(search.offer) ? search.offer : undefined,
+    ratePlan: typeof search.ratePlan === "string" && /^[0-9a-f-]{36}$/i.test(search.ratePlan) ? search.ratePlan : undefined,
+    campaignSession: typeof search.campaignSession === "string" && /^[a-zA-Z0-9_-]{16,140}$/.test(search.campaignSession) ? search.campaignSession : undefined,
+    utmSource: typeof search.utmSource === "string" ? search.utmSource.trim().slice(0, 200) : undefined,
+    utmMedium: typeof search.utmMedium === "string" ? search.utmMedium.trim().slice(0, 200) : undefined,
+    utmCampaign: typeof search.utmCampaign === "string" ? search.utmCampaign.trim().slice(0, 200) : undefined,
+    utmContent: typeof search.utmContent === "string" ? search.utmContent.trim().slice(0, 200) : undefined,
+    utmTerm: typeof search.utmTerm === "string" ? search.utmTerm.trim().slice(0, 200) : undefined,
+    referrer: typeof search.referrer === "string" && /^https?:\/\//i.test(search.referrer) ? search.referrer.slice(0, 2000) : undefined,
   };
 }
