@@ -128,22 +128,24 @@ async function authorizeGuestPortal(token: string): Promise<GuestPortalContext> 
     await recordGuestPortalAccessDenied(admin, tokenHash, "revoked_or_superseded_credential", access);
     throw new Error("This guest access link has been revoked.");
   }
+  if (access.status === "expired" || Date.parse(access.expires_at) <= Date.now()) {
+    if (access.status === "active") {
+      await admin.from("staynas_guest_portal_access").update({ status: "expired" }).eq("id", access.id);
+      await admin.from("staynas_guest_portal_access_events").insert({
+        access_id: access.id,
+        property_id: access.property_id,
+        booking_id: access.booking_id,
+        guest_id: access.guest_id,
+        event_type: "expired",
+        metadata: { source: "guest_access_validation" },
+      });
+    }
+    await recordGuestPortalAccessDenied(admin, tokenHash, "expired_credential", access);
+    throw new Error("This guest access link has expired.");
+  }
   if (access.status !== "active") {
     await recordGuestPortalAccessDenied(admin, tokenHash, "credential_not_active", access);
     throw new Error("This guest access link is not active.");
-  }
-  if (Date.parse(access.expires_at) <= Date.now()) {
-    await admin.from("staynas_guest_portal_access").update({ status: "expired" }).eq("id", access.id);
-    await admin.from("staynas_guest_portal_access_events").insert({
-      access_id: access.id,
-      property_id: access.property_id,
-      booking_id: access.booking_id,
-      guest_id: access.guest_id,
-      event_type: "expired",
-      metadata: { source: "guest_access_validation" },
-    });
-    await recordGuestPortalAccessDenied(admin, tokenHash, "expired_credential", access);
-    throw new Error("This guest access link has expired.");
   }
 
   const { data: property, error: propertyError } = await admin
