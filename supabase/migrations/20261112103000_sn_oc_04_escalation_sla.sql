@@ -320,7 +320,7 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Enabled SLA policy missing for property and escalation priority';
   END IF;
-  SELECT timezone INTO v_timezone FROM public.staynas_properties WHERE id=NEW.property_id;
+  SELECT COALESCE(timezone,'UTC') INTO v_timezone FROM public.staynas_properties WHERE id=NEW.property_id;
   NEW.sla_policy_id := v_policy.id;
   NEW.sla_cycle_started_at := v_now;
   NEW.assignment_due_at := CASE WHEN v_policy.business_hours_only
@@ -404,7 +404,7 @@ DECLARE
 BEGIN
   SELECT * INTO e FROM public.ai_escalations WHERE id=p_id;
   SELECT * INTO p FROM public.ai_escalation_sla_policies WHERE property_id=e.property_id AND priority=e.priority AND enabled;
-  SELECT timezone INTO tz FROM public.staynas_properties WHERE id=e.property_id;
+  SELECT COALESCE(timezone,'UTC') INTO tz FROM public.staynas_properties WHERE id=e.property_id;
   IF p.id IS NOT NULL THEN
     UPDATE public.ai_escalations SET
       sla_policy_id=p.id,
