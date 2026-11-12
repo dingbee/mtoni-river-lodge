@@ -5,7 +5,7 @@ import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 
 const rangeSchema = z.discriminatedUnion("range", [
   z.object({ range: z.enum(["today", "yesterday", "7d", "30d", "90d"]) }),
-  z.object({ range: z.literal("custom"), from: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/), to: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/) }),
+  z.object({ range: z.literal("custom"), from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }),
 ]);
 
 function dateInZone(date: Date, timezone: string) {
