@@ -159,6 +159,7 @@ function AnalyticsPage() {
             <Stat label="Median acknowledgement (min)" value={ops?.escalations.median_acknowledgement_minutes ?? undefined} />
             <Stat label="Open" value={ops?.escalations.by_status.open} />
             <Stat label="Assigned" value={ops?.escalations.by_status.assigned} />
+            <Stat label="Acknowledged" value={ops?.escalations.by_status.acknowledged} />
             <Stat label="In progress" value={ops?.escalations.by_status.in_progress} />
             <Stat label="Resolved" value={ops?.escalations.by_status.resolved} />
             <Stat label="Median resolution (min)" value={ops?.escalations.median_resolution_minutes ?? undefined} />
