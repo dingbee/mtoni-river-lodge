@@ -10,6 +10,7 @@ on:
       - 'src/lib/analytics.ts'
       - 'src/lib/analytics.security.test.ts'
       - 'vite.config.ts'
+      - 'vercel.json'
       - 'src/domains/ai/concierge/guest-request-*.functions.ts'
       - 'src/domains/ai/concierge/GuestRequestsPanel.tsx'
       - 'src/routes/guest.$token.tsx'
@@ -45,6 +46,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y postgresql-client
+      - name: Validate Vercel route security headers
+        run: node -e "JSON.parse(require('fs').readFileSync('vercel.json', 'utf8'))"
       - name: Bootstrap isolated PostgreSQL schema
         env:
           PGPASSWORD: postgres
