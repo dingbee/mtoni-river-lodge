@@ -43,7 +43,7 @@ export function responseIntervals(rows: any[]) {
     for (const message of messages) {
       const at = Date.parse(message.occurred_at);
       if (!Number.isFinite(at) || ["event", "template"].includes(message.message_type)) continue;
-      if (message.direction === "outbound" && !["recorded", "delivered", "read"].includes(message.status)) continue;
+      if (message.direction === "outbound" && !["recorded", "accepted", "delivered", "read"].includes(message.status)) continue;
       if (message.direction === "inbound" && message.actor_type === "guest") {
         pending.push(at);
         if (firstInboundAt === null) firstInboundAt = at;
