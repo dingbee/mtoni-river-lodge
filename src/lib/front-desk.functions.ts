@@ -62,7 +62,7 @@ export const updateBookingStatus = createServerFn({ method: 'POST' })
     if (error) throw new Error(error.message)
     if (data.status !== 'checked_in') return result ?? { ok: true }
 
-    let guestPortalAccess: { issued: boolean; alreadyActive: boolean; expiresAt: string | null; token: string | null; accessId: string } | { issued: false; error: string }
+    let guestPortalAccess: { issued: boolean; alreadyActive: boolean; expiresAt: string | null; token: string | null; accessId: string; error?: string }
     try {
       const { ensureGuestPortalAccessAfterCheckIn } = await import(
         '@/domains/hospitality/guest-portal/guest-portal-access.server'
@@ -75,6 +75,10 @@ export const updateBookingStatus = createServerFn({ method: 'POST' })
     } catch {
       guestPortalAccess = {
         issued: false,
+        alreadyActive: false,
+        expiresAt: null,
+        token: null,
+        accessId: "",
         error: 'Check-in succeeded, but Guest Portal access issuance failed. Retry from the reservation access panel.',
       }
     }
