@@ -565,6 +565,7 @@ export const guestPortalConciergeChat = createServerFn({ method: "POST" })
 
 const staffBookingSchema = z.object({
   bookingId: z.string().uuid(),
+  guestId: z.string().uuid().optional(),
   rotate: z.boolean().optional().default(true),
 });
 
@@ -619,6 +620,7 @@ async function issueGuestPortalAccessForBooking(input: {
   bookingId: string;
   actorId: string;
   rotate: boolean;
+  guestId?: string;
 }): Promise<GuestPortalIssueResult> {
   const admin = await adminClient();
   const { data: booking, error: bookingError } = await admin
@@ -632,9 +634,29 @@ async function issueGuestPortalAccessForBooking(input: {
   if (booking.status !== "checked_in") {
     throw new Error("Guest portal access can be issued only after the guest is checked in.");
   }
-  if (!booking.guest_id) {
-    throw new Error("Register the lead guest profile before issuing Guest Portal access.");
+  const targetGuestId = input.guestId ?? booking.guest_id;
+  if (!targetGuestId) {
+    throw new Error("Register a guest profile before issuing Guest Portal access.");
   }
+  if (targetGuestId !== booking.guest_id) {
+    const { data: occupant, error: occupantError } = await admin
+      .from("staynas_booking_guest_occupants")
+      .select("id")
+      .eq("property_id", input.propertyId)
+      .eq("booking_id", booking.id)
+      .eq("guest_id", targetGuestId)
+      .eq("status", "active")
+      .maybeSingle();
+    if (occupantError || !occupant) {
+      throw new Error("This guest is not a registered occupant of the reservation.");
+    }
+  }
+  const { data: targetGuest, error: targetGuestError } = await admin
+    .from("guests")
+    .select("id, full_name, email, phone_e164")
+    .eq("id", targetGuestId)
+    .maybeSingle();
+  if (targetGuestError || !targetGuest) throw new Error("Registered guest profile could not be verified.");
 
   if (!input.rotate) {
     const { data: existing, error: existingError } = await admin
@@ -642,7 +664,7 @@ async function issueGuestPortalAccessForBooking(input: {
       .select("id, expires_at")
       .eq("property_id", input.propertyId)
       .eq("booking_id", booking.id)
-      .is("guest_id", booking.guest_id)
+      .eq("guest_id", targetGuestId)
       .eq("status", "active")
       .is("revoked_at", null)
       .gt("expires_at", new Date().toISOString())
@@ -667,10 +689,10 @@ async function issueGuestPortalAccessForBooking(input: {
     .insert({
       session_token: sessionToken,
       property_id: input.propertyId,
-      guest_id: booking.guest_id,
-      guest_name: booking.guest_name || "Guest",
-      guest_email: booking.guest_email,
-      guest_phone: booking.guest_phone,
+      guest_id: targetGuestId,
+      guest_name: targetGuest.full_name || booking.guest_name || "Guest",
+      guest_email: targetGuest.email ?? null,
+      guest_phone: targetGuest.phone_e164 ?? null,
       channel: "web",
       page_context: { page: "guest_portal", booking_id: booking.id },
     })
@@ -681,7 +703,7 @@ async function issueGuestPortalAccessForBooking(input: {
     await admin.from("staynas_guest_portal_access_events").insert({
       property_id: input.propertyId,
       booking_id: booking.id,
-      guest_id: booking.guest_id,
+      guest_id: targetGuestId,
       actor_id: input.actorId,
       event_type: "issue_failed",
       metadata: { phase: "session_preparation" },
@@ -694,7 +716,7 @@ async function issueGuestPortalAccessForBooking(input: {
     {
       _property_id: input.propertyId,
       _booking_id: booking.id,
-      _guest_id: booking.guest_id,
+      _guest_id: targetGuestId,
       _concierge_session_id: session.id,
       _token_hash: hashToken(token),
       _actor_id: input.actorId,
@@ -707,7 +729,7 @@ async function issueGuestPortalAccessForBooking(input: {
     await admin.from("staynas_guest_portal_access_events").insert({
       property_id: input.propertyId,
       booking_id: booking.id,
-      guest_id: booking.guest_id,
+      guest_id: targetGuestId,
       actor_id: input.actorId,
       event_type: "issue_failed",
       metadata: { phase: "credential_rpc" },
@@ -813,6 +835,7 @@ export const issueGuestPortalAccess = createServerFn({ method: "POST" })
       bookingId: data.bookingId,
       actorId: context.userId,
       rotate: data.rotate,
+      guestId: data.guestId,
     });
     return result;
   });
