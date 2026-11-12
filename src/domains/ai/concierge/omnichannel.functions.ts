@@ -636,12 +636,21 @@ export const updateEscalationSlaPolicy = createServerFn({ method: "POST" })
     if (input.operating_hours !== undefined) {
       const mode = input.operating_hours.mode;
       if (mode !== "24x7" && mode !== "weekly") throw new Error("Operating calendar mode must be 24x7 or weekly.");
-      if (mode === "weekly") for (const day of ["mon","tue","wed","thu","fri","sat","sun"]) {
-        const windows = input.operating_hours[day];
-        if (!Array.isArray(windows)) throw new Error("Weekly calendar must define all seven days.");
-        for (const window of windows as Array<{start?:string;end?:string}>) {
-          if (!window || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(window.start ?? "") || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(window.end ?? "") || (window.start ?? "") >= (window.end ?? "")) throw new Error("Calendar windows must use HH:MM and end after they start.");
+      if (mode === "weekly") {
+        let totalWindows = 0;
+        for (const day of ["mon","tue","wed","thu","fri","sat","sun"]) {
+          const windows = input.operating_hours[day];
+          if (!Array.isArray(windows)) throw new Error("Weekly calendar must define all seven days.");
+          const sorted = [...windows as Array<{start?:string;end?:string}>].sort((a,b) => String(a.start).localeCompare(String(b.start)));
+          let previousEnd = "";
+          for (const window of sorted) {
+            if (!window || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(window.start ?? "") || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(window.end ?? "") || (window.start ?? "") >= (window.end ?? "")) throw new Error("Calendar windows must use HH:MM and end after they start.");
+            if (previousEnd && (window.start ?? "") < previousEnd) throw new Error("Operating calendar windows cannot overlap.");
+            previousEnd = window.end ?? "";
+            totalWindows += 1;
+          }
         }
+        if (totalWindows === 0) throw new Error("A weekly operating calendar must include at least one open window.");
       }
     }
     return input;
