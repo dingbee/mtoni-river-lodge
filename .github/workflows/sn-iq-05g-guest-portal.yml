@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - 'src/domains/hospitality/guest-portal/**'
+      - 'src/components/os/operations/CheckInWizard.tsx'
+      - 'src/lib/operations.functions.ts'
+      - 'src/lib/front-desk.functions.ts'
       - 'src/domains/ai/concierge/guest-request-*.functions.ts'
       - 'src/domains/ai/concierge/GuestRequestsPanel.tsx'
       - 'src/routes/guest.$token.tsx'
