@@ -529,9 +529,12 @@ export const listEscalations = createServerFn({ method: "POST" })
       .order("created_at", { ascending: false })
       .limit(200);
     if (data.status && data.status !== "all") q = q.eq("status", data.status);
-    const { data: rows, error } = await q;
-    if (error) throw new Error(error.message);
-    return (rows ?? []) as EscalationRow[];
+    const [{ data: rows, error }, { data: property, error: propertyError }] = await Promise.all([
+      q,
+      (context.supabase as any).from("staynas_properties").select("timezone").eq("id",propertyId).maybeSingle(),
+    ]);
+    if (error || propertyError) throw new Error(error?.message ?? propertyError?.message ?? "Escalation property context unavailable.");
+    return (rows ?? []).map((row: any) => ({ ...row, property_timezone: property?.timezone ?? "UTC" })) as EscalationRow[];
   });
 
 export const createEscalation = createServerFn({ method: "POST" })
@@ -617,10 +620,12 @@ export const listEscalationSlaPolicies = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
-    const { data, error } = await (context.supabase as any).from("ai_escalation_sla_policies")
-      .select("*").eq("property_id", propertyId).order("priority");
-    if (error) throw new Error(error.message);
-    return data ?? [];
+    const [{ data, error }, { data: property, error: propertyError }] = await Promise.all([
+      (context.supabase as any).from("ai_escalation_sla_policies").select("*").eq("property_id", propertyId).order("priority"),
+      (context.supabase as any).from("staynas_properties").select("timezone").eq("id",propertyId).maybeSingle(),
+    ]);
+    if (error || propertyError) throw new Error(error?.message ?? propertyError?.message ?? "SLA policy context unavailable.");
+    return (data ?? []).map((policy: any) => ({ ...policy, property_timezone: property?.timezone ?? "UTC" }));
   });
 
 export const updateEscalationSlaPolicy = createServerFn({ method: "POST" })
