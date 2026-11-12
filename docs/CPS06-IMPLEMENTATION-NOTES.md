@@ -9,25 +9,28 @@ Status: implementation branch / UAT preparation. Not accepted and not production
 - The public production application must not be represented as a UAT deployment.
 
 ## Current implementation
-- Additive durable attribution and analytics event tables.
-- Server-only attribution upsert and quote-attachment RPCs.
-- Immutable first-touch and qualifying-external last-touch semantics.
-- Quote-to-booking attribution inheritance trigger.
-- Booking lifecycle and payment-ledger lifecycle event triggers.
-- Idempotent event keys scoped to property.
-- Property-scoped aggregation RPC with separate currency buckets.
-- Authenticated direct-booking analytics server function and dashboard route.
-- Role-based module entitlement for owner, manager, finance and marketing.
+- Additive durable attribution and analytics event tables with property/session idempotency.
+- First-touch immutability and qualifying-external last-touch updates.
+- Public permanent booking-page view ingestion and campaign-page/CTA event ingestion.
+- Booking-start and availability-search funnel events from the verified public booking request path.
+- Quote-generation attribution upsert and quote attachment in the canonical quote server flow.
+- Quote-to-reservation attribution inheritance and reservation/payment references on the attribution record.
+- Server-confirmed reservation, successful payment, cash refund and Pesapal provider-reversal lifecycle capture.
+- Campaign ID propagation from attribution through reservation and payment events.
+- Property-scoped server aggregation with currency-separated gross booking value and net collected, including campaign-level currency buckets.
+- Authenticated direct-booking analytics server function and Performance & Attribution dashboard.
+- Preset and custom reporting windows, local-property-timezone boundaries, and CSV export.
+- Role-based module entitlement and navigation entry for owner, manager, finance and marketing.
 
-## Known incomplete acceptance items
-- Wire public permanent and campaign page observations to the ingestion RPC.
-- Attach attribution during the existing quote-generation server flow and preserve it through reservation creation.
-- Verify the real payment event type and reversal/refund conventions against the deployed database schema.
-- Add custom date selection and CSV exports.
-- Add source/medium/campaign/content/referrer/landing-page drill-down and device capture.
-- Add entitlement catalogue enforcement, retention/consent policy and export audit records.
-- Add automated database/RLS/idempotency/reconciliation tests.
-- Execute the migration and UAT only in an explicitly isolated schema/database. The live Nolmark tenant remains read-only until then.
+## Verification and remaining acceptance work
+- Migration remains unapplied to the shared production database. No existing Nolmark reservation/payment rows were modified.
+- Nolmark CDMA remains the agreed UAT reference tenant; its current records were inspected read-only.
+- Run final P1 build/test and CPS-04 isolated-database migration/test workflows on the latest branch head.
+- Validate quote, reservation, payment and refund lifecycle behavior with isolated synthetic fixtures; do not mutate the live Nolmark operational records.
+- Add detailed source/medium/campaign/content/referrer/landing-page/device drill-down, campaign offer reporting, and export audit records.
+- Complete privacy consent/retention controls and entitlement-catalogue enforcement.
+- Complete full Mtoni/Nolmark UAT reconciliation after isolated test execution is available.
+- No production deployment or promotion until all required checks pass and explicit release approval is given.
 
 ## Metric contract
 - Views and journey actions are browser-observed and deduplicated by property + event key.
