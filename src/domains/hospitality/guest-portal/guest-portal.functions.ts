@@ -558,20 +558,43 @@ const staffBookingSchema = z.object({
   rotate: z.boolean().optional().default(true),
 });
 
-async function requireReservationProperty(context: {
-  supabase: SupabaseClient;
-  userId: string;
-}): Promise<string> {
-  await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
-  const { data: staff, error: staffError } = await context.supabase.rpc("is_any_staff", {
-    _user_id: context.userId,
-  });
-  if (staffError || !staff) throw new Error("Staff access is required.");
-  const { data: propertyId, error } = await context.supabase.rpc("staynas_active_property_id", {
-    _uid: context.userId,
-  });
-  if (error || !propertyId) throw new Error("Select an active property first.");
-  return String(propertyId);
+async function requireReservationProperty(
+  context: { supabase: SupabaseClient; userId: string },
+  bookingId: string,
+): Promise<string> {
+  let founderAdmin = false;
+  try {
+    const { data, error } = await context.supabase.rpc("commercial_is_founder_admin", {
+      _principal_id: context.userId,
+    });
+    founderAdmin = !error && data === true;
+  } catch {
+    founderAdmin = false;
+  }
+
+  if (!founderAdmin) {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
+    const { data: staff, error: staffError } = await context.supabase.rpc("is_any_staff", {
+      _user_id: context.userId,
+    });
+    if (staffError || !staff) throw new Error("Staff access is required.");
+    const { data: propertyId, error } = await context.supabase.rpc("staynas_active_property_id", {
+      _uid: context.userId,
+    });
+    if (error || !propertyId) throw new Error("Select an active property first.");
+    return String(propertyId);
+  }
+
+  // Founder scope is resolved from the reservation itself, never from a
+  // property identifier supplied by the browser.
+  const admin = await adminClient();
+  const { data: booking, error } = await admin
+    .from("bookings")
+    .select("property_id")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (error || !booking?.property_id) throw new Error("Booking not found.");
+  return String(booking.property_id);
 }
 
 type GuestPortalIssueResult = {
@@ -701,7 +724,7 @@ export const getGuestPortalAccessStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => staffBookingSchema.pick({ bookingId: true }).parse(input))
   .handler(async ({ data, context }) => {
-    const propertyId = await requireReservationProperty(context);
+    const propertyId = await requireReservationProperty(context, data.bookingId);
     const admin = await adminClient();
     const { data: booking, error: bookingError } = await admin
       .from("bookings")
