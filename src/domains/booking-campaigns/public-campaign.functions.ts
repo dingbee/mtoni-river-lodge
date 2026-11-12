@@ -13,6 +13,32 @@ function campaignLocalDate(timezone: string) {
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
+export const getPublicBookingProperty = createServerFn({ method: "GET" })
+  .inputValidator((input: unknown) => z.object({ propertySlug: campaignSlug }).parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
+    const sb = supabaseAdmin as any;
+    const [{ data: property, error: propertyError }, { data: branding, error: brandingError }] = await Promise.all([
+      sb.from("staynas_properties").select("id,slug,name,currency,timezone,status")
+        .eq("id", channel.propertyId).eq("slug", data.propertySlug).maybeSingle(),
+      sb.from("staynas_property_branding").select("logo_url,primary_color,secondary_color,background_color,text_color,tagline,description,hero_image_url")
+        .eq("property_id", channel.propertyId).maybeSingle(),
+    ]);
+    if (propertyError || !property || property.status !== "active" || brandingError
+      || !/^[A-Z]{3}$/.test(String(property.currency ?? "")) || !property.timezone) {
+      throw new Error("Booking property does not match the verified domain or has incomplete configuration.");
+    }
+    return {
+      property,
+      branding: branding ?? {
+        logo_url: null, primary_color: "#1f2937", secondary_color: "#64748b",
+        background_color: "#ffffff", text_color: "#111827", tagline: null,
+        description: null, hero_image_url: null,
+      },
+    };
+  });
+
 export const getPublicBookingCampaign = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({
     propertySlug: campaignSlug,
