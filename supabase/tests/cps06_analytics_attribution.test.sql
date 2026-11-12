@@ -49,8 +49,9 @@ BEGIN
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conrelid=v_rel AND conname='staynas_booking_analytics_event_key_uidx'
+    SELECT 1 FROM pg_indexes
+    WHERE schemaname='public' AND tablename='staynas_booking_analytics_events'
+      AND indexname='staynas_booking_analytics_event_key_uidx'
   ) THEN
     RAISE EXCEPTION 'Property-scoped analytics event idempotency constraint is missing';
   END IF;
