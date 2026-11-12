@@ -15,12 +15,16 @@ import {
   ShieldOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { buildGuestPortalUrl, guestPortalOrigin } from "./guest-portal.shared";
 import {
   getGuestPortalAccessStatus,
   issueGuestPortalAccess,
   revokeGuestPortalAccess,
   recordGuestPortalAccessEvent,
+  listGuestPortalOccupants,
+  addGuestPortalOccupant,
+  removeGuestPortalOccupant,
 } from "./guest-portal.functions";
 
 function formatDate(value: string | null | undefined, timezone: string | null | undefined) {
@@ -47,14 +51,32 @@ export function GuestPortalAccessPanel({
   const [link, setLink] = useState<string | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [accessId, setAccessId] = useState<string | null>(null);
+  const [selectedGuestId, setSelectedGuestId] = useState<string | null>(null);
+  const [availableGuestId, setAvailableGuestId] = useState<string>("");
   const statusFn = useServerFn(getGuestPortalAccessStatus);
   const issueFn = useServerFn(issueGuestPortalAccess);
   const revokeFn = useServerFn(revokeGuestPortalAccess);
   const recordEventFn = useServerFn(recordGuestPortalAccessEvent);
+  const occupantsFn = useServerFn(listGuestPortalOccupants);
+  const addOccupantFn = useServerFn(addGuestPortalOccupant);
+  const removeOccupantFn = useServerFn(removeGuestPortalOccupant);
+
+  const occupants = useQuery({
+    queryKey: ["guest-portal-occupants", bookingId],
+    queryFn: () => occupantsFn({ data: { bookingId } }),
+  });
+
+  const activeGuestId = selectedGuestId ?? occupants.data?.leadGuest?.id ?? undefined;
+
+  useEffect(() => {
+    if (!selectedGuestId && occupants.data?.leadGuest?.id) {
+      setSelectedGuestId(occupants.data.leadGuest.id);
+    }
+  }, [selectedGuestId, occupants.data?.leadGuest?.id]);
 
   const access = useQuery({
-    queryKey: ["guest-portal-access", bookingId],
-    queryFn: () => statusFn({ data: { bookingId } }),
+    queryKey: ["guest-portal-access", bookingId, activeGuestId],
+    queryFn: () => statusFn({ data: { bookingId, guestId: activeGuestId } }),
     enabled: true,
   });
 
@@ -88,7 +110,7 @@ export function GuestPortalAccessPanel({
   }, [link, accessId, bookingId, recordEventFn]);
 
   const issue = useMutation({
-    mutationFn: () => issueFn({ data: { bookingId, rotate: true } }),
+    mutationFn: () => issueFn({ data: { bookingId, guestId: activeGuestId, rotate: true } }),
     onSuccess: (result) => {
       if (result.token) {
         setAccessId(result.accessId);
@@ -105,12 +127,36 @@ export function GuestPortalAccessPanel({
 
   const revoke = useMutation({
     mutationFn: () =>
-      revokeFn({ data: { bookingId, guestId: access.data?.guestId ?? null } }),
+      revokeFn({ data: { bookingId, guestId: activeGuestId ?? null } }),
     onSuccess: (result) => {
       setLink(null);
       setQrDataUrl(null);
       setAccessId(null);
       toast.success(result.revokedCount ? "Guest Portal access revoked" : "No active credential to revoke");
+      qc.invalidateQueries({ queryKey: ["guest-portal-access", bookingId] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const addOccupant = useMutation({
+    mutationFn: () => addOccupantFn({ data: { bookingId, guestId: availableGuestId } }),
+    onSuccess: () => {
+      setAvailableGuestId("");
+      toast.success("Registered occupant added to reservation");
+      qc.invalidateQueries({ queryKey: ["guest-portal-occupants", bookingId] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const removeOccupant = useMutation({
+    mutationFn: (guestId: string) => removeOccupantFn({ data: { bookingId, guestId } }),
+    onSuccess: () => {
+      toast.success("Occupant removed and their access revoked");
+      setSelectedGuestId(occupants.data?.leadGuest?.id ?? null);
+      setLink(null);
+      setQrDataUrl(null);
+      setAccessId(null);
+      qc.invalidateQueries({ queryKey: ["guest-portal-occupants", bookingId] });
       qc.invalidateQueries({ queryKey: ["guest-portal-access", bookingId] });
     },
     onError: (error: Error) => toast.error(error.message),
@@ -201,6 +247,55 @@ export function GuestPortalAccessPanel({
           Guest Portal access
         </p>
       </div>
+
+      {occupants.data && (
+        <div className="mt-3 grid gap-2 rounded-md bg-muted/30 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Guest identity</label>
+            <Select value={activeGuestId ?? ""} onValueChange={(value) => {
+              setSelectedGuestId(value);
+              setLink(null);
+              setQrDataUrl(null);
+              setAccessId(null);
+            }}>
+              <SelectTrigger><SelectValue placeholder="Select registered guest" /></SelectTrigger>
+              <SelectContent>
+                {occupants.data.leadGuest && (
+                  <SelectItem value={occupants.data.leadGuest.id}>{occupants.data.leadGuest.full_name} (Lead guest)</SelectItem>
+                )}
+                {occupants.data.occupants.map((guest: any) => (
+                  <SelectItem key={guest.id} value={guest.id}>{guest.full_name} (Occupant)</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {occupants.data.availableGuests.length > 0 && bookingStatus === "checked_in" && (
+            <>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Add registered occupant</label>
+                <Select value={availableGuestId} onValueChange={setAvailableGuestId}>
+                  <SelectTrigger><SelectValue placeholder="Choose existing guest" /></SelectTrigger>
+                  <SelectContent>
+                    {occupants.data.availableGuests.map((guest: any) => (
+                      <SelectItem key={guest.id} value={guest.id}>{guest.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => addOccupant.mutate()} disabled={!availableGuestId || addOccupant.isPending}>
+                {addOccupant.isPending ? "Adding…" : "Add occupant"}
+              </Button>
+            </>
+          )}
+          {activeGuestId && activeGuestId !== occupants.data.leadGuest?.id && bookingStatus === "checked_in" && (
+            <Button size="sm" variant="outline" onClick={() => {
+              if (window.confirm("Remove this registered occupant and revoke their Guest Portal access?")) removeOccupant.mutate(activeGuestId);
+            }} disabled={removeOccupant.isPending}>
+              Remove occupant
+            </Button>
+          )}
+        </div>
+      )}
 
       {access.isLoading ? (
         <p className="mt-2 flex items-center gap-2 text-muted-foreground">
