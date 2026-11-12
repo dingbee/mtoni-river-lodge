@@ -196,6 +196,7 @@ export const recordPublicBookingCampaignEvent = createServerFn({ method: "POST" 
       source: data.source ?? null, medium: data.medium ?? null,
       utm_campaign: data.utmCampaign ?? null, utm_content: data.utmContent ?? null,
       utm_term: data.utmTerm ?? null, referrer: data.referrer ?? null,
+      landing_page: `/p/${data.propertySlug}/campaign/${campaign.slug}`,
     };
     const { data: attribution, error: durableAttributionError } = await sb.rpc("staynas_upsert_booking_attribution", {
       _property_id: property.id,
@@ -264,7 +265,7 @@ export const recordPublicDirectBookingAnalyticsEvent = createServerFn({ method: 
     const { data: attribution, error: attributionError } = await sb.rpc("staynas_upsert_booking_attribution", {
       _property_id: property.id, _organisation_id: channel.organisationId, _session_key: data.sessionKey,
       _touch: touch, _touch_at: new Date().toISOString(),
-      _is_external_acquisition: Boolean(data.source || data.medium || data.utmCampaign || data.referrer),
+      _is_external_acquisition: Boolean(data.source || data.medium || data.utmCampaign || externalReferrer),
     });
     if (attributionError || !attribution?.attribution_id) throw new Error("Booking page attribution could not be initialized.");
     const { error: eventError } = await sb.rpc("staynas_record_booking_analytics_event", {
