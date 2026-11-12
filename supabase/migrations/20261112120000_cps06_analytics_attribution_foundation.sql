@@ -351,6 +351,34 @@ revoke all on function public.staynas_attach_quote_attribution(uuid,uuid,uuid)
 grant execute on function public.staynas_attach_quote_attribution(uuid,uuid,uuid)
   to service_role;
 
+create or replace function public.staynas_validate_booking_attribution_property()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $trigger$
+begin
+  if new.attribution_id is not null and not exists (
+    select 1 from public.staynas_booking_attributions a
+    where a.id=new.attribution_id and a.property_id=new.property_id
+  ) then
+    raise exception using errcode='23503',
+      message='Booking attribution must belong to the same property';
+  end if;
+  return new;
+end
+$trigger$;
+
+drop trigger if exists staynas_quote_attribution_property_guard on public.staynas_reservation_quotes;
+create trigger staynas_quote_attribution_property_guard
+  before insert or update of attribution_id,property_id on public.staynas_reservation_quotes
+  for each row execute function public.staynas_validate_booking_attribution_property();
+
+drop trigger if exists staynas_booking_attribution_property_guard on public.bookings;
+create trigger staynas_booking_attribution_property_guard
+  before insert or update of attribution_id,property_id on public.bookings
+  for each row execute function public.staynas_validate_booking_attribution_property();
+
 create or replace function public.staynas_inherit_quote_attribution()
 returns trigger
 language plpgsql
