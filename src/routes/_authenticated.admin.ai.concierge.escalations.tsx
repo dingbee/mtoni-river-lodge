@@ -195,7 +195,7 @@ function EscalationCard({ row, assignees, onPatch }: {
       <div className="flex flex-wrap gap-2">
         {row.status === "assigned" && <Button size="sm" onClick={() => onPatch({id:row.id,status:"acknowledged"})}>Acknowledge</Button>}
         {["assigned","acknowledged"].includes(row.status) && <Button size="sm" variant="secondary" onClick={() => onPatch({id:row.id,status:"in_progress"})}>Start work</Button>}
-        {!["resolved","dismissed"].includes(row.status) && <Button size="sm" variant="secondary" onClick={() => onPatch({id:row.id,status:"resolved",resolution_notes:notes})}>Resolve</Button>}
+        {row.status === "in_progress" && <Button size="sm" variant="secondary" onClick={() => onPatch({id:row.id,status:"resolved",resolution_notes:notes})}>Resolve</Button>}
         {!["resolved","dismissed"].includes(row.status) && <Button size="sm" variant="outline" onClick={() => onPatch({id:row.id,status:"dismissed",resolution_notes:notes})}>Cancel</Button>}
         {["resolved","dismissed"].includes(row.status) && <Button size="sm" variant="outline" onClick={() => onPatch({id:row.id,status:"open"})}>Reopen</Button>}
         <Button size="sm" variant="ghost" onClick={() => setHistoryOpen((v) => !v)}>{historyOpen ? "Hide history" : "Audit history"}</Button>
