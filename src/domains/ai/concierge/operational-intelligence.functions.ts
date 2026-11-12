@@ -97,7 +97,7 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
     const periodStart = new Date(periodEnd.getTime() - days * 86_400_000);
     const since = periodStart.toISOString();
 
-    const [property, sessions, messages, leads, escalations, docs, chunks, searches, conciergeAttributions, campaignAttributions] = await Promise.all([
+    const [property, sessions, messages, leads, escalations, docs, chunks, searches, conciergeAttributions, campaignAttributions, propertyBookings] = await Promise.all([
       sb.from("staynas_properties").select("id,currency,timezone").eq("id", propertyId).maybeSingle(),
       sb.from("ai_concierge_sessions").select("id,created_at").eq("property_id", propertyId).gte("created_at", since),
       sb.from("ai_omnichannel_messages")
@@ -115,9 +115,10 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         .eq("ai_concierge_sessions.property_id", propertyId).gte("created_at", since),
       sb.from("campaign_attribution").select("id,booking_id,event_type,occurred_at")
         .eq("property_id", propertyId).eq("event_type", "booking_completed").gte("occurred_at", since),
+      sb.from("bookings").select("id,currency").eq("property_id", propertyId),
     ]);
 
-    for (const result of [property, sessions, messages, leads, escalations, docs, chunks, searches, conciergeAttributions, campaignAttributions]) {
+    for (const result of [property, sessions, messages, leads, escalations, docs, chunks, searches, conciergeAttributions, campaignAttributions, propertyBookings]) {
       if (result.error) throw new Error(result.error.message);
     }
     if (!property.data) throw new Error("Active property configuration is unavailable.");
@@ -152,9 +153,7 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
       );
     }
     const confirmedBookingCount = new Set(verifiedBookings.map((row: any) => row.id)).size;
-    const eligibleLeads = leadRows.filter((row: any) => row.status !== "closed").length;
-    const currencyMismatchCount = verifiedBookings.filter((row: any) => row.currency !== property.data.currency).length;
-    const revenueAvailable = currencyMismatchCount === 0 && verifiedBookings.length > 0;
+    const currencyMismatchCount = (propertyBookings.data ?? []).filter((row: any) => row.currency !== property.data.currency).length;
 
     const documentRows = docs.data ?? [];
     const currentChunkCount = (chunks.data ?? []).filter((chunk: any) =>
@@ -182,11 +181,13 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
       conversion: {
         verified_attributed_bookings: confirmedBookingCount,
         eligible_leads: eligibleLeads,
-        lead_to_booking_rate: eligibleLeads > 0 ? round(confirmedBookingCount / eligibleLeads, 4) : null,
+        lead_to_booking_rate: null,
+        lead_to_booking_rate_available: false,
+        lead_to_booking_rate_reason: "No durable lead_id-to-booking_id relationship exists; an attributed booking count cannot be divided by an unrelated lead denominator.",
         revenue: null,
         revenue_available: false,
         revenue_reason: "Realized revenue requires reconciled, verified payment and reversal ledger evidence; booking totals and paid flags are not treated as settlement proof.",
-        currency_mismatch_count: currencyMismatchCount,
+        booking_currency_mismatch_count: currencyMismatchCount,
       },
       escalations: {
         total: escalationRows.length,
@@ -210,7 +211,8 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         limitation: "Search logs do not persist a verified session/message/answer foreign-key trace; retrieval counts cannot establish answer grounding or factual accuracy.",
       },
       measurement: {
-        booking_conversion_available: true,
+        attributed_confirmed_booking_count_available: true,
+        lead_to_booking_rate_available: false,
         revenue_available: false,
         factual_accuracy_available: false,
       },
