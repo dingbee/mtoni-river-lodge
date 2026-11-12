@@ -276,7 +276,7 @@ export const getPaymentTimeline = createServerFn({ method: "POST" })
     let providerEvidence: PaymentTimelineProviderEvidence[] = [];
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data: evidenceRows, error: evidenceError } = await (supabaseAdmin as any)
+      const { data: evidenceRows, error: evidenceError } = await (supabaseAdmin as unknown as import("@supabase/supabase-js").SupabaseClient)
         .from("staynas_distribution_financial_evidence")
         .select("id,provider_key,environment,external_reservation_id,event_type,provider_reference,evidence,reconciliation_status,reconciliation_code,received_at")
         .eq("property_id", bookingResult.data.property_id)
