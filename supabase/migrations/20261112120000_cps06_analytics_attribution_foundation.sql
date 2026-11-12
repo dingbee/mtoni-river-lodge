@@ -531,6 +531,15 @@ begin
     select * from public.staynas_booking_analytics_events
     where property_id=_property_id and occurred_at >= _from and occurred_at < _to
   ),
+  paid_booking_rollup as (
+    select booking_id,currency,
+      coalesce(sum(amount) filter(where event_type='payment_completed'),0)
+        - coalesce(sum(abs(amount)) filter(where event_type='payment_refunded'),0)
+        - coalesce(sum(abs(amount)) filter(where event_type='payment_reversed'),0) as net_collected
+    from e
+    where booking_id is not null and event_type in ('payment_completed','payment_refunded','payment_reversed')
+    group by booking_id,currency
+  ),
   stages as (
     select
       count(*) filter(where event_type in ('booking_page_viewed','campaign_page_viewed')) as views,
@@ -540,14 +549,15 @@ begin
       count(*) filter(where event_type='quote_generated') as quotes,
       count(*) filter(where event_type='reservation_created') as reservations,
       count(*) filter(where event_type='reservation_confirmed') as confirmed,
-      count(distinct booking_id) filter(where event_type='payment_completed') as paid_bookings
+      (select count(*) from paid_booking_rollup where net_collected>0) as paid_bookings
     from e
   ),
   booking_money as (
     select upper(currency) as currency,
       coalesce(sum(total),0) as gross_booking_value,
       coalesce(sum(total) filter(where status::text in ('confirmed','checked_in','completed')),0) as confirmed_booking_value,
-      coalesce(sum(balance_amount) filter(where status::text not in ('cancelled','no_show')),0) as outstanding
+      coalesce(sum(balance_amount) filter(where status::text not in ('cancelled','no_show')
+        and payment_status::text<>'refunded'),0) as outstanding
     from public.bookings
     where property_id=_property_id and created_at >= _from and created_at < _to
     group by upper(currency)
@@ -580,7 +590,13 @@ begin
       count(*) filter(where e.event_type='booking_started') as booking_starts,
       count(*) filter(where e.event_type='quote_generated') as quotes,
       count(distinct e.booking_id) filter(where e.event_type='reservation_created') as reservations,
-      count(distinct e.booking_id) filter(where e.event_type='payment_completed') as paid_bookings,
+      coalesce((
+        select count(distinct pb.booking_id)
+        from paid_booking_rollup pb
+        join public.staynas_booking_analytics_events pe on pe.booking_id=pb.booking_id
+          and pe.property_id=c.property_id and pe.campaign_id=c.id
+        where pb.net_collected>0
+      ),0) as paid_bookings,
       coalesce((
         select jsonb_agg(jsonb_build_object('currency',totals.currency,'net_collected',totals.net_collected))
         from (
@@ -605,8 +621,10 @@ begin
       count(distinct session_key) filter(where event_type in ('booking_page_viewed','campaign_page_viewed')) as visitors,
       count(*) filter(where event_type='booking_started') as booking_starts,
       count(distinct booking_id) filter(where event_type='reservation_created') as reservations,
-      count(distinct booking_id) filter(where event_type='payment_completed') as paid_bookings
-    from e group by 1,2
+      count(distinct e.booking_id) filter(where event_type='payment_completed' and coalesce(pb.net_collected,0)>0) as paid_bookings
+    from e
+    left join paid_booking_rollup pb on pb.booking_id=e.booking_id and pb.currency=e.currency
+    group by 1,2
   ),
   last_touch_acquisition as (
     select coalesce(a.last_touch->>'source','(not set)') as source,
@@ -615,9 +633,10 @@ begin
       count(distinct e.session_key) filter(where e.event_type in ('booking_page_viewed','campaign_page_viewed')) as visitors,
       count(*) filter(where e.event_type='booking_started') as booking_starts,
       count(distinct e.booking_id) filter(where e.event_type='reservation_created') as reservations,
-      count(distinct e.booking_id) filter(where e.event_type='payment_completed') as paid_bookings
+      count(distinct e.booking_id) filter(where e.event_type='payment_completed' and coalesce(pb.net_collected,0)>0) as paid_bookings
     from e
     left join public.staynas_booking_attributions a on a.id=e.attribution_id and a.property_id=e.property_id
+    left join paid_booking_rollup pb on pb.booking_id=e.booking_id and pb.currency=e.currency
     group by 1,2
   )
   select jsonb_build_object(
