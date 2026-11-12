@@ -412,7 +412,7 @@ export function GuestPortalAccessPanel({
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Delivery: {access.data?.deliveryStatus ?? "not sent"}. Messaging delivery is available only when this property has an approved provider binding.
+            Delivery: {access.data?.deliveryStatus ?? "not sent"}. Copy, QR and device sharing are available. Automated WhatsApp and email delivery are not enabled for Guest Portal credentials yet.
           </p>
           {!access.data?.multipleGuestAccess && (
             <p className="text-xs text-muted-foreground">
