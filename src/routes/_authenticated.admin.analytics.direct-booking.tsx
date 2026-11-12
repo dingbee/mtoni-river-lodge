@@ -64,7 +64,7 @@ function Page() {
         ["revenue", "gross_booking_value", item.gross_booking_value, item.currency],
         ["revenue", "confirmed_booking_value", item.confirmed_booking_value, item.currency],
         ["revenue", "amount_paid", item.amount_paid, item.currency],
-        ["revenue", "outstanding", item.outstanding, item.currency],
+        ["revenue", "current_outstanding", item.outstanding, item.currency],
         ["revenue", "refunds", item.refunds, item.currency],
         ["revenue", "net_collected", item.net_collected, item.currency],
       ]),
@@ -152,7 +152,7 @@ function Page() {
               ["Gross booking value", money(Number(row.gross_booking_value), row.currency)],
               ["Confirmed booking value", money(Number(row.confirmed_booking_value), row.currency)],
               ["Amount paid", money(Number(row.amount_paid), row.currency)],
-              ["Outstanding", money(Number(row.outstanding), row.currency)],
+              ["Current outstanding", money(Number(row.outstanding), row.currency)],
               ["Refunds", money(Number(row.refunds), row.currency)],
               ["Net collected", money(Number(row.net_collected), row.currency)],
             ].map(([label, value]) => <div key={label}><div className="text-xs text-muted-foreground">{label}</div><div className="font-medium">{value}</div></div>)}
