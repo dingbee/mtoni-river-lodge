@@ -41,6 +41,26 @@ async function adminClient(): Promise<SupabaseClient> {
   return supabaseAdmin as unknown as SupabaseClient;
 }
 
+async function isRegisteredBookingGuest(
+  admin: SupabaseClient,
+  propertyId: string,
+  bookingId: string,
+  leadGuestId: string | null,
+  guestId: string | null,
+): Promise<boolean> {
+  if (!guestId) return false;
+  if (guestId === leadGuestId) return true;
+  const { data, error } = await admin
+    .from("staynas_booking_guest_occupants")
+    .select("id")
+    .eq("property_id", propertyId)
+    .eq("booking_id", bookingId)
+    .eq("guest_id", guestId)
+    .eq("status", "active")
+    .maybeSingle();
+  return !error && Boolean(data);
+}
+
 type GuestPortalContext = {
   admin: SupabaseClient;
   access: {
@@ -172,9 +192,9 @@ async function authorizeGuestPortal(token: string): Promise<GuestPortalContext> 
     await recordGuestPortalAccessDenied(admin, tokenHash, "booking_not_eligible", access);
     throw new Error("Guest Portal access is available during an active stay or its configured checkout grace period.");
   }
-  if (access.guest_id !== booking.guest_id) {
+  if (!(await isRegisteredBookingGuest(admin, access.property_id, access.booking_id, booking.guest_id, access.guest_id))) {
     await recordGuestPortalAccessDenied(admin, tokenHash, "guest_identity_mismatch", access);
-    throw new Error("This guest access link does not match the reservation.");
+    throw new Error("This guest access link does not match a registered reservation guest.");
   }
   const today = localDate(property.timezone);
   if (booking.status === "checked_in" && (booking.check_in > today || booking.check_out < today)) {
@@ -997,8 +1017,8 @@ export const recordGuestPortalAccessEvent = createServerFn({ method: "POST" })
       .maybeSingle();
     if (bookingError || !booking ||
         !isGuestPortalStayEligible(booking.status, access.expires_at) ||
-        booking.guest_id !== access.guest_id) {
-      throw new Error("The guest credential is no longer bound to an eligible guest stay.");
+        !(await isRegisteredBookingGuest(admin, propertyId, data.bookingId, booking.guest_id, access.guest_id))) {
+      throw new Error("The guest credential is no longer bound to an eligible registered guest stay.");
     }
     const { error } = await admin.from("staynas_guest_portal_access_events").insert({
       access_id: access.id,
