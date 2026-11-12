@@ -15,7 +15,7 @@ import {
   ShieldOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { buildGuestPortalUrl } from "./guest-portal.shared";
+import { buildGuestPortalUrl, guestPortalOrigin } from "./guest-portal.shared";
 import {
   getGuestPortalAccessStatus,
   issueGuestPortalAccess,
@@ -85,7 +85,7 @@ export function GuestPortalAccessPanel({
     onSuccess: (result) => {
       if (result.token) {
         setAccessId(result.accessId);
-        setLink(buildGuestPortalUrl(window.location.origin, result.token));
+        setLink(buildGuestPortalUrl(guestPortalOrigin(window.location.origin, import.meta.env.VITE_GUEST_PORTAL_BASE_URL), result.token));
         toast.success("Guest Portal access generated");
       } else {
         setLink(null);
