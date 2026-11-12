@@ -72,21 +72,54 @@ type GuestPortalContext = {
   roomState: { id: string; state: string; unit_label: string | null } | null;
 };
 
+async function recordGuestPortalAccessDenied(
+  admin: SupabaseClient,
+  tokenFingerprint: string,
+  reason: string,
+  access?: {
+    id: string;
+    property_id: string;
+    booking_id: string;
+    guest_id: string | null;
+  } | null,
+): Promise<void> {
+  try {
+    await admin.from("staynas_guest_portal_access_events").insert({
+      access_id: access?.id ?? null,
+      property_id: access?.property_id ?? null,
+      booking_id: access?.booking_id ?? null,
+      guest_id: access?.guest_id ?? null,
+      event_type: "access_denied",
+      token_fingerprint: tokenFingerprint.slice(0, 12),
+      metadata: { reason },
+    });
+  } catch {
+    // Denial remains enforced even if security telemetry is unavailable.
+  }
+}
+
 async function authorizeGuestPortal(token: string): Promise<GuestPortalContext> {
   const cleanToken = token.trim();
+  const admin = await adminClient();
+  const tokenHash = hashToken(cleanToken);
   if (cleanToken.length < 40 || cleanToken.length > 200) {
+    await recordGuestPortalAccessDenied(admin, tokenHash);
     throw new Error("This guest access link is invalid.");
   }
 
-  const admin = await adminClient();
   const { data: access, error: accessError } = await admin
     .from("staynas_guest_portal_access")
     .select("id, property_id, booking_id, guest_id, concierge_session_id, expires_at, revoked_at, status")
-    .eq("token_hash", hashToken(cleanToken))
+    .eq("token_hash", tokenHash)
     .maybeSingle();
 
-  if (accessError || !access) throw new Error("This guest access link is invalid.");
+  if (accessError) throw new Error("Guest Portal access is temporarily unavailable.");
+  if (!access) {
+    await recordGuestPortalAccessDenied(admin, tokenHash, "invalid_or_unknown_credential");
+    throw new Error("This guest access link is invalid.");
+  }
   if (access.revoked_at || access.status === "revoked" || access.status === "superseded") {
+    await recordGuestPortalAccessDenied(admin, tokenHash, "revoked_or_superseded_credential", access);
     throw new Error("This guest access link has been revoked.");
   }
   if (access.status !== "active" || Date.parse(access.expires_at) <= Date.now()) {
@@ -101,6 +134,7 @@ async function authorizeGuestPortal(token: string): Promise<GuestPortalContext> 
         metadata: { source: "guest_access_validation" },
       });
     }
+    await recordGuestPortalAccessDenied(admin, tokenHash, "expired_credential", access);
     throw new Error("This guest access link has expired.");
   }
 
@@ -110,7 +144,10 @@ async function authorizeGuestPortal(token: string): Promise<GuestPortalContext> 
     .eq("id", access.property_id)
     .eq("status", "active")
     .maybeSingle();
-  if (propertyError || !property) throw new Error("This property is not available.");
+  if (propertyError || !property) {
+    await recordGuestPortalAccessDenied(admin, tokenHash, "property_unavailable", access);
+    throw new Error("This property is not available.");
+  }
 
   const { data: booking, error: bookingError } = await admin
     .from("bookings")
@@ -122,13 +159,16 @@ async function authorizeGuestPortal(token: string): Promise<GuestPortalContext> 
     .maybeSingle();
 
   if (bookingError || !booking || booking.status !== "checked_in") {
+    await recordGuestPortalAccessDenied(admin, tokenHash, "booking_not_eligible", access);
     throw new Error("Guest portal access is available only during an active checked-in stay.");
   }
   if (access.guest_id && booking.guest_id && access.guest_id !== booking.guest_id) {
+    await recordGuestPortalAccessDenied(admin, tokenHash, "guest_identity_mismatch", access);
     throw new Error("This guest access link does not match the reservation.");
   }
   const today = localDate(property.timezone);
   if (booking.check_in > today || booking.check_out < today) {
+    await recordGuestPortalAccessDenied(admin, tokenHash, "outside_stay_dates", access);
     throw new Error(
       "Guest portal access is available only between the reservation check-in and check-out dates.",
     );
