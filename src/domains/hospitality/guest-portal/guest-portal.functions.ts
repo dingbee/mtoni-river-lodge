@@ -9,7 +9,6 @@ import { handleConciergeChat } from "@/domains/ai/concierge/concierge.server";
 import { validateGuestPortalPhotoMeta } from "./guest-portal.shared";
 
 const BUCKET = "guest-request-evidence";
-const PORTAL_TTL_DAYS = 30;
 type GuestRequestAttachmentMeta = {
   path?: unknown;
   file_name?: unknown;
@@ -87,9 +86,23 @@ async function authorizeGuestPortal(token: string): Promise<GuestPortalContext> 
     .maybeSingle();
 
   if (accessError || !access) throw new Error("This guest access link is invalid.");
-  if (access.revoked_at) throw new Error("This guest access link has been revoked.");
-  if (Date.parse(access.expires_at) <= Date.now())
+  if (access.revoked_at || access.status === "revoked" || access.status === "superseded") {
+    throw new Error("This guest access link has been revoked.");
+  }
+  if (access.status !== "active" || Date.parse(access.expires_at) <= Date.now()) {
+    if (access.status === "active") {
+      await admin.from("staynas_guest_portal_access").update({ status: "expired" }).eq("id", access.id);
+      await admin.from("staynas_guest_portal_access_events").insert({
+        access_id: access.id,
+        property_id: access.property_id,
+        booking_id: access.booking_id,
+        guest_id: access.guest_id,
+        event_type: "expired",
+        metadata: { source: "guest_access_validation" },
+      });
+    }
     throw new Error("This guest access link has expired.");
+  }
 
   const { data: property, error: propertyError } = await admin
     .from("staynas_properties")
@@ -142,7 +155,16 @@ async function authorizeGuestPortal(token: string): Promise<GuestPortalContext> 
     .from("staynas_guest_portal_access")
     .update({ last_used_at: new Date().toISOString() })
     .eq("id", access.id)
+    .eq("status", "active")
     .is("revoked_at", null);
+  await admin.from("staynas_guest_portal_access_events").insert({
+    access_id: access.id,
+    property_id: access.property_id,
+    booking_id: access.booking_id,
+    guest_id: access.guest_id,
+    event_type: "accessed",
+    metadata: { source: "guest_portal" },
+  });
 
   return {
     admin,
