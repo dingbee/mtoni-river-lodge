@@ -971,7 +971,7 @@ export const prepareGuestPortalDeliveryDraft = createServerFn({ method: "POST" }
       throw new Error("The credential is not bound to a registered reservation guest.");
     }
     const parsedUrl = new URL(data.portalUrl);
-    const approvedOrigin = guestPortalOrigin(parsedUrl.origin);
+    const approvedOrigin = guestPortalOrigin(parsedUrl.origin, import.meta.env.VITE_GUEST_PORTAL_BASE_URL);
     if (approvedOrigin !== parsedUrl.origin || !/^\/guest\/[A-Za-z0-9_-]{40,200}$/.test(parsedUrl.pathname) || parsedUrl.search || parsedUrl.hash) {
       throw new Error("Only the canonical approved Guest Portal URL can be sent.");
     }
