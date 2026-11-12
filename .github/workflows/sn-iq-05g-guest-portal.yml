@@ -14,7 +14,6 @@ on:
       - 'src/domains/ai/concierge/guest-request-*.functions.ts'
       - 'src/domains/ai/concierge/GuestRequestsPanel.tsx'
       - 'src/routes/guest.$token.tsx'
-      - 'src/routes/robots[.]txt.ts'
       - 'src/routes/api/public/ops/drain.ts'
       - 'supabase/migrations/*sn_iq_05*.sql'
       - 'supabase/migrations/*sn_gpa_*.sql'
