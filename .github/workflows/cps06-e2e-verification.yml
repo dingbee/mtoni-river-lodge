@@ -1,0 +1,94 @@
+name: CPS-06 end-to-end verification
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/domains/analytics/**"
+      - "src/domains/booking-campaigns/**"
+      - "src/lib/booking.functions.ts"
+      - "src/routes/p.$propertySlug.book.tsx"
+      - "src/routes/_authenticated.admin.analytics.direct-booking.tsx"
+      - "src/components/os/nav-config.ts"
+      - "src/lib/staynas-entitlements.ts"
+      - "supabase/migrations/**"
+      - "supabase/tests/cps06_analytics_attribution.test.sql"
+      - ".github/workflows/cps06-e2e-verification.yml"
+  push:
+    branches:
+      - feat/cps06-analytics-attribution
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cps06-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  application:
+    name: Production build, TypeScript, lint and regression tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Production build and route generation
+        run: bun run build
+      - name: TypeScript verification
+        run: bunx tsc --noEmit
+      - name: Lint changed CPS-06 application surfaces
+        run: >-
+          bunx eslint
+          src/domains/analytics/direct-booking.functions.ts
+          src/domains/booking-campaigns/public-campaign.functions.ts
+          src/lib/booking.functions.ts
+          'src/routes/p.$propertySlug.book.tsx'
+          'src/routes/p.$propertySlug.campaign.$campaignSlug.tsx'
+          src/routes/_authenticated.admin.analytics.direct-booking.tsx
+          src/components/os/nav-config.ts
+          src/lib/staynas-entitlements.ts
+          src/lib/staynas-entitlements.test.ts
+          --rule 'prettier/prettier: off'
+      - name: Booking, finance and analytics regression tests
+        run: >-
+          bunx vitest run
+          src/lib/booking-lifecycle.test.ts
+          src/domains/finance/payment-contract.test.ts
+          src/domains/finance/finance-reconciliation.test.ts
+          src/lib/pesapal-currency.test.ts
+          src/lib/staynas-entitlements.test.ts
+
+  database:
+    name: Full isolated Supabase migration and CPS-06 database contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: "2.122.1"
+      - name: Normalize optional legacy function revokes in ephemeral checkout
+        run: python3 scripts/ci/normalize-optional-legacy-revokes.py
+      - name: Start isolated Supabase stack
+        run: supabase start --exclude studio,inbucket,storage-api,imgproxy,vector
+      - name: Apply complete migration chain to disposable database
+        run: supabase db reset
+      - name: Run complete database contracts including CPS-06
+        run: supabase test db
+      - name: Stop isolated Supabase stack
+        if: always()
+        run: supabase stop --no-backup

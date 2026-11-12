@@ -11,6 +11,7 @@ export type StayNasModuleId =
   | "guests"
   | "finance"
   | "revenue"
+  | "direct-booking.analytics"
   | "automation"
   | "ai.concierge"
   | "ai.guests"
@@ -38,6 +39,7 @@ export const STAYNAS_MODULE_ENTITLEMENTS: ModuleEntitlement[] = [
   { id: "guests", label: "Guests", description: "Guest profiles, communications and relationship context.", roles: ["owner", "manager", "reception", "marketing"] },
   { id: "finance", label: "Finance", description: "Payments, invoices and financial controls.", roles: ["owner", "manager", "finance"] },
   { id: "revenue", label: "Revenue", description: "Revenue performance and commercial intelligence.", roles: ["owner", "manager", "finance"] },
+  { id: "direct-booking.analytics", label: "Direct Booking Analytics", description: "Direct booking, campaign attribution and conversion reporting.", roles: ["owner", "manager", "finance", "marketing"] },
   { id: "automation", label: "Automation", description: "Operational automations and workflow controls.", roles: ["owner", "manager"] },
   { id: "ai.concierge", label: "Concierge", description: "Guest-facing AI concierge capabilities.", roles: ["owner", "manager", "reception"] },
   { id: "ai.guests", label: "Guest Intelligence", description: "Guest intelligence, signals and recommendations.", roles: ["owner", "manager", "reception", "marketing"] },

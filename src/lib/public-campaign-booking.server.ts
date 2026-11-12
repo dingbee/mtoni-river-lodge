@@ -21,7 +21,7 @@ export async function resolvePublicCampaignBookingContext(
   propertyId: string,
   input: PublicCampaignBookingInput & { ratePlanId?: string },
 ) {
-  const hasCampaignContext = !!(input.campaignSlug || input.offerId || input.sessionKey);
+  const hasCampaignContext = !!(input.campaignSlug || input.offerId);
   if (!hasCampaignContext) {
     if (input.propertySlug) {
       const { data: property, error } = await sb.from("staynas_properties")
