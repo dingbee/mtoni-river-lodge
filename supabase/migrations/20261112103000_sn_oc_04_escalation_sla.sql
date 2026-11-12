@@ -359,6 +359,12 @@ SET search_path = pg_catalog, public
 AS $function$
 DECLARE r record;
 BEGIN
+  IF NOT NEW.enabled AND EXISTS (
+    SELECT 1 FROM public.ai_escalations
+    WHERE sla_policy_id=OLD.id AND status IN ('open','assigned','acknowledged','in_progress')
+  ) THEN
+    RAISE EXCEPTION 'Cannot disable an SLA policy while active escalations depend on it';
+  END IF;
   FOR r IN SELECT id FROM public.ai_escalations
     WHERE property_id=NEW.property_id AND priority=NEW.priority
       AND status IN ('open','assigned','acknowledged','in_progress')
