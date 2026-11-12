@@ -98,7 +98,7 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
     const periodStart = new Date(periodEnd.getTime() - days * 86_400_000);
     const since = periodStart.toISOString();
 
-    const [property, sessions, messageRows, legacyMessages, feedbackRows, leadRows, escalationRows, documentRows, chunkRows, searchRows, conciergeAttributionRows, campaignAttributionRows] = await Promise.all([
+    const [property, sessions, messageRows, legacyMessages, feedbackRows, leadRows, escalationRows, documentRows, chunkRows, searchRows, conciergeAttributionRows, campaignAttributionRows, slaEventRows, slaAlertRows] = await Promise.all([
       sb.from("staynas_properties").select("id,currency,timezone").eq("id", propertyId).maybeSingle(),
       sb.from("ai_concierge_sessions").select("id", { count: "exact", head: true }).eq("property_id", propertyId).gte("created_at", since),
       fetchAllRows(() => sb.from("ai_omnichannel_messages")
@@ -122,6 +122,10 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         .eq("ai_concierge_sessions.property_id", propertyId).gte("created_at", since)),
       fetchAllRows(() => sb.from("campaign_attribution").select("id,booking_id,event_type,source,medium,utm_campaign,occurred_at")
         .eq("property_id", propertyId).gte("occurred_at", since)),
+      fetchAllRows(() => sb.from("ai_escalation_events").select("id,escalation_id,event_type,metadata,occurred_at")
+        .eq("property_id", propertyId).gte("occurred_at", since)),
+      fetchAllRows(() => sb.from("ai_escalation_sla_alerts").select("id,escalation_id,milestone,alert_type,due_at,created_at")
+        .eq("property_id", propertyId).gte("created_at", since)),
     ]);
 
     for (const result of [property, sessions]) {
@@ -170,6 +174,24 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
       .or(`currency.is.null,currency.neq.${property.data.currency}`);
     if (currencyError) throw new Error(currencyError.message);
 
+    const slaCompletionEvents = slaEventRows.flatMap((event: any) => {
+      const milestone = event.event_type === "assigned" ? "assignment" : event.event_type === "acknowledged" ? "acknowledgement" : event.event_type === "resolved" ? "resolution" : null;
+      const dueAt = milestone ? event.metadata?.[milestone === "assignment" ? "assignment_due_at" : milestone === "acknowledgement" ? "acknowledgement_due_at" : "resolution_due_at"] : null;
+      if (!milestone || !dueAt) return [];
+      return [{ milestone, met: Date.parse(event.occurred_at) <= Date.parse(dueAt) }];
+    });
+    const slaByMilestone = Object.fromEntries(["assignment","acknowledgement","resolution"].map((milestone) => {
+      const completed = slaCompletionEvents.filter((event: any) => event.milestone === milestone);
+      const met = completed.filter((event: any) => event.met).length;
+      return [milestone, { completed: completed.length, met, breached: completed.length - met, compliance_rate: completed.length ? round(met / completed.length, 4) : null }];
+    }));
+    const activeSlaOverdue = escalationRows.reduce((count: number, row: any) => {
+      if (["resolved","dismissed"].includes(row.status)) return count;
+      const now = Date.now();
+      return count + Number((!row.assigned_to && row.assignment_due_at && Date.parse(row.assignment_due_at) < now)
+        || (!row.acknowledged_at && row.acknowledgement_due_at && Date.parse(row.acknowledgement_due_at) < now)
+        || (row.resolution_due_at && Date.parse(row.resolution_due_at) < now));
+    }, 0);
     const campaignEventCounts = Object.fromEntries(["page_view", "booking_click", "booking_started", "lead_submitted", "booking_completed"].map((eventType) => [
       eventType, campaignAttributionRows.filter((row: any) => row.event_type === eventType).length,
     ]));
@@ -228,6 +250,15 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         revenue_reason: "Realized revenue requires reconciled, verified payment and reversal ledger evidence; booking totals and paid flags are not treated as settlement proof.",
         booking_currency_mismatch_count: currencyMismatchCount ?? 0,
       },
+      sla: {
+        policy_priorities_configured: 3,
+        lifecycle_events: slaEventRows.length,
+        approaching_alerts: slaAlertRows.filter((row: any) => row.alert_type === "approaching_breach").length,
+        breached_alerts: slaAlertRows.filter((row: any) => row.alert_type === "breached").length,
+        active_overdue_escalations: activeSlaOverdue,
+        by_milestone: slaByMilestone,
+        notification_channel: "in_app",
+      },
       escalations: {
         total: escalationRows.length,
         by_status: escalationStatusCounts,
@@ -238,7 +269,8 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         median_acknowledgement_minutes: acknowledgedIntervals.length ? percentileMinutes(acknowledgedIntervals, 0.5) : null,
         acknowledgement_sample_size: acknowledgedIntervals.length,
         acknowledgement_latency_available: true,
-        reopen_rate_available: false,
+        reopen_rate: escalationRows.length ? round(escalationRows.filter((row: any) => row.reopened_at).length / escalationRows.length, 4) : null,
+        reopen_rate_available: true,
         sla_compliance_available: false,
         limitation: "SN-RT-01 provides acknowledged_at, but immutable status/reassignment/reopen history and versioned SLA policy snapshots are not yet present.",
       },
