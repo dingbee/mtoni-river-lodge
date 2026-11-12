@@ -270,6 +270,71 @@ export const getBookingQuote = createServerFn({ method: "POST" })
     if (quote.ok === false) {
       throw new Error(`Pricing rejected [${quote.error_code ?? "INVALID_RATE_CONFIGURATION"}]: ${quote.message ?? "Pricing configuration is invalid"}`);
     }
+    const sessionKey = data.sessionKey ?? campaignContext?.sessionKey ?? null;
+    if (sessionKey) {
+      const touch = {
+        source: data.utmSource ?? null,
+        medium: data.utmMedium ?? null,
+        utm_campaign: data.utmCampaign ?? null,
+        utm_content: data.utmContent ?? null,
+        utm_term: data.utmTerm ?? null,
+        referrer: data.referrer ?? null,
+      };
+      try {
+        const { data: attributionResult, error: attributionError } = await (supabaseAdmin as any).rpc(
+          "staynas_upsert_booking_attribution",
+          {
+            _property_id: channel.propertyId,
+            _organisation_id: channel.organisationId,
+            _session_key: sessionKey,
+            _booking_page_id: null,
+            _campaign_id: campaignContext?.campaignId ?? null,
+            _campaign_offer_id: campaignContext?.offerId ?? null,
+            _touch: touch,
+            _touch_at: new Date().toISOString(),
+            _is_external_acquisition: Boolean(data.utmSource || data.utmMedium || data.utmCampaign || data.referrer),
+          },
+        );
+        const attributionId = attributionResult?.attribution_id;
+        if (attributionError || !attributionId) {
+          console.error("[StayNas analytics] Attribution could not be linked to quote", { code: attributionError?.code, propertyId: channel.propertyId });
+        } else {
+          const { data: attached, error: attachError } = await (supabaseAdmin as any).rpc(
+            "staynas_attach_quote_attribution",
+            { _quote_id: quote.quote_id, _property_id: channel.propertyId, _attribution_id: attributionId },
+          );
+          if (attachError || attached !== true) {
+            console.error("[StayNas analytics] Quote attribution attachment failed", { code: attachError?.code, propertyId: channel.propertyId });
+          } else {
+            const { error: eventError } = await (supabaseAdmin as any).rpc("staynas_record_booking_analytics_event", {
+              _property_id: channel.propertyId,
+              _organisation_id: channel.organisationId,
+              _event_type: "quote_generated",
+              _event_key: `quote-generated:${quote.quote_id}`,
+              _event_source: "server_confirmed",
+              _attribution_id: attributionId,
+              _campaign_id: campaignContext?.campaignId ?? null,
+              _quote_id: quote.quote_id,
+              _session_key: sessionKey,
+              _traffic_source: data.utmSource ?? null,
+              _traffic_medium: data.utmMedium ?? null,
+              _utm_campaign: data.utmCampaign ?? null,
+              _utm_content: data.utmContent ?? null,
+              _utm_term: data.utmTerm ?? null,
+              _referrer: data.referrer ?? null,
+              _landing_page: campaignContext ? `/p/${data.propertySlug}/campaign/${data.campaignSlug}` : `/p/${data.propertySlug}/book`,
+              _metadata: { offer_id: campaignContext?.offerId ?? null },
+            });
+            if (eventError) console.error("[StayNas analytics] Quote event was not recorded", { code: eventError.code, propertyId: channel.propertyId });
+          }
+        }
+      } catch (analyticsError) {
+        console.error("[StayNas analytics] Quote attribution processing failed", {
+          propertyId: channel.propertyId,
+          message: analyticsError instanceof Error ? analyticsError.message : "unknown",
+        });
+      }
+    }
     if (campaignContext) {
       const { error: attributionError } = await (supabaseAdmin as any).from("campaign_attribution").upsert({
         campaign_id: campaignContext.campaignId, property_id: channel.propertyId,
