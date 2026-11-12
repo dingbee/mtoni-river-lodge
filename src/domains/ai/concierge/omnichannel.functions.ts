@@ -686,6 +686,22 @@ export const updateEscalationReasonPriorityMap = createServerFn({ method: "POST"
     return { ok: true };
   });
 
+export const listEscalationSlaAlerts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { escalation_id: string }) => {
+    if (!input?.escalation_id) throw new Error("Escalation id is required.");
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
+    const { data: rows, error } = await (context.supabase as any).from("ai_escalation_sla_alerts")
+      .select("id,milestone,alert_type,due_at,threshold_percent,created_at")
+      .eq("property_id",propertyId).eq("escalation_id",data.escalation_id)
+      .order("created_at",{ascending:false}).limit(12);
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
 export const listEscalationEvents = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { escalation_id: string }) => { if (!input?.escalation_id) throw new Error("Escalation id is required."); return input; })
