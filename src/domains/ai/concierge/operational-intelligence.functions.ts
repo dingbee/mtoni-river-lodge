@@ -279,10 +279,11 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         acknowledgement_sample_size: acknowledgedIntervals.length,
         acknowledgement_latency_available: true,
         reopened_escalations: reopenedInWindow.size,
+        closed_escalations_in_window: closedInWindow.size,
         same_window_reopen_rate: closedInWindow.size ? round(reopenedAfterWindowClosure / closedInWindow.size, 4) : null,
         same_window_reopen_rate_available: closedInWindow.size > 0,
-        sla_compliance_available: false,
-        limitation: "SN-RT-01 provides acknowledged_at, but immutable status/reassignment/reopen history and versioned SLA policy snapshots are not yet present.",
+        sla_compliance_available: true,
+        limitation: "Same-window reopen rate counts distinct escalations both closed and reopened in the selected period; cross-window reopen cohorts are not included.",
       },
       knowledge: {
         documents: documentRows.length,
