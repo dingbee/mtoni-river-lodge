@@ -87,7 +87,8 @@ BEGIN
      OR position('amount_paid' in v_report)=0
      OR position('outstanding' in v_report)=0
      OR position('refunds' in v_report)=0
-     OR position('provider_reversals' in v_report)=0 THEN
+     OR position('provider_reversals' in v_report)=0
+     OR position('last_touch_acquisition' in v_report)=0 THEN
     RAISE EXCEPTION 'Financial reconciliation or campaign currency separation is incomplete';
   END IF;
 END
@@ -295,6 +296,8 @@ DECLARE
   v_report jsonb;
   v_money jsonb;
   v_campaign jsonb;
+  v_first_touch jsonb;
+  v_last_touch jsonb;
 BEGIN
   v_report := public.staynas_get_booking_analytics(
     '93000000-0000-4000-8000-000000000001',now()-interval '1 day',now()+interval '1 day'
@@ -322,6 +325,17 @@ BEGIN
      OR (v_campaign->>'paid_bookings')::integer<>2
      OR (v_campaign->'net_collected_by_currency'->0->>'net_collected')::numeric<>50 THEN
     RAISE EXCEPTION 'Campaign conversion/revenue attribution failed: %',v_campaign;
+  END IF;
+
+  SELECT value INTO v_first_touch
+  FROM jsonb_array_elements(v_report->'acquisition') value
+  WHERE value->>'source'='google' AND value->>'medium'='cpc';
+  SELECT value INTO v_last_touch
+  FROM jsonb_array_elements(v_report->'last_touch_acquisition') value
+  WHERE value->>'source'='newsletter' AND value->>'medium'='email';
+  IF v_first_touch IS NULL OR (v_first_touch->>'paid_bookings')::integer<>2
+     OR v_last_touch IS NULL OR (v_last_touch->>'paid_bookings')::integer<>2 THEN
+    RAISE EXCEPTION 'First-touch or last-touch conversion attribution did not reconcile';
   END IF;
 
   BEGIN
