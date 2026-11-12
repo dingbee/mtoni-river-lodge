@@ -35,7 +35,7 @@ async function activeProperty(sb: any, userId: string): Promise<string> {
     .eq("user_id", userId)
     .eq("property_id", propertyId)
     .eq("status", "active")
-    .in("role", ["owner", "manager", "admin", "reservations", "reception", "marketing"])
+    .in("role", ["owner", "manager", "admin", "reception", "marketing"])
     .maybeSingle();
   if (membershipError || !membership) throw new Error("Forbidden");
   return String(propertyId);
