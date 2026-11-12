@@ -67,8 +67,13 @@ BEGIN
   SELECT pg_get_functiondef(p.oid) INTO v_report
   FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
   WHERE n.nspname='public' AND p.proname='staynas_get_booking_analytics';
-  IF v_report IS NULL OR position('net_collected_by_currency' in v_report)=0 THEN
-    RAISE EXCEPTION 'Campaign revenue is not explicitly separated by transaction currency';
+  IF v_report IS NULL
+     OR position('net_collected_by_currency' in v_report)=0
+     OR position('confirmed_booking_value' in v_report)=0
+     OR position('amount_paid' in v_report)=0
+     OR position('outstanding' in v_report)=0
+     OR position('refunds' in v_report)=0 THEN
+    RAISE EXCEPTION 'Financial reconciliation or campaign currency separation is incomplete';
   END IF;
 END
 $test$;
