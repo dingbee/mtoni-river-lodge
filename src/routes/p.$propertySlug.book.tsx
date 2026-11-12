@@ -200,6 +200,9 @@ function BookPage() {
   const [hold, setHold] = useState<{ id: string; expiresAt: string; roomSlug: string } | null>(null);
   const [roomInventory, setRoomInventory] = useState<{ available_units: number; total_units: number } | null>(null);
 
+  const recordPageViewFn = useServerFn(recordPublicDirectBookingAnalyticsEvent);
+  const pageViewRecordedFor = useRef("");
+
   useEffect(() => {
     if (!sessionId || pageViewRecordedFor.current === sessionId) return;
     pageViewRecordedFor.current = sessionId;
@@ -383,8 +386,6 @@ function BookPage() {
   const totalOccupants = adults + childrenBelow6 + children7Plus;
   const paidOccupants = adults + children7Plus;
 
-  const recordPageViewFn = useServerFn(recordPublicDirectBookingAnalyticsEvent);
-  const pageViewRecordedFor = useRef("");
   const checkAvailabilityFn = useServerFn(checkAvailability);
   const getBookingQuoteFn = useServerFn(getBookingQuote);
   const listExtrasFn = useServerFn(listExtras);
