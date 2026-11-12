@@ -103,7 +103,7 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
     const periodStart = new Date(periodEnd.getTime() - days * 86_400_000);
     const since = periodStart.toISOString();
 
-    const [property, sessions, messageRows, legacyMessages, feedbackRows, leadRows, escalationRows, documentRows, chunkRows, searchRows, conciergeAttributionRows, campaignAttributionRows, slaEventRows, slaAlertRows, slaPolicyRows] = await Promise.all([
+    const [property, sessions, messageRows, legacyMessages, feedbackRows, leadRows, escalationRows, activeSlaRows, documentRows, chunkRows, searchRows, conciergeAttributionRows, campaignAttributionRows, slaEventRows, slaAlertRows, slaPolicyRows] = await Promise.all([
       sb.from("staynas_properties").select("id,timezone").eq("id", propertyId).maybeSingle(),
       sb.from("ai_concierge_sessions").select("id", { count: "exact", head: true }).eq("property_id", propertyId).gte("created_at", since),
       fetchAllRows(() => sb.from("ai_omnichannel_messages")
@@ -119,6 +119,9 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
       fetchAllRows(() => sb.from("ai_escalations")
         .select("id,session_id,property_id,status,priority,assigned_to,created_at,acknowledged_at,resolved_at,assignment_due_at,acknowledgement_due_at,resolution_due_at,reopened_at,sla_cycle_started_at")
         .eq("property_id", propertyId).gte("created_at", since)),
+      fetchAllRows(() => sb.from("ai_escalations")
+        .select("id,status,assigned_to,acknowledged_at,assignment_due_at,acknowledgement_due_at,resolution_due_at")
+        .eq("property_id", propertyId).in("status",["open","assigned","acknowledged","in_progress"])),
       fetchAllRows(() => sb.from("knowledge_documents").select("id,status,current_version,source_updated_at,review_due_at").eq("property_id", propertyId)),
       fetchAllRows(() => sb.from("knowledge_chunks").select("id,document_id,version").eq("property_id", propertyId)),
       fetchAllRows(() => sb.from("ai_knowledge_search_log").select("id,result_count,matched_source_ids,created_at").eq("property_id", propertyId).gte("created_at", since)),
@@ -196,7 +199,7 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
       const met = completed.filter((event: any) => event.met).length;
       return [milestone, { completed: completed.length, met, breached: completed.length - met, compliance_rate: completed.length ? round(met / completed.length, 4) : null }];
     }));
-    const activeSlaOverdue = escalationRows.reduce((count: number, row: any) => {
+    const activeSlaOverdue = activeSlaRows.reduce((count: number, row: any) => {
       if (["resolved","dismissed"].includes(row.status)) return count;
       const now = Date.now();
       return count + Number((!row.assigned_to && row.assignment_due_at && Date.parse(row.assignment_due_at) < now)
