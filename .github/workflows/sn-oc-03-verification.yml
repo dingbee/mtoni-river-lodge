@@ -42,6 +42,7 @@ jobs:
       - run: >
           bunx vitest run
           src/domains/ai/concierge/omnichannel.contracts.test.ts
+          src/domains/ai/concierge/operational-intelligence.metrics.test.ts
           src/domains/ai/concierge/webhooks/webhook-processor.server.test.ts
           src/domains/ai/concierge/webhooks/webhook-normalization.server.test.ts
       - name: TypeScript verification
@@ -52,8 +53,11 @@ jobs:
           src/domains/ai/concierge/concierge.server.ts
           src/domains/ai/concierge/dispatch.functions.ts
           src/domains/ai/concierge/analytics.functions.ts
+          src/domains/ai/concierge/operational-intelligence.functions.ts
+          src/domains/ai/concierge/operational-intelligence.metrics.ts
           src/routes/_authenticated.admin.ai.concierge.analytics.tsx
           src/domains/ai/concierge/omnichannel.functions.ts
+          src/routes/_authenticated.admin.ai.concierge.escalations.tsx
           src/domains/ai/concierge/webhooks/webhook-processor.server.ts
           src/domains/ai/concierge/webhooks/webhook-normalization.server.ts
           src/domains/ai/concierge/webhooks/webhook-signatures.server.ts
