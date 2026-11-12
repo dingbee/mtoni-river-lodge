@@ -21,7 +21,7 @@ The approved UAT tenant is Nolmark CDMA (`f44ff48a-5449-4464-b0cb-83295fadb468`)
 | Concierge attribution | `ai_concierge_attributions` | Session, optional booking ID, conversion type, metadata, created_at | Booking click and assisted/direct attribution labels alone are not proof of a confirmed booking |
 | Campaign attribution | `campaign_attribution` | Property, campaign, optional booking, session key, event type, source/medium/referrer, UTM campaign/content/term, occurred_at; unique event key support | Event-level funnel and UTM source/medium/campaign counts are reportable; do not interpret as unique visitors or cross-device attribution without a verified identity link |
 | Booking | `bookings` | Property, booking ID, status, payment status, confirmed/cancelled timestamps, total, currency, paid amount, check-in/out | Booked revenue and realized revenue must be separate; use finance ledger for settled/refunded realization |
-| Escalations | `ai_escalations` joined to session | Property/session linkage, reason, priority, status, assigned_to, acknowledged_at, resolved_at, created_at, updated_at (SN-RT-01 migration) | Current durable schema lacks complete assignment/reopen event history and SLA policy snapshots |
+| Escalations | `ai_escalations`, `ai_escalation_events`, `ai_escalation_sla_policies`, `ai_escalation_sla_alerts` | Property-owned escalation, priority, assignment, acknowledgement, resolution, reopen cycle, persisted UTC due times, append-only lifecycle events and idempotent alert records (SN-OC-04 migration) | Alert dispatch is in-app only; immutable history records all transitions and alert events; policies are property/priority scoped |
 | Knowledge | `knowledge_documents`, `knowledge_document_versions`, `knowledge_chunks` | Property ownership, published/draft/archived status, current version, chunk version | Document/chunk existence does not prove retrieval or answer grounding |
 | Retrieval | `ai_knowledge_search_log` | Property, query, result_count, matched_source_ids, confidence, created_at | No verified FK to Concierge session/message or generated answer; query text should not be exposed in aggregate APIs |
 | Feedback | `ai_concierge_feedback` | Session, optional message, rating, comment, created_at | Guest feedback is a perception signal, not factual correctness ground truth |
@@ -67,12 +67,19 @@ Incoming message: `direction='inbound'`, `actor_type='guest'`, `message_type<>'e
 - AI and human response times: split by outbound actor_type.
 - Automated acknowledgements: template messages are excluded because the current schema does not distinguish transport acknowledgements from substantive templates. Other assistant text responses are measured; future explicit acknowledgement metadata is required for exact classification.
 - Unanswered conversations: retain as unanswered; do not drop from denominator.
-- Resolution time: median of `ai_escalations.resolved_at - created_at` for current rows with status `resolved`; this is a current-state snapshot, not an immutable lifecycle history. First-contact resolution and reopen rate remain unavailable. Session last_active_at is not a resolution timestamp.
+- Resolution time: median elapsed duration from the current SLA cycle start to each persisted `resolved` lifecycle event. Reopened cycles are measured independently. First-contact resolution requires a durable first-resolution definition and is not inferred from current status. Session last_active_at is not a resolution timestamp.
 - Timezone: persist/compare UTC instants; bucket display dates using the property's configured timezone. Percentiles use continuous percentile calculation over eligible completed response intervals.
 
 ### Escalation SLA
 
-Current `ai_escalations` provides creation time, assignment target, resolved timestamp and current status. It has **no `acknowledged_at` field**, immutable assignment/reassignment/in-progress/reopen event history, or SLA policy snapshot. Median resolution duration can be calculated for rows with `status=resolved` and non-null `resolved_at`; acknowledgement latency, reopen rate, business-hours SLA compliance and historical policy-correct breach calculations remain unavailable. Current status supports open/assigned/in-progress/resolved/dismissed counts.
+- Lifecycle is enforced as `open → assigned → acknowledged → in_progress → resolved`; dismissal/cancellation, unassignment, reassignment and reopening are separately recorded. Reopening starts a new SLA cycle and resets deadlines.
+- Property policies are independently configurable by priority P1–P3: assignment, acknowledgement and resolution targets; enabled/disabled state; warning threshold percentage; reason-to-priority mapping; 24x7 or weekly operating calendar; and business-hours-only calculation.
+- Default policy rows are seeded per property as editable starting values: P1 assignment 10m / acknowledgement 15m / resolution 120m; P2 20m / 30m / 240m; P3 30m / 60m / 480m. Defaults use 24x7. Property owners/managers can replace these with their operating policy.
+- Business-hours calendars use the property's timezone and weekly windows. Due instants are stored in UTC; elapsed business minutes skip closed windows and handle timezone transitions.
+- Append-only `ai_escalation_events` captures creation, assignment, reassignment, unassignment, acknowledgement, in-progress, resolution, dismissal, priority changes, reopen and SLA warning/breach events, with actor, status/assignee transitions and deadline snapshots.
+- The idempotent `staynas_process_concierge_sla_alerts()` worker evaluates assignment, acknowledgement and resolution warning/breach thresholds and writes staff notifications through the in-app notification centre. Supabase pg_cron invokes it every minute; no Vercel Cron dependency.
+- SLA compliance is calculated from completion lifecycle events against the deadline snapshot recorded with that event. Active overdue escalations, approaching alerts, missed alerts, acknowledgement/resolution duration and reopen rate are exposed in operational analytics.
+- Alert channel support is currently in-app only. Email/WhatsApp staff alert delivery is not represented as active until the relevant authorized provider/recipient contract is implemented and verified.
 
 ### Knowledge and feedback
 
@@ -97,6 +104,10 @@ Each API response must include `period_start`, `period_end`, `timezone`, `genera
 - Use bounded date windows and indexed property/time predicates. Avoid materializing all session IDs into client-visible requests.
 - Exports repeat server-side authorization and apply the same property/time constraints as dashboard queries.
 - No cross-tenant aggregates for tenant users.
+
+## Financial scope boundary
+
+Financial integrity and revenue reconciliation are explicitly excluded from this sprint at the user's direction. Financial amounts are not modified or reclassified by SN-OC-04; revenue remains unavailable until separately reconciled.
 
 ## UAT baseline — Nolmark CDMA
 
