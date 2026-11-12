@@ -860,13 +860,12 @@ export const getGuestPortalAccessStatus = createServerFn({ method: "POST" })
       } else if (deliveryDrafts?.length) {
         deliveryDraftId = deliveryDrafts[0].id;
         deliveryStatus = "draft";
-        const draftIds = deliveryDrafts.map((draft: any) => draft.id);
         const { data: attempts, error: attemptsError } = await admin
           .from("ai_communication_dispatch_attempts")
-          .select("id,draft_id,message_id,status,attempt_number,finished_at")
+          .select("id,draft_id,message_id,status,attempt_number,started_at,finished_at")
           .eq("property_id", propertyId)
-          .in("draft_id", draftIds)
-          .order("attempt_number", { ascending: false })
+          .eq("draft_id", deliveryDraftId)
+          .order("started_at", { ascending: false })
           .limit(10);
         if (attemptsError) {
           deliveryStatus = "unknown";
