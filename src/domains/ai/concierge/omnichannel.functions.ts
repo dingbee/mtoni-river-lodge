@@ -602,6 +602,17 @@ export const updateEscalation = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const listEscalationAssignees = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
+    const { data, error } = await (context.supabase as any).from("staynas_property_members")
+      .select("user_id,role").eq("property_id",propertyId).eq("status","active")
+      .in("role",["owner","manager","admin","reservations","reception"]).order("role");
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
 export const listEscalationSlaPolicies = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
