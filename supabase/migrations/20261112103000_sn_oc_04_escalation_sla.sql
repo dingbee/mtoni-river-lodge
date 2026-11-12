@@ -63,6 +63,7 @@ ALTER TABLE public.ai_escalations
   ADD COLUMN IF NOT EXISTS acknowledgement_due_at timestamptz,
   ADD COLUMN IF NOT EXISTS resolution_due_at timestamptz,
   ADD COLUMN IF NOT EXISTS reopened_at timestamptz,
+  ADD COLUMN IF NOT EXISTS sla_cycle_started_at timestamptz,
   ADD COLUMN IF NOT EXISTS sla_policy_id uuid REFERENCES public.ai_escalation_sla_policies(id) ON DELETE SET NULL;
 
 CREATE TABLE IF NOT EXISTS public.ai_escalation_events (
@@ -258,6 +259,7 @@ BEGIN
   END IF;
   SELECT timezone INTO v_timezone FROM public.staynas_properties WHERE id=NEW.property_id;
   NEW.sla_policy_id := v_policy.id;
+  NEW.sla_cycle_started_at := v_now;
   NEW.assignment_due_at := CASE WHEN v_policy.business_hours_only
     THEN public.staynas_sla_add_minutes(v_now,v_policy.assignment_minutes,v_timezone,v_policy.operating_hours)
     ELSE v_now+make_interval(mins=>v_policy.assignment_minutes) END;
@@ -287,7 +289,7 @@ BEGIN
   IF TG_OP='INSERT' THEN
     v_event := 'created';
     INSERT INTO public.ai_escalation_events(property_id,escalation_id,event_type,metadata,occurred_at)
-    VALUES (NEW.property_id,NEW.id,'created',jsonb_build_object('priority',NEW.priority,'assignment_due_at',NEW.assignment_due_at,'acknowledgement_due_at',NEW.acknowledgement_due_at,'resolution_due_at',NEW.resolution_due_at),NEW.created_at);
+    VALUES (NEW.property_id,NEW.id,'created',jsonb_build_object('priority',NEW.priority,'assignment_due_at',NEW.assignment_due_at,'acknowledgement_due_at',NEW.acknowledgement_due_at,'resolution_due_at',NEW.resolution_due_at,'sla_cycle_started_at',NEW.sla_cycle_started_at),NEW.created_at);
   ELSE
     IF OLD.assigned_to IS DISTINCT FROM NEW.assigned_to THEN
       v_event := CASE WHEN NEW.assigned_to IS NULL THEN 'unassigned' WHEN OLD.assigned_to IS NULL THEN 'assigned' ELSE 'reassigned' END;
@@ -335,9 +337,9 @@ BEGIN
   IF p.id IS NOT NULL THEN
     UPDATE public.ai_escalations SET
       sla_policy_id=p.id,
-      assignment_due_at=CASE WHEN p.business_hours_only THEN public.staynas_sla_add_minutes(COALESCE(e.reopened_at,e.created_at),p.assignment_minutes,tz,p.operating_hours) ELSE COALESCE(e.reopened_at,e.created_at)+make_interval(mins=>p.assignment_minutes) END,
-      acknowledgement_due_at=CASE WHEN p.business_hours_only THEN public.staynas_sla_add_minutes(COALESCE(e.reopened_at,e.created_at),p.acknowledgement_minutes,tz,p.operating_hours) ELSE COALESCE(e.reopened_at,e.created_at)+make_interval(mins=>p.acknowledgement_minutes) END,
-      resolution_due_at=CASE WHEN p.business_hours_only THEN public.staynas_sla_add_minutes(COALESCE(e.reopened_at,e.created_at),p.resolution_minutes,tz,p.operating_hours) ELSE COALESCE(e.reopened_at,e.created_at)+make_interval(mins=>p.resolution_minutes) END
+      assignment_due_at=CASE WHEN p.business_hours_only THEN public.staynas_sla_add_minutes(COALESCE(e.sla_cycle_started_at,e.created_at),p.assignment_minutes,tz,p.operating_hours) ELSE COALESCE(e.sla_cycle_started_at,e.created_at)+make_interval(mins=>p.assignment_minutes) END,
+      acknowledgement_due_at=CASE WHEN p.business_hours_only THEN public.staynas_sla_add_minutes(COALESCE(e.sla_cycle_started_at,e.created_at),p.acknowledgement_minutes,tz,p.operating_hours) ELSE COALESCE(e.sla_cycle_started_at,e.created_at)+make_interval(mins=>p.acknowledgement_minutes) END,
+      resolution_due_at=CASE WHEN p.business_hours_only THEN public.staynas_sla_add_minutes(COALESCE(e.sla_cycle_started_at,e.created_at),p.resolution_minutes,tz,p.operating_hours) ELSE COALESCE(e.sla_cycle_started_at,e.created_at)+make_interval(mins=>p.resolution_minutes) END
     WHERE id=p_id;
   END IF;
 END
@@ -517,7 +519,7 @@ BEGIN
     RAISE EXCEPTION 'Assignment is required before acknowledgement' USING ERRCODE='23514';
   END IF;
 
-  UPDATE public.ai_escalations SET
+  UPDATE public.ai_escalations AS escalation SET
     status=v_next_status,
     assigned_to=CASE WHEN p_assigned_to IS NOT NULL THEN p_assigned_to
       WHEN v_next_status='open' AND v_escalation.status IN ('assigned','acknowledged','in_progress','resolved','dismissed') THEN NULL
@@ -530,17 +532,17 @@ BEGIN
     resolved_at=CASE WHEN v_next_status IN ('resolved','dismissed') THEN now()
       WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN NULL ELSE resolved_at END,
     reopened_at=CASE WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN now() ELSE reopened_at END,
-    assignment_due_at=CASE WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN
+    sla_cycle_started_at=CASE WHEN v_next_status='open' AND v_escalation.status<>'open' THEN now() ELSE sla_cycle_started_at END,
+    assignment_due_at=CASE WHEN v_next_status='open' AND v_escalation.status<>'open' THEN
       CASE WHEN policy.business_hours_only THEN public.staynas_sla_add_minutes(now(),policy.assignment_minutes,property.timezone,policy.operating_hours) ELSE now()+make_interval(mins=>policy.assignment_minutes) END ELSE assignment_due_at END,
-    acknowledgement_due_at=CASE WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN
+    acknowledgement_due_at=CASE WHEN v_next_status='open' AND v_escalation.status<>'open' THEN
       CASE WHEN policy.business_hours_only THEN public.staynas_sla_add_minutes(now(),policy.acknowledgement_minutes,property.timezone,policy.operating_hours) ELSE now()+make_interval(mins=>policy.acknowledgement_minutes) END ELSE acknowledgement_due_at END,
-    resolution_due_at=CASE WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN
+    resolution_due_at=CASE WHEN v_next_status='open' AND v_escalation.status<>'open' THEN
       CASE WHEN policy.business_hours_only THEN public.staynas_sla_add_minutes(now(),policy.resolution_minutes,property.timezone,policy.operating_hours) ELSE now()+make_interval(mins=>policy.resolution_minutes) END ELSE resolution_due_at END,
     updated_at=now()
   FROM public.ai_escalation_sla_policies policy
   JOIN public.staynas_properties property ON property.id=policy.property_id
-  WHERE id=p_escalation_id AND property_id=p_property_id AND policy.id=v_escalation.sla_policy_id
-  WHERE id=p_escalation_id AND property_id=p_property_id;
+  WHERE escalation.id=p_escalation_id AND escalation.property_id=p_property_id AND policy.id=escalation.sla_policy_id;
 
   IF v_escalation.ops_task_id IS NOT NULL THEN
     UPDATE public.ops_tasks SET
