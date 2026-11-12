@@ -197,7 +197,9 @@ BEGIN
     (access_id, property_id, booking_id, guest_id, actor_id, event_type, metadata)
   VALUES
     (v_access.id, _property_id, _booking_id, _guest_id, _actor_id, 'issued',
-     jsonb_build_object('expires_at',v_access.expires_at));
+     jsonb_build_object('expires_at',v_access.expires_at)),
+    (v_access.id, _property_id, _booking_id, _guest_id, _actor_id, 'activated',
+     jsonb_build_object('activation_source','authorized_check_in_or_admin_issue'));
 
   IF cardinality(v_superseded_ids) > 0 THEN
     UPDATE public.staynas_guest_portal_access
