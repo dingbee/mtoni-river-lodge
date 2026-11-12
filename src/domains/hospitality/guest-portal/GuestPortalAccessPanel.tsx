@@ -72,8 +72,11 @@ export function GuestPortalAccessPanel({
           }
         }
       })
-      .catch(() => {
-        if (!cancelled) toast.error("QR image could not be generated. The secure link remains valid.");
+      .catch(async () => {
+        if (!cancelled) {
+          if (accessId) { try { await recordEventFn({ data: { bookingId, accessId, eventType: "qr_generation_failed" } }); } catch { /* QR failure remains visible in the UI. */ } }
+          toast.error("QR image could not be generated. The secure link remains valid.");
+        }
       });
     return () => {
       cancelled = true;
