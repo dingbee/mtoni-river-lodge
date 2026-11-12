@@ -766,7 +766,23 @@ export const recordGuestPortalAccessEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => guestPortalEventSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const propertyId = await requireReservationProperty(context);
+    let propertyId: string;
+    try {
+      propertyId = await requireReservationProperty(context);
+    } catch {
+      await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
+      const { data: staff, error: staffError } = await context.supabase.rpc("is_any_staff", {
+        _user_id: context.userId,
+      });
+      const { data: activePropertyId, error: propertyError } = await context.supabase.rpc(
+        "staynas_active_property_id",
+        { _uid: context.userId },
+      );
+      if (staffError || !staff || propertyError || !activePropertyId) {
+        throw new Error("Guest access event recording is not authorized.");
+      }
+      propertyId = String(activePropertyId);
+    }
     const admin = await adminClient();
     const { data: access, error: accessError } = await admin
       .from("staynas_guest_portal_access")
