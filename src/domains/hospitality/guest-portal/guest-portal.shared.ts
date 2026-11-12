@@ -67,6 +67,15 @@ export function guestPortalCategories(type: GuestPortalRequestType) {
 }
 
 /** Build the canonical bearer URL without embedding any guest or booking data. */
+export function isGuestPortalStayEligible(
+  bookingStatus: string,
+  expiresAt: string,
+  now = Date.now(),
+): boolean {
+  return bookingStatus === "checked_in" ||
+    (bookingStatus === "completed" && Date.parse(expiresAt) > now);
+}
+
 export function buildGuestPortalUrl(origin: string, token: string): string {
   if (!token || token.length < 40 || token.length > 200) {
     throw new Error("Invalid guest access credential.");
