@@ -23,17 +23,23 @@ function addDays(value: string, days: number) {
 }
 
 function localMidnightUtc(value: string, timezone: string) {
-  const target = new Date(`${value}T00:00:00.000Z`);
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
-  }).formatToParts(target);
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  const represented = Date.UTC(
-    Number(values.year), Number(values.month) - 1, Number(values.day),
-    Number(values.hour), Number(values.minute), Number(values.second),
-  );
-  return new Date(target.getTime() - (represented - target.getTime())).toISOString();
+  const target = Date.parse(`${value}T00:00:00.000Z`);
+  let candidate = target;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
+    }).formatToParts(new Date(candidate));
+    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    const represented = Date.UTC(
+      Number(values.year), Number(values.month) - 1, Number(values.day),
+      Number(values.hour), Number(values.minute), Number(values.second),
+    );
+    const correction = target - represented;
+    candidate += correction;
+    if (correction === 0) break;
+  }
+  return new Date(candidate).toISOString();
 }
 
 export const getDirectBookingAnalytics = createServerFn({ method: "POST" })
