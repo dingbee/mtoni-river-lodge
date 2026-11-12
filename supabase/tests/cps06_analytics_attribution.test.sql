@@ -45,8 +45,14 @@ BEGIN
   ) OR NOT EXISTS (
     SELECT 1 FROM pg_trigger
     WHERE tgrelid='public.payment_events'::regclass AND tgname='staynas_payment_analytics_lifecycle' AND NOT tgisinternal
+  ) OR NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgrelid='public.bookings'::regclass AND tgname='staynas_booking_attribution_property_guard' AND NOT tgisinternal
+  ) OR NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgrelid='public.staynas_reservation_quotes'::regclass AND tgname='staynas_quote_attribution_property_guard' AND NOT tgisinternal
   ) THEN
-    RAISE EXCEPTION 'Authoritative booking/payment analytics lifecycle triggers are missing';
+    RAISE EXCEPTION 'Booking/payment lifecycle or attribution property guard triggers are missing';
   END IF;
 
   IF NOT EXISTS (
