@@ -103,6 +103,12 @@ function SettingsHub() {
   ];
   const integrations: LinkTile[] = [
     {
+      to: "/admin/settings/distribution",
+      title: "Distribution Connections",
+      description: "Configure property-scoped channel manager connections.",
+      Icon: Network,
+    },
+    {
       to: "/admin/system/health",
       title: "System Health",
       description: "Observability, retries and error rates.",
