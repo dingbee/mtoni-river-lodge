@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_authenticated/admin/analytics/direct-boo
 type Range = "today" | "yesterday" | "7d" | "30d" | "90d" | "custom";
 type Report = {
   funnel?: Record<string, number | null>;
-  currencies?: Array<{ currency: string; gross_booking_value: number; net_collected: number }>;
+  currencies?: Array<{ currency: string; gross_booking_value: number; confirmed_booking_value: number; amount_paid: number; outstanding: number; refunds: number; net_collected: number }>;
   campaigns?: Array<{ id: string; name: string; slug: string; status: string; views: number; visitors: number; booking_starts: number; quotes: number; reservations: number; paid_bookings: number; net_collected_by_currency: Array<{ currency: string; net_collected: number }> }>;
   acquisition?: Array<{ source: string; medium: string; views: number; visitors: number; booking_starts: number; reservations: number }>;
   permanent_page?: Record<string, number>;
@@ -62,6 +62,10 @@ function Page() {
       ...Object.entries(permanent).map(([key, value]) => ["permanent_page", key, value as number]),
       ...currencies.flatMap((item) => [
         ["revenue", "gross_booking_value", item.gross_booking_value, item.currency],
+        ["revenue", "confirmed_booking_value", item.confirmed_booking_value, item.currency],
+        ["revenue", "amount_paid", item.amount_paid, item.currency],
+        ["revenue", "outstanding", item.outstanding, item.currency],
+        ["revenue", "refunds", item.refunds, item.currency],
         ["revenue", "net_collected", item.net_collected, item.currency],
       ]),
       ...campaigns.flatMap((item) => [
@@ -140,12 +144,20 @@ function Page() {
         </div>
       </SectionCard>
 
-      <SectionCard title="Revenue reconciliation by property currency">
-        <div className="space-y-2 text-sm">
-          {currencies.map((row) => <div key={row.currency} className="grid grid-cols-3 gap-3 border-b py-2 last:border-0">
-            <strong>{row.currency}</strong><span>Gross booking value: {money(Number(row.gross_booking_value), row.currency)}</span><span>Net collected: {money(Number(row.net_collected), row.currency)}</span>
+      <SectionCard title="Revenue reconciliation by currency">
+        <div className="space-y-4 text-sm">
+          {currencies.map((row) => <div key={row.currency} className="grid grid-cols-2 gap-3 border-b pb-3 last:border-0 sm:grid-cols-3 lg:grid-cols-6">
+            {[
+              ["Currency", row.currency],
+              ["Gross booking value", money(Number(row.gross_booking_value), row.currency)],
+              ["Confirmed booking value", money(Number(row.confirmed_booking_value), row.currency)],
+              ["Amount paid", money(Number(row.amount_paid), row.currency)],
+              ["Outstanding", money(Number(row.outstanding), row.currency)],
+              ["Refunds", money(Number(row.refunds), row.currency)],
+              ["Net collected", money(Number(row.net_collected), row.currency)],
+            ].map(([label, value]) => <div key={label}><div className="text-xs text-muted-foreground">{label}</div><div className="font-medium">{value}</div></div>)}
           </div>)}
-          {!currencies.length && <p className="text-muted-foreground">No verified financial events in this period. Amounts are not inferred from reservation totals.</p>}
+          {!currencies.length && <p className="text-muted-foreground">No reservation or verified payment evidence in this period. Amounts are not inferred from reservation totals.</p>}
         </div>
       </SectionCard>
 
