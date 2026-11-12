@@ -78,7 +78,6 @@ DECLARE
   v_expires_at timestamptz;
   v_access public.staynas_guest_portal_access%ROWTYPE;
   v_existing public.staynas_guest_portal_access%ROWTYPE;
-  v_previous public.staynas_guest_portal_access%ROWTYPE;
   v_superseded_ids uuid[] := ARRAY[]::uuid[];
 BEGIN
   IF _actor_id IS NULL OR _token_hash IS NULL OR length(_token_hash) <> 64 THEN
@@ -160,11 +159,16 @@ BEGIN
       AND status = 'active'
       AND revoked_at IS NULL
     RETURNING id, property_id, booking_id, guest_id
+  ), logged AS (
+    INSERT INTO public.staynas_guest_portal_access_events
+      (access_id, property_id, booking_id, guest_id, actor_id, event_type, metadata)
+    SELECT id, property_id, booking_id, guest_id, _actor_id, 'superseded',
+           jsonb_build_object('reason','credential_rotation')
+    FROM retired
+    RETURNING access_id
   )
-  INSERT INTO public.staynas_guest_portal_access_events
-    (access_id, property_id, booking_id, guest_id, actor_id, event_type, metadata)
-  SELECT id, property_id, booking_id, guest_id, _actor_id, 'superseded',
-         jsonb_build_object('reason','credential_rotation')
+  SELECT COALESCE(array_agg(id), ARRAY[]::uuid[])
+  INTO v_superseded_ids
   FROM retired;
 
   INSERT INTO public.staynas_guest_portal_access
@@ -180,6 +184,18 @@ BEGIN
   VALUES
     (v_access.id, _property_id, _booking_id, _guest_id, _actor_id, 'issued',
      jsonb_build_object('expires_at',v_access.expires_at));
+
+  IF cardinality(v_superseded_ids) > 0 THEN
+    UPDATE public.staynas_guest_portal_access
+    SET superseded_by = v_access.id
+    WHERE id = ANY(v_superseded_ids);
+
+    INSERT INTO public.staynas_guest_portal_access_events
+      (access_id, property_id, booking_id, guest_id, actor_id, event_type, metadata)
+    VALUES
+      (v_access.id, _property_id, _booking_id, _guest_id, _actor_id, 'regenerated',
+       jsonb_build_object('superseded_access_ids', v_superseded_ids));
+  END IF;
 
   RETURN jsonb_build_object(
     'access_id', v_access.id,
