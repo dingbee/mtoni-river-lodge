@@ -98,7 +98,7 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
     const periodStart = new Date(periodEnd.getTime() - days * 86_400_000);
     const since = periodStart.toISOString();
 
-    const [property, sessions, messageRows, legacyMessages, feedbackRows, leadRows, escalationRows, documentRows, chunkRows, searchRows, conciergeAttributionRows, campaignAttributionRows, slaEventRows, slaAlertRows] = await Promise.all([
+    const [property, sessions, messageRows, legacyMessages, feedbackRows, leadRows, escalationRows, documentRows, chunkRows, searchRows, conciergeAttributionRows, campaignAttributionRows, slaEventRows, slaAlertRows, slaPolicyRows] = await Promise.all([
       sb.from("staynas_properties").select("id,currency,timezone").eq("id", propertyId).maybeSingle(),
       sb.from("ai_concierge_sessions").select("id", { count: "exact", head: true }).eq("property_id", propertyId).gte("created_at", since),
       fetchAllRows(() => sb.from("ai_omnichannel_messages")
@@ -112,7 +112,7 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         .eq("ai_concierge_sessions.property_id", propertyId).gte("created_at", since)),
       fetchAllRows(() => sb.from("ai_concierge_leads").select("id,status,consent_at,consent_version,created_at").eq("property_id", propertyId).gte("created_at", since)),
       fetchAllRows(() => sb.from("ai_escalations")
-        .select("id,session_id,property_id,status,priority,assigned_to,created_at,acknowledged_at,resolved_at")
+        .select("id,session_id,property_id,status,priority,assigned_to,created_at,acknowledged_at,resolved_at,assignment_due_at,acknowledgement_due_at,resolution_due_at,reopened_at")
         .eq("property_id", propertyId).gte("created_at", since)),
       fetchAllRows(() => sb.from("knowledge_documents").select("id,status,current_version,source_updated_at,review_due_at").eq("property_id", propertyId)),
       fetchAllRows(() => sb.from("knowledge_chunks").select("id,document_id,version").eq("property_id", propertyId)),
@@ -126,6 +126,7 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         .eq("property_id", propertyId).gte("occurred_at", since)),
       fetchAllRows(() => sb.from("ai_escalation_sla_alerts").select("id,escalation_id,milestone,alert_type,due_at,created_at")
         .eq("property_id", propertyId).gte("created_at", since)),
+      fetchAllRows(() => sb.from("ai_escalation_sla_policies").select("id,priority,enabled").eq("property_id", propertyId)),
     ]);
 
     for (const result of [property, sessions]) {
@@ -251,7 +252,7 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         booking_currency_mismatch_count: currencyMismatchCount ?? 0,
       },
       sla: {
-        policy_priorities_configured: 3,
+        policy_priorities_configured: slaPolicyRows.filter((row: any) => row.enabled).length,
         lifecycle_events: slaEventRows.length,
         approaching_alerts: slaAlertRows.filter((row: any) => row.alert_type === "approaching_breach").length,
         breached_alerts: slaAlertRows.filter((row: any) => row.alert_type === "breached").length,
