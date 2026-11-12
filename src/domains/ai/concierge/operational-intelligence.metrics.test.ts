@@ -37,7 +37,8 @@ describe("SN-OC-04 operational metric contracts", () => {
       row("template", 1, "outbound", "assistant", { message_type: "template" }),
       row("event", 2, "outbound", "system", { message_type: "event" }),
       row("failed", 3, "outbound", "assistant", { status: "failed" }),
-      row("delivered", 4, "outbound", "assistant", { status: "delivered" }),
+      row("accepted", 4, "outbound", "assistant", { status: "accepted" }),
+      row("delivered", 5, "outbound", "assistant", { status: "delivered" }),
     ]);
     expect(result.first).toEqual([240_000]);
     expect(result.ai).toEqual([240_000]);
