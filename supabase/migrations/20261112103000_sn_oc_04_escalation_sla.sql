@@ -303,13 +303,46 @@ BEGIN
   IF p.id IS NOT NULL THEN
     UPDATE public.ai_escalations SET
       sla_policy_id=p.id,
-      assignment_due_at=CASE WHEN p.business_hours_only THEN public.staynas_sla_add_minutes(e.created_at,p.assignment_minutes,tz,p.operating_hours) ELSE e.created_at+make_interval(mins=>p.assignment_minutes) END,
-      acknowledgement_due_at=CASE WHEN p.business_hours_only THEN public.staynas_sla_add_minutes(e.created_at,p.acknowledgement_minutes,tz,p.operating_hours) ELSE e.created_at+make_interval(mins=>p.acknowledgement_minutes) END,
-      resolution_due_at=CASE WHEN p.business_hours_only THEN public.staynas_sla_add_minutes(e.created_at,p.resolution_minutes,tz,p.operating_hours) ELSE e.created_at+make_interval(mins=>p.resolution_minutes) END
+      assignment_due_at=CASE WHEN p.business_hours_only THEN public.staynas_sla_add_minutes(COALESCE(e.reopened_at,e.created_at),p.assignment_minutes,tz,p.operating_hours) ELSE COALESCE(e.reopened_at,e.created_at)+make_interval(mins=>p.assignment_minutes) END,
+      acknowledgement_due_at=CASE WHEN p.business_hours_only THEN public.staynas_sla_add_minutes(COALESCE(e.reopened_at,e.created_at),p.acknowledgement_minutes,tz,p.operating_hours) ELSE COALESCE(e.reopened_at,e.created_at)+make_interval(mins=>p.acknowledgement_minutes) END,
+      resolution_due_at=CASE WHEN p.business_hours_only THEN public.staynas_sla_add_minutes(COALESCE(e.reopened_at,e.created_at),p.resolution_minutes,tz,p.operating_hours) ELSE COALESCE(e.reopened_at,e.created_at)+make_interval(mins=>p.resolution_minutes) END
     WHERE id=p_id;
   END IF;
 END
 $function$;
+
+-- Backfill deadlines for existing escalations and recalculate active deadlines
+-- whenever a property manager changes its policy.
+DO $backfill_sla$
+DECLARE r record;
+BEGIN
+  FOR r IN SELECT id FROM public.ai_escalations LOOP
+    PERFORM public.staynas_set_concierge_escalation_deadlines_for_row(r.id);
+  END LOOP;
+END
+$backfill_sla$;
+
+CREATE OR REPLACE FUNCTION public.staynas_refresh_property_sla_deadlines()
+RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $function$
+DECLARE r record;
+BEGIN
+  FOR r IN SELECT id FROM public.ai_escalations
+    WHERE property_id=NEW.property_id AND priority=NEW.priority
+      AND status IN ('open','assigned','acknowledged','in_progress')
+  LOOP
+    PERFORM public.staynas_set_concierge_escalation_deadlines_for_row(r.id);
+  END LOOP;
+  RETURN NEW;
+END
+$function$;
+DROP TRIGGER IF EXISTS ai_escalation_sla_policy_refresh ON public.ai_escalation_sla_policies;
+CREATE TRIGGER ai_escalation_sla_policy_refresh
+  AFTER UPDATE OF enabled,acknowledgement_minutes,assignment_minutes,resolution_minutes,business_hours_only,operating_hours,warning_percent
+  ON public.ai_escalation_sla_policies
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_refresh_property_sla_deadlines();
 
 DROP TRIGGER IF EXISTS ai_escalations_record_lifecycle_event ON public.ai_escalations;
 CREATE TRIGGER ai_escalations_record_lifecycle_event
