@@ -164,16 +164,21 @@ async function authorizeGuestPortal(token: string): Promise<GuestPortalContext> 
     .eq("property_id", access.property_id)
     .maybeSingle();
 
-  if (bookingError || !booking || booking.status !== "checked_in") {
+  const withinCheckoutGrace = Boolean(
+    booking &&
+    booking.status === "completed" &&
+    Date.parse(access.expires_at) > Date.now(),
+  );
+  if (bookingError || !booking || (booking.status !== "checked_in" && !withinCheckoutGrace)) {
     await recordGuestPortalAccessDenied(admin, tokenHash, "booking_not_eligible", access);
-    throw new Error("Guest portal access is available only during an active checked-in stay.");
+    throw new Error("Guest Portal access is available during an active stay or its configured checkout grace period.");
   }
   if (access.guest_id && booking.guest_id && access.guest_id !== booking.guest_id) {
     await recordGuestPortalAccessDenied(admin, tokenHash, "guest_identity_mismatch", access);
     throw new Error("This guest access link does not match the reservation.");
   }
   const today = localDate(property.timezone);
-  if (booking.check_in > today || booking.check_out < today) {
+  if (booking.status === "checked_in" && (booking.check_in > today || booking.check_out < today)) {
     await recordGuestPortalAccessDenied(admin, tokenHash, "outside_stay_dates", access);
     throw new Error(
       "Guest portal access is available only between the reservation check-in and check-out dates.",
