@@ -77,17 +77,19 @@ export function ProductSiteHeader() {
         <button type="button" aria-label="Close navigation overlay" onClick={closeMenu} className="absolute inset-0 h-full w-full cursor-default bg-[#071710]/55 backdrop-blur-[2px]"/>
         <aside id="staynas-mobile-navigation" role="dialog" aria-modal="true" aria-label="StayNas navigation" onClick={(event) => event.stopPropagation()} className="absolute inset-y-0 right-0 flex h-[100dvh] w-[min(100%,440px)] flex-col overflow-hidden bg-[#f6f5ef] text-[#15251f] shadow-2xl">
           <div className="flex min-h-[88px] items-center justify-between border-b border-[#deded4] px-6 sm:px-8">
-            <div className="flex min-w-0 items-center gap-3">
-              {activeMenu === "platform" && <button type="button" aria-label="Back to main navigation" onClick={() => setActiveMenu("root")} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#29242c] transition hover:bg-[#e9ede6]"><ChevronRight className="h-6 w-6 rotate-180"/></button>}
-              <Link to="/" onClick={closeMenu} className="flex items-center gap-3" aria-label="StayNas home">
+            {activeMenu === "platform" ? <>
+              <div className="flex min-w-0 items-center gap-4">
+                <button type="button" aria-label="Back to main navigation" onClick={() => setActiveMenu("root")} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#29242c] transition hover:bg-[#e9ede6]"><ChevronRight className="h-6 w-6 rotate-180"/></button>
+                <span className="text-[22px] font-medium text-[#25232a]">Platform</span>
+              </div>
+              <button type="button" aria-label="Close navigation menu" onClick={closeMenu} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#29242c] transition hover:bg-[#e9ede6]"><X className="h-7 w-7"/></button>
+            </> : <>
+              <Link to="/" onClick={closeMenu} className="flex min-w-0 items-center gap-3" aria-label="StayNas home">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c7a96b] text-lg font-semibold text-[#10251e]">S</span>
                 <span className="truncate text-[17px] font-semibold tracking-[0.1em] text-[#25232a]">STAYNAS <span className="font-normal tracking-normal text-[#8b8278]">Hospitality OS</span></span>
               </Link>
-            </div>
-            <div className="flex items-center gap-2">
-              {activeMenu === "platform" && <span className="text-base font-semibold text-[#25232a]">Platform</span>}
-              <button type="button" aria-label="Close navigation menu" onClick={closeMenu} className="inline-flex h-11 w-11 items-center justify-center rounded-full text-[#29242c] transition hover:bg-[#e9ede6]"><X className="h-7 w-7"/></button>
-            </div>
+              <button type="button" aria-label="Close navigation menu" onClick={closeMenu} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#29242c] transition hover:bg-[#e9ede6]"><X className="h-7 w-7"/></button>
+            </>}
           </div>
 
           <nav aria-label="Mobile navigation" className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-8 pt-3 sm:px-8">
@@ -103,7 +105,7 @@ export function ProductSiteHeader() {
               {groups.map(group => {
                 const isExpanded = expanded === group.label;
                 return <section key={group.label} className="border-b border-[#e8e1d5]">
-                  <button type="button" aria-expanded={isExpanded} onClick={() => setExpanded(current => current === group.label ? null : group.label)} className={"flex min-h-[76px] w-full items-center justify-between text-left text-[22px] font-medium transition-colors " + (isExpanded ? "text-[#315744]" : "text-[#25232a] hover:text-[#c65a36]")}>{group.label}{isExpanded ? <ChevronDown className="h-6 w-6"/> : <ChevronRight className="h-6 w-6"/>}</button>
+                  <button type="button" aria-expanded={isExpanded} onClick={() => setExpanded(current => current === group.label ? null : group.label)} className={"flex min-h-[76px] w-full items-center justify-between text-left text-[22px] font-medium transition-colors " + (isExpanded ? "text-[#315744]" : "text-[#25232a] hover:text-[#a88a52]")}>{group.label}{isExpanded ? <ChevronDown className="h-6 w-6"/> : <ChevronRight className="h-6 w-6"/>}</button>
                   {isExpanded && <div className="space-y-1 pb-5 pl-1">{group.items.map(item => <Link key={item.to} to={item.to} onClick={closeMenu} className="flex items-center justify-between rounded-lg px-3 py-3 text-base text-[#625d61] transition hover:bg-[#e9ede6] hover:text-[#315744]">{item.label}<ArrowUpRight className="h-4 w-4 opacity-60"/></Link>)}</div>}
                 </section>;
               })}
@@ -113,7 +115,7 @@ export function ProductSiteHeader() {
           </nav>
 
           <div className="shrink-0 border-t border-[#e8e1d5] bg-[#f6f5ef] px-5 pb-[max(18px,env(safe-area-inset-bottom))] pt-4 sm:px-8">
-            <Link to="/request-demo" onClick={closeMenu} className="flex min-h-[58px] w-full items-center justify-center rounded-full bg-[#f04b2a] px-6 text-base font-semibold text-white shadow-sm transition hover:bg-[#dc4325]">Book a Demo</Link>
+            <Link to="/request-demo" onClick={closeMenu} className="flex min-h-[58px] w-full items-center justify-center rounded-full bg-[#c7a96b] px-6 text-base font-semibold text-[#10251e] shadow-sm transition hover:bg-[#d7bd85]">Book a Demo</Link>
           </div>
         </aside>
       </div>}
