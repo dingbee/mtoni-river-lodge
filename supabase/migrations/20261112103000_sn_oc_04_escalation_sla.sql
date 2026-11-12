@@ -145,10 +145,10 @@ CREATE TABLE IF NOT EXISTS public.ai_escalation_events (
 );
 UPDATE public.ai_escalations escalation
 SET assigned_at = (
-  SELECT max(event.occurred_at) FROM public.ai_escalation_events event
+  SELECT min(event.occurred_at) FROM public.ai_escalation_events event
   WHERE event.escalation_id=escalation.id
-    AND event.event_type IN ('assigned','reassigned')
-    AND event.to_assignee=escalation.assigned_to
+    AND event.event_type='assigned'
+    AND event.occurred_at >= COALESCE(escalation.sla_cycle_started_at,escalation.created_at)
 )
 WHERE escalation.assigned_to IS NOT NULL AND escalation.assigned_at IS NULL;
 
@@ -637,7 +637,7 @@ BEGIN
     assigned_to=CASE WHEN p_assigned_to IS NOT NULL THEN p_assigned_to
       WHEN v_next_status='open' AND v_escalation.status IN ('assigned','acknowledged','in_progress','resolved','dismissed') THEN NULL
       ELSE assigned_to END,
-    assigned_at=CASE WHEN p_assigned_to IS NOT NULL AND v_escalation.assigned_to IS DISTINCT FROM p_assigned_to THEN now()
+    assigned_at=CASE WHEN p_assigned_to IS NOT NULL AND v_escalation.assigned_to IS NULL THEN now()
       WHEN v_next_status='open' AND v_escalation.status IN ('assigned','acknowledged','in_progress','resolved','dismissed') THEN NULL ELSE assigned_at END,
     resolution_notes=CASE WHEN p_resolution_notes IS NOT NULL THEN left(p_resolution_notes,2000) ELSE resolution_notes END,
     acknowledged_at=CASE WHEN v_next_status IN ('acknowledged','in_progress') THEN COALESCE(acknowledged_at,now())
