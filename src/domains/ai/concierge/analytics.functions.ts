@@ -89,7 +89,7 @@ export const getConciergeAnalytics = createServerFn({ method: "POST" })
     const leadsCount = leads.count ?? 0;
     const intentHighCount = intentsHigh.count ?? 0;
     const bookingClicks = attrClicks.count ?? 0;
-    const assistedBookings = attrBookings.count ?? 0;
+    const bookingAttributionsUnverified = attrBookings.count ?? 0;
     const helpful = feedbackHelpful.count ?? 0;
     const notHelpful = feedbackNot.count ?? 0;
 
@@ -123,7 +123,7 @@ export const getConciergeAnalytics = createServerFn({ method: "POST" })
         booking_intents: intentHighCount,
         booking_clicks: bookingClicks,
         leads: leadsCount,
-        assisted_bookings: assistedBookings,
+        booking_attributions_unverified: bookingAttributionsUnverified,
         conversion_rate: conversionRate,
       },
       feedback: { helpful, not_helpful: notHelpful, satisfaction: round(satisfaction, 3) },
