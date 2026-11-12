@@ -25,9 +25,9 @@ describe("SN-OC-04 operational metric contracts", () => {
       row("g2", 5, "inbound", "guest"),
       row("s1", 9, "outbound", "staff"),
     ]);
-    expect(result.first).toEqual([3]);
-    expect(result.ai).toEqual([3]);
-    expect(result.human).toEqual([4]);
+    expect(result.first).toEqual([180_000]);
+    expect(result.ai).toEqual([180_000]);
+    expect(result.human).toEqual([240_000]);
     expect(result.unanswered).toBe(0);
   });
 
@@ -39,8 +39,8 @@ describe("SN-OC-04 operational metric contracts", () => {
       row("failed", 3, "outbound", "assistant", { status: "failed" }),
       row("delivered", 4, "outbound", "assistant", { status: "delivered" }),
     ]);
-    expect(result.first).toEqual([4]);
-    expect(result.ai).toEqual([4]);
+    expect(result.first).toEqual([240_000]);
+    expect(result.ai).toEqual([240_000]);
     expect(result.unanswered).toBe(0);
   });
 
