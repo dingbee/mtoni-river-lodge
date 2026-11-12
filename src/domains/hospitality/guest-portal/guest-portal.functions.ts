@@ -196,6 +196,22 @@ async function authorizeGuestPortal(token: string): Promise<GuestPortalContext> 
     await recordGuestPortalAccessDenied(admin, tokenHash, "guest_identity_mismatch", access);
     throw new Error("This guest access link does not match a registered reservation guest.");
   }
+  const { data: portalGuest, error: portalGuestError } = await admin
+    .from("guests")
+    .select("id,full_name,email,phone_e164")
+    .eq("id", access.guest_id)
+    .maybeSingle();
+  if (portalGuestError || !portalGuest) {
+    await recordGuestPortalAccessDenied(admin, tokenHash, "guest_profile_unavailable", access);
+    throw new Error("The registered guest profile is not available.");
+  }
+  const portalBooking = access.guest_id === booking.guest_id ? booking : {
+    ...booking,
+    guest_name: portalGuest.full_name,
+    guest_email: portalGuest.email,
+    guest_phone: portalGuest.phone_e164,
+  };
+
   const today = localDate(property.timezone);
   if (booking.status === "checked_in" && (booking.check_in > today || booking.check_out < today)) {
     await recordGuestPortalAccessDenied(admin, tokenHash, "outside_stay_dates", access);
@@ -247,7 +263,7 @@ async function authorizeGuestPortal(token: string): Promise<GuestPortalContext> 
       expires_at: access.expires_at,
     },
     property,
-    booking,
+    booking: portalBooking,
     room: room ?? null,
     roomState: roomState ?? null,
   };
@@ -391,7 +407,7 @@ export const submitGuestPortalRequest = createServerFn({ method: "POST" })
     const payload = {
       property_id: ctx.access.property_id,
       booking_id: ctx.booking.id,
-      guest_id: ctx.booking.guest_id,
+      guest_id: ctx.access.guest_id,
       session_id: ctx.access.concierge_session_id,
       room_state_id: roomState?.id ?? null,
       client_submission_id: data.submissionId,
