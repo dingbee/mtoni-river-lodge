@@ -18,7 +18,8 @@ const CHANNELS: ConciergeChannel[] = ["web", "whatsapp", "email"];
 const isChannel = (v: unknown): v is ConciergeChannel =>
   typeof v === "string" && (CHANNELS as string[]).includes(v);
 
-const STAFF_ROLES = ["owner", "manager", "admin", "reception"] as const;
+const STAFF_ROLES = ["owner", "manager", "admin", "reservations", "reception"] as const;
+const ESCALATION_ROLES = ["owner", "manager", "admin", "reservations"] as const;
 const MANAGER_ROLES = ["owner", "manager", "admin"] as const;
 
 async function requirePropertyScope(
@@ -593,7 +594,7 @@ export const updateEscalation = createServerFn({ method: "POST" })
     },
   )
   .handler(async ({ data, context }) => {
-    const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, ESCALATION_ROLES);
     const { error } = await (context.supabase as any).rpc("staynas_transition_concierge_escalation", {
       p_escalation_id: data.id,
       p_property_id: propertyId,
@@ -608,8 +609,9 @@ export const updateEscalation = createServerFn({ method: "POST" })
 export const listEscalationAssignees = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
-    const { data, error } = await (context.supabase as any).from("staynas_property_members")
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, ESCALATION_ROLES);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await (supabaseAdmin as any).from("staynas_property_members")
       .select("user_id,role").eq("property_id",propertyId).eq("status","active")
       .in("role",["owner","manager","admin","reservations","reception"]).order("role");
     if (error) throw new Error(error.message);
