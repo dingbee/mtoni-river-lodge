@@ -62,6 +62,12 @@ CREATE TABLE public.staynas_property_members (
   PRIMARY KEY (property_id, user_id)
 );
 
+CREATE TABLE public.user_roles (
+  user_id uuid NOT NULL REFERENCES auth.users(id),
+  role public.app_role NOT NULL,
+  PRIMARY KEY (user_id, role)
+);
+
 CREATE TABLE public.guests (
   id uuid PRIMARY KEY,
   full_name text
@@ -130,17 +136,27 @@ $function$;
 CREATE OR REPLACE FUNCTION public.is_any_staff(_user_id uuid)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,public
 AS $function$
-  SELECT EXISTS (
-    SELECT 1 FROM public.staynas_property_members
-    WHERE user_id=_user_id AND status='active'
-  )
+  SELECT CASE
+    WHEN _user_id IS NULL
+      OR (auth.uid() IS DISTINCT FROM _user_id AND COALESCE(auth.role(), '') <> 'service_role')
+    THEN false
+    ELSE EXISTS (
+      SELECT 1 FROM public.user_roles
+      WHERE user_id=_user_id
+        AND role IN ('owner','manager','reception','marketing','housekeeping','finance','admin','reservations')
+    )
+  END
 $function$;
 
 CREATE OR REPLACE FUNCTION public.has_any_role(_user_id uuid, _roles public.app_role[])
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,public
 AS $function$
-  SELECT EXISTS (
-    SELECT 1 FROM public.staynas_property_members
-    WHERE user_id=_user_id AND status='active' AND role=ANY(_roles)
-  )
+  SELECT CASE
+    WHEN _user_id IS NULL
+      OR (auth.uid() IS DISTINCT FROM _user_id AND COALESCE(auth.role(), '') <> 'service_role')
+    THEN false
+    ELSE EXISTS (
+      SELECT 1 FROM public.user_roles WHERE user_id=_user_id AND role=ANY(_roles)
+    )
+  END
 $function$;
