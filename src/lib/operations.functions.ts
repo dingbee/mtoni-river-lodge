@@ -239,7 +239,7 @@ export const checkInBooking = createServerFn({ method: "POST" })
       _notes: data.notes ?? null,
     });
     if (error) throw new Error(error.message);
-    let guestPortalAccess: { issued: boolean; alreadyActive: boolean; expiresAt: string | null; token: string | null; accessId: string } | { issued: false; error: string } = {
+    let guestPortalAccess: { issued: boolean; alreadyActive: boolean; expiresAt: string | null; token: string | null; accessId: string; error?: string } = {
       issued: false,
       alreadyActive: false,
       expiresAt: null,
@@ -258,6 +258,10 @@ export const checkInBooking = createServerFn({ method: "POST" })
     } catch {
       guestPortalAccess = {
         issued: false,
+        alreadyActive: false,
+        expiresAt: null,
+        token: null,
+        accessId: "",
         error: "Check-in succeeded, but Guest Portal access issuance failed. Retry from the reservation access panel.",
       };
     }
