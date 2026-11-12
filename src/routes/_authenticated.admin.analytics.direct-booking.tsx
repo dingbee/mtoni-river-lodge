@@ -18,7 +18,8 @@ type Report = {
   funnel?: Record<string, number | null>;
   currencies?: Array<{ currency: string; gross_booking_value: number; confirmed_booking_value: number; amount_paid: number; outstanding: number; refunds: number; provider_reversals: number; net_collected: number }>;
   campaigns?: Array<{ id: string; name: string; slug: string; status: string; views: number; visitors: number; booking_starts: number; quotes: number; reservations: number; paid_bookings: number; net_collected_by_currency: Array<{ currency: string; net_collected: number }> }>;
-  acquisition?: Array<{ source: string; medium: string; views: number; visitors: number; booking_starts: number; reservations: number }>;
+  acquisition?: Array<{ source: string; medium: string; views: number; visitors: number; booking_starts: number; reservations: number; paid_bookings: number }>;
+  last_touch_acquisition?: Array<{ source: string; medium: string; views: number; visitors: number; booking_starts: number; reservations: number; paid_bookings: number }>;
   permanent_page?: Record<string, number>;
 };
 
@@ -52,6 +53,7 @@ function Page() {
   const currencies = report.currencies ?? [];
   const campaigns = report.campaigns ?? [];
   const acquisition = report.acquisition ?? [];
+  const lastTouchAcquisition = report.last_touch_acquisition ?? [];
   const permanent = report.permanent_page ?? {};
   const exportCsv = () => {
     const rows: Array<Array<string | number | null | undefined>> = [
@@ -79,7 +81,20 @@ function Page() {
         ...item.net_collected_by_currency.map((moneyRow) => ["campaign_revenue", "net_collected", moneyRow.net_collected, moneyRow.currency, item.name]),
       ]),
       ...acquisition.map((item) => ["acquisition", "views", item.views, "", item.source + "/" + item.medium]),
-      ...acquisition.map((item) => ["acquisition", "reservations", item.reservations, "", item.source + "/" + item.medium]),
+      ...acquisition.flatMap((item) => [
+        ["first_touch", "views", item.views, "", item.source + "/" + item.medium],
+        ["first_touch", "sessions", item.visitors, "", item.source + "/" + item.medium],
+        ["first_touch", "booking_starts", item.booking_starts, "", item.source + "/" + item.medium],
+        ["first_touch", "reservations", item.reservations, "", item.source + "/" + item.medium],
+        ["first_touch", "paid_bookings", item.paid_bookings, "", item.source + "/" + item.medium],
+      ]),
+      ...lastTouchAcquisition.flatMap((item) => [
+        ["last_touch", "views", item.views, "", item.source + "/" + item.medium],
+        ["last_touch", "sessions", item.visitors, "", item.source + "/" + item.medium],
+        ["last_touch", "booking_starts", item.booking_starts, "", item.source + "/" + item.medium],
+        ["last_touch", "reservations", item.reservations, "", item.source + "/" + item.medium],
+        ["last_touch", "paid_bookings", item.paid_bookings, "", item.source + "/" + item.medium],
+      ]),
     ];
     const csv = rows.map((row) => row.map((value) => '"' + String(value ?? "").replaceAll('"', '""') + '"').join(",")).join("\r\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -184,18 +199,29 @@ function Page() {
         </div>
       </SectionCard>
 
-      <SectionCard title="Traffic acquisition">
+      <SectionCard title="First-touch acquisition">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] text-left text-sm">
-            <thead><tr className="border-b text-muted-foreground"><th className="py-2">Source</th><th>Medium</th><th>Views</th><th>Sessions</th><th>Booking starts</th><th>Reservations</th></tr></thead>
+            <thead><tr className="border-b text-muted-foreground"><th className="py-2">Source</th><th>Medium</th><th>Views</th><th>Sessions</th><th>Booking starts</th><th>Reservations</th><th>Paid bookings</th></tr></thead>
             <tbody>{acquisition.map((row, i) => <tr key={`${row.source}-${row.medium}-${i}`} className="border-b last:border-0">
-              <td className="py-2">{row.source}</td><td>{row.medium}</td><td>{number(row.views)}</td><td>{number(row.visitors)}</td><td>{number(row.booking_starts)}</td><td>{number(row.reservations)}</td>
+              <td className="py-2">{row.source}</td><td>{row.medium}</td><td>{number(row.views)}</td><td>{number(row.visitors)}</td><td>{number(row.booking_starts)}</td><td>{number(row.reservations)}</td><td>{number(row.paid_bookings)}</td>
             </tr>)}</tbody>
           </table>
           {!acquisition.length && <p className="py-3 text-sm text-muted-foreground">Traffic acquisition data is not yet available.</p>}
         </div>
       </SectionCard>
-      <p className="text-xs text-muted-foreground">Financial figures are grouped by original currency. Paid revenue is based on verified payment events less verified refunds. No exchange-rate conversion is applied.</p>
+      <SectionCard title="Last-touch acquisition">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[620px] text-left text-sm">
+            <thead><tr className="border-b text-muted-foreground"><th className="py-2">Source</th><th>Medium</th><th>Views</th><th>Sessions</th><th>Booking starts</th><th>Reservations</th><th>Paid bookings</th></tr></thead>
+            <tbody>{lastTouchAcquisition.map((row, i) => <tr key={`${row.source}-${row.medium}-${i}`} className="border-b last:border-0">
+              <td className="py-2">{row.source}</td><td>{row.medium}</td><td>{number(row.views)}</td><td>{number(row.visitors)}</td><td>{number(row.booking_starts)}</td><td>{number(row.reservations)}</td><td>{number(row.paid_bookings)}</td>
+            </tr>)}</tbody>
+          </table>
+          {!lastTouchAcquisition.length && <p className="py-3 text-sm text-muted-foreground">Last-touch attribution data is not yet available.</p>}
+        </div>
+      </SectionCard>
+      <p className="text-xs text-muted-foreground">Financial figures are grouped by original currency. Paid revenue is based on verified payment events less verified cash refunds and provider reversals. No exchange-rate conversion is applied.</p>
     </div>
   );
 }
