@@ -385,8 +385,6 @@ GRANT EXECUTE ON FUNCTION public.staynas_issue_guest_portal_access(uuid,uuid,uui
   TO service_role;
 REVOKE ALL ON FUNCTION public.staynas_revoke_guest_portal_access(uuid,uuid,uuid,uuid)
   FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.staynas_revoke_guest_portal_access_on_lifecycle()
-  FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.staynas_revoke_guest_portal_access(uuid,uuid,uuid,uuid)
   TO service_role;
 
@@ -499,6 +497,9 @@ BEGIN
   RETURN NEW;
 END;
 $function$;
+
+REVOKE ALL ON FUNCTION public.staynas_revoke_guest_portal_access_on_lifecycle()
+  FROM PUBLIC, anon, authenticated;
 
 DROP TRIGGER IF EXISTS staynas_guest_portal_access_booking_lifecycle
   ON public.bookings;
