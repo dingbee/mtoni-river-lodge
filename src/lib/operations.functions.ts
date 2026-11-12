@@ -240,10 +240,12 @@ export const checkInBooking = createServerFn({ method: "POST" })
       _notes: data.notes ?? null,
     });
     if (error) throw new Error(error.message);
-    let guestPortalAccess: { issued: boolean; alreadyActive: boolean; expiresAt: string | null } | { issued: false; error: string } = {
+    let guestPortalAccess: { issued: boolean; alreadyActive: boolean; expiresAt: string | null; token: string | null; accessId: string } | { issued: false; error: string } = {
       issued: false,
       alreadyActive: false,
       expiresAt: null,
+      token: null,
+      accessId: "",
     };
     try {
       guestPortalAccess = await ensureGuestPortalAccessAfterCheckIn(
