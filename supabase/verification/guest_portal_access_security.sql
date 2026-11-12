@@ -42,6 +42,11 @@ BEGIN
       (v_a_property,v_user_a,'active','reception'),
       (v_b_property,v_user_b,'active','reception'),
       (v_a_property,v_user_c,'active','reception');
+  INSERT INTO public.user_roles(user_id,role)
+    VALUES
+      (v_user_a,'reception'),
+      (v_user_b,'reception'),
+      (v_user_c,'reception');
   INSERT INTO public.commercial_founder_admin_memberships(organisation_id,principal_id,status)
     VALUES (v_a_org,v_user_a,'active');
   INSERT INTO public.commercial_founder_tenant_config(singleton,founder_organisation_id)
