@@ -43,6 +43,9 @@ export async function ensureGuestPortalAccessAfterCheckIn(
   if (bookingError || !booking || booking.status !== "checked_in") {
     throw new Error("Guest access requires a successfully checked-in booking.");
   }
+  if (!booking.guest_id) {
+    throw new Error("Register the lead guest profile before issuing Guest Portal access.");
+  }
 
   const { data: existing, error: existingError } = await admin
     .from("staynas_guest_portal_access")
