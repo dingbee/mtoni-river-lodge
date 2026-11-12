@@ -7,7 +7,7 @@ on:
     branches: [main]
     paths:
       - "supabase/migrations/*lb03*"
-      - "supabase/tests/lb03_financial_integrity.test.sql"
+      - "supabase/verification/lb03_financial_integrity.sql"
       - "src/routes/api/integrations.lb03.*"
       - ".github/workflows/lb03-financial-integrity.yml"
 
@@ -43,7 +43,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client
       - name: Apply isolated LB-03 schema and run authorization, posting and reversal assertions
-        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/lb03_financial_integrity.test.sql
+        run: psql -v ON_ERROR_STOP=1 -f supabase/verification/lb03_financial_integrity.sql
       - name: Race two independent posting sessions against the same authorization
         shell: bash
         run: |
