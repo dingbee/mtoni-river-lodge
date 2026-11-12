@@ -6,7 +6,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 import { GUEST_REQUEST_CATEGORIES } from "@/domains/ai/concierge/request-categorization";
 import { handleConciergeChat } from "@/domains/ai/concierge/concierge.server";
-import { validateGuestPortalPhotoMeta } from "./guest-portal.shared";
+import { isGuestPortalStayEligible, validateGuestPortalPhotoMeta } from "./guest-portal.shared";
 
 const BUCKET = "guest-request-evidence";
 type GuestRequestAttachmentMeta = {
