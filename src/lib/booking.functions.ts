@@ -121,6 +121,56 @@ export const checkAvailability = createServerFn({ method: "POST" })
       _rate_plan_id: data.ratePlanId ?? null,
     });
     if (error) throw new Error(error.message);
+    const sessionKey = campaignContext?.sessionKey ?? data.sessionKey;
+    if (sessionKey) {
+      try {
+        const externalReferrer = (() => {
+          try { return !!data.referrer && new URL(data.referrer).hostname !== channel.hostname; }
+          catch { return false; }
+        })();
+        const { data: attribution, error: attributionError } = await (supabaseAdmin as any).rpc("staynas_upsert_booking_attribution", {
+          _property_id: propertyId,
+          _organisation_id: channel.organisationId,
+          _session_key: sessionKey,
+          _campaign_id: campaignContext?.campaignId ?? null,
+          _campaign_offer_id: campaignContext?.offerId ?? null,
+          _touch: {
+            source: data.utmSource ?? null, medium: data.utmMedium ?? null,
+            utm_campaign: data.utmCampaign ?? null, utm_content: data.utmContent ?? null,
+            utm_term: data.utmTerm ?? null, referrer: data.referrer ?? null,
+          },
+          _touch_at: new Date().toISOString(),
+          _is_external_acquisition: Boolean(data.utmSource || data.utmMedium || data.utmCampaign || externalReferrer),
+        });
+        if (!attributionError && attribution?.attribution_id) {
+          for (const eventType of ["booking_started", "availability_searched"]) {
+            const { error: eventError } = await (supabaseAdmin as any).rpc("staynas_record_booking_analytics_event", {
+              _property_id: propertyId,
+              _organisation_id: channel.organisationId,
+              _event_type: eventType,
+              _event_key: "cps6:journey:" + sessionKey + ":" + eventType,
+              _event_source: "server_confirmed",
+              _attribution_id: attribution.attribution_id,
+              _campaign_id: campaignContext?.campaignId ?? null,
+              _session_key: sessionKey,
+              _traffic_source: data.utmSource ?? null,
+              _traffic_medium: data.utmMedium ?? null,
+              _utm_campaign: data.utmCampaign ?? null,
+              _utm_content: data.utmContent ?? null,
+              _utm_term: data.utmTerm ?? null,
+              _referrer: data.referrer ?? null,
+              _landing_page: campaignContext ? "/p/" + data.propertySlug + "/campaign/" + data.campaignSlug : "/p/" + data.propertySlug + "/book",
+              _metadata: { check_in: data.checkIn, check_out: data.checkOut, adults: data.adults, children_below_6: data.childrenBelow6, children_7_plus: data.children7Plus },
+            });
+            if (eventError) console.warn("[StayNas analytics] Booking journey event could not be recorded", { eventType, code: eventError.code });
+          }
+        } else if (attributionError) {
+          console.warn("[StayNas analytics] Booking journey attribution could not be initialized", { code: attributionError.code });
+        }
+      } catch (analyticsError) {
+        console.warn("[StayNas analytics] Booking journey instrumentation failed", analyticsError);
+      }
+    }
     const mapped = await Promise.all(((rows ?? []) as any[]).filter((r) => !campaignContext || campaignContext.allowedRoomIds.has(String(r.room_id))).map(async (r) => {
       const allowedPlanIds = allowedPlansByRoom.get(String(r.room_id));
       if (!allowedPlanIds?.size || (data.ratePlanId && !allowedPlanIds.has(data.ratePlanId))) {
