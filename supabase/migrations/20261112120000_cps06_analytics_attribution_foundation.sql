@@ -75,7 +75,7 @@ create table if not exists public.staynas_booking_analytics_events (
     'booking_page_viewed','campaign_page_viewed','campaign_cta_clicked',
     'room_selected','offer_selected','availability_searched','quote_generated',
     'booking_started','reservation_created','reservation_confirmed',
-    'payment_initiated','payment_completed','booking_cancelled','payment_refunded'
+    'payment_initiated','payment_completed','booking_cancelled','payment_refunded','payment_reversed'
   )),
   event_key text not null check (length(btrim(event_key)) between 12 and 200),
   event_source text not null check (event_source in ('browser_observed','server_confirmed')),
@@ -401,7 +401,8 @@ begin
         updated_at=now()
     where id=v_attribution and property_id=(select property_id from public.bookings where id=new.booking_id);
     if new.event_type in ('manual_payment','payment_completed') then v_type:='payment_completed';
-    elsif new.event_type in ('refund','provider_reversal') then v_type:='payment_refunded';
+    elsif new.event_type='refund' then v_type:='payment_refunded';
+    elsif new.event_type='provider_reversal' then v_type:='payment_reversed';
     else return new;
     end if;
     v_key:='ledger-payment:'||new.id::text;
@@ -514,9 +515,10 @@ begin
   payment_money as (
     select currency,
       coalesce(sum(amount) filter(where event_type='payment_completed'),0) as amount_paid,
-      coalesce(sum(abs(amount)) filter(where event_type='payment_refunded'),0) as refunds
+      coalesce(sum(abs(amount)) filter(where event_type='payment_refunded'),0) as refunds,
+      coalesce(sum(abs(amount)) filter(where event_type='payment_reversed'),0) as provider_reversals
     from e where currency is not null
-      and event_type in ('payment_completed','payment_refunded')
+      and event_type in ('payment_completed','payment_refunded','payment_reversed')
     group by currency
   ),
   money as (
@@ -526,7 +528,8 @@ begin
       coalesce(p.amount_paid,0) as amount_paid,
       coalesce(b.outstanding,0) as outstanding,
       coalesce(p.refunds,0) as refunds,
-      coalesce(p.amount_paid,0)-coalesce(p.refunds,0) as net_collected
+      coalesce(p.provider_reversals,0) as provider_reversals,
+      coalesce(p.amount_paid,0)-coalesce(p.refunds,0)-coalesce(p.provider_reversals,0) as net_collected
     from booking_money b
     full join payment_money p using(currency)
   ),
@@ -543,7 +546,8 @@ begin
         from (
           select pe.currency,
             coalesce(sum(pe.amount) filter(where pe.event_type='payment_completed'),0)
-              - coalesce(sum(abs(pe.amount)) filter(where pe.event_type='payment_refunded'),0) as net_collected
+              - coalesce(sum(abs(pe.amount)) filter(where pe.event_type='payment_refunded'),0)
+              - coalesce(sum(abs(pe.amount)) filter(where pe.event_type='payment_reversed'),0) as net_collected
           from e pe
           where pe.campaign_id=c.id and pe.currency is not null
           group by pe.currency
