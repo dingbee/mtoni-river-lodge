@@ -659,7 +659,8 @@ export const updateEscalationSlaPolicy = createServerFn({ method: "POST" })
     const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
     const patch: Record<string, unknown> = { updated_by: context.userId, updated_at: new Date().toISOString() };
     for (const key of ["enabled","acknowledgement_minutes","assignment_minutes","resolution_minutes","business_hours_only","operating_hours","warning_percent"] as const) if (data[key] !== undefined) patch[key] = data[key];
-    const { data: row, error } = await (context.supabase as any).from("ai_escalation_sla_policies").update(patch).eq("id",data.id).eq("property_id",propertyId).select("id").maybeSingle();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await (supabaseAdmin as any).from("ai_escalation_sla_policies").update(patch).eq("id",data.id).eq("property_id",propertyId).select("id").maybeSingle();
     if (error) throw new Error(error.message);
     if (!row) throw new Error("SLA policy not found in the active property.");
     return { ok: true };
@@ -677,7 +678,8 @@ export const updateEscalationReasonPriorityMap = createServerFn({ method: "POST"
   })
   .handler(async ({ data, context }) => {
     const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
-    const { error } = await (context.supabase as any).from("ai_escalation_sla_policies")
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await (supabaseAdmin as any).from("ai_escalation_sla_policies")
       .update({ reason_priority_map: data.reason_priority_map, updated_by: context.userId, updated_at: new Date().toISOString() })
       .eq("property_id", propertyId);
     if (error) throw new Error(error.message);
