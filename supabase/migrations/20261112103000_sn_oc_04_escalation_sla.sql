@@ -116,6 +116,7 @@ CREATE TRIGGER staynas_property_seed_escalation_sla
   FOR EACH ROW EXECUTE FUNCTION public.staynas_seed_property_escalation_sla_policies();
 
 ALTER TABLE public.ai_escalations
+  ADD COLUMN IF NOT EXISTS assigned_at timestamptz,
   ADD COLUMN IF NOT EXISTS assignment_due_at timestamptz,
   ADD COLUMN IF NOT EXISTS acknowledgement_due_at timestamptz,
   ADD COLUMN IF NOT EXISTS resolution_due_at timestamptz,
@@ -142,6 +143,15 @@ CREATE TABLE IF NOT EXISTS public.ai_escalation_events (
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
   occurred_at timestamptz NOT NULL DEFAULT now()
 );
+UPDATE public.ai_escalations escalation
+SET assigned_at = (
+  SELECT max(event.occurred_at) FROM public.ai_escalation_events event
+  WHERE event.escalation_id=escalation.id
+    AND event.event_type IN ('assigned','reassigned')
+    AND event.to_assignee=escalation.assigned_to
+)
+WHERE escalation.assigned_to IS NOT NULL AND escalation.assigned_at IS NULL;
+
 CREATE INDEX IF NOT EXISTS ai_escalations_sla_assignment_due_idx
   ON public.ai_escalations(assignment_due_at)
   WHERE status IN ('open','assigned','acknowledged','in_progress') AND assigned_to IS NULL;
@@ -627,6 +637,8 @@ BEGIN
     assigned_to=CASE WHEN p_assigned_to IS NOT NULL THEN p_assigned_to
       WHEN v_next_status='open' AND v_escalation.status IN ('assigned','acknowledged','in_progress','resolved','dismissed') THEN NULL
       ELSE assigned_to END,
+    assigned_at=CASE WHEN p_assigned_to IS NOT NULL AND v_escalation.assigned_to IS DISTINCT FROM p_assigned_to THEN now()
+      WHEN v_next_status='open' AND v_escalation.status IN ('assigned','acknowledged','in_progress','resolved','dismissed') THEN NULL ELSE assigned_at END,
     resolution_notes=CASE WHEN p_resolution_notes IS NOT NULL THEN left(p_resolution_notes,2000) ELSE resolution_notes END,
     acknowledged_at=CASE WHEN v_next_status IN ('acknowledged','in_progress') THEN COALESCE(acknowledged_at,now())
       WHEN v_next_status='open' AND v_escalation.status IN ('assigned','acknowledged','in_progress','resolved','dismissed') THEN NULL ELSE acknowledged_at END,
