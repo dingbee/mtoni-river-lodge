@@ -91,6 +91,8 @@ export interface EscalationRow {
   status: EscalationStatus;
   assigned_to: string | null;
   resolution_notes: string | null;
+  assigned_at?: string | null;
+  acknowledged_at?: string | null;
   resolved_at: string | null;
   assignment_due_at?: string | null;
   acknowledgement_due_at?: string | null;
@@ -98,7 +100,6 @@ export interface EscalationRow {
   reopened_at?: string | null;
   sla_cycle_started_at?: string | null;
   property_timezone?: string;
-  acknowledged_at?: string | null;
   created_at: string;
   updated_at: string;
 }
