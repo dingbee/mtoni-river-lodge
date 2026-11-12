@@ -37,6 +37,63 @@ ALTER TABLE public.ai_escalations DROP CONSTRAINT IF EXISTS ai_escalations_statu
 ALTER TABLE public.ai_escalations ADD CONSTRAINT ai_escalations_status_check
   CHECK (status IN ('open','assigned','acknowledged','in_progress','resolved','dismissed'));
 
+CREATE TABLE IF NOT EXISTS public.ai_escalation_sla_policy_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id uuid NOT NULL REFERENCES public.staynas_properties(id) ON DELETE RESTRICT,
+  policy_id uuid NOT NULL REFERENCES public.ai_escalation_sla_policies(id) ON DELETE RESTRICT,
+  priority smallint NOT NULL CHECK (priority BETWEEN 1 AND 3),
+  event_type text NOT NULL CHECK (event_type IN ('created','updated','enabled','disabled')),
+  actor_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  old_policy jsonb,
+  new_policy jsonb NOT NULL,
+  occurred_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS ai_escalation_sla_policy_events_property_time_idx
+  ON public.ai_escalation_sla_policy_events(property_id,occurred_at DESC);
+ALTER TABLE public.ai_escalation_sla_policy_events ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.ai_escalation_sla_policy_events FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.ai_escalation_sla_policy_events TO authenticated;
+GRANT SELECT,INSERT ON public.ai_escalation_sla_policy_events TO service_role;
+REVOKE UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER ON public.ai_escalation_sla_policy_events FROM PUBLIC,anon,authenticated,service_role;
+DROP POLICY IF EXISTS "SLA policy audit read in active property" ON public.ai_escalation_sla_policy_events;
+CREATE POLICY "SLA policy audit read in active property"
+  ON public.ai_escalation_sla_policy_events FOR SELECT TO authenticated
+  USING (public.staynas_ai_property_in_active_context(property_id,ARRAY['owner','manager','admin']::public.app_role[]));
+
+CREATE OR REPLACE FUNCTION public.staynas_record_escalation_sla_policy_event()
+RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog,public
+AS $function$
+DECLARE v_type text;
+BEGIN
+  IF TG_OP='INSERT' THEN
+    v_type := 'created';
+    INSERT INTO public.ai_escalation_sla_policy_events(property_id,policy_id,priority,event_type,actor_id,new_policy)
+    VALUES (NEW.property_id,NEW.id,NEW.priority,v_type,auth.uid(),to_jsonb(NEW));
+  ELSE
+    v_type := CASE WHEN OLD.enabled IS DISTINCT FROM NEW.enabled
+      THEN CASE WHEN NEW.enabled THEN 'enabled' ELSE 'disabled' END
+      ELSE 'updated' END;
+    INSERT INTO public.ai_escalation_sla_policy_events(property_id,policy_id,priority,event_type,actor_id,old_policy,new_policy)
+    VALUES (NEW.property_id,NEW.id,NEW.priority,v_type,auth.uid(),to_jsonb(OLD),to_jsonb(NEW));
+  END IF;
+  RETURN NEW;
+END
+$function$;
+DROP TRIGGER IF EXISTS ai_escalation_sla_policy_audit ON public.ai_escalation_sla_policies;
+CREATE TRIGGER ai_escalation_sla_policy_audit
+  AFTER INSERT OR UPDATE ON public.ai_escalation_sla_policies
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_record_escalation_sla_policy_event();
+
+INSERT INTO public.ai_escalation_sla_policy_events(property_id,policy_id,priority,event_type,new_policy)
+SELECT property_id,id,priority,'created',to_jsonb(policy)
+FROM public.ai_escalation_sla_policies policy
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.ai_escalation_sla_policy_events event
+  WHERE event.policy_id=policy.id AND event.event_type='created'
+);
+
 CREATE OR REPLACE FUNCTION public.staynas_seed_property_escalation_sla_policies()
 RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER
