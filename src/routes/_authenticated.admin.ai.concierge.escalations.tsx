@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   listEscalations, updateEscalation, listEscalationSlaPolicies,
-  updateEscalationSlaPolicy, updateEscalationReasonPriorityMap, listEscalationEvents, listEscalationSlaAlerts, listEscalationSlaPolicyEvents, listEscalationAssignees,
+  updateEscalationSlaPolicy, updateEscalationReasonPriorityMap, listEscalationEvents, listEscalationSlaPolicyEvents, listEscalationAssignees,
 } from "@/domains/ai/concierge/omnichannel.functions";
 import type { EscalationRow, EscalationStatus } from "@/domains/ai/concierge/omnichannel.types";
 
@@ -170,7 +170,6 @@ function EscalationCard({ row, assignees, onPatch }: {
   onPatch: (v: {id:string;status?:EscalationStatus;assigned_to?:string|null;resolution_notes?:string;priority?:number}) => void;
 }) {
   const eventsFn = useServerFn(listEscalationEvents);
-  const alertsFn = useServerFn(listEscalationSlaAlerts);
   const [notes, setNotes] = useState(row.resolution_notes ?? "");
   const [assignee, setAssignee] = useState(row.assigned_to ?? "");
   const [priority, setPriority] = useState(String(row.priority));
@@ -179,10 +178,6 @@ function EscalationCard({ row, assignees, onPatch }: {
     queryKey: ["oc.escalation-events", row.id],
     queryFn: () => eventsFn({ data: { escalation_id: row.id } }),
     enabled: historyOpen,
-  });
-  const alerts = useQuery({
-    queryKey: ["oc.escalation-sla-alerts", row.id],
-    queryFn: () => alertsFn({ data: { escalation_id: row.id } }),
   });
   const due = [
     { label:"Assignment", at:row.assignment_due_at, completedAt:row.assigned_at, cancelled:false },
@@ -199,8 +194,8 @@ function EscalationCard({ row, assignees, onPatch }: {
         {typeof row.ai_confidence === "number" && <span className="text-muted-foreground">conf {Math.round(row.ai_confidence*100)}%</span>}
       </div>
       {row.summary && <p className="whitespace-pre-wrap">{row.summary}</p>}
-      {(alerts.data ?? []).length > 0 && <div className="flex flex-wrap gap-2">
-        {alerts.data?.map((alert: any) => <Badge key={alert.id} variant={alert.alert_type === "breached" ? "destructive" : "secondary"}>
+      {(row.sla_alerts ?? []).length > 0 && <div className="flex flex-wrap gap-2">
+        {row.sla_alerts?.map((alert: any) => <Badge key={alert.id} variant={alert.alert_type === "breached" ? "destructive" : "secondary"}>
           {alert.milestone} {alert.alert_type === "breached" ? "breached" : "approaching"}
         </Badge>)}
       </div>}
