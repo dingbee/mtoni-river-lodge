@@ -80,6 +80,7 @@ export function buildGuestPortalUrl(origin: string, token: string): string {
 
 /** Resolve only an explicitly configured environment host or its canonical current origin. */
 export function guestPortalOrigin(currentOrigin: string, configuredOrigin?: string): string {
+  const explicitlyConfigured = Boolean(configuredOrigin?.trim());
   const base = new URL(configuredOrigin?.trim() || currentOrigin);
   if (base.protocol !== "https:" || base.username || base.password) {
     throw new Error("Invalid Guest Portal origin.");
@@ -90,6 +91,9 @@ export function guestPortalOrigin(currentOrigin: string, configuredOrigin?: stri
     base.hostname.endsWith(".vercel.app")
   ) {
     throw new Error("Set VITE_GUEST_PORTAL_BASE_URL to an approved StayNas environment domain before issuing guest access.");
+  }
+  if (!explicitlyConfigured && !["staynas.nolmark.co", "uat.staynas.com"].includes(base.hostname)) {
+    throw new Error("Guest access must use the canonical StayNas production domain or an explicitly configured UAT domain.");
   }
   return base.origin;
 }
