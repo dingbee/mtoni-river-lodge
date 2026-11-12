@@ -105,10 +105,10 @@ function Page() {
           </button>
         ))}
         <label className="grid gap-1 text-xs text-muted-foreground">From
-          <input type="date" value={customFrom} onChange={(event) => setCustomFrom(event.target.value)} className="rounded-md border bg-background px-2 py-2 text-sm text-foreground" />
+          <input type="date" value={customFrom} onChange={(event) => { setCustomFrom(event.target.value); if (!event.target.value) setRange("30d"); }} className="rounded-md border bg-background px-2 py-2 text-sm text-foreground" />
         </label>
         <label className="grid gap-1 text-xs text-muted-foreground">To
-          <input type="date" value={customTo} onChange={(event) => setCustomTo(event.target.value)} className="rounded-md border bg-background px-2 py-2 text-sm text-foreground" />
+          <input type="date" value={customTo} onChange={(event) => { setCustomTo(event.target.value); if (!event.target.value) setRange("30d"); }} className="rounded-md border bg-background px-2 py-2 text-sm text-foreground" />
         </label>
         <button type="button" onClick={() => setRange("custom")} disabled={!customFrom || !customTo || customTo < customFrom}
           className="rounded-md border px-3 py-2 text-sm disabled:opacity-50">Apply dates</button>
