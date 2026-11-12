@@ -523,7 +523,7 @@ export const listEscalations = createServerFn({ method: "POST" })
     const propertyId = await requirePropertyScope(context.supabase, context.userId);
     let q = context.supabase
       .from("ai_escalations")
-      .select("*,assignment_due_at,acknowledgement_due_at,resolution_due_at,reopened_at")
+      .select("*")
       .eq("property_id", propertyId)
       .order("priority", { ascending: true })
       .order("created_at", { ascending: false })
