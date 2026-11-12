@@ -21,6 +21,18 @@ function percentile(values: number[], p: number): number | null {
   return round(sorted[lower] + (sorted[upper] - sorted[lower]) * (position - lower) / 60_000);
 }
 
+async function fetchAllRows(buildQuery: () => any): Promise<any[]> {
+  const rows: any[] = [];
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await buildQuery().range(offset, offset + pageSize - 1);
+    if (error) throw new Error(error.message);
+    const page = data ?? [];
+    rows.push(...page);
+    if (page.length < pageSize) return rows;
+  }
+}
+
 async function activeProperty(sb: any, userId: string): Promise<string> {
   const { data: propertyId, error } = await sb.rpc("staynas_active_property_id", { _uid: userId });
   if (error || !propertyId) throw new Error("No active property selected.");
@@ -97,39 +109,36 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
     const periodStart = new Date(periodEnd.getTime() - days * 86_400_000);
     const since = periodStart.toISOString();
 
-    const [property, sessions, messages, leads, escalations, docs, chunks, searches, conciergeAttributions, campaignAttributions] = await Promise.all([
+    const [property, sessions, messageRows, leadRows, escalationRows, documentRows, chunkRows, searchRows, conciergeAttributionRows, campaignAttributionRows] = await Promise.all([
       sb.from("staynas_properties").select("id,currency,timezone").eq("id", propertyId).maybeSingle(),
-      sb.from("ai_concierge_sessions").select("id,created_at").eq("property_id", propertyId).gte("created_at", since),
-      sb.from("ai_omnichannel_messages")
+      sb.from("ai_concierge_sessions").select("id", { count: "exact", head: true }).eq("property_id", propertyId).gte("created_at", since),
+      fetchAllRows(() => sb.from("ai_omnichannel_messages")
         .select("id,property_id,session_id,direction,actor_type,message_type,status,provider,provider_message_id,client_message_id,occurred_at")
-        .eq("property_id", propertyId).gte("occurred_at", since).order("occurred_at", { ascending: true }).limit(10000),
-      sb.from("ai_concierge_leads").select("id,status,created_at").eq("property_id", propertyId).gte("created_at", since),
-      sb.from("ai_escalations")
+        .eq("property_id", propertyId).gte("occurred_at", since).order("occurred_at", { ascending: true })),
+      fetchAllRows(() => sb.from("ai_concierge_leads").select("id,status,created_at").eq("property_id", propertyId).gte("created_at", since)),
+      fetchAllRows(() => sb.from("ai_escalations")
         .select("id,session_id,status,priority,assigned_to,created_at,resolved_at,ai_concierge_sessions!inner(property_id)")
-        .eq("ai_concierge_sessions.property_id", propertyId).gte("created_at", since),
-      sb.from("knowledge_documents").select("id,status,current_version,source_updated_at,review_due_at").eq("property_id", propertyId),
-      sb.from("knowledge_chunks").select("id,document_id,version").eq("property_id", propertyId),
-      sb.from("ai_knowledge_search_log").select("id,result_count,matched_source_ids,created_at").eq("property_id", propertyId).gte("created_at", since),
-      sb.from("ai_concierge_attributions")
+        .eq("ai_concierge_sessions.property_id", propertyId).gte("created_at", since)),
+      fetchAllRows(() => sb.from("knowledge_documents").select("id,status,current_version,source_updated_at,review_due_at").eq("property_id", propertyId)),
+      fetchAllRows(() => sb.from("knowledge_chunks").select("id,document_id,version").eq("property_id", propertyId)),
+      fetchAllRows(() => sb.from("ai_knowledge_search_log").select("id,result_count,matched_source_ids,created_at").eq("property_id", propertyId).gte("created_at", since)),
+      fetchAllRows(() => sb.from("ai_concierge_attributions")
         .select("id,booking_id,conversion_type,created_at,ai_concierge_sessions!inner(property_id)")
-        .eq("ai_concierge_sessions.property_id", propertyId).gte("created_at", since),
-      sb.from("campaign_attribution").select("id,booking_id,event_type,occurred_at")
-        .eq("property_id", propertyId).eq("event_type", "booking_completed").gte("occurred_at", since),
+        .eq("ai_concierge_sessions.property_id", propertyId).gte("created_at", since)),
+      fetchAllRows(() => sb.from("campaign_attribution").select("id,booking_id,event_type,occurred_at")
+        .eq("property_id", propertyId).eq("event_type", "booking_completed").gte("occurred_at", since)),
     ]);
 
-    for (const result of [property, sessions, messages, leads, escalations, docs, chunks, searches, conciergeAttributions, campaignAttributions]) {
+    for (const result of [property, sessions]) {
       if (result.error) throw new Error(result.error.message);
     }
     if (!property.data) throw new Error("Active property configuration is unavailable.");
 
-    const messageRows = messages.data ?? [];
     const response = responseIntervals(messageRows);
-    const escalationRows = escalations.data ?? [];
     const resolvedIntervals = escalationRows
       .filter((row: any) => row.resolved_at && row.status === "resolved")
       .map((row: any) => Date.parse(row.resolved_at) - Date.parse(row.created_at))
       .filter((value: number) => Number.isFinite(value) && value >= 0);
-    const leadRows = leads.data ?? [];
     const leadStatusCounts = Object.fromEntries(["new", "contacted", "qualified", "converted", "closed"].map((status) => [
       status, leadRows.filter((row: any) => row.status === status).length,
     ]));
@@ -138,7 +147,7 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
     ]));
 
     const bookingIds = new Set<string>();
-    for (const row of [...(conciergeAttributions.data ?? []), ...(campaignAttributions.data ?? [])]) {
+    for (const row of [...conciergeAttributionRows, ...campaignAttributionRows]) {
       if (row.booking_id) bookingIds.add(String(row.booking_id));
     }
     let verifiedBookings: any[] = [];
@@ -154,14 +163,12 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
     const confirmedBookingCount = new Set(verifiedBookings.map((row: any) => row.id)).size;
     const { count: currencyMismatchCount, error: currencyError } = await sb.from("bookings")
       .select("id", { count: "exact", head: true }).eq("property_id", propertyId)
-      .neq("currency", property.data.currency);
+      .or(`currency.is.null,currency.neq.${property.data.currency}`);
     if (currencyError) throw new Error(currencyError.message);
 
-    const documentRows = docs.data ?? [];
-    const currentChunkCount = (chunks.data ?? []).filter((chunk: any) =>
+    const currentChunkCount = chunkRows.filter((chunk: any) =>
       documentRows.some((doc: any) => doc.id === chunk.document_id && doc.current_version === chunk.version && doc.status === "published"),
     ).length;
-    const searchRows = searches.data ?? [];
 
     return {
       period_start: since,
@@ -171,7 +178,7 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
       generated_at: new Date().toISOString(),
       source_status: "queried",
       operations: {
-        sessions: sessions.data?.length ?? 0,
+        sessions: sessions.count ?? 0,
         omnichannel_messages: messageRows.length,
         first_response_minutes: { p50: percentile(response.first, 0.5), p90: percentile(response.first, 0.9), sample_size: response.first.length },
         ai_response_minutes: { p50: percentile(response.ai, 0.5), p90: percentile(response.ai, 0.9), sample_size: response.ai.length },
