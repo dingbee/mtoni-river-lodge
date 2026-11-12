@@ -993,6 +993,17 @@ export const prepareGuestPortalDeliveryDraft = createServerFn({ method: "POST" }
     if (data.channel === "whatsapp" && !/^\+[1-9]\d{7,14}$/.test(contact.trim())) {
       throw new Error("The registered guest has no valid WhatsApp E.164 number.");
     }
+    const { data: conciergeChannel, error: conciergeChannelError } = await admin
+      .from("ai_concierge_channels")
+      .select("id")
+      .eq("channel", data.channel)
+      .eq("provider", provider)
+      .eq("status", "active")
+      .eq("outbound_enabled", true)
+      .maybeSingle();
+    if (conciergeChannelError || !conciergeChannel) {
+      throw new Error("The selected messaging provider channel is not active for outbound dispatch.");
+    }
     const { data: settings, error: settingsError } = await admin
       .from("ai_property_channel_settings")
       .select("enabled,outbound_enabled,sender_email")
@@ -1015,6 +1026,19 @@ export const prepareGuestPortalDeliveryDraft = createServerFn({ method: "POST" }
     if (data.channel === "email") bindingQuery = bindingQuery.eq("external_endpoint_id", settings.sender_email);
     const { data: binding, error: bindingError } = await bindingQuery.limit(1).maybeSingle();
     if (bindingError || !binding) throw new Error("No verified outbound provider binding is configured for this property.");
+
+    const { data: existingDraft, error: existingDraftError } = await admin
+      .from("ai_communication_drafts")
+      .select("id")
+      .eq("booking_id", data.bookingId)
+      .eq("channel", data.channel)
+      .in("status", ["pending", "approved", "sent"])
+      .contains("supporting_context", { guest_portal_access_id: access.id })
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existingDraftError) throw new Error("Existing Guest Portal delivery drafts could not be checked.");
+    if (existingDraft) return { id: existingDraft.id, channel: data.channel, alreadyExists: true };
 
     const guestName = String(session.guest_name || booking.guest_name || "Guest");
     const expiry = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" })
