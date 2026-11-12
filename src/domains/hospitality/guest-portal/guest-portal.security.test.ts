@@ -99,7 +99,8 @@ describe("guest portal checkout grace eligibility", () => {
   it("allows checked-in stays and only unexpired completed-stay grace", () => {
     const future = new Date(Date.now() + 60_000).toISOString();
     const past = new Date(Date.now() - 60_000).toISOString();
-    expect(isGuestPortalStayEligible("checked_in", past)).toBe(true);
+    expect(isGuestPortalStayEligible("checked_in", future)).toBe(true);
+    expect(isGuestPortalStayEligible("checked_in", past)).toBe(false);
     expect(isGuestPortalStayEligible("completed", future)).toBe(true);
     expect(isGuestPortalStayEligible("completed", past)).toBe(false);
     expect(isGuestPortalStayEligible("cancelled", future)).toBe(false);
