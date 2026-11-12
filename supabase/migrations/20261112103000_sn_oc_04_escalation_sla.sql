@@ -447,13 +447,13 @@ BEGIN
   UPDATE public.ai_escalations SET
     status=v_next_status,
     assigned_to=CASE WHEN p_assigned_to IS NOT NULL THEN p_assigned_to
-      WHEN v_escalation.status IN ('resolved','dismissed') AND v_next_status='open' THEN NULL
+      WHEN v_next_status='open' AND v_escalation.status IN ('assigned','acknowledged','in_progress','resolved','dismissed') THEN NULL
       ELSE assigned_to END,
     resolution_notes=CASE WHEN p_resolution_notes IS NOT NULL THEN left(p_resolution_notes,2000) ELSE resolution_notes END,
     acknowledged_at=CASE WHEN v_next_status IN ('acknowledged','in_progress') THEN COALESCE(acknowledged_at,now())
-      WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN NULL ELSE acknowledged_at END,
+      WHEN v_next_status='open' AND v_escalation.status IN ('assigned','acknowledged','in_progress','resolved','dismissed') THEN NULL ELSE acknowledged_at END,
     acknowledged_by=CASE WHEN v_next_status IN ('acknowledged','in_progress') THEN COALESCE(acknowledged_by,auth.uid())
-      WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN NULL ELSE acknowledged_by END,
+      WHEN v_next_status='open' AND v_escalation.status IN ('assigned','acknowledged','in_progress','resolved','dismissed') THEN NULL ELSE acknowledged_by END,
     resolved_at=CASE WHEN v_next_status IN ('resolved','dismissed') THEN now()
       WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN NULL ELSE resolved_at END,
     reopened_at=CASE WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN now() ELSE reopened_at END,
@@ -471,16 +471,16 @@ BEGIN
 
   IF v_escalation.ops_task_id IS NOT NULL THEN
     UPDATE public.ops_tasks SET
-      assigned_to=CASE WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN NULL
+      assigned_to=CASE WHEN v_next_status='open' AND v_escalation.status IN ('assigned','acknowledged','in_progress','resolved','dismissed') THEN NULL
         WHEN p_assigned_to IS NOT NULL THEN p_assigned_to ELSE assigned_to END,
       status=CASE WHEN v_next_status='in_progress' THEN 'in_progress'::public.ops_task_status
         WHEN v_next_status='resolved' THEN 'completed'::public.ops_task_status
         WHEN v_next_status='dismissed' THEN 'cancelled'::public.ops_task_status
-        WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN 'pending'::public.ops_task_status
+        WHEN v_next_status='open' AND v_escalation.status IN ('assigned','acknowledged','in_progress','resolved','dismissed') THEN 'pending'::public.ops_task_status
         ELSE status END,
       completed_at=CASE WHEN v_next_status='resolved' THEN now()
-        WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN NULL ELSE completed_at END,
-      completed_by=CASE WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN NULL
+        WHEN v_next_status='open' AND v_escalation.status IN ('assigned','acknowledged','in_progress','resolved','dismissed') THEN NULL ELSE completed_at END,
+      completed_by=CASE WHEN v_next_status='open' AND v_escalation.status IN ('assigned','acknowledged','in_progress','resolved','dismissed') THEN NULL
         WHEN v_next_status='resolved' THEN auth.uid() ELSE completed_by END,
       updated_at=now()
     WHERE id=v_escalation.ops_task_id AND property_id=p_property_id;
