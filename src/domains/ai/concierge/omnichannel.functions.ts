@@ -585,7 +585,7 @@ export const updateEscalation = createServerFn({ method: "POST" })
       resolution_notes?: string | null;
     }) => {
       if (!input?.id) throw new Error("id required");
-      if (input.status && !["open", "assigned", "in_progress", "resolved", "dismissed"].includes(input.status)) throw new Error("invalid escalation status");
+      if (input.status && !["open", "assigned", "acknowledged", "in_progress", "resolved", "dismissed"].includes(input.status)) throw new Error("invalid escalation status");
       return input;
     },
   )
