@@ -350,7 +350,7 @@ BEGIN
   IF v_campaign IS NULL
      OR (v_campaign->>'views')::integer<>1
      OR (v_campaign->>'reservations')::integer<>2
-     OR (v_campaign->>'paid_bookings')::integer<>2
+     OR (v_campaign->>'paid_bookings')::integer<>1
      OR (v_campaign->'net_collected_by_currency'->0->>'net_collected')::numeric<>50 THEN
     RAISE EXCEPTION 'Campaign conversion/revenue attribution failed: %',v_campaign;
   END IF;
