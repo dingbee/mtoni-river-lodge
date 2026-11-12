@@ -196,8 +196,8 @@ BEGIN
   ) THEN RAISE EXCEPTION 'Credential activation audit event missing'; END IF;
   IF NOT EXISTS (
     SELECT 1 FROM public.staynas_guest_portal_access_events
-    WHERE property_id=v_a_property AND booking_id=v_booking_a AND event_type='expired'
-  ) THEN RAISE EXCEPTION 'Checkout expiry audit event missing'; END IF;
+    WHERE property_id=v_a_property AND booking_id=v_booking_a AND event_type='checkout_grace_started'
+  ) THEN RAISE EXCEPTION 'Checkout grace audit event missing'; END IF;
 END
 $$;
 
