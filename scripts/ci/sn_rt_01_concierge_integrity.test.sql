@@ -337,7 +337,10 @@ BEGIN
     'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     NULL
   );
-  PERFORM public.staynas_transition_concierge_escalation(
+
+  IF (SELECT assigned_at FROM public.ai_escalations WHERE id=result.escalation_id) IS NULL THEN
+    RAISE EXCEPTION 'assignment completion timestamp must be persisted';
+  END IF;  PERFORM public.staynas_transition_concierge_escalation(
     result.escalation_id,
     '11111111-1111-4111-8111-111111111111',
     'assigned',
