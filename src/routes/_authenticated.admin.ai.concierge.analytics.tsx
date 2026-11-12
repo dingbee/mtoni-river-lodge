@@ -111,6 +111,33 @@ function AnalyticsPage() {
         </SectionCard>
       </div>
 
+      <SectionCard title="Escalation SLA performance" description="Property-configured acknowledgement, assignment and resolution targets; alert delivery is in-app.">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Stat label="Active overdue escalations" value={ops?.sla.active_overdue_escalations} />
+          <Stat label="Approaching-breach alerts" value={ops?.sla.approaching_alerts} />
+          <Stat label="Breach alerts" value={ops?.sla.breached_alerts} />
+          <Stat label="Lifecycle events" value={ops?.sla.lifecycle_events} />
+        </div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          {(["assignment","acknowledgement","resolution"] as const).map((milestone) => (
+            <div key={milestone} className="rounded border p-3">
+              <div className="text-xs capitalize text-muted-foreground">{milestone} SLA</div>
+              <div className="text-lg font-semibold">
+                {ops?.sla.by_milestone[milestone].compliance_rate == null
+                  ? "—"
+                  : pct(ops.sla.by_milestone[milestone].compliance_rate)}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {ops?.sla.by_milestone[milestone].met ?? 0} met / {ops?.sla.by_milestone[milestone].completed ?? 0} completed
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          {ops?.sla.policy_priorities_configured ?? 0} enabled priority policies · In-app staff alerts · Edit targets and operating calendar in Escalations.
+        </p>
+      </SectionCard>
+
       <SectionCard title="Operational response performance" description={`Evidence-backed omnichannel response intervals · ${ops?.timezone ?? "property timezone"}`}>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Stat label="First response P50 (min)" value={ops?.operations.first_response_minutes.p50 ?? undefined} />
