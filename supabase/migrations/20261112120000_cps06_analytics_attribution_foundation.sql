@@ -320,6 +320,10 @@ begin
   set attribution_id=_attribution_id,
       request=request || jsonb_build_object('attribution_id',_attribution_id)
   where id=_quote_id and property_id=_property_id;
+  if not found then return false; end if;
+  update public.staynas_booking_attributions
+  set quote_id=_quote_id, booking_started_at=coalesce(booking_started_at,now()), updated_at=now()
+  where id=_attribution_id and property_id=_property_id;
   return found;
 end
 $function$;
@@ -363,11 +367,14 @@ declare
   v_key text;
   v_org uuid;
   v_attribution uuid;
+  v_campaign uuid;
 begin
   if tg_table_name='payment_events' then
     if new.booking_id is null then return new; end if;
-    select p.organisation_id,b.attribution_id into v_org,v_attribution
-    from public.bookings b join public.staynas_properties p on p.id=b.property_id
+    select p.organisation_id,b.attribution_id,a.campaign_id into v_org,v_attribution,v_campaign
+    from public.bookings b
+    join public.staynas_properties p on p.id=b.property_id
+    left join public.staynas_booking_attributions a on a.id=b.attribution_id and a.property_id=b.property_id
     where b.id=new.booking_id;
     if v_org is null then return new; end if;
     if new.event_type='payment_completed' then v_type:='payment_completed';
@@ -376,10 +383,10 @@ begin
     end if;
     v_key:='ledger-payment:'||new.id::text;
     insert into public.staynas_booking_analytics_events(
-      organisation_id,property_id,attribution_id,booking_id,event_type,event_key,
+      organisation_id,property_id,attribution_id,campaign_id,booking_id,event_type,event_key,
       event_source,currency,amount,metadata
     )
-    select v_org,b.property_id,v_attribution,new.booking_id,v_type,v_key,
+    select v_org,b.property_id,v_attribution,v_campaign,new.booking_id,v_type,v_key,
       'server_confirmed',upper(new.currency),new.amount,
       jsonb_build_object('payment_event_id',new.id,'provider',new.provider,'payment_event_type',new.event_type)
     from public.bookings b where b.id=new.booking_id
@@ -399,13 +406,16 @@ begin
   else
     return new;
   end if;
-  select organisation_id into v_org from public.staynas_properties where id=new.property_id;
+  select p.organisation_id,a.campaign_id into v_org,v_campaign
+  from public.staynas_properties p
+  left join public.staynas_booking_attributions a on a.id=new.attribution_id and a.property_id=new.property_id
+  where p.id=new.property_id;
   if v_org is null then return new; end if;
   insert into public.staynas_booking_analytics_events(
-    organisation_id,property_id,attribution_id,booking_id,quote_id,event_type,
+    organisation_id,property_id,attribution_id,campaign_id,booking_id,quote_id,event_type,
     event_key,event_source,currency,amount,metadata
   ) values (
-    v_org,new.property_id,new.attribution_id,new.id,new.reservation_quote_id,
+    v_org,new.property_id,new.attribution_id,v_campaign,new.id,new.reservation_quote_id,
     v_type,v_key,'server_confirmed',upper(new.currency),
     case when v_type='reservation_created' then new.total else null end,
     jsonb_build_object('booking_status',new.status::text)
@@ -482,8 +492,17 @@ begin
       count(*) filter(where e.event_type='quote_generated') as quotes,
       count(distinct e.booking_id) filter(where e.event_type='reservation_created') as reservations,
       count(distinct e.booking_id) filter(where e.event_type='payment_completed') as paid_bookings,
-      coalesce(sum(e.amount) filter(where e.event_type='payment_completed'),0)
-        - coalesce(sum(abs(e.amount)) filter(where e.event_type='payment_refunded'),0) as net_collected
+      coalesce((
+        select jsonb_agg(jsonb_build_object('currency',totals.currency,'net_collected',totals.net_collected))
+        from (
+          select pe.currency,
+            coalesce(sum(pe.amount) filter(where pe.event_type='payment_completed'),0)
+              - coalesce(sum(abs(pe.amount)) filter(where pe.event_type='payment_refunded'),0) as net_collected
+          from e pe
+          where pe.campaign_id=c.id and pe.currency is not null
+          group by pe.currency
+        ) totals
+      ),'[]'::jsonb) as net_collected_by_currency
     from public.booking_campaigns c
     left join e on e.campaign_id=c.id and e.property_id=c.property_id
     where c.property_id=_property_id
