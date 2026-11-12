@@ -64,7 +64,8 @@ CREATE OR REPLACE FUNCTION public.staynas_issue_guest_portal_access(
   _guest_id uuid,
   _concierge_session_id uuid,
   _token_hash text,
-  _actor_id uuid
+  _actor_id uuid,
+  _rotate boolean DEFAULT true
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -76,6 +77,7 @@ DECLARE
   v_property public.staynas_properties%ROWTYPE;
   v_expires_at timestamptz;
   v_access public.staynas_guest_portal_access%ROWTYPE;
+  v_existing public.staynas_guest_portal_access%ROWTYPE;
   v_previous public.staynas_guest_portal_access%ROWTYPE;
   v_superseded_ids uuid[] := ARRAY[]::uuid[];
 BEGIN
@@ -114,6 +116,27 @@ BEGIN
 
   IF v_expires_at <= now() THEN
     RAISE EXCEPTION USING ERRCODE='55000', MESSAGE='Guest stay has reached its configured portal expiry';
+  END IF;
+
+  -- The booking row lock serializes concurrent check-in issuance. A retry
+  -- returns the existing credential metadata without rotating its bearer token.
+  SELECT * INTO v_existing
+  FROM public.staynas_guest_portal_access
+  WHERE property_id = _property_id
+    AND booking_id = _booking_id
+    AND guest_id IS NOT DISTINCT FROM _guest_id
+    AND status = 'active'
+    AND revoked_at IS NULL
+    AND expires_at > now()
+  FOR UPDATE;
+
+  IF FOUND AND NOT COALESCE(_rotate, true) THEN
+    RETURN jsonb_build_object(
+      'access_id', v_existing.id,
+      'expires_at', v_existing.expires_at,
+      'status', v_existing.status,
+      'already_active', true
+    );
   END IF;
 
   -- Expired rows are retired before enforcing the active-identity constraint.
@@ -161,7 +184,8 @@ BEGIN
   RETURN jsonb_build_object(
     'access_id', v_access.id,
     'expires_at', v_access.expires_at,
-    'status', v_access.status
+    'status', v_access.status,
+    'already_active', false
   );
 END;
 $function$;
@@ -221,9 +245,9 @@ BEGIN
 END;
 $function$;
 
-REVOKE ALL ON FUNCTION public.staynas_issue_guest_portal_access(uuid,uuid,uuid,uuid,text,uuid)
+REVOKE ALL ON FUNCTION public.staynas_issue_guest_portal_access(uuid,uuid,uuid,uuid,text,uuid,boolean)
   FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.staynas_issue_guest_portal_access(uuid,uuid,uuid,uuid,text,uuid)
+GRANT EXECUTE ON FUNCTION public.staynas_issue_guest_portal_access(uuid,uuid,uuid,uuid,text,uuid,boolean)
   TO service_role;
 REVOKE ALL ON FUNCTION public.staynas_revoke_guest_portal_access(uuid,uuid,uuid,uuid)
   FROM PUBLIC, anon, authenticated;
