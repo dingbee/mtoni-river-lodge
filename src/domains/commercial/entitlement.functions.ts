@@ -112,9 +112,10 @@ export async function assertCommercialEntitlement(
         && (!item.effectiveTo || item.effectiveTo >= today));
       if (matching.length === 1) {
         planFeatures = matching[0].moduleCodes;
-        planFeaturePolicies = matching[0].moduleEntitlements?.filter((item) => item.level !== "unavailable")
-          .map((item) => ({ featureCode: item.moduleCode, level: item.level }))
-          ?? matching[0].moduleCodes.map((featureCode) => ({ featureCode, level: "included" as const }));
+        planFeaturePolicies = matching[0].moduleEntitlements
+          ? matching[0].moduleEntitlements.flatMap((item) => item.level === "unavailable"
+            ? [] : [{ featureCode: item.moduleCode, level: item.level }])
+          : matching[0].moduleCodes.map((featureCode) => ({ featureCode, level: "included" as const }));
         policyValid = true;
       }
     }
