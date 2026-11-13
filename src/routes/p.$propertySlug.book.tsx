@@ -384,7 +384,6 @@ function BookPage() {
   const totalOccupants = adults + childrenBelow6 + children7Plus;
   const paidOccupants = adults + children7Plus;
 
-  const recordPageViewFn = useServerFn(recordPublicDirectBookingAnalyticsEvent);
   const pageViewRecordedFor = useRef("");
   const checkAvailabilityFn = useServerFn(checkAvailability);
   const getBookingQuoteFn = useServerFn(getBookingQuote);
