@@ -92,6 +92,7 @@ export async function assertCommercialEntitlement(
   const pointer = pointerData as { version_id: string } | null;
   const policyVersionId: string | null = pointer?.version_id ?? null;
   let planFeatures: string[] = [];
+  let planFeaturePolicies: Array<{ featureCode: string; level?: "included" | "limited" | "advanced" | "enterprise" }> = [];
   let policyValid = false;
   if (!pointerError && pointer?.version_id) {
     const { data: versionData, error: versionError } = await admin.from("commercial_policy_config_versions")
@@ -111,6 +112,10 @@ export async function assertCommercialEntitlement(
         && (!item.effectiveTo || item.effectiveTo >= today));
       if (matching.length === 1) {
         planFeatures = matching[0].moduleCodes;
+        planFeaturePolicies = matching[0].moduleEntitlements
+          ? matching[0].moduleEntitlements.flatMap((item) => item.level === "unavailable"
+            ? [] : [{ featureCode: item.moduleCode, level: item.level }])
+          : matching[0].moduleCodes.map((featureCode) => ({ featureCode, level: "included" as const }));
         policyValid = true;
       }
     }
@@ -147,7 +152,7 @@ export async function assertCommercialEntitlement(
       planVersion: subscription.plan_version, trialEndsAt: subscription.trial_ends_at,
       currentPeriodEndsAt: subscription.current_period_ends_at,
     },
-    planFeatures: policyValid ? planFeatures.map((code) => ({ featureCode: code })) : [],
+    planFeatures: policyValid ? planFeaturePolicies : [],
     purchasedAddonCodes: subscription.addon_codes ?? [],
     addonFeatureGrants: featureAddonRules.map((rule) => ({
       addonCode: rule.addon_code as string, featureCodes: [rule.feature_code],
@@ -174,6 +179,7 @@ export async function assertCommercialEntitlement(
     _context_snapshot: {
       planCode: subscription.plan_code, planVersion: subscription.plan_version,
       policyValid, activePropertyCount, propertyAllowance: subscription.property_count,
+      entitlementLevel: resolution.entitlementLevel ?? null,
     },
   });
   if (recordError) throw new Error("Entitlement decision could not be durably recorded; access denied.");

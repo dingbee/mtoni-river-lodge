@@ -10,6 +10,7 @@ import {
   commercialModuleSchema,
   commercialPlanModuleSchema,
   commercialAddonSchema,
+  commercialQuotaDefinitionSchema,
 } from "./catalogue-contract";
 import { commercialPlanPriceSchema, commercialAddonPriceSchema } from "./pricing-contract";
 import { commercialTrialPolicySchema } from "./trial-configuration-contract";
@@ -24,6 +25,7 @@ const policyPayloadSchemas = {
     modules: z.array(commercialModuleSchema),
     planModules: z.array(commercialPlanModuleSchema),
     addons: z.array(commercialAddonSchema),
+    quotaDefinitions: z.array(commercialQuotaDefinitionSchema).optional(),
   }),
   pricing: z.object({
     planPrices: z.array(commercialPlanPriceSchema),
@@ -89,6 +91,8 @@ export function validateFounderPolicyPayload(
   if (policyType === "catalogue") {
     const catalogue = parsed as z.infer<typeof policyPayloadSchemas.catalogue>;
     const codes = new Set(catalogue.plans.map((plan) => plan.code));
+    const quotaCodes = catalogue.quotaDefinitions?.map((quota) => quota.code) ?? [];
+    if (new Set(quotaCodes).size !== quotaCodes.length) throw new Error("Quota definition codes must be unique.");
     if (catalogue.plans.length !== 3 || codes.size !== 3
       || !["essential", "professional", "enterprise"].every((code) => codes.has(code as "essential" | "professional" | "enterprise"))
       || !["essential", "professional", "enterprise"].every((code) => catalogue.planVersions.some((version) => version.planCode === code))) {

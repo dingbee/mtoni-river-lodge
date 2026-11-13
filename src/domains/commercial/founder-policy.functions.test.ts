@@ -24,6 +24,7 @@ function cataloguePayload() {
     modules: [],
     planModules: [],
     addons: [],
+    quotaDefinitions: [],
   };
 }
 
@@ -95,6 +96,24 @@ describe("founder commercial policy payload validation", () => {
     incomplete.plans.pop();
     expect(() => validateFounderPolicyPayload("catalogue", incomplete, "published"))
       .toThrow(/Essential, Professional and Enterprise/);
+  });
+
+  it("accepts optional implementation fees in plan pricing", () => {
+    const payload = pricingPayload();
+    (payload.planPrices[0] as unknown as Record<string, unknown>).implementationFeeMinor = 125000;
+    const parsed = validateFounderPolicyPayload("pricing", payload, "draft") as { planPrices: Array<{ implementationFeeMinor?: number | null }> };
+    expect(parsed.planPrices[0]!.implementationFeeMinor).toBe(125000);
+  });
+
+  it("rejects duplicate quota definition codes in a published catalogue", () => {
+    const payload = {
+      ...cataloguePayload(),
+      quotaDefinitions: [
+        { code: "rooms", name: "Rooms", description: "Room quota", resource: "rooms", unit: "rooms", planCode: "essential" as const, limit: null, period: "lifetime" as const, status: "draft" as const },
+        { code: "rooms", name: "Room count", description: "Duplicate", resource: "rooms", unit: "rooms", planCode: "professional" as const, limit: null, period: "lifetime" as const, status: "draft" as const },
+      ],
+    };
+    expect(() => validateFounderPolicyPayload("catalogue", payload, "published")).toThrow(/Quota definition codes must be unique/);
   });
 
   it("requires unique pricing coverage for each plan, currency and billing term", () => {

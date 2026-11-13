@@ -8,6 +8,7 @@ import {
   commercialPlanModuleSchema,
   commercialPlanSchema,
   commercialPlanVersionSchema,
+  commercialQuotaDefinitionSchema,
 } from "./catalogue-contract";
 import { COMMERCIAL_MODULES, COMMERCIAL_PLANS, getCommercialPlan } from "./catalogue";
 
@@ -66,6 +67,16 @@ describe("CC-02 commercial catalogue", () => {
       effectiveTo: "2026-01-01",
       changeReason: "Invalid date order",
     }).success).toBe(false);
+  });
+
+  it("validates plan display order and quota definitions without supplying quota values", () => {
+    expect(commercialPlanSchema.safeParse({
+      code: "essential", name: "Core", description: "Core hospitality plan", status: "draft", sortOrder: 1,
+    }).success).toBe(true);
+    expect(commercialQuotaDefinitionSchema.safeParse({
+      code: "room_limit", name: "Rooms", description: "Room quota", resource: "rooms", unit: "rooms",
+      planCode: "essential", limit: null, period: "lifetime", status: "draft",
+    }).success).toBe(true);
   });
 
   it("prevents mutation or reactivation of published commercial versions", () => {

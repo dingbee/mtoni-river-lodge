@@ -58,6 +58,7 @@ export const commercialPlanSchema = z.object({
   name: nonEmptyName,
   description,
   status: z.enum(COMMERCIAL_PLAN_STATUSES),
+  sortOrder: z.number().int().optional(),
 });
 export type CommercialPlan = z.infer<typeof commercialPlanSchema>;
 
@@ -83,6 +84,7 @@ export const commercialModuleSchema = z.object({
   code: z.enum(COMMERCIAL_MODULE_CODES),
   name: nonEmptyName,
   description,
+  category: z.string().trim().max(80).optional(),
   status: z.enum(COMMERCIAL_CATALOGUE_STATUSES),
   operationalModuleRefs: z.array(nonEmptyCode).default([]),
 });
@@ -102,7 +104,23 @@ export const commercialAddonSchema = z.object({
   description,
   status: z.enum(COMMERCIAL_CATALOGUE_STATUSES),
 });
+
 export type CommercialAddon = z.infer<typeof commercialAddonSchema>;
+
+/** Founder-configured quotas are policy data, not invented defaults. */
+export const COMMERCIAL_QUOTA_PERIODS = ["lifetime", "daily", "monthly", "annual"] as const;
+export const commercialQuotaDefinitionSchema = z.object({
+  code: nonEmptyCode,
+  name: nonEmptyName,
+  description,
+  resource: nonEmptyCode,
+  unit: nonEmptyName,
+  planCode: z.enum(COMMERCIAL_PLAN_CODES),
+  limit: z.number().int().nonnegative().nullable(),
+  period: z.enum(COMMERCIAL_QUOTA_PERIODS),
+  status: z.enum(COMMERCIAL_CATALOGUE_STATUSES),
+});
+export type CommercialQuotaDefinition = z.infer<typeof commercialQuotaDefinitionSchema>;
 
 export const catalogueReadSchema = z.object({
   includeRetired: z.boolean().default(false),

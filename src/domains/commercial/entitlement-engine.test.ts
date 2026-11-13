@@ -20,6 +20,15 @@ describe("CC-05 entitlement resolver", () => {
     expect(resolveEntitlement(base, "reservations").outcome).toBe("granted");
   });
 
+  it("returns the configured plan entitlement tier without changing the module grant decision", () => {
+    const input = { ...base, planFeatures: [{ featureCode: "reservations", level: "advanced" as const }] };
+    expect(resolveEntitlement(input, "reservations")).toMatchObject({ allowed: true, outcome: "granted", entitlementLevel: "advanced" });
+  });
+
+  it("defaults legacy plan compositions to the included entitlement level", () => {
+    expect(resolveEntitlement(base, "reservations").entitlementLevel).toBe("included");
+  });
+
   it("denies a feature absent from plan, add-ons and custom grants", () => {
     expect(resolveEntitlement(base, "finance").outcome).toBe("not_included_in_plan");
   });
