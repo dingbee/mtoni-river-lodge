@@ -58,7 +58,7 @@ export const commercialPlanSchema = z.object({
   name: nonEmptyName,
   description,
   status: z.enum(COMMERCIAL_PLAN_STATUSES),
-  sortOrder: z.number().int().default(0),
+  sortOrder: z.number().int().optional(),
 });
 export type CommercialPlan = z.infer<typeof commercialPlanSchema>;
 
@@ -84,7 +84,7 @@ export const commercialModuleSchema = z.object({
   code: z.enum(COMMERCIAL_MODULE_CODES),
   name: nonEmptyName,
   description,
-  category: z.string().trim().max(80).default(""),
+  category: z.string().trim().max(80).optional(),
   status: z.enum(COMMERCIAL_CATALOGUE_STATUSES),
   operationalModuleRefs: z.array(nonEmptyCode).default([]),
 });
