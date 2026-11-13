@@ -104,10 +104,10 @@ export function ProductSiteHeader() {
   const toggleGroup = (label: string) => setExpanded((current) => current === label ? null : label);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0c211b]/95 text-white backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#3A4A3F]/95 text-white backdrop-blur-xl">
       <div className="mx-auto flex h-[76px] max-w-7xl items-center justify-between px-5 sm:px-8 lg:px-10">
         <Link to="/" onClick={closeMenu} className="flex items-center gap-3" aria-label="StayNas home">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c7a96b] text-lg font-semibold text-[#10251e]">S</span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#AE8F60] text-lg font-semibold text-[#2A2725]">S</span>
           <span className="text-lg font-semibold tracking-[0.12em]">STAYNAS</span>
         </Link>
         <nav aria-label="Main navigation" className="hidden items-center gap-7 lg:flex">
@@ -116,7 +116,7 @@ export function ProductSiteHeader() {
           <Link to="/pricing" className="text-sm text-white/70 transition hover:text-white">Pricing</Link>
           <a href="https://nolmark.co" target="_blank" rel="noreferrer" className="text-sm text-white/70 transition hover:text-white">Company <ExternalLink className="ml-1 inline h-3 w-3"/></a>
           <button type="button" aria-label="Search StayNas" onClick={() => setSearchOpen(true)} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 text-white/80 transition hover:bg-white/10 hover:text-white"><Search className="h-5 w-5"/></button>
-          <Link to="/request-demo" className="inline-flex items-center gap-2 rounded-full bg-[#d7bd85] px-5 py-3 text-sm font-semibold text-[#14271f] transition hover:bg-[#e5d0a4]">Book a Demo <ArrowUpRight className="h-4 w-4"/></Link>
+          <Link to="/request-demo" className="inline-flex items-center gap-2 rounded-full bg-[#AE8F60] px-5 py-3 text-sm font-semibold text-[#2A2725] transition hover:bg-[#91A673]">Book a Demo <ArrowUpRight className="h-4 w-4"/></Link>
         </nav>
         <div className="flex items-center gap-2 lg:hidden"><button type="button" aria-label="Search StayNas" onClick={() => setSearchOpen(true)} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-white transition hover:bg-white/10"><Search className="h-5 w-5"/></button>
         <button type="button" aria-label="Open navigation menu" aria-expanded={open} aria-controls="staynas-mobile-navigation" onClick={() => setOpen(true)} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-white transition hover:bg-white/10 lg:hidden">
@@ -125,55 +125,55 @@ export function ProductSiteHeader() {
       </div>
 
       {searchOpen && <div className="fixed inset-0 z-[120] flex items-start justify-center bg-[#071710]/65 px-4 pb-6 pt-[max(8vh,36px)] backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Search StayNas" onMouseDown={(event) => { if (event.target === event.currentTarget) setSearchOpen(false); }}>
-        <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-[#deded4] bg-[#f8f6ef] text-[#15251f] shadow-2xl">
-          <div className="flex items-center gap-3 border-b border-[#e5dfd3] px-5 py-4"><Search className="h-5 w-5 shrink-0 text-[#92794b]"/><input ref={searchInputRef} value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search StayNas, features, solutions..." aria-label="Search StayNas website" className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-[#928b80]"/><kbd className="hidden rounded border border-[#d8d0c2] px-2 py-1 text-[10px] text-[#81796f] sm:inline">ESC</kbd><button type="button" aria-label="Close search" onClick={() => setSearchOpen(false)} className="rounded-full p-2 transition hover:bg-[#ece8de]"><X className="h-5 w-5"/></button></div>
+        <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-[#EAE2D3] bg-[#F6F2F1] text-[#2A2725] shadow-2xl">
+          <div className="flex items-center gap-3 border-b border-[#EAE2D3] px-5 py-4"><Search className="h-5 w-5 shrink-0 text-[#AE8F60]"/><input ref={searchInputRef} value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search StayNas, features, solutions..." aria-label="Search StayNas website" className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-[#928b80]"/><kbd className="hidden rounded border border-[#d8d0c2] px-2 py-1 text-[10px] text-[#81796f] sm:inline">ESC</kbd><button type="button" aria-label="Close search" onClick={() => setSearchOpen(false)} className="rounded-full p-2 transition hover:bg-[#EAE2D3]"><X className="h-5 w-5"/></button></div>
           <div className="max-h-[min(65vh,560px)] overflow-y-auto p-3"><p className="px-3 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#97896f]">{searchQuery.trim() ? "Search results" : "Explore StayNas"}</p>
-            {searchResults.length ? searchResults.map((item) => <a key={item.title} href={item.to} onClick={() => setSearchOpen(false)} className="group flex items-center justify-between gap-4 rounded-xl px-3 py-3 transition hover:bg-[#ecefe8]"><span className="min-w-0"><span className="block text-sm font-medium text-[#24382e]">{item.title}</span><span className="mt-1 block text-xs text-[#8a857d]">{item.category}</span></span><ArrowUpRight className="h-4 w-4 shrink-0 text-[#a88a52] transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5"/></a>) : <p className="px-3 py-10 text-center text-sm text-[#77736c]">No matches yet. Try reservations, rooms, finance or concierge.</p>}
+            {searchResults.length ? searchResults.map((item) => <a key={item.title} href={item.to} onClick={() => setSearchOpen(false)} className="group flex items-center justify-between gap-4 rounded-xl px-3 py-3 transition hover:bg-[#ecefe8]"><span className="min-w-0"><span className="block text-sm font-medium text-[#24382e]">{item.title}</span><span className="mt-1 block text-xs text-[#8a857d]">{item.category}</span></span><ArrowUpRight className="h-4 w-4 shrink-0 text-[#AE8F60] transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5"/></a>) : <p className="px-3 py-10 text-center text-sm text-[#77736c]">No matches yet. Try reservations, rooms, finance or concierge.</p>}
           </div>
-          <div className="flex items-center justify-between border-t border-[#e5dfd3] px-5 py-3 text-[10px] text-[#928b80]"><span>Search across the StayNas website</span><span>⌘ K / Ctrl K</span></div>
+          <div className="flex items-center justify-between border-t border-[#EAE2D3] px-5 py-3 text-[10px] text-[#928b80]"><span>Search across the StayNas website</span><span>⌘ K / Ctrl K</span></div>
         </div>
       </div>}
       {open && <div className="fixed inset-0 z-[100] lg:hidden">
         <button type="button" aria-label="Close navigation overlay" onClick={closeMenu} className="absolute inset-0 h-full w-full cursor-default bg-[#071710]/55 backdrop-blur-[2px]"/>
-        <aside id="staynas-mobile-navigation" role="dialog" aria-modal="true" aria-label="StayNas navigation" onClick={(event) => event.stopPropagation()} className="absolute inset-y-0 right-0 flex h-[100dvh] w-[min(100%,440px)] flex-col overflow-hidden bg-[#f6f5ef] text-[#15251f] shadow-2xl">
-          <div className="flex min-h-[88px] items-center justify-between border-b border-[#deded4] px-6 sm:px-8">
+        <aside id="staynas-mobile-navigation" role="dialog" aria-modal="true" aria-label="StayNas navigation" onClick={(event) => event.stopPropagation()} className="absolute inset-y-0 right-0 flex h-[100dvh] w-[min(100%,440px)] flex-col overflow-hidden bg-[#F6F2F1] text-[#2A2725] shadow-2xl">
+          <div className="flex min-h-[88px] items-center justify-between border-b border-[#EAE2D3] px-6 sm:px-8">
             <div className="flex min-w-0 items-center gap-3">
-              {activeMenu === "platform" && <button type="button" aria-label="Back to main navigation" onClick={() => setActiveMenu("root")} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#29242c] transition hover:bg-[#e9ede6]"><ChevronRight className="h-6 w-6 rotate-180"/></button>}
+              {activeMenu === "platform" && <button type="button" aria-label="Back to main navigation" onClick={() => setActiveMenu("root")} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#29242c] transition hover:bg-[#EAE2D3]"><ChevronRight className="h-6 w-6 rotate-180"/></button>}
               <Link to="/" onClick={closeMenu} className="flex items-center gap-3" aria-label="StayNas home">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c7a96b] text-lg font-semibold text-[#10251e]">S</span>
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#AE8F60] text-lg font-semibold text-[#2A2725]">S</span>
                 <span className="truncate text-[17px] font-semibold tracking-[0.1em] text-[#25232a]">STAYNAS <span className="font-normal tracking-normal text-[#8b8278]">Hospitality OS</span></span>
               </Link>
             </div>
             <div className="flex items-center gap-2">
               {activeMenu === "platform" && <span className="text-base font-semibold text-[#25232a]">Platform</span>}
-              <button type="button" aria-label="Close navigation menu" onClick={closeMenu} className="inline-flex h-11 w-11 items-center justify-center rounded-full text-[#29242c] transition hover:bg-[#e9ede6]"><X className="h-7 w-7"/></button>
+              <button type="button" aria-label="Close navigation menu" onClick={closeMenu} className="inline-flex h-11 w-11 items-center justify-center rounded-full text-[#29242c] transition hover:bg-[#EAE2D3]"><X className="h-7 w-7"/></button>
             </div>
           </div>
 
           <nav aria-label="Mobile navigation" className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-8 pt-3 sm:px-8">
             {activeMenu === "platform" ? <>
-              <Link to="/platform" onClick={closeMenu} className="flex min-h-[112px] items-center border-b border-[#e8e1d5] text-[25px] font-medium text-[#25232a] transition hover:text-[#315744]">Overview</Link>
-              {platformSections.map(section => <section key={section.heading} className="border-b border-[#e8e1d5] py-7">
+              <Link to="/platform" onClick={closeMenu} className="flex min-h-[112px] items-center border-b border-[#EAE2D3] text-[25px] font-medium text-[#25232a] transition hover:text-[#3A4A3F]">Overview</Link>
+              {platformSections.map(section => <section key={section.heading} className="border-b border-[#EAE2D3] py-7">
                 <h3 className="mb-5 text-[17px] font-medium text-[#8d8580]">{section.heading}</h3>
-                <div className="space-y-1">{section.items.map(item => <a key={item.label} href={item.to} onClick={closeMenu} className="flex min-h-[58px] items-center py-3 text-[21px] font-normal tracking-tight text-[#25232a] transition-colors hover:text-[#315744]">{item.label}</a>)}</div>
+                <div className="space-y-1">{section.items.map(item => <a key={item.label} href={item.to} onClick={closeMenu} className="flex min-h-[58px] items-center py-3 text-[21px] font-normal tracking-tight text-[#25232a] transition-colors hover:text-[#3A4A3F]">{item.label}</a>)}</div>
               </section>)}
-              <Link to="/architecture" onClick={closeMenu} className="flex min-h-[76px] items-center border-b border-[#e8e1d5] text-[20px] text-[#25232a]">Architecture</Link>
+              <Link to="/architecture" onClick={closeMenu} className="flex min-h-[76px] items-center border-b border-[#EAE2D3] text-[20px] text-[#25232a]">Architecture</Link>
             </> : <>
-              <button type="button" onClick={() => setActiveMenu("platform")} className="flex min-h-[76px] w-full items-center justify-between border-b border-[#e8e1d5] text-left text-[22px] font-medium text-[#25232a] transition hover:text-[#315744]">Platform<ChevronRight className="h-6 w-6"/></button>
+              <button type="button" onClick={() => setActiveMenu("platform")} className="flex min-h-[76px] w-full items-center justify-between border-b border-[#EAE2D3] text-left text-[22px] font-medium text-[#25232a] transition hover:text-[#3A4A3F]">Platform<ChevronRight className="h-6 w-6"/></button>
               {groups.map(group => {
                 const isExpanded = expanded === group.label;
-                return <section key={group.label} className="border-b border-[#e8e1d5]">
-                  <button type="button" aria-expanded={isExpanded} onClick={() => setExpanded(current => current === group.label ? null : group.label)} className={"flex min-h-[76px] w-full items-center justify-between text-left text-[22px] font-medium transition-colors " + (isExpanded ? "text-[#315744]" : "text-[#25232a] hover:text-[#c65a36]")}>{group.label}{isExpanded ? <ChevronDown className="h-6 w-6"/> : <ChevronRight className="h-6 w-6"/>}</button>
-                  {isExpanded && <div className="space-y-1 pb-5 pl-1">{group.items.map(item => <Link key={item.to} to={item.to} onClick={closeMenu} className="flex items-center justify-between rounded-lg px-3 py-3 text-base text-[#625d61] transition hover:bg-[#e9ede6] hover:text-[#315744]">{item.label}<ArrowUpRight className="h-4 w-4 opacity-60"/></Link>)}</div>}
+                return <section key={group.label} className="border-b border-[#EAE2D3]">
+                  <button type="button" aria-expanded={isExpanded} onClick={() => setExpanded(current => current === group.label ? null : group.label)} className={"flex min-h-[76px] w-full items-center justify-between text-left text-[22px] font-medium transition-colors " + (isExpanded ? "text-[#3A4A3F]" : "text-[#25232a] hover:text-[#AE8F60]")}>{group.label}{isExpanded ? <ChevronDown className="h-6 w-6"/> : <ChevronRight className="h-6 w-6"/>}</button>
+                  {isExpanded && <div className="space-y-1 pb-5 pl-1">{group.items.map(item => <Link key={item.to} to={item.to} onClick={closeMenu} className="flex items-center justify-between rounded-lg px-3 py-3 text-base text-[#3A4A3F] transition hover:bg-[#EAE2D3] hover:text-[#3A4A3F]">{item.label}<ArrowUpRight className="h-4 w-4 opacity-60"/></Link>)}</div>}
                 </section>;
               })}
-              <Link to="/pricing" onClick={closeMenu} className="flex min-h-[76px] items-center justify-between border-b border-[#e8e1d5] text-[22px] font-medium text-[#25232a] transition hover:text-[#c65a36]">Pricing<ArrowUpRight className="h-5 w-5"/></Link>
-              <Link to="/admin" onClick={closeMenu} className="mt-6 flex min-h-[54px] items-center justify-center rounded-full border border-[#8f877d] px-6 text-base font-medium text-[#37323a] transition hover:bg-[#f3eee4]">Login</Link>
+              <Link to="/pricing" onClick={closeMenu} className="flex min-h-[76px] items-center justify-between border-b border-[#EAE2D3] text-[22px] font-medium text-[#25232a] transition hover:text-[#AE8F60]">Pricing<ArrowUpRight className="h-5 w-5"/></Link>
+              <Link to="/admin" onClick={closeMenu} className="mt-6 flex min-h-[54px] items-center justify-center rounded-full border border-[#3A4A3F] px-6 text-base font-medium text-[#2A2725] transition hover:bg-[#EAE2D3]">Login</Link>
             </>}
           </nav>
 
-          <div className="shrink-0 border-t border-[#e8e1d5] bg-[#f6f5ef] px-5 pb-[max(18px,env(safe-area-inset-bottom))] pt-4 sm:px-8">
-            <Link to="/request-demo" onClick={closeMenu} className="flex min-h-[58px] w-full items-center justify-center rounded-full bg-[#f04b2a] px-6 text-base font-semibold text-white shadow-sm transition hover:bg-[#dc4325]">Book a Demo</Link>
+          <div className="shrink-0 border-t border-[#EAE2D3] bg-[#F6F2F1] px-5 pb-[max(18px,env(safe-area-inset-bottom))] pt-4 sm:px-8">
+            <Link to="/request-demo" onClick={closeMenu} className="flex min-h-[58px] w-full items-center justify-center rounded-full bg-[#AE8F60] px-6 text-base font-semibold text-white shadow-sm transition hover:bg-[#91A673]">Book a Demo</Link>
           </div>
         </aside>
       </div>}
@@ -181,7 +181,7 @@ export function ProductSiteHeader() {
       .staynas-public-site main article[class*="rounded-2xl"],
       .staynas-public-site main article[class*="rounded-3xl"] {
         border: 0 !important;
-        border-bottom: 1px solid #deded4 !important;
+        border-bottom: 1px solid #EAE2D3 !important;
         border-radius: 0 !important;
         background: transparent !important;
         box-shadow: none !important;
@@ -191,7 +191,7 @@ export function ProductSiteHeader() {
         border-bottom: 0 !important;
       }
       .staynas-public-site main .site-editorial-item {
-        border-bottom: 1px solid #deded4;
+        border-bottom: 1px solid #EAE2D3;
         background: transparent;
         box-shadow: none;
       }
@@ -204,7 +204,7 @@ export function ProductSiteHeader() {
       .capability-reveal { transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.2,1), border-color .3s ease; }
       .capability-reveal[data-reveal-pending="true"] { opacity: .28; transform: translateY(22px); }
       .capability-reveal[data-revealed="true"] { opacity: 1; transform: translateY(0); }
-      .capability-reveal:hover { border-color: #c7a96b; }
+      .capability-reveal:hover { border-color: #AE8F60; }
       [data-scroll-emphasis] p, [data-scroll-emphasis] h2 { transition: opacity .5s ease, font-weight .5s ease, letter-spacing .5s ease; }
       [data-scroll-emphasis] h2 { opacity: .62; font-weight: 500; }
       [data-scroll-emphasis][data-active="true"] h2 { opacity: 1; font-weight: 750; letter-spacing: -.025em; }
@@ -222,30 +222,51 @@ export function ProductSiteHeader() {
 }
 
 export function ProductSiteFooter() {
+  const groups = [
+    { title: "Platform", links: [{ to: "/platform", label: "Platform overview" }, { to: "/modules", label: "Modules" }, { to: "/product-tour", label: "Product walkthrough" }, { to: "/integrations", label: "Integrations" }, { to: "/pricing", label: "Plans & pricing" }] },
+    { title: "Solutions", links: [{ to: "/solutions", label: "By hospitality business" }, { to: "/request-demo", label: "Request a demonstration" }] },
+    { title: "Resources", links: [{ to: "/architecture", label: "Platform architecture" }, { to: "/security", label: "Trust & security" }] },
+    { title: "Company", links: [{ to: "/request-demo", label: "Contact StayNas" }, { to: "https://nolmark.co", label: "Nolmark CDMA", external: true }] },
+  ] as const;
+
   return (
-    <footer className="bg-[#091914] text-white">
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-14 md:grid-cols-[1.4fr_1fr_1fr] lg:px-10">
-        <div>
-          <div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#c7a96b] font-semibold text-[#10251e]">S</span><span className="font-semibold tracking-[0.16em]">STAYNAS</span></div>
-          <p className="mt-5 max-w-md text-sm leading-7 text-white/55">A connected Hospitality Operating System for reservations, guest experience, property operations, financial control and intelligence.</p>
-          <p className="mt-5 text-xs text-white/40">A hospitality technology product by Nolmark CDMA.</p>
+    <footer className="bg-[#2A2725] text-[#F6F2F1]">
+      <div className="mx-auto max-w-7xl px-6 pb-12 pt-16 lg:px-10 lg:pt-20">
+        <div className="grid gap-10 border-b border-[#F6F2F1]/15 pb-14 lg:grid-cols-[1.1fr_.9fr] lg:gap-20">
+          <div>
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#AE8F60] font-semibold text-[#2A2725]">S</span>
+              <span className="text-lg font-semibold tracking-[0.16em]">STAYNAS</span>
+            </div>
+            <h2 className="mt-9 max-w-xl font-serif text-4xl leading-[1.12] tracking-tight sm:text-5xl">Hospitality insights,<br/><span className="text-[#AE8F60]">straight to you.</span></h2>
+            <p className="mt-5 max-w-md text-sm leading-7 text-[#F6F2F1]/65">Product thinking, hospitality operations and ideas for running a better-connected property.</p>
+            <Link to="/request-demo" className="mt-7 inline-flex min-h-14 w-full max-w-md items-center justify-between rounded-full bg-[#3A4A3F] px-6 text-sm text-[#F6F2F1]/75 transition hover:bg-[#91A673] hover:text-[#2A2725]">
+              <span>Get in touch with StayNas</span><ArrowUpRight className="h-5 w-5 text-[#AE8F60]"/>
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-x-7 gap-y-9 sm:grid-cols-2">
+            {groups.map((group) => <section key={group.title}>
+              <h3 className="text-base font-semibold text-[#F6F2F1]">{group.title}</h3>
+              <ul className="mt-5 space-y-4">
+                {group.links.map((item) => <li key={item.label}>
+                  {"external" in item && item.external
+                    ? <a href={item.to} target="_blank" rel="noreferrer" className="text-sm text-[#F6F2F1]/65 transition hover:text-[#91A673]">{item.label}</a>
+                    : <Link to={item.to} className="text-sm text-[#F6F2F1]/65 transition hover:text-[#91A673]">{item.label}</Link>}
+                </li>)}
+              </ul>
+            </section>)}
+          </div>
         </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/40">Explore</p>
-          <div className="mt-5 flex flex-col gap-3 text-sm text-white/70"><Link to="/platform">Platform</Link><Link to="/modules">Modules</Link><Link to="/product-tour">Product walkthrough</Link><Link to="/solutions">Solutions</Link><Link to="/integrations">Integrations</Link><Link to="/pricing">Plans & pricing</Link><Link to="/request-demo">Request a demo</Link></div>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/40">Company</p>
-          <div className="mt-5 flex flex-col gap-3 text-sm text-white/70"><Link to="/architecture">Architecture</Link><Link to="/security">Trust & security</Link><a href="https://nolmark.co" target="_blank" rel="noreferrer">Nolmark CDMA</a></div>
+        <div className="flex flex-col gap-4 pt-6 text-xs text-[#F6F2F1]/45 sm:flex-row sm:items-center sm:justify-between">
+          <span>© {new Date().getFullYear()} StayNas. All rights reserved.</span>
+          <span>Hospitality Operating System · staynas.com</span>
         </div>
       </div>
-      <div className="border-t border-white/10"><div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-5 text-xs text-white/35 sm:flex-row sm:items-center sm:justify-between lg:px-10"><span>© {new Date().getFullYear()} StayNas. All rights reserved.</span><span>Hospitality Operating System · staynas.com</span></div></div>
     </footer>
   );
 }
-
 function SiteShell({ children }: { children: ReactNode }) {
-  return <div className="staynas-public-site min-h-screen bg-[#f6f5ef] text-[#15251f]"><ProductSiteHeader/><StayNasAnalytics/>{children}<ProductSiteFooter/></div>;
+  return <div className="staynas-public-site min-h-screen bg-[#F6F2F1] text-[#2A2725]"><ProductSiteHeader/><StayNasAnalytics/>{children}<ProductSiteFooter/></div>;
 }
 
 function StayNasAnalytics() {
@@ -312,13 +333,13 @@ function StayNasAnalytics() {
     setConsent(granted);
   };
   return <aside aria-label="Analytics preferences" className="fixed inset-x-4 bottom-4 z-[60] mx-auto flex max-w-3xl flex-col gap-3 rounded-2xl border border-[#d8ddd5] bg-white p-5 shadow-2xl sm:flex-row sm:items-center sm:justify-between">
-    <div><p className="text-sm font-semibold text-[#15251f]">Help improve StayNas</p><p className="mt-1 text-xs leading-5 text-[#69756e]">With your permission, we use analytics to understand website visits and demo interest. Form details and personal contact information are not sent to analytics.</p></div>
-    <div className="flex shrink-0 gap-2"><button type="button" onClick={() => choose(false)} className="rounded-full border border-[#d8ddd5] px-4 py-2.5 text-xs font-semibold text-[#526057]">Essential only</button><button type="button" onClick={() => choose(true)} className="rounded-full bg-[#173d2d] px-4 py-2.5 text-xs font-semibold text-white">Allow analytics</button></div>
+    <div><p className="text-sm font-semibold text-[#2A2725]">Help improve StayNas</p><p className="mt-1 text-xs leading-5 text-[#3A4A3F]">With your permission, we use analytics to understand website visits and demo interest. Form details and personal contact information are not sent to analytics.</p></div>
+    <div className="flex shrink-0 gap-2"><button type="button" onClick={() => choose(false)} className="rounded-full border border-[#d8ddd5] px-4 py-2.5 text-xs font-semibold text-[#526057]">Essential only</button><button type="button" onClick={() => choose(true)} className="rounded-full bg-[#3A4A3F] px-4 py-2.5 text-xs font-semibold text-white">Allow analytics</button></div>
   </aside>;
 }
 
 function Eyebrow({ children }: { children: ReactNode }) {
-  return <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#967747]">{children}</p>;
+  return <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#AE8F60]">{children}</p>;
 }
 
 function ScrollEmphasis({ children }: { children: ReactNode }) {
@@ -357,14 +378,14 @@ function CapabilityCard({ item, index }: { item: PublicCapability; index: number
   return (
     <article ref={cardRef} data-reveal="true" className="site-editorial-item capability-reveal group flex h-full flex-col p-7" style={{ transitionDelay: `${(index % 6) * 65}ms` }}>
       <button type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)} className="flex h-full w-full flex-col text-left">
-        <div className="flex items-start justify-between gap-3"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e9ede6] text-[#315744] transition duration-300 group-hover:-translate-y-1 group-hover:bg-[#d7bd85]"><Icon className="h-5 w-5"/></span><span className="mt-2 text-xs font-medium text-[#9a835b] transition group-hover:text-[#315744]">{expanded ? "Close details −" : "Explore capability +"}</span></div>
-        <p className="mt-7 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#9a835b]">{item.pillar}</p>
-        <h3 className="mt-3 text-lg font-semibold tracking-tight transition-colors duration-300 group-hover:text-[#315744]">{item.name}</h3>
+        <div className="flex items-start justify-between gap-3"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAE2D3] text-[#3A4A3F] transition duration-300 group-hover:-translate-y-1 group-hover:bg-[#AE8F60]"><Icon className="h-5 w-5"/></span><span className="mt-2 text-xs font-medium text-[#AE8F60] transition group-hover:text-[#3A4A3F]">{expanded ? "Close details −" : "Explore capability +"}</span></div>
+        <p className="mt-7 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#AE8F60]">{item.pillar}</p>
+        <h3 className="mt-3 text-lg font-semibold tracking-tight transition-colors duration-300 group-hover:text-[#3A4A3F]">{item.name}</h3>
         <p className="mt-3 text-sm leading-7 text-[#68746d]">{item.summary}</p>
       </button>
-      {expanded && <div className="mt-5 rounded-2xl bg-[#e9ede6] p-5 motion-safe:animate-[fadeIn_.25s_ease-out]">
-        <p className="text-xs font-semibold text-[#315744]">Inside this capability</p>
-        <ul className="mt-3 space-y-2.5">{item.details.map(detail => <li key={detail} className="flex gap-2 text-sm leading-6 text-[#526057]"><Check className="mt-1 h-4 w-4 shrink-0 text-[#53765c]"/>{detail}</li>)}</ul>
+      {expanded && <div className="mt-5 rounded-2xl bg-[#EAE2D3] p-5 motion-safe:animate-[fadeIn_.25s_ease-out]">
+        <p className="text-xs font-semibold text-[#3A4A3F]">Inside this capability</p>
+        <ul className="mt-3 space-y-2.5">{item.details.map(detail => <li key={detail} className="flex gap-2 text-sm leading-6 text-[#526057]"><Check className="mt-1 h-4 w-4 shrink-0 text-[#91A673]"/>{detail}</li>)}</ul>
       </div>}
     </article>
   );
@@ -383,15 +404,15 @@ export function ProductHomePage() {
         url: "https://staynas.com",
         provider: { "@type": "Organization", name: "Nolmark CDMA", url: "https://nolmark.co" },
       })}</script>
-      <section className="relative overflow-hidden bg-[#0c211b] text-white">
+      <section className="relative overflow-hidden bg-[#3A4A3F] text-white">
         <div className="absolute inset-0 opacity-30" style={{backgroundImage:"radial-gradient(ellipse at 78% 18%, rgba(199,169,107,.42), transparent 34%), radial-gradient(ellipse at 12% 90%, rgba(65,116,83,.5), transparent 40%)"}}/>
         <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-6 py-20 lg:grid-cols-[1.05fr_.95fr] lg:px-10 lg:py-28">
           <div>
             <Eyebrow>Hospitality Operating System</Eyebrow>
-            <h1 className="mt-6 max-w-3xl text-5xl font-semibold leading-[1.04] tracking-[-0.045em] sm:text-6xl lg:text-[4.5rem]">Every stay.<br/><span className="text-[#d7bd85]">Every operation.</span><br/>One intelligent system.</h1>
+            <h1 className="mt-6 max-w-3xl text-5xl font-semibold leading-[1.04] tracking-[-0.045em] sm:text-6xl lg:text-[4.5rem]">Every stay.<br/><span className="text-[#AE8F60]">Every operation.</span><br/>One intelligent system.</h1>
             <p className="mt-7 max-w-xl text-base leading-8 text-white/65 sm:text-lg">StayNas connects reservations, guest experience, property operations, financial control and hospitality intelligence in one operating environment.</p>
-            <div className="mt-9 flex flex-wrap gap-3"><Link to="/platform" className="inline-flex items-center gap-2 rounded-full bg-[#d7bd85] px-6 py-4 text-sm font-semibold text-[#14271f] transition hover:bg-[#e5d0a4]">Explore the platform <ArrowRight className="h-4 w-4"/></Link><Link to="/request-demo" className="inline-flex items-center gap-2 rounded-full border border-white/25 px-6 py-4 text-sm font-semibold text-white transition hover:bg-white/10">Request a demonstration</Link><Link to="/product-tour" className="inline-flex items-center gap-2 px-3 py-4 text-sm font-semibold text-white/75 hover:text-white">Take the product walkthrough <ArrowRight className="h-4 w-4"/></Link></div>
-            <div className="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-xs text-white/45"><span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-[#d7bd85]"/> Property-aware architecture</span><span className="flex items-center gap-2"><Network className="h-4 w-4 text-[#d7bd85]"/> Connected workflows</span></div>
+            <div className="mt-9 flex flex-wrap gap-3"><Link to="/platform" className="inline-flex items-center gap-2 rounded-full bg-[#AE8F60] px-6 py-4 text-sm font-semibold text-[#2A2725] transition hover:bg-[#91A673]">Explore the platform <ArrowRight className="h-4 w-4"/></Link><Link to="/request-demo" className="inline-flex items-center gap-2 rounded-full border border-white/25 px-6 py-4 text-sm font-semibold text-white transition hover:bg-white/10">Request a demonstration</Link><Link to="/product-tour" className="inline-flex items-center gap-2 px-3 py-4 text-sm font-semibold text-white/75 hover:text-white">Take the product walkthrough <ArrowRight className="h-4 w-4"/></Link></div>
+            <div className="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-xs text-white/45"><span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-[#AE8F60]"/> Property-aware architecture</span><span className="flex items-center gap-2"><Network className="h-4 w-4 text-[#AE8F60]"/> Connected workflows</span></div>
           </div>
           <div className="relative">
             <div className="rounded-[28px] border border-white/15 bg-white/[0.07] p-5 shadow-2xl backdrop-blur-sm sm:p-7">
@@ -399,59 +420,59 @@ export function ProductHomePage() {
               <div className="mt-5 grid grid-cols-2 gap-3">
                 {STAYNAS_PILLARS.map((pillar)=><div key={pillar.name} className="rounded-2xl border border-white/10 bg-[#102c23] p-5"><p className="text-sm font-semibold">{pillar.name}</p><p className="mt-2 text-xs leading-5 text-white/45">{pillar.description}</p></div>)}
               </div>
-              <div className="mt-4 rounded-2xl border border-[#d7bd85]/25 bg-[#d7bd85]/10 p-4"><div className="flex items-center gap-2 text-sm font-semibold text-[#ead8b3]"><Sparkles className="h-4 w-4"/> Intelligence across the operation</div><p className="mt-2 text-xs leading-5 text-white/55">A connected view of the guest journey, property activity and management decisions.</p></div>
+              <div className="mt-4 rounded-2xl border border-[#AE8F60]/25 bg-[#AE8F60]/10 p-4"><div className="flex items-center gap-2 text-sm font-semibold text-[#EAE2D3]"><Sparkles className="h-4 w-4"/> Intelligence across the operation</div><p className="mt-2 text-xs leading-5 text-white/55">A connected view of the guest journey, property activity and management decisions.</p></div>
               <p className="mt-4 text-[10px] text-white/35">Conceptual platform overview · Not a live operational dashboard</p>
             </div>
           </div>
         </div>
       </section>
       <section className="mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-24">
-        <div className="max-w-2xl"><Eyebrow>One connected platform</Eyebrow><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">The systems behind a better-run property.</h2><p className="mt-5 text-base leading-7 text-[#69756e]">Hospitality teams should not have to coordinate their entire operation across disconnected tools. StayNas brings the core work of running a property into one environment.</p></div>
-        <div className="mt-10 grid gap-x-8 gap-y-0 sm:grid-cols-2 lg:grid-cols-3">{STAYNAS_PILLARS.map((pillar)=><div key={pillar.name} className="site-editorial-item p-7"><h3 className="text-lg font-semibold">{pillar.name}</h3><p className="mt-2 text-sm leading-6 text-[#69756e]">{pillar.description}</p></div>)}</div>
-        <div className="mt-8"><Link to="/platform" className="inline-flex items-center gap-2 text-sm font-semibold text-[#315744]">Explore platform capabilities <ArrowRight className="h-4 w-4"/></Link></div>
+        <div className="max-w-2xl"><Eyebrow>One connected platform</Eyebrow><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">The systems behind a better-run property.</h2><p className="mt-5 text-base leading-7 text-[#3A4A3F]">Hospitality teams should not have to coordinate their entire operation across disconnected tools. StayNas brings the core work of running a property into one environment.</p></div>
+        <div className="mt-10 grid gap-x-8 gap-y-0 sm:grid-cols-2 lg:grid-cols-3">{STAYNAS_PILLARS.map((pillar)=><div key={pillar.name} className="site-editorial-item p-7"><h3 className="text-lg font-semibold">{pillar.name}</h3><p className="mt-2 text-sm leading-6 text-[#3A4A3F]">{pillar.description}</p></div>)}</div>
+        <div className="mt-8"><Link to="/platform" className="inline-flex items-center gap-2 text-sm font-semibold text-[#3A4A3F]">Explore platform capabilities <ArrowRight className="h-4 w-4"/></Link></div>
       </section>
-      <section className="bg-[#e9ede6]">
+      <section className="bg-[#EAE2D3]">
         <div className="mx-auto grid max-w-7xl gap-12 px-6 py-20 lg:grid-cols-2 lg:items-center lg:px-10">
-          <div><Eyebrow>From first enquiry to departure</Eyebrow><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">A guest journey that connects to the operation.</h2><p className="mt-5 text-base leading-7 text-[#647169]">A reservation is not an isolated transaction. It creates work across reception, rooms, housekeeping, guest communication and finance. StayNas is designed to connect those steps.</p><Link to="/platform" className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-[#315744]">See how the platform works <ArrowRight className="h-4 w-4"/></Link></div>
-          <div className="space-y-3">{[{t:"Discover & book",d:"Direct booking and reservation capture."},{t:"Prepare for arrival",d:"Guest details and online check-in."},{t:"Welcome & operate",d:"Reception, room readiness and service coordination."},{t:"Manage & improve",d:"Financial visibility, guest context and operational intelligence."}].map(step=><div key={step.t} className="flex gap-4 border-b border-[#d4dbd1] py-7"><div><h3 className="font-semibold">{step.t}</h3><p className="mt-1 text-sm text-[#69756e]">{step.d}</p></div></div>)}</div>
+          <div><Eyebrow>From first enquiry to departure</Eyebrow><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">A guest journey that connects to the operation.</h2><p className="mt-5 text-base leading-7 text-[#3A4A3F]">A reservation is not an isolated transaction. It creates work across reception, rooms, housekeeping, guest communication and finance. StayNas is designed to connect those steps.</p><Link to="/platform" className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-[#3A4A3F]">See how the platform works <ArrowRight className="h-4 w-4"/></Link></div>
+          <div className="space-y-3">{[{t:"Discover & book",d:"Direct booking and reservation capture."},{t:"Prepare for arrival",d:"Guest details and online check-in."},{t:"Welcome & operate",d:"Reception, room readiness and service coordination."},{t:"Manage & improve",d:"Financial visibility, guest context and operational intelligence."}].map(step=><div key={step.t} className="flex gap-4 border-b border-[#d4dbd1] py-7"><div><h3 className="font-semibold">{step.t}</h3><p className="mt-1 text-sm text-[#3A4A3F]">{step.d}</p></div></div>)}</div>
         </div>
       </section>
       <section className="mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-24">
-        <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div className="max-w-2xl"><Eyebrow>Built for hospitality teams</Eyebrow><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">A clearer way to run hospitality.</h2><p className="mt-4 text-base leading-7 text-[#69756e]">For independent properties, lodges, resorts and multi-property operators.</p></div><Link to="/solutions" className="inline-flex items-center gap-2 text-sm font-semibold text-[#315744]">Explore solutions <ArrowRight className="h-4 w-4"/></Link></div>
-        <div className="mt-10 grid gap-x-8 gap-y-0 md:grid-cols-3">{[{icon:House,title:"Independent properties",desc:"Connect reservations, front desk, housekeeping and guest relationships."},{icon:Building2,title:"Lodges & resorts",desc:"Coordinate guest journeys and property operations around the character of each stay."},{icon:Layers3,title:"Hospitality groups",desc:"Build a foundation for property-level operations and broader management visibility."}].map(item=><article key={item.title} className="site-editorial-item p-6"><item.icon className="h-6 w-6 text-[#a1844f]"/><h3 className="mt-5 text-lg font-semibold">{item.title}</h3><p className="mt-2 text-sm leading-6 text-[#69756e]">{item.desc}</p></article>)}</div>
+        <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div className="max-w-2xl"><Eyebrow>Built for hospitality teams</Eyebrow><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">A clearer way to run hospitality.</h2><p className="mt-4 text-base leading-7 text-[#3A4A3F]">For independent properties, lodges, resorts and multi-property operators.</p></div><Link to="/solutions" className="inline-flex items-center gap-2 text-sm font-semibold text-[#3A4A3F]">Explore solutions <ArrowRight className="h-4 w-4"/></Link></div>
+        <div className="mt-10 grid gap-x-8 gap-y-0 md:grid-cols-3">{[{icon:House,title:"Independent properties",desc:"Connect reservations, front desk, housekeeping and guest relationships."},{icon:Building2,title:"Lodges & resorts",desc:"Coordinate guest journeys and property operations around the character of each stay."},{icon:Layers3,title:"Hospitality groups",desc:"Build a foundation for property-level operations and broader management visibility."}].map(item=><article key={item.title} className="site-editorial-item p-6"><item.icon className="h-6 w-6 text-[#AE8F60]"/><h3 className="mt-5 text-lg font-semibold">{item.title}</h3><p className="mt-2 text-sm leading-6 text-[#3A4A3F]">{item.desc}</p></article>)}</div>
       </section>
       <StayNasModulePreview/>
-      <section className="bg-[#10271f] text-white"><div className="mx-auto flex max-w-7xl flex-col gap-8 px-6 py-16 lg:flex-row lg:items-center lg:justify-between lg:px-10"><div className="max-w-2xl"><Eyebrow>See StayNas in context</Eyebrow><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Explore what one connected operating system can do.</h2><p className="mt-4 text-sm leading-7 text-white/60">Arrange a product walkthrough focused on your property type, operating model and priorities.</p></div><Link to="/request-demo" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#d7bd85] px-7 py-4 text-sm font-semibold text-[#14271f]">Request a demo <ArrowRight className="h-4 w-4"/></Link></div></section>
+      <section className="bg-[#10271f] text-white"><div className="mx-auto flex max-w-7xl flex-col gap-8 px-6 py-16 lg:flex-row lg:items-center lg:justify-between lg:px-10"><div className="max-w-2xl"><Eyebrow>See StayNas in context</Eyebrow><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Explore what one connected operating system can do.</h2><p className="mt-4 text-sm leading-7 text-white/60">Arrange a product walkthrough focused on your property type, operating model and priorities.</p></div><Link to="/request-demo" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#AE8F60] px-7 py-4 text-sm font-semibold text-[#2A2725]">Request a demo <ArrowRight className="h-4 w-4"/></Link></div></section>
     </main>
   </SiteShell>;
 }
 
 export function ProductInfoPage({ page }: { page: "platform" | "solutions" | "integrations" | "demo" }) {
   if (page === "platform") return <SiteShell><main>
-    <section className="bg-[#0c211b] px-6 py-16 text-white lg:px-10 lg:py-20"><div className="mx-auto max-w-7xl"><Eyebrow>Platform capabilities</Eyebrow><h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl">The operating system behind every part of the stay.</h1><p className="mt-6 max-w-2xl text-base leading-8 text-white/65">Explore the capabilities StayNas brings together. Availability and activation can vary by property configuration, deployment and connected provider.</p></div></section>
-    <section className="mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-24"><ScrollEmphasis><div className="mb-12 max-w-2xl"><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9a835b]">A connected operating environment</p><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Every capability works toward a smoother stay.</h2><p className="mt-5 text-base leading-8 text-[#69756e]">Explore the capabilities that bring the guest journey and property operation together. Open any capability to see what it brings into the day-to-day workflow.</p></div></ScrollEmphasis><div className="grid gap-x-10 gap-y-10 sm:grid-cols-2 xl:grid-cols-3">{[...STAYNAS_PUBLIC_CAPABILITIES].sort((a,b)=>["ai-concierge","reservations","front-desk","property","guest","housekeeping","finance","automation","payments","multi-property","distribution","ecosystem"].indexOf(a.id)-["ai-concierge","reservations","front-desk","property","guest","housekeeping","finance","automation","payments","multi-property","distribution","ecosystem"].indexOf(b.id)).map((item,index)=><CapabilityCard key={item.id} item={item} index={index}/>)}</div></section>
-    <section className="bg-[#e9ede6]"><div className="mx-auto max-w-7xl px-6 py-16 lg:px-10"><div className="max-w-2xl"><Eyebrow>One operating model</Eyebrow><h2 className="mt-4 text-3xl font-semibold">Six connected pillars.</h2></div><div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{STAYNAS_PILLARS.map(p=><div key={p.name} className="site-editorial-item p-5"><h3 className="font-semibold">{p.name}</h3><p className="mt-2 text-sm leading-6 text-[#69756e]">{p.description}</p></div>)}</div></div></section>
+    <section className="bg-[#3A4A3F] px-6 py-16 text-white lg:px-10 lg:py-20"><div className="mx-auto max-w-7xl"><Eyebrow>Platform capabilities</Eyebrow><h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl">The operating system behind every part of the stay.</h1><p className="mt-6 max-w-2xl text-base leading-8 text-white/65">Explore the capabilities StayNas brings together. Availability and activation can vary by property configuration, deployment and connected provider.</p></div></section>
+    <section className="mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-24"><ScrollEmphasis><div className="mb-12 max-w-2xl"><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#AE8F60]">A connected operating environment</p><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Every capability works toward a smoother stay.</h2><p className="mt-5 text-base leading-8 text-[#3A4A3F]">Explore the capabilities that bring the guest journey and property operation together. Open any capability to see what it brings into the day-to-day workflow.</p></div></ScrollEmphasis><div className="grid gap-x-10 gap-y-10 sm:grid-cols-2 xl:grid-cols-3">{[...STAYNAS_PUBLIC_CAPABILITIES].sort((a,b)=>["ai-concierge","reservations","front-desk","property","guest","housekeeping","finance","automation","payments","multi-property","distribution","ecosystem"].indexOf(a.id)-["ai-concierge","reservations","front-desk","property","guest","housekeeping","finance","automation","payments","multi-property","distribution","ecosystem"].indexOf(b.id)).map((item,index)=><CapabilityCard key={item.id} item={item} index={index}/>)}</div></section>
+    <section className="bg-[#EAE2D3]"><div className="mx-auto max-w-7xl px-6 py-16 lg:px-10"><div className="max-w-2xl"><Eyebrow>One operating model</Eyebrow><h2 className="mt-4 text-3xl font-semibold">Six connected pillars.</h2></div><div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{STAYNAS_PILLARS.map(p=><div key={p.name} className="site-editorial-item p-5"><h3 className="font-semibold">{p.name}</h3><p className="mt-2 text-sm leading-6 text-[#3A4A3F]">{p.description}</p></div>)}</div></div></section>
     <CallToAction/>
   </main></SiteShell>;
 
   if (page === "solutions") return <SiteShell><main>
-    <section className="bg-[#0c211b] px-6 py-16 text-white lg:px-10 lg:py-20"><div className="mx-auto max-w-7xl"><Eyebrow>Solutions by operating model</Eyebrow><h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl">Designed around the realities of hospitality.</h1><p className="mt-6 max-w-2xl text-base leading-8 text-white/65">StayNas provides a connected operating foundation for different property types and management structures.</p></div></section>
-    <section className="mx-auto grid max-w-7xl gap-5 px-6 py-16 md:grid-cols-2 lg:px-10">{[{title:"Hotels & boutique properties",desc:"Bring reservations, front desk, guest profiles, housekeeping and financial visibility into one daily operating environment.",features:["Reservation and room workflows","Digital guest check-in","Housekeeping coordination","Guest relationship context"]},{title:"Lodges & safari camps",desc:"Coordinate distinctive guest journeys with room readiness, pre-arrival information and property-aware guest assistance.",features:["Pre-arrival guest journey","Property knowledge and concierge","Room and housekeeping operations","Management visibility"]},{title:"Resorts & retreats",desc:"Connect accommodation operations with guest services and a consistent view of the stay.",features:["Guest profiles and service context","Front desk and room operations","Operational tasks and exceptions","Revenue visibility"]},{title:"Multi-property operators",desc:"Establish property-level operating environments within a wider organisational structure.",features:["Property-scoped configuration","Role-aware access","Group management direction","Cross-property intelligence direction"]}].map(s=><article key={s.title} className="site-editorial-item p-7"><h2 className="text-xl font-semibold">{s.title}</h2><p className="mt-3 text-sm leading-7 text-[#69756e]">{s.desc}</p><ul className="mt-5 space-y-3">{s.features.map(f=><li key={f} className="flex items-start gap-2 text-sm text-[#46554c]"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#53765c]"/>{f}</li>)}</ul></article>)}</section>
+    <section className="bg-[#3A4A3F] px-6 py-16 text-white lg:px-10 lg:py-20"><div className="mx-auto max-w-7xl"><Eyebrow>Solutions by operating model</Eyebrow><h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl">Designed around the realities of hospitality.</h1><p className="mt-6 max-w-2xl text-base leading-8 text-white/65">StayNas provides a connected operating foundation for different property types and management structures.</p></div></section>
+    <section className="mx-auto grid max-w-7xl gap-5 px-6 py-16 md:grid-cols-2 lg:px-10">{[{title:"Hotels & boutique properties",desc:"Bring reservations, front desk, guest profiles, housekeeping and financial visibility into one daily operating environment.",features:["Reservation and room workflows","Digital guest check-in","Housekeeping coordination","Guest relationship context"]},{title:"Lodges & safari camps",desc:"Coordinate distinctive guest journeys with room readiness, pre-arrival information and property-aware guest assistance.",features:["Pre-arrival guest journey","Property knowledge and concierge","Room and housekeeping operations","Management visibility"]},{title:"Resorts & retreats",desc:"Connect accommodation operations with guest services and a consistent view of the stay.",features:["Guest profiles and service context","Front desk and room operations","Operational tasks and exceptions","Revenue visibility"]},{title:"Multi-property operators",desc:"Establish property-level operating environments within a wider organisational structure.",features:["Property-scoped configuration","Role-aware access","Group management direction","Cross-property intelligence direction"]}].map(s=><article key={s.title} className="site-editorial-item p-7"><h2 className="text-xl font-semibold">{s.title}</h2><p className="mt-3 text-sm leading-7 text-[#3A4A3F]">{s.desc}</p><ul className="mt-5 space-y-3">{s.features.map(f=><li key={f} className="flex items-start gap-2 text-sm text-[#3A4A3F]"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#91A673]"/>{f}</li>)}</ul></article>)}</section>
     <CallToAction/>
   </main></SiteShell>;
 
   if (page === "integrations") return <SiteShell><main>
-    <section className="bg-[#0c211b] px-6 py-16 text-white lg:px-10 lg:py-20"><div className="mx-auto max-w-7xl"><Eyebrow>Connected hospitality ecosystem</Eyebrow><h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl">Connect the systems around your property.</h1><p className="mt-6 max-w-2xl text-base leading-8 text-white/65">StayNas is designed to operate as the central property context while connecting specialist services through explicit integrations.</p></div></section>
-    <section className="mx-auto max-w-7xl px-6 py-16 lg:px-10"><div className="grid gap-x-8 gap-y-0 md:grid-cols-2">{[{name:"Public Booking Network & channel distribution",kind:"Distribution",state:"Channel-specific connector implementation and verification required",desc:"A distribution layer for connecting external demand channels to property availability and reservation workflows. OTA and channel-manager connectivity is not claimed as universally live."},{name:"Payment providers",kind:"Payments",state:"Provider activation is deployment and tenant-configuration dependent",desc:"Property-configured payment services, including payment lifecycle handling and reconciliation. Availability depends on the selected provider and deployment."},{name:"Property websites & direct booking",kind:"Guest acquisition",state:"Direct booking foundation present; property publication is controlled",desc:"Guest-facing property pages and booking journeys connected to StayNas property configuration and availability."},{name:"Guest CRM & engagement",kind:"Guest data",state:"StayNas guest CRM implemented; external CRM connectors are integration-dependent",desc:"Guest profiles, stay context and service workflows inside StayNas, with external CRM connections subject to connector-specific delivery."},{name:"Email, SMS & WhatsApp",kind:"Communications",state:"Provider and channel configuration dependent",desc:"Guest communications around enquiries, pre-arrival information and the stay lifecycle. Each channel requires provider credentials, consent and operational verification."},{name:"Accounting & external finance",kind:"Finance",state:"Connector roadmap; no native accounting sync claimed",desc:"Potential connections to accounting and finance platforms through explicit ledger, settlement and reconciliation contracts."},{name:"LexiBite & food service",kind:"Food & beverage",state:"Ecosystem integration direction",desc:"A potential connection to the specialist LexiBite FnB operating system while preserving LexiBite as an independent product."},{name:"External APIs & analytics",kind:"Extensibility",state:"Integration-specific",desc:"Connect additional systems, reporting tools and data services through defined contracts, authentication, event handling and property-scoped data boundaries."}].map(x=><article key={x.name} className="site-editorial-item p-7"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9a835b]">{x.kind}</p><h2 className="mt-2 text-xl font-semibold">{x.name}</h2></div><Globe2 className="h-5 w-5 text-[#a1844f]"/></div><p className="mt-3 text-sm leading-7 text-[#69756e]">{x.desc}</p><p className="mt-5 border-t border-[#ecece5] pt-4 text-xs font-medium text-[#52665a]">{x.state}</p></article>)}</div><div className="mt-10 rounded-2xl bg-[#e9ede6] p-7"><h2 className="text-lg font-semibold">Integration governance matters.</h2><p className="mt-3 max-w-3xl text-sm leading-7 text-[#69756e]">Each connection should define its data contract, property scope, authentication, event handling, error recovery and reconciliation responsibilities. A connector is only described as available after its implementation and operational verification are complete.</p></div></section>
+    <section className="bg-[#3A4A3F] px-6 py-16 text-white lg:px-10 lg:py-20"><div className="mx-auto max-w-7xl"><Eyebrow>Connected hospitality ecosystem</Eyebrow><h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl">Connect the systems around your property.</h1><p className="mt-6 max-w-2xl text-base leading-8 text-white/65">StayNas is designed to operate as the central property context while connecting specialist services through explicit integrations.</p></div></section>
+    <section className="mx-auto max-w-7xl px-6 py-16 lg:px-10"><div className="grid gap-x-8 gap-y-0 md:grid-cols-2">{[{name:"Public Booking Network & channel distribution",kind:"Distribution",state:"Channel-specific connector implementation and verification required",desc:"A distribution layer for connecting external demand channels to property availability and reservation workflows. OTA and channel-manager connectivity is not claimed as universally live."},{name:"Payment providers",kind:"Payments",state:"Provider activation is deployment and tenant-configuration dependent",desc:"Property-configured payment services, including payment lifecycle handling and reconciliation. Availability depends on the selected provider and deployment."},{name:"Property websites & direct booking",kind:"Guest acquisition",state:"Direct booking foundation present; property publication is controlled",desc:"Guest-facing property pages and booking journeys connected to StayNas property configuration and availability."},{name:"Guest CRM & engagement",kind:"Guest data",state:"StayNas guest CRM implemented; external CRM connectors are integration-dependent",desc:"Guest profiles, stay context and service workflows inside StayNas, with external CRM connections subject to connector-specific delivery."},{name:"Email, SMS & WhatsApp",kind:"Communications",state:"Provider and channel configuration dependent",desc:"Guest communications around enquiries, pre-arrival information and the stay lifecycle. Each channel requires provider credentials, consent and operational verification."},{name:"Accounting & external finance",kind:"Finance",state:"Connector roadmap; no native accounting sync claimed",desc:"Potential connections to accounting and finance platforms through explicit ledger, settlement and reconciliation contracts."},{name:"LexiBite & food service",kind:"Food & beverage",state:"Ecosystem integration direction",desc:"A potential connection to the specialist LexiBite FnB operating system while preserving LexiBite as an independent product."},{name:"External APIs & analytics",kind:"Extensibility",state:"Integration-specific",desc:"Connect additional systems, reporting tools and data services through defined contracts, authentication, event handling and property-scoped data boundaries."}].map(x=><article key={x.name} className="site-editorial-item p-7"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#AE8F60]">{x.kind}</p><h2 className="mt-2 text-xl font-semibold">{x.name}</h2></div><Globe2 className="h-5 w-5 text-[#AE8F60]"/></div><p className="mt-3 text-sm leading-7 text-[#3A4A3F]">{x.desc}</p><p className="mt-5 border-t border-[#ecece5] pt-4 text-xs font-medium text-[#3A4A3F]">{x.state}</p></article>)}</div><div className="mt-10 rounded-2xl bg-[#EAE2D3] p-7"><h2 className="text-lg font-semibold">Integration governance matters.</h2><p className="mt-3 max-w-3xl text-sm leading-7 text-[#3A4A3F]">Each connection should define its data contract, property scope, authentication, event handling, error recovery and reconciliation responsibilities. A connector is only described as available after its implementation and operational verification are complete.</p></div></section>
     <CallToAction/>
   </main></SiteShell>;
 
   return <SiteShell><main>
-    <section className="bg-[#0c211b] px-6 py-16 text-white lg:px-10 lg:py-20"><div className="mx-auto max-w-7xl"><Eyebrow>Product demonstration</Eyebrow><h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl">See how StayNas fits your operation.</h1><p className="mt-6 max-w-2xl text-base leading-8 text-white/65">A product walkthrough should reflect your property type, team structure, guest journey and integration priorities.</p></div></section>
-    <section className="mx-auto grid max-w-7xl gap-10 px-6 py-16 lg:grid-cols-[1fr_.85fr] lg:px-10"><div><Eyebrow>What we can walk through</Eyebrow><h2 className="mt-4 text-3xl font-semibold">A demonstration built around your operating priorities.</h2><div className="mt-8 space-y-5">{[{t:"Reservations to arrival",d:"Explore the connection between booking, guest details, online check-in and reception."},{t:"Daily property operations",d:"See how rooms, housekeeping tasks, inspections and exceptions fit together."},{t:"Management visibility",d:"Review operational, guest and revenue information available to property leaders."},{t:"Your integration landscape",d:"Discuss payment providers, booking distribution, websites and specialist systems."}].map(x=><div key={x.t} className="flex gap-4"><span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#e8ede6] text-[#42634d]"><Check className="h-4 w-4"/></span><div><h3 className="font-semibold">{x.t}</h3><p className="mt-1 text-sm leading-6 text-[#69756e]">{x.d}</p></div></div>)}</div></div><StayNasDemoRequestForm/></section>
+    <section className="bg-[#3A4A3F] px-6 py-16 text-white lg:px-10 lg:py-20"><div className="mx-auto max-w-7xl"><Eyebrow>Product demonstration</Eyebrow><h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl">See how StayNas fits your operation.</h1><p className="mt-6 max-w-2xl text-base leading-8 text-white/65">A product walkthrough should reflect your property type, team structure, guest journey and integration priorities.</p></div></section>
+    <section className="mx-auto grid max-w-7xl gap-10 px-6 py-16 lg:grid-cols-[1fr_.85fr] lg:px-10"><div><Eyebrow>What we can walk through</Eyebrow><h2 className="mt-4 text-3xl font-semibold">A demonstration built around your operating priorities.</h2><div className="mt-8 space-y-5">{[{t:"Reservations to arrival",d:"Explore the connection between booking, guest details, online check-in and reception."},{t:"Daily property operations",d:"See how rooms, housekeeping tasks, inspections and exceptions fit together."},{t:"Management visibility",d:"Review operational, guest and revenue information available to property leaders."},{t:"Your integration landscape",d:"Discuss payment providers, booking distribution, websites and specialist systems."}].map(x=><div key={x.t} className="flex gap-4"><span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#EAE2D3] text-[#3A4A3F]"><Check className="h-4 w-4"/></span><div><h3 className="font-semibold">{x.t}</h3><p className="mt-1 text-sm leading-6 text-[#3A4A3F]">{x.d}</p></div></div>)}</div></div><StayNasDemoRequestForm/></section>
   </main></SiteShell>;
 }
 
 function CallToAction() {
-  return <section className="bg-[#10271f] text-white"><div className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-14 lg:flex-row lg:items-center lg:justify-between lg:px-10"><div><p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#d7bd85]">See StayNas in context</p><h2 className="mt-3 text-2xl font-semibold sm:text-3xl">Explore a more connected way to operate.</h2></div><Link to="/request-demo" className="inline-flex items-center gap-2 self-start rounded-full bg-[#d7bd85] px-6 py-3.5 text-sm font-semibold text-[#14271f]">Request a demo <ArrowRight className="h-4 w-4"/></Link></div></section>;
+  return <section className="bg-[#10271f] text-white"><div className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-14 lg:flex-row lg:items-center lg:justify-between lg:px-10"><div><p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#AE8F60]">See StayNas in context</p><h2 className="mt-3 text-2xl font-semibold sm:text-3xl">Explore a more connected way to operate.</h2></div><Link to="/request-demo" className="inline-flex items-center gap-2 self-start rounded-full bg-[#AE8F60] px-6 py-3.5 text-sm font-semibold text-[#2A2725]">Request a demo <ArrowRight className="h-4 w-4"/></Link></div></section>;
 }
