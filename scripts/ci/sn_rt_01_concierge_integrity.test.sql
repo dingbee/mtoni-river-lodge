@@ -323,8 +323,9 @@ BEGIN
     repeat('d',64)
   );
   IF NOT result.created THEN RAISE EXCEPTION 'authorized staff escalation should be created'; END IF;
-  IF (SELECT priority FROM public.ai_escalations WHERE id=result.escalation_id) <> 1 THEN
-    RAISE EXCEPTION 'reason-to-priority mapping must override the supplied priority when configured';
+  IF (SELECT priority FROM public.ai_escalations WHERE id=result.escalation_id) <> 1
+     OR (SELECT priority FROM public.ops_tasks WHERE id=result.task_id) <> 1 THEN
+    RAISE EXCEPTION 'reason-to-priority mapping must override the supplied priority and align the operations task';
   END IF;
   PERFORM public.staynas_transition_concierge_escalation(
     result.escalation_id,'11111111-1111-4111-8111-111111111111',NULL,NULL,NULL,3::smallint
@@ -332,6 +333,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.ai_escalations e
     JOIN public.ai_escalation_sla_policies p ON p.id=e.sla_policy_id
     WHERE e.id=result.escalation_id AND e.priority=3 AND p.priority=3
+      AND (SELECT priority FROM public.ops_tasks WHERE id=e.ops_task_id)=3
       AND abs(extract(epoch FROM (e.assignment_due_at-(e.sla_cycle_started_at+interval '30 minutes')))) < 1) THEN
     RAISE EXCEPTION 'manual severity change must bind the new policy and recalculate deadlines without resetting SLA cycle age';
   END IF;
