@@ -9,6 +9,7 @@ on:
       - "src/routes/api/internal/communications/**"
       - "supabase/migrations/**"
       - "scripts/ci/sn_oc_03_provider_activation.test.sql"
+      - "scripts/ci/sn_oc_04_metric_contract.test.sql"
       - "scripts/ci/sn_rt_01_concierge_integrity.test.sql"
       - "scripts/ci/normalize-optional-legacy-revokes.py"
       - ".github/workflows/sn-oc-03-verification.yml"
@@ -41,6 +42,7 @@ jobs:
       - run: >
           bunx vitest run
           src/domains/ai/concierge/omnichannel.contracts.test.ts
+          src/domains/ai/concierge/operational-intelligence.metrics.test.ts
           src/domains/ai/concierge/webhooks/webhook-processor.server.test.ts
           src/domains/ai/concierge/webhooks/webhook-normalization.server.test.ts
       - name: TypeScript verification
@@ -50,7 +52,12 @@ jobs:
           bunx eslint
           src/domains/ai/concierge/concierge.server.ts
           src/domains/ai/concierge/dispatch.functions.ts
+          src/domains/ai/concierge/analytics.functions.ts
+          src/domains/ai/concierge/operational-intelligence.functions.ts
+          src/domains/ai/concierge/operational-intelligence.metrics.ts
+          src/routes/_authenticated.admin.ai.concierge.analytics.tsx
           src/domains/ai/concierge/omnichannel.functions.ts
+          src/routes/_authenticated.admin.ai.concierge.escalations.tsx
           src/domains/ai/concierge/webhooks/webhook-processor.server.ts
           src/domains/ai/concierge/webhooks/webhook-normalization.server.ts
           src/domains/ai/concierge/webhooks/webhook-signatures.server.ts
@@ -106,6 +113,7 @@ jobs:
           DB_URL="$(supabase status -o env | sed -n 's/^DB_URL=//p' | tr -d '"')"
           test -n "$DB_URL"
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f scripts/ci/sn_oc_03_provider_activation.test.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f scripts/ci/sn_oc_04_metric_contract.test.sql
       - name: Stop isolated Supabase stack
         if: always()
         run: supabase stop --no-backup || true

@@ -23,7 +23,9 @@ CREATE TYPE public.ops_task_status AS ENUM ('pending','in_progress','completed',
 
 CREATE TABLE public.staynas_properties(
   id uuid PRIMARY KEY,
-  status text NOT NULL DEFAULT 'active'
+  status text NOT NULL DEFAULT 'active',
+  timezone text NOT NULL DEFAULT 'UTC',
+  currency text NOT NULL DEFAULT 'TZS'
 );
 CREATE TABLE public.staynas_property_domains(
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -170,6 +172,7 @@ INSERT INTO public.ai_concierge_sessions(id,property_id) VALUES
 ('22222222-2222-4222-8222-222222222223','22222222-2222-4222-8222-222222222222');
 
 \i supabase/review/20261109150000_sn_rt_01_concierge_runtime_integrity.sql
+\i supabase/migrations/20261112103000_sn_oc_04_escalation_sla.sql
 
 DO $test$
 BEGIN
@@ -302,6 +305,10 @@ $service_tests$;
 RESET ROLE;
 RESET request.jwt.claim.role;
 
+-- Configure an explicit property reason map as the database owner before staff role simulation.
+  UPDATE public.ai_escalation_sla_policies SET reason_priority_map='{"complaint":1,"payment_issue":1,"human_requested":2,"low_confidence":2,"complex_request":3,"other":3}'::jsonb
+  WHERE property_id='11111111-1111-4111-8111-111111111111';
+
 -- Staff authorization must be bound to the active property membership.
 SET request.jwt.claim.role = 'authenticated';
 SET request.jwt.claim.sub = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -312,10 +319,33 @@ BEGIN
   SELECT * INTO result FROM public.staynas_create_concierge_escalation(
     '11111111-1111-4111-8111-111111111111',
     '11111111-1111-4111-8111-111111111112',
-    NULL, 'web', 'complaint', 'Guest reported a complaint.', 0.4, 1::smallint,
+    NULL, 'web', 'complaint', 'Guest reported a complaint.', 0.4, 3::smallint,
     repeat('d',64)
   );
   IF NOT result.created THEN RAISE EXCEPTION 'authorized staff escalation should be created'; END IF;
+  IF (SELECT priority FROM public.ai_escalations WHERE id=result.escalation_id) <> 1 THEN
+    RAISE EXCEPTION 'reason-to-priority mapping must override the supplied priority when configured';
+  END IF;
+  PERFORM public.staynas_transition_concierge_escalation(
+    result.escalation_id,'11111111-1111-4111-8111-111111111111',NULL,NULL,NULL,3::smallint
+  );
+  IF NOT EXISTS (SELECT 1 FROM public.ai_escalations e
+    JOIN public.ai_escalation_sla_policies p ON p.id=e.sla_policy_id
+    WHERE e.id=result.escalation_id AND e.priority=3 AND p.priority=3) THEN
+    RAISE EXCEPTION 'manual severity change must bind the escalation to its new property SLA policy';
+  END IF;
+
+  PERFORM public.staynas_transition_concierge_escalation(
+    result.escalation_id,
+    '11111111-1111-4111-8111-111111111111',
+    'assigned',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    NULL
+  );
+
+  IF (SELECT assigned_at FROM public.ai_escalations WHERE id=result.escalation_id) IS NULL THEN
+    RAISE EXCEPTION 'assignment completion timestamp must be persisted';
+  END IF;
 
   PERFORM public.staynas_transition_concierge_escalation(
     result.escalation_id,
@@ -327,8 +357,8 @@ BEGIN
   PERFORM public.staynas_transition_concierge_escalation(
     result.escalation_id,
     '11111111-1111-4111-8111-111111111111',
-    'assigned',
-    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    'acknowledged',
+    NULL,
     NULL
   );
   PERFORM public.staynas_transition_concierge_escalation(
@@ -344,6 +374,13 @@ BEGIN
     'resolved',
     NULL,
     'Guest issue resolved.'
+  );
+  PERFORM public.staynas_transition_concierge_escalation(
+    result.escalation_id,
+    '11111111-1111-4111-8111-111111111111',
+    'open',
+    NULL,
+    'Reopened after guest follow-up.'
   );
 
   IF (SELECT count(*) FROM public.ai_escalations) <> 2
@@ -368,6 +405,116 @@ RESET ROLE;
 RESET request.jwt.claim.role;
 RESET request.jwt.claim.sub;
 
+DO $sla_security_tests$
+BEGIN
+  IF has_table_privilege('anon','public.ai_escalation_sla_policies','SELECT')
+     OR has_table_privilege('anon','public.ai_escalation_events','SELECT')
+     OR has_table_privilege('anon','public.ai_escalation_sla_alerts','SELECT')
+     OR has_table_privilege('anon','public.ai_escalation_sla_policy_events','SELECT') THEN
+    RAISE EXCEPTION 'anonymous callers must not read SLA policy, lifecycle or alert records';
+  END IF;
+  IF NOT has_table_privilege('authenticated','public.ai_escalation_sla_policies','SELECT')
+     OR has_table_privilege('authenticated','public.ai_escalation_sla_policies','UPDATE') THEN
+    RAISE EXCEPTION 'tenant staff may read policies but policy writes must use the scoped server action';
+  END IF;
+  IF NOT has_table_privilege('authenticated','public.ai_escalation_events','SELECT')
+     OR has_table_privilege('authenticated','public.ai_escalation_events','INSERT')
+     OR has_table_privilege('authenticated','public.ai_escalation_events','UPDATE')
+     OR has_table_privilege('authenticated','public.ai_escalation_events','DELETE')
+     OR NOT has_table_privilege('authenticated','public.ai_escalation_sla_policy_events','SELECT')
+     OR has_table_privilege('authenticated','public.ai_escalation_sla_policy_events','INSERT')
+     OR has_table_privilege('authenticated','public.ai_escalation_sla_policy_events','UPDATE') THEN
+    RAISE EXCEPTION 'lifecycle history must be readable but immutable to tenant roles';
+  END IF;
+  IF NOT has_table_privilege('service_role','public.ai_escalation_sla_policies','UPDATE')
+     OR NOT has_table_privilege('service_role','public.ai_escalation_events','INSERT')
+     OR NOT has_table_privilege('service_role','public.ai_escalation_sla_alerts','INSERT')
+     OR has_table_privilege('service_role','public.ai_escalation_events','DELETE')
+     OR has_table_privilege('service_role','public.ai_escalation_sla_alerts','TRUNCATE')
+     OR NOT has_table_privilege('service_role','public.ai_escalation_sla_policy_events','INSERT')
+     OR has_table_privilege('service_role','public.ai_escalation_sla_policy_events','DELETE') THEN
+    RAISE EXCEPTION 'server role SLA privileges must be scoped to policy writes and append-only event/alert inserts';
+  END IF;
+END
+$sla_security_tests$;
+
+-- SLA lifecycle, policy calendar and idempotent alert acceptance tests.
+DO $sla_schema_tests$
+BEGIN
+  INSERT INTO public.staynas_properties(id,status,timezone,currency)
+  VALUES ('33333333-3333-4333-8333-333333333333','active','UTC','TZS');
+  IF (SELECT count(*) FROM public.ai_escalation_sla_policies WHERE property_id='11111111-1111-4111-8111-111111111111') <> 3
+     OR (SELECT count(*) FROM public.ai_escalation_sla_policies WHERE property_id='22222222-2222-4222-8222-222222222222') <> 3
+     OR (SELECT count(*) FROM public.ai_escalation_sla_policies WHERE property_id='33333333-3333-4333-8333-333333333333') <> 3 THEN
+    RAISE EXCEPTION 'each property must receive three priority-specific SLA policies';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.ai_escalations WHERE status='open' AND reopened_at IS NOT NULL
+    AND assignment_due_at IS NOT NULL AND acknowledgement_due_at IS NOT NULL AND resolution_due_at IS NOT NULL) THEN
+    RAISE EXCEPTION 'reopened escalation must have a fresh complete set of SLA deadlines';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.ai_escalation_events WHERE event_type='acknowledged')
+     OR NOT EXISTS (SELECT 1 FROM public.ai_escalation_events WHERE event_type='priority_changed')
+     OR NOT EXISTS (SELECT 1 FROM public.ai_escalation_events WHERE event_type='reopened')
+     OR NOT EXISTS (SELECT 1 FROM public.ai_escalation_events WHERE event_type='assigned') THEN
+    RAISE EXCEPTION 'assignment, acknowledgement and reopen lifecycle history must be durable';
+  END IF;
+  IF public.staynas_sla_business_minutes(
+    '2026-11-09 09:00:00+00','2026-11-09 10:00:00+00','UTC',
+    '{"mode":"weekly","mon":[{"start":"09:00","end":"17:00"}],"tue":[],"wed":[],"thu":[],"fri":[],"sat":[],"sun":[]}'::jsonb
+  ) <> 60 THEN
+    RAISE EXCEPTION 'weekly operating-hours calculation must count the exact business minutes';
+  END IF;
+  IF public.staynas_sla_add_minutes(
+    '2026-11-09 16:30:00+00',60,'UTC',
+    '{"mode":"weekly","mon":[{"start":"09:00","end":"17:00"}],"tue":[{"start":"09:00","end":"17:00"}],"wed":[],"thu":[],"fri":[],"sat":[],"sun":[]}'::jsonb
+  ) <> '2026-11-10 09:30:00+00'::timestamptz THEN
+    RAISE EXCEPTION 'business-hours due date must carry remaining time into next operating window';
+  END IF;
+END
+$sla_schema_tests$;
+
+SET request.jwt.claim.role = 'service_role';
+SET ROLE service_role;
+DO $sla_alert_tests$
+DECLARE v_escalation uuid;
+DECLARE v_approaching_escalation uuid;
+DECLARE v_first integer;
+DECLARE v_second integer;
+BEGIN
+  SELECT id INTO v_escalation FROM public.ai_escalations
+  WHERE property_id='11111111-1111-4111-8111-111111111111' AND status='open'
+  ORDER BY created_at LIMIT 1;
+  UPDATE public.ai_escalations SET
+    assignment_due_at=now()-interval '2 minutes',
+    acknowledgement_due_at=now()-interval '2 minutes',
+    resolution_due_at=now()-interval '2 minutes'
+  WHERE id=v_escalation;
+  SELECT id INTO v_approaching_escalation FROM public.ai_escalations
+  WHERE property_id='22222222-2222-4222-8222-222222222222' AND status='open' LIMIT 1;
+  UPDATE public.ai_escalation_sla_policies SET acknowledgement_minutes=10,assignment_minutes=10,resolution_minutes=10,warning_percent=80
+  WHERE property_id='22222222-2222-4222-8222-222222222222' AND priority=2;
+  UPDATE public.ai_escalations SET sla_cycle_started_at=now()-interval '9 minutes',
+    assignment_due_at=now()+interval '1 minute',acknowledgement_due_at=now()+interval '1 minute',resolution_due_at=now()+interval '1 minute'
+  WHERE id=v_approaching_escalation;
+  v_first := public.staynas_process_concierge_sla_alerts();
+  v_second := public.staynas_process_concierge_sla_alerts();
+  IF v_first < 6 OR v_second <> 0 THEN
+    RAISE EXCEPTION 'SLA breach alerts must be generated once and remain idempotent';
+  END IF;
+  IF (SELECT count(*) FROM public.ai_escalation_sla_alerts WHERE escalation_id=v_escalation AND alert_type='breached') <> 3 THEN
+    RAISE EXCEPTION 'assignment, acknowledgement and resolution breach alerts must all persist';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.notifications WHERE kind='concierge_sla' AND meta->>'escalation_id'=v_escalation::text) THEN
+    RAISE EXCEPTION 'SLA breach must notify authorized property staff in-app';
+  END IF;
+  IF (SELECT count(*) FROM public.ai_escalation_sla_alerts WHERE escalation_id=v_approaching_escalation AND alert_type='approaching_breach') <> 3 THEN
+    RAISE EXCEPTION 'approaching-breach warnings must be emitted for each SLA milestone';
+  END IF;
+END
+$sla_alert_tests$;
+RESET ROLE;
+RESET request.jwt.claim.role;
+
 -- A second authenticated property must see only its own escalation records.
 SET request.jwt.claim.role = 'authenticated';
 SET request.jwt.claim.sub = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
@@ -377,6 +524,15 @@ BEGIN
   IF (SELECT count(*) FROM public.ai_escalations) <> 1
      OR EXISTS (SELECT 1 FROM public.ai_escalations WHERE property_id <> '22222222-2222-4222-8222-222222222222') THEN
     RAISE EXCEPTION 'property B staff must only read property B escalations';
+  END IF;
+  IF (SELECT count(*) FROM public.ai_escalation_sla_policies) <> 3
+     OR EXISTS (SELECT 1 FROM public.ai_escalation_sla_policies WHERE property_id <> '22222222-2222-4222-8222-222222222222') THEN
+    RAISE EXCEPTION 'property B staff must only read property B SLA policies';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.ai_escalation_events WHERE property_id <> '22222222-2222-4222-8222-222222222222')
+     OR EXISTS (SELECT 1 FROM public.ai_escalation_sla_alerts WHERE property_id <> '22222222-2222-4222-8222-222222222222')
+     OR EXISTS (SELECT 1 FROM public.ai_escalation_sla_policy_events WHERE property_id <> '22222222-2222-4222-8222-222222222222') THEN
+    RAISE EXCEPTION 'property B staff must not read other properties lifecycle or alert evidence';
   END IF;
 END
 $property_b_staff_tests$;

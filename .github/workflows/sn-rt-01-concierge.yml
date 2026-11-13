@@ -17,6 +17,8 @@ on:
       - "src/lib/booking-search.ts"
       - "src/lib/booking-search.test.ts"
       - "supabase/review/20261109150000_sn_rt_01_concierge_runtime_integrity.sql"
+      - "supabase/migrations/20261112103000_sn_oc_04_escalation_sla.sql"
+      - "src/routes/_authenticated.admin.ai.concierge.escalations.tsx"
       - "scripts/ci/sn_rt_01_concierge_integrity.test.sql"
       - ".github/workflows/sn-rt-01-concierge.yml"
   pull_request:
@@ -67,6 +69,7 @@ jobs:
           src/domains/ai/concierge/concierge.recommendations.test.ts
           src/domains/ai/concierge/concierge.server.test.ts
           src/domains/ai/concierge/omnichannel.contracts.test.ts
+          src/domains/ai/concierge/operational-intelligence.metrics.test.ts
           src/domains/ai/concierge/webhooks/webhook-processor.server.test.ts
       - name: Generate routes and verify production build
         run: bun run build
@@ -98,6 +101,9 @@ jobs:
           src/domains/ai/concierge/concierge.leads.ts
           src/domains/ai/concierge/concierge.leads.test.ts
           src/domains/ai/concierge/omnichannel.functions.ts
+          src/domains/ai/concierge/operational-intelligence.functions.ts
+          src/domains/ai/concierge/operational-intelligence.metrics.ts
+          src/routes/_authenticated.admin.ai.concierge.escalations.tsx
           src/components/site/ConciergeWidget.tsx
           src/routes/api/public/concierge.chat.ts
           src/routes/api/public/concierge.lead.ts

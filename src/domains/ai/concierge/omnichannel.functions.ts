@@ -18,7 +18,8 @@ const CHANNELS: ConciergeChannel[] = ["web", "whatsapp", "email"];
 const isChannel = (v: unknown): v is ConciergeChannel =>
   typeof v === "string" && (CHANNELS as string[]).includes(v);
 
-const STAFF_ROLES = ["owner", "manager", "admin", "reception"] as const;
+const STAFF_ROLES = ["owner", "manager", "admin", "reservations", "reception"] as const;
+const ESCALATION_ROLES = ["owner", "manager", "admin", "reservations"] as const;
 const MANAGER_ROLES = ["owner", "manager", "admin"] as const;
 
 async function requirePropertyScope(
@@ -521,19 +522,41 @@ export const listEscalations = createServerFn({ method: "POST" })
   .inputValidator((input: { status?: EscalationStatus | "all" }) => input ?? {})
   .handler(async ({ data, context }) => {
     const propertyId = await requirePropertyScope(context.supabase, context.userId);
-    const sessionIds = await propertySessionIds(context.supabase, propertyId);
-    if (sessionIds.length === 0) return [];
     let q = context.supabase
       .from("ai_escalations")
       .select("*")
-      .in("session_id", sessionIds)
+      .eq("property_id", propertyId)
       .order("priority", { ascending: true })
       .order("created_at", { ascending: false })
       .limit(200);
     if (data.status && data.status !== "all") q = q.eq("status", data.status);
-    const { data: rows, error } = await q;
-    if (error) throw new Error(error.message);
-    return (rows ?? []) as EscalationRow[];
+    const [{ data: rows, error }, { data: property, error: propertyError }] = await Promise.all([
+      q,
+      (context.supabase as any).from("staynas_properties").select("timezone").eq("id",propertyId).maybeSingle(),
+    ]);
+    if (error || propertyError) throw new Error(error?.message ?? propertyError?.message ?? "Escalation property context unavailable.");
+    const escalationRows = rows ?? [];
+    const ids = escalationRows.map((row: any) => row.id);
+    const alertsByEscalation = new Map<string, any[]>();
+    if (ids.length) {
+      for (let offset=0; offset<10000; offset+=1000) {
+        const { data: alerts, error: alertsError } = await (context.supabase as any).from("ai_escalation_sla_alerts")
+          .select("id,escalation_id,milestone,alert_type,due_at,threshold_percent,created_at")
+          .eq("property_id",propertyId).in("escalation_id",ids)
+          .order("created_at",{ascending:false}).range(offset,offset+999);
+        if (alertsError) throw new Error(alertsError.message);
+        for (const alert of alerts ?? []) {
+          const current = alertsByEscalation.get(alert.escalation_id) ?? [];
+          if (current.length < 12) current.push(alert);
+          alertsByEscalation.set(alert.escalation_id,current);
+        }
+        if ((alerts ?? []).length < 1000) break;
+      }
+    }
+    return escalationRows.map((row: any) => ({
+      ...row, property_timezone: property?.timezone ?? "UTC",
+      sla_alerts: alertsByEscalation.get(row.id) ?? [],
+    })) as EscalationRow[];
   });
 
 export const createEscalation = createServerFn({ method: "POST" })
@@ -585,23 +608,154 @@ export const updateEscalation = createServerFn({ method: "POST" })
       status?: EscalationStatus;
       assigned_to?: string | null;
       resolution_notes?: string | null;
+      priority?: number;
     }) => {
       if (!input?.id) throw new Error("id required");
-      if (input.status && !["open", "assigned", "in_progress", "resolved", "dismissed"].includes(input.status)) throw new Error("invalid escalation status");
+      if (input.status && !["open", "assigned", "acknowledged", "in_progress", "resolved", "dismissed"].includes(input.status)) throw new Error("invalid escalation status");
+      if (input.priority !== undefined && ![1,2,3].includes(input.priority)) throw new Error("invalid escalation priority");
       return input;
     },
   )
   .handler(async ({ data, context }) => {
-    const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, ESCALATION_ROLES);
     const { error } = await (context.supabase as any).rpc("staynas_transition_concierge_escalation", {
       p_escalation_id: data.id,
       p_property_id: propertyId,
       p_status: data.status ?? null,
       p_assigned_to: data.assigned_to ?? null,
       p_resolution_notes: data.resolution_notes ?? null,
+      p_priority: data.priority ?? null,
     });
     if (error) throw new Error("Could not update the property escalation.");
     return { ok: true };
+  });
+
+export const listEscalationAssignees = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, ESCALATION_ROLES);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await (supabaseAdmin as any).from("staynas_property_members")
+      .select("user_id,role").eq("property_id",propertyId).eq("status","active")
+      .in("role",["owner","manager","admin","reservations","reception"]).order("role");
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const listEscalationSlaPolicies = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
+    const [{ data, error }, { data: property, error: propertyError }] = await Promise.all([
+      (context.supabase as any).from("ai_escalation_sla_policies").select("*").eq("property_id", propertyId).order("priority"),
+      (context.supabase as any).from("staynas_properties").select("timezone").eq("id",propertyId).maybeSingle(),
+    ]);
+    if (error || propertyError) throw new Error(error?.message ?? propertyError?.message ?? "SLA policy context unavailable.");
+    return (data ?? []).map((policy: any) => ({ ...policy, property_timezone: property?.timezone ?? "UTC" }));
+  });
+
+export const updateEscalationSlaPolicy = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: {
+    id: string; enabled?: boolean; acknowledgement_minutes?: number; assignment_minutes?: number;
+    resolution_minutes?: number; business_hours_only?: boolean; operating_hours?: Record<string, unknown>;
+    warning_percent?: number;
+  }) => {
+    if (!input?.id || typeof input.id !== "string") throw new Error("Policy id is required.");
+    if (input.enabled !== undefined && typeof input.enabled !== "boolean") throw new Error("Policy enabled flag must be boolean.");
+    if (input.business_hours_only !== undefined && typeof input.business_hours_only !== "boolean") throw new Error("Business-hours flag must be boolean.");
+    const bounds = [["acknowledgement_minutes",input.acknowledgement_minutes,1,10080],["assignment_minutes",input.assignment_minutes,1,10080],["resolution_minutes",input.resolution_minutes,1,43200],["warning_percent",input.warning_percent,1,99]] as const;
+    for (const [key,value,min,max] of bounds) if (value !== undefined && (!Number.isInteger(value) || value < min || value > max)) throw new Error("Invalid SLA policy value: " + key);
+    if (input.operating_hours !== undefined) {
+      if (!input.operating_hours || typeof input.operating_hours !== "object" || Array.isArray(input.operating_hours)) throw new Error("Operating calendar must be a JSON object.");
+      const mode = input.operating_hours.mode;
+      if (mode !== "24x7" && mode !== "weekly") throw new Error("Operating calendar mode must be 24x7 or weekly.");
+      if (mode === "weekly") {
+        let totalWindows = 0;
+        for (const day of ["mon","tue","wed","thu","fri","sat","sun"]) {
+          const windows = input.operating_hours[day];
+          if (!Array.isArray(windows)) throw new Error("Weekly calendar must define all seven days.");
+          const sorted = [...windows as Array<{start?:string;end?:string}>].sort((a,b) => String(a.start).localeCompare(String(b.start)));
+          let previousEnd = "";
+          for (const window of sorted) {
+            if (!window || !/^([01]\d|2[0-3]):[0-5]\d$/.test(window.start ?? "") || !/^([01]\d|2[0-3]):[0-5]\d$/.test(window.end ?? "") || (window.start ?? "") >= (window.end ?? "")) throw new Error("Calendar windows must use HH:MM and end after they start.");
+            if (previousEnd && (window.start ?? "") < previousEnd) throw new Error("Operating calendar windows cannot overlap.");
+            previousEnd = window.end ?? "";
+            totalWindows += 1;
+          }
+        }
+        if (totalWindows === 0) throw new Error("A weekly operating calendar must include at least one open window.");
+      }
+    }
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
+    const patch: Record<string, unknown> = { updated_by: context.userId, updated_at: new Date().toISOString() };
+    for (const key of ["enabled","acknowledgement_minutes","assignment_minutes","resolution_minutes","business_hours_only","operating_hours","warning_percent"] as const) if (data[key] !== undefined) patch[key] = data[key];
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await (supabaseAdmin as any).from("ai_escalation_sla_policies").update(patch).eq("id",data.id).eq("property_id",propertyId).select("id").maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("SLA policy not found in the active property.");
+    return { ok: true };
+  });
+
+export const updateEscalationReasonPriorityMap = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { reason_priority_map: Record<string, number> }) => {
+    const allowed = ["low_confidence","complaint","payment_issue","complex_request","human_requested","other"];
+    if (!input?.reason_priority_map || Object.keys(input.reason_priority_map).some((key) => !allowed.includes(key))
+      || allowed.some((key) => ![1,2,3].includes(input.reason_priority_map[key]))) {
+      throw new Error("Every escalation reason must map to priority 1, 2 or 3.");
+    }
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await (supabaseAdmin as any).from("ai_escalation_sla_policies")
+      .update({ reason_priority_map: data.reason_priority_map, updated_by: context.userId, updated_at: new Date().toISOString() })
+      .eq("property_id", propertyId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const listEscalationSlaPolicyEvents = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
+    const { data, error } = await (context.supabase as any).from("ai_escalation_sla_policy_events")
+      .select("id,priority,event_type,actor_id,old_policy,new_policy,occurred_at")
+      .eq("property_id",propertyId).order("occurred_at",{ascending:false}).limit(100);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const listEscalationSlaAlerts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { escalation_id: string }) => {
+    if (!input?.escalation_id) throw new Error("Escalation id is required.");
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
+    const { data: rows, error } = await (context.supabase as any).from("ai_escalation_sla_alerts")
+      .select("id,milestone,alert_type,due_at,threshold_percent,created_at")
+      .eq("property_id",propertyId).eq("escalation_id",data.escalation_id)
+      .order("created_at",{ascending:false}).limit(12);
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+export const listEscalationEvents = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { escalation_id: string }) => { if (!input?.escalation_id) throw new Error("Escalation id is required."); return input; })
+  .handler(async ({ data, context }) => {
+    const propertyId = await requirePropertyScope(context.supabase, context.userId);
+    const { data: rows, error } = await (context.supabase as any).from("ai_escalation_events").select("*")
+      .eq("property_id",propertyId).eq("escalation_id",data.escalation_id).order("occurred_at",{ascending:true}).limit(500);
+    if (error) throw new Error(error.message);
+    return rows ?? [];
   });
 
 // ── Analytics ───────────────────────────────────────────────────────────────
@@ -620,7 +774,7 @@ export const getOmnichannelAnalytics = createServerFn({ method: "GET" })
     const bookingIds = await propertyBookingIds(context.supabase, propertyId);
     const [escOpen, sessionDrafts, bookingDrafts] = await Promise.all([
       sessionIds.length
-        ? context.supabase.from("ai_escalations").select("id", { count: "exact", head: true }).in("session_id", sessionIds).in("status", ["open", "assigned", "in_progress"])
+        ? context.supabase.from("ai_escalations").select("id", { count: "exact", head: true }).in("session_id", sessionIds).in("status", ["open", "assigned", "acknowledged", "in_progress"])
         : Promise.resolve({ count: 0, error: null }),
       sessionIds.length
         ? context.supabase.from("ai_communication_drafts").select("id, session_id, booking_id").in("session_id", sessionIds).eq("status", "pending")
