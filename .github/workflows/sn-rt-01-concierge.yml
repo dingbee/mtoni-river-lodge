@@ -24,6 +24,7 @@ on:
       - "src/routes/_authenticated.admin.ai.concierge.escalations.tsx"
       - "scripts/ci/sn_rt_01_concierge_integrity.test.sql"
       - ".github/workflows/sn-rt-01-concierge.yml"
+      - ".github/workflows/sn-rt-01-concierge.yml"
   pull_request:
     branches:
       - main
