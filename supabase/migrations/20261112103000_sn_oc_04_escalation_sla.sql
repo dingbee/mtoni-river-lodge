@@ -702,6 +702,7 @@ BEGIN
 
   IF v_escalation.ops_task_id IS NOT NULL THEN
     UPDATE public.ops_tasks SET
+      priority=COALESCE(p_priority,priority),
       assigned_to=CASE WHEN v_next_status='open' AND v_escalation.status IN ('assigned','acknowledged','in_progress','resolved','dismissed') THEN NULL
         WHEN p_assigned_to IS NOT NULL THEN p_assigned_to ELSE assigned_to END,
       status=CASE WHEN v_next_status='in_progress' THEN 'in_progress'::public.ops_task_status
