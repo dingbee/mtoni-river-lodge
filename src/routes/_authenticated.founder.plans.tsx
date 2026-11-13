@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";\nimport type { ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -38,7 +39,8 @@ const moduleLabels: Record<string, string> = Object.fromEntries(COMMERCIAL_MODUL
 const arrayAt = (payload: Payload, key: keyof Payload): Row[] => Array.isArray(payload[key]) ? payload[key] : [];
 const asPayload = (raw: unknown): Payload => {
   const base = emptyPayload();
-  if (Array.isArray(raw)) { base.trials = raw as Row[]; return base; }\n  if (!raw || typeof raw !== "object") return base;
+  if (Array.isArray(raw)) { base.trials = raw as Row[]; return base; }
+  if (!raw || typeof raw !== "object") return base;
   const source = raw as Record<string, unknown>;
   for (const key of Object.keys(base) as (keyof Payload)[]) {
     const sourceKey = key === "trials" ? "trialPolicies" : key;
