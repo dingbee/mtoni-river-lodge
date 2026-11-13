@@ -20,7 +20,6 @@ on:
       - "supabase/migrations/20261109150000_sn_rt_01_concierge_runtime_integrity.sql"
       - "supabase/migrations/20261112103000_sn_oc_04_escalation_sla.sql"
       - "supabase/review/20261109150000_sn_rt_01_concierge_runtime_integrity.sql"
-      - "supabase/migrations/20261112103000_sn_oc_04_escalation_sla.sql"
       - "src/routes/_authenticated.admin.ai.concierge.escalations.tsx"
       - "scripts/ci/sn_rt_01_concierge_integrity.test.sql"
       - ".github/workflows/sn-rt-01-concierge.yml"
