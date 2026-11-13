@@ -694,7 +694,15 @@ export const updateEscalationSlaPolicy = createServerFn({ method: "POST" })
     const patch: Record<string, unknown> = { updated_by: context.userId, updated_at: new Date().toISOString() };
     for (const key of ["enabled","acknowledgement_minutes","assignment_minutes","resolution_minutes","business_hours_only","operating_hours","warning_percent"] as const) if (data[key] !== undefined) patch[key] = data[key];
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: row, error } = await (supabaseAdmin as any).from("ai_escalation_sla_policies").update(patch).eq("id",data.id).eq("property_id",propertyId).select("id").maybeSingle();
+    const { data: current, error: currentError } = await (supabaseAdmin as any).from("ai_escalation_sla_policies")
+      .select("id,priority,reason_priority_map").eq("id",data.id).eq("property_id",propertyId).maybeSingle();
+    if (currentError) throw new Error(currentError.message);
+    if (!current) throw new Error("SLA policy not found in the active property.");
+    if (data.enabled === false && Object.values(current.reason_priority_map ?? {}).includes(current.priority)) {
+      throw new Error("Remap escalation reasons away from this priority before disabling its SLA policy.");
+    }
+    const { data: row, error } = await (supabaseAdmin as any).from("ai_escalation_sla_policies").update(patch)
+      .eq("id",data.id).eq("property_id",propertyId).select("id").maybeSingle();
     if (error) throw new Error(error.message);
     if (!row) throw new Error("SLA policy not found in the active property.");
     return { ok: true };
@@ -713,6 +721,13 @@ export const updateEscalationReasonPriorityMap = createServerFn({ method: "POST"
   .handler(async ({ data, context }) => {
     const propertyId = await requirePropertyScope(context.supabase, context.userId, MANAGER_ROLES);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: enabledPolicies, error: policyError } = await (supabaseAdmin as any).from("ai_escalation_sla_policies")
+      .select("priority").eq("property_id",propertyId).eq("enabled",true);
+    if (policyError) throw new Error(policyError.message);
+    const enabledPriorities = new Set((enabledPolicies ?? []).map((row: any) => Number(row.priority)));
+    if (Object.values(data.reason_priority_map).some((priority) => !enabledPriorities.has(priority))) {
+      throw new Error("Every escalation reason must map to an enabled property SLA priority.");
+    }
     const { error } = await (supabaseAdmin as any).from("ai_escalation_sla_policies")
       .update({ reason_priority_map: data.reason_priority_map, updated_by: context.userId, updated_at: new Date().toISOString() })
       .eq("property_id", propertyId);
