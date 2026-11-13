@@ -100,8 +100,9 @@ describe("founder commercial policy payload validation", () => {
 
   it("accepts optional implementation fees in plan pricing", () => {
     const payload = pricingPayload();
-    payload.planPrices[0]!.implementationFeeMinor = 125000;
-    expect(validateFounderPolicyPayload("pricing", payload, "draft").planPrices[0]!.implementationFeeMinor).toBe(125000);
+    (payload.planPrices[0] as Record<string, unknown>).implementationFeeMinor = 125000;
+    const parsed = validateFounderPolicyPayload("pricing", payload, "draft") as { planPrices: Array<{ implementationFeeMinor?: number | null }> };
+    expect(parsed.planPrices[0]!.implementationFeeMinor).toBe(125000);
   });
 
   it("requires unique pricing coverage for each plan, currency and billing term", () => {
