@@ -119,7 +119,7 @@ async function resolveNotificationPropertyId(supabase: Sb, userId: string, decis
     if (!memberships.includes(explicit)) throw new Error("Intelligence decision property is not an active property membership.");
     return explicit;
   }
-  if (memberships.length === 1) return memberships[0];
+  if (memberships.length === 1) return memberships[0]!;
   if (memberships.length === 0) throw new Error("Intelligence notification requires an active property membership.");
   throw new Error("Intelligence notification requires an explicit property_id for multi-property users.");
 }
