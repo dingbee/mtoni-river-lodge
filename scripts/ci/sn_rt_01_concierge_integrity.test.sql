@@ -486,34 +486,56 @@ BEGIN
 END
 $sla_schema_tests$;
 
-SET request.jwt.claim.role = 'service_role';
-SET ROLE service_role;
-DO $sla_alert_tests$
+DO $sla_alert_fixture$
 DECLARE v_escalation uuid;
 DECLARE v_approaching_escalation uuid;
-DECLARE v_first integer;
-DECLARE v_second integer;
 BEGIN
   SELECT id INTO v_escalation FROM public.ai_escalations
   WHERE property_id='11111111-1111-4111-8111-111111111111' AND status='open'
   ORDER BY created_at LIMIT 1;
+  SELECT id INTO v_approaching_escalation FROM public.ai_escalations
+  WHERE property_id='22222222-2222-4222-8222-222222222222' AND status='open' LIMIT 1;
+  IF v_escalation IS NULL OR v_approaching_escalation IS NULL THEN
+    RAISE EXCEPTION 'SLA alert fixtures require open escalations in both properties';
+  END IF;
   UPDATE public.ai_escalations SET
     assignment_due_at=now()-interval '2 minutes',
     acknowledgement_due_at=now()-interval '2 minutes',
     resolution_due_at=now()-interval '2 minutes'
   WHERE id=v_escalation;
-  SELECT id INTO v_approaching_escalation FROM public.ai_escalations
-  WHERE property_id='22222222-2222-4222-8222-222222222222' AND status='open' LIMIT 1;
-  UPDATE public.ai_escalation_sla_policies SET acknowledgement_minutes=10,assignment_minutes=10,resolution_minutes=10,warning_percent=80
+  UPDATE public.ai_escalation_sla_policies
+  SET acknowledgement_minutes=10,assignment_minutes=10,resolution_minutes=10,warning_percent=80
   WHERE property_id='22222222-2222-4222-8222-222222222222' AND priority=2;
   UPDATE public.ai_escalations SET sla_cycle_started_at=now()-interval '9 minutes',
-    assignment_due_at=now()+interval '1 minute',acknowledgement_due_at=now()+interval '1 minute',resolution_due_at=now()+interval '1 minute'
+    assignment_due_at=now()+interval '1 minute',
+    acknowledgement_due_at=now()+interval '1 minute',
+    resolution_due_at=now()+interval '1 minute'
   WHERE id=v_approaching_escalation;
+  PERFORM set_config('sn_rt_01.escalation_id',v_escalation::text,false);
+  PERFORM set_config('sn_rt_01.approaching_escalation_id',v_approaching_escalation::text,false);
+END
+$sla_alert_fixture$;
+
+SET request.jwt.claim.role = 'service_role';
+SET ROLE service_role;
+DO $sla_alert_tests$
+DECLARE v_first integer;
+DECLARE v_second integer;
+BEGIN
   v_first := public.staynas_process_concierge_sla_alerts();
   v_second := public.staynas_process_concierge_sla_alerts();
   IF v_first < 6 OR v_second <> 0 THEN
     RAISE EXCEPTION 'SLA breach alerts must be generated once and remain idempotent';
   END IF;
+END
+$sla_alert_tests$;
+RESET ROLE;
+RESET request.jwt.claim.role;
+
+DO $sla_alert_assertions$
+DECLARE v_escalation uuid := current_setting('sn_rt_01.escalation_id')::uuid;
+DECLARE v_approaching_escalation uuid := current_setting('sn_rt_01.approaching_escalation_id')::uuid;
+BEGIN
   IF (SELECT count(*) FROM public.ai_escalation_sla_alerts WHERE escalation_id=v_escalation AND alert_type='breached') <> 3 THEN
     RAISE EXCEPTION 'assignment, acknowledgement and resolution breach alerts must all persist';
   END IF;
@@ -524,7 +546,7 @@ BEGIN
     RAISE EXCEPTION 'approaching-breach warnings must be emitted for each SLA milestone';
   END IF;
 END
-$sla_alert_tests$;
+$sla_alert_assertions$;
 RESET ROLE;
 RESET request.jwt.claim.role;
 
