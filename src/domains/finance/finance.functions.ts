@@ -7,6 +7,7 @@ import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
 import { financeRpc } from "@/lib/finance-rpc";
 import { recordManualPaymentInputSchema } from "./payment-contract";
 import { moneyByCurrency, sumCurrency } from "./finance-currency";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -242,7 +243,7 @@ export const getPaymentTimeline = createServerFn({ method: "POST" })
       context.supabase
         .from("bookings")
         .select(
-          "id, reference, guest_name, guest_email, total, deposit_amount, balance_amount, paid_amount, currency, payment_status, payment_method, payment_completed_at, payment_failed_at, payment_initiated_at, payment_mismatch_at, pesapal_order_tracking_id, pesapal_merchant_reference",
+          "id, property_id, reference, guest_name, guest_email, total, deposit_amount, balance_amount, paid_amount, currency, payment_status, payment_method, payment_completed_at, payment_failed_at, payment_initiated_at, payment_mismatch_at, pesapal_order_tracking_id, pesapal_merchant_reference",
         )
         .eq("id", data.bookingId)
         .maybeSingle(),
@@ -255,7 +256,17 @@ export const getPaymentTimeline = createServerFn({ method: "POST" })
     if (bookingResult.error) throw new Error(`Unable to load booking payment summary: ${bookingResult.error.message}`);
     if (eventsResult.error) throw new Error(`Unable to load payment timeline: ${eventsResult.error.message}`);
     if (!bookingResult.data) throw new Error("Booking not found or property access denied");
-    return { booking: bookingResult.data, events: eventsResult.data ?? [] };
+    // The authenticated booking lookup above is the authorization boundary.
+    // Read provider evidence with the service client only after that scoped
+    // lookup succeeds, and constrain it to the same property + booking.
+    const { data: providerEvidence, error: evidenceError } = await supabaseAdmin
+      .from("staynas_distribution_financial_evidence")
+      .select("id, provider_key, event_type, evidence, reconciliation_status, provider_reference, received_at, reconciliation_code")
+      .eq("property_id", bookingResult.data.property_id)
+      .eq("booking_id", data.bookingId)
+      .order("received_at", { ascending: false });
+    if (evidenceError) throw new Error(`Unable to load provider financial evidence: ${evidenceError.message}`);
+    return { booking: bookingResult.data, events: eventsResult.data ?? [], providerEvidence: providerEvidence ?? [] };
   });
 
 export const recordManualPayment = createServerFn({ method: "POST" })

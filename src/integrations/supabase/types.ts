@@ -18714,8 +18714,78 @@ export type Database = {
           },
         ]
       }
+      staynas_distribution_financial_evidence: {
+        Row: {
+          id: string
+          organisation_id: string
+          property_id: string
+          connection_id: string | null
+          account_grant_id: string
+          external_account_id: string
+          provider_key: string
+          environment: string
+          external_reservation_id: string
+          booking_id: string | null
+          source_inbox_id: string
+          provider_event_id: string
+          event_type: string
+          provider_reference: string | null
+          evidence: Json
+          evidence_fingerprint: string
+          reconciliation_status: string
+          reconciliation_code: string | null
+          received_at: string
+        }
+        Insert: {
+          id?: string
+          organisation_id: string
+          property_id: string
+          connection_id?: string | null
+          account_grant_id: string
+          external_account_id: string
+          provider_key: string
+          environment: string
+          external_reservation_id: string
+          booking_id?: string | null
+          source_inbox_id: string
+          provider_event_id: string
+          event_type: string
+          provider_reference?: string | null
+          evidence: Json
+          evidence_fingerprint: string
+          reconciliation_status: string
+          reconciliation_code?: string | null
+          received_at?: string
+        }
+        Update: {
+          id?: string
+          organisation_id?: string
+          property_id?: string
+          connection_id?: string | null
+          account_grant_id?: string
+          external_account_id?: string
+          provider_key?: string
+          environment?: string
+          external_reservation_id?: string
+          booking_id?: string | null
+          source_inbox_id?: string
+          provider_event_id?: string
+          event_type?: string
+          provider_reference?: string | null
+          evidence?: Json
+          evidence_fingerprint?: string
+          reconciliation_status?: string
+          reconciliation_code?: string | null
+          received_at?: string
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      staynas_get_booking_analytics: {
+        Args: { _property_id: string; _from: string; _to: string }
+        Returns: Json
+      }
       staynas_transition_booking: {
         Args: { _booking_id: string; _target_status: string; _notes?: string | null }
         Returns: Json

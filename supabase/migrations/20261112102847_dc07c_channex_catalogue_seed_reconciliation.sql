@@ -48,4 +48,15 @@ BEGIN
     SELECT 1
     FROM public.staynas_distribution_provider_catalogue
     WHERE provider_key = 'channex'
-      AND adap¶»§q«^
+      AND adapter_key = 'channex'
+      AND adapter_version = '1.0.0'
+      AND lifecycle = 'active'
+      AND capabilities = ARRAY['connection.health']::text[]
+      AND environment_config->'sandbox'->>'apiBaseUrl' = 'https://staging.channex.io/api/v1'
+  ) THEN
+    RAISE EXCEPTION 'DC-07C Channex sandbox catalogue seed is missing or invalid';
+  END IF;
+END
+$verify$;
+
+COMMIT;

@@ -108,6 +108,7 @@ function readPersisted(): Partial<PersistedState> {
 function BookPage() {
   const { propertySlug } = Route.useParams();
   const { property, branding } = Route.useLoaderData();
+  const recordPageViewFn = useServerFn(recordPublicDirectBookingAnalyticsEvent);
   // Step + session live in the URL so back/forward is always explicit
   // routing, never a browser-history pop into a different session.
   const {
@@ -383,7 +384,6 @@ function BookPage() {
   const totalOccupants = adults + childrenBelow6 + children7Plus;
   const paidOccupants = adults + children7Plus;
 
-  const recordPageViewFn = useServerFn(recordPublicDirectBookingAnalyticsEvent);
   const pageViewRecordedFor = useRef("");
   const checkAvailabilityFn = useServerFn(checkAvailability);
   const getBookingQuoteFn = useServerFn(getBookingQuote);
