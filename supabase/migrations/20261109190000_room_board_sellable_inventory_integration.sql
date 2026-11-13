@@ -262,7 +262,25 @@ END;
 $function$;
 
 COMMENT ON FUNCTION public.get_room_availability(date, date, uuid) IS
-  'Property-scoped availability; excludes unallocated dirty, inspection, maintenance and out-of-service physical units in addition to date inventory and active holds.';
+  'Property-scoped availability;
+
+CREATE OR REPLACE FUNCTION public.get_room_availability_for_property(
+  _property_id uuid,_check_in date,_check_out date
+) RETURNS TABLE(
+  room_id uuid,slug text,name text,base_price numeric,currency text,
+  capacity_adults integer,capacity_children integer,max_occupancy integer,
+  nights integer,nightly_total numeric,min_available integer,is_available boolean
+)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public
+AS $function$
+  SELECT * FROM public.get_room_availability(_check_in,_check_out,_property_id);
+$function$;
+REVOKE ALL ON FUNCTION public.get_room_availability_for_property(uuid,date,date)
+  FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.get_room_availability_for_property(uuid,date,date)
+  TO authenticated,service_role;
+
+ excludes unallocated dirty, inspection, maintenance and out-of-service physical units in addition to date inventory and active holds.';
 
 COMMENT ON FUNCTION public.get_staynas_room_availability_priced(date, date, uuid, integer, integer, integer) IS
   'Canonical priced availability; excludes unallocated dirty, inspection, maintenance and out-of-service physical units without double-counting booked/held inventory.';
