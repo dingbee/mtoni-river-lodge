@@ -172,6 +172,7 @@ INSERT INTO public.ai_concierge_sessions(id,property_id) VALUES
 ('22222222-2222-4222-8222-222222222223','22222222-2222-4222-8222-222222222222');
 
 \i supabase/review/20261109150000_sn_rt_01_concierge_runtime_integrity.sql
+\i supabase/migrations/20261112103000_sn_oc_04_escalation_sla.sql
 
 DO $test$
 BEGIN
