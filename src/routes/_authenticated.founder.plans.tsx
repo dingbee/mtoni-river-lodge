@@ -58,6 +58,32 @@ const panelClass = "rounded-xl border border-border bg-card p-4 sm:p-5";
 const headingClass = "text-sm font-semibold";
 const mutedClass = "text-xs leading-5 text-muted-foreground";
 
+function SectionTitle({ title, description, action }: { title: string; description?: string; action?: () => void }) {
+  return <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-base font-semibold">{title}</h2>{description && <p className={`mt-1 ${mutedClass}`}>{description}</p>}</div>{action && <button type="button" className={buttonClass} onClick={action}>+ Add record</button>}</div>;
+}
+function TableWrap({ children }: { children: ReactNode }) {
+  return <div className="mt-3 overflow-x-auto rounded-lg border border-border"><table className="w-full min-w-[680px] text-left text-xs">{children}</table></div>;
+}
+function Th({ children }: { children: ReactNode }) {
+  return <th className="border-b border-border bg-muted/40 px-3 py-2 font-semibold text-muted-foreground">{children}</th>;
+}
+function Td({ children }: { children: ReactNode }) {
+  return <td className="border-b border-border/70 px-3 py-2 align-top">{children}</td>;
+}
+function InlineInput({ value, onChange, type = "text" }: { value: unknown; onChange: (value: string) => void; type?: string }) {
+  return <input className="w-full min-w-24 rounded-md border border-border bg-background px-2 py-2 text-xs" type={type} value={value == null ? "" : String(value)} onChange={(event) => onChange(event.target.value)} />;
+}
+function InlineSelect({ value, options, onChange }: { value: unknown; options: Array<[string, string]>; onChange: (value: string) => void }) {
+  return <select className="w-full min-w-28 rounded-md border border-border bg-background px-2 py-2 text-xs" value={String(value ?? "")} onChange={(event) => onChange(event.target.value)}><option value="">Select…</option>{options.map(([key, name]) => <option key={key} value={key}>{name}</option>)}</select>;
+}
+function Field({ label, value, onChange, type = "text" }: { label: string; value: unknown; onChange: (value: string) => void; type?: string }) {
+  return <label className="block min-w-0 text-xs font-medium text-muted-foreground">{label}<input className={fieldClass} type={type} value={value == null ? "" : String(value)} onChange={(event) => onChange(event.target.value)} /></label>;
+}
+function Select({ label, value, options, onChange }: { label: string; value: unknown; options: Array<[string, string]>; onChange: (value: string) => void }) {
+  return <label className="block min-w-0 text-xs font-medium text-muted-foreground">{label}<select className={fieldClass} value={String(value ?? "")} onChange={(event) => onChange(event.target.value)}><option value="">Select…</option>{options.map(([key, name]) => <option key={key} value={key}>{name}</option>)}</select></label>;
+}
+
+
 export const Route = createFileRoute("/_authenticated/founder/plans")({
   beforeLoad: async () => {
     const { getCommercialFounderStatus } = await import("@/domains/_platform/founder-admin.functions");
@@ -156,30 +182,6 @@ function FounderCommercialAdministration() {
   const compatibility = arrayAt(payload, "compatibilityRules");
   const trials = payloads.trial_policy.trials;
 
-  const SectionTitle = useCallback(({ title, description, action }: { title: string; description?: string; action?: () => void }) => (
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div><h2 className="text-base font-semibold">{title}</h2>{description && <p className={`mt-1 ${mutedClass}`}>{description}</p>}</div>
-      {action && <button type="button" className={buttonClass} onClick={action}>+ Add record</button>}
-    </div>
-  ), []);
-  const TableWrap = useCallback(({ children }: { children: ReactNode }) => <div className="mt-3 overflow-x-auto rounded-lg border border-border"><table className="w-full min-w-[680px] text-left text-xs">{children}</table></div>, []);
-  const Th = useCallback(({ children }: { children: ReactNode }) => <th className="border-b border-border bg-muted/40 px-3 py-2 font-semibold text-muted-foreground">{children}</th>, []);
-  const Td = useCallback(({ children }: { children: ReactNode }) => <td className="border-b border-border/70 px-3 py-2 align-top">{children}</td>, []);
-  const InlineInput = useCallback(({ value, onChange, type = "text" }: { value: unknown; onChange: (value: string) => void; type?: string }) => <input className="w-full min-w-24 rounded-md border border-border bg-background px-2 py-2 text-xs" type={type} value={value == null ? "" : String(value)} onChange={(event) => onChange(event.target.value)} />, []);
-  const Field = useCallback(({ label, value, onChange, type = "text" }: { label: string; value: unknown; onChange: (value: string) => void; type?: string }) => (
-    <label className="block min-w-0 text-xs font-medium text-muted-foreground">{label}
-      <input className={fieldClass} type={type} value={value == null ? "" : String(value)} onChange={(event) => onChange(event.target.value)} />
-    </label>
-  ), []);
-  const Select = useCallback(({ label, value, options, onChange }: { label: string; value: unknown; options: Array<[string, string]>; onChange: (value: string) => void }) => (
-    <label className="block min-w-0 text-xs font-medium text-muted-foreground">{label}
-      <select className={fieldClass} value={String(value ?? "")} onChange={(event) => onChange(event.target.value)}>
-        <option value="">Select…</option>{options.map(([key, name]) => <option key={key} value={key}>{name}</option>)}
-      </select>
-    </label>
-  ), []);
-
-  const InlineSelect = useCallback(({ value, options, onChange }: { value: unknown; options: Array<[string, string]>; onChange: (value: string) => void }) => <select className="w-full min-w-28 rounded-md border border-border bg-background px-2 py-2 text-xs" value={String(value ?? "")} onChange={(event) => onChange(event.target.value)}><option value="">Select…</option>{options.map(([key, name]) => <option key={key} value={key}>{name}</option>)}</select>, []);
   const planOptions = COMMERCIAL_PLAN_CODES.map((code) => [code, planLabels[code]] as [string, string]);
   const moduleOptions = COMMERCIAL_MODULE_CODES.map((code) => [code, moduleLabels[code]] as [string, string]);
   const statusOptions = [["draft", "Draft"], ["published", "Published"], ["retired", "Retired"]] as [string, string][];
