@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect, useRouter, useRouterState } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Activity, AlertCircle, Building2, CalendarClock, CheckCircle2, CircleDollarSign, CreditCard, FileText, RefreshCw, Search, ShieldCheck, Users } from "lucide-react";
 import { getFounderCommercialWorkspace, getFounderSubscriptionSetup, replaceFounderCommercialSubscription, registerFounderCommercialAccount } from "@/domains/commercial/founder-control-centre.functions";
@@ -39,7 +39,9 @@ export const Route = createFileRoute("/_authenticated/founder")({
     const access = await getCommercialFounderStatus();
     if (!access.isFounderAdmin) throw redirect({ to: "/settings" });
   },
-  loader: async () => await getFounderCommercialWorkspace() as FounderWorkspaceData,
+  loader: async ({ location }) => location.pathname === "/founder"
+    ? await getFounderCommercialWorkspace() as FounderWorkspaceData
+    : null,
   component: FounderWorkspace,
 });
 
@@ -215,7 +217,7 @@ function SubscriptionAction({ subscription }: { subscription: Record<string, unk
   </form>;
 }
 
-function FounderWorkspace() {
+function FounderDashboard() {
   const data = Route.useLoaderData() as FounderWorkspaceData;
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -444,4 +446,12 @@ function FounderWorkspace() {
       <footer className="border-t pt-4 text-xs text-muted-foreground">Data snapshot: {new Date(data.generatedAt).toLocaleString()} · Founder access verified server-side · Read-only workspace at this implementation stage.</footer>
     </div>
   </main>;
+}
+
+/** Render the dashboard only at /founder; nested founder modules render through the route outlet. */
+function FounderWorkspace() {
+  const isFounderIndex = useRouterState({
+    select: (state) => state.location.pathname === "/founder" || state.location.pathname === "/founder/",
+  });
+  return isFounderIndex ? <FounderDashboard /> : <Outlet />;
 }
