@@ -18,6 +18,7 @@ on:
   push:
     branches:
       - feat/cps06-analytics-attribution
+      - fix/cps06-mainline-production-readiness
 
 permissions:
   contents: read
@@ -54,6 +55,9 @@ jobs:
         run: >-
           bunx eslint
           src/domains/analytics/direct-booking.functions.ts
+          src/domains/finance/finance.functions.ts
+          src/integrations/supabase/types.ts
+          src/modules/intelligence/orchestration/orchestration.server.ts
           src/domains/booking-campaigns/public-campaign.functions.ts
           src/lib/booking.functions.ts
           'src/routes/p.$propertySlug.book.tsx'
