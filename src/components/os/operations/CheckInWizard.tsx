@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import QRCode from "qrcode";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate } from "@tanstack/react-router";
@@ -9,9 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CheckCircle2, Circle } from "lucide-react";
+import { CheckCircle2, Circle, Copy, Download } from "lucide-react";
+import { buildGuestPortalUrl, guestPortalOrigin } from "@/domains/hospitality/guest-portal/guest-portal.shared";
+import { recordGuestPortalAccessEvent } from "@/domains/hospitality/guest-portal/guest-portal.functions";
 
-type Step = "verify" | "guest" | "payment" | "assign" | "notes" | "confirm";
+type Step = "verify" | "guest" | "payment" | "assign" | "notes" | "confirm" | "portal";
 const STEPS: { id: Step; label: string }[] = [
   { id: "verify", label: "Verify reservation" },
   { id: "guest", label: "Verify guest" },
@@ -19,25 +22,61 @@ const STEPS: { id: Step; label: string }[] = [
   { id: "assign", label: "Assign room" },
   { id: "notes", label: "Operational notes" },
   { id: "confirm", label: "Complete check-in" },
+  { id: "portal", label: "Guest Portal access" },
 ];
 
 export function CheckInWizard({ workspace }: { workspace: any }) {
   const [step, setStep] = useState<Step>("verify");
   const [arrivalTime, setArrivalTime] = useState(new Date().toTimeString().slice(0, 5));
   const [notes, setNotes] = useState("");
+  const [guestPortalLink, setGuestPortalLink] = useState<string | null>(null);
+  const [guestPortalQr, setGuestPortalQr] = useState<string | null>(null);
+  const [guestPortalAccessId, setGuestPortalAccessId] = useState<string | null>(null);
+  const [guestPortalIssueError, setGuestPortalIssueError] = useState<string | null>(null);
   const [roomStateId, setRoomStateId] = useState<string | undefined>(
     workspace.roomStates?.find((r: any) => r.state === "vacant_clean")?.id,
   );
   const nav = useNavigate();
   const fn = useServerFn(checkInBooking);
+  const recordAccessEvent = useServerFn(recordGuestPortalAccessEvent);
   const m = useMutation({
     mutationFn: () => fn({ data: { bookingId: workspace.booking.id, roomStateId, arrivalTime, notes: notes || undefined } }),
-    onSuccess: () => {
+    onSuccess: (result) => {
       toast.success("Check-in complete");
-      nav({ to: "/admin/operations/reservations/$id", params: { id: workspace.booking.id } });
+      setGuestPortalIssueError(result?.guestPortalAccess?.error ?? null);
+      const token = result?.guestPortalAccess?.token;
+      if (token) {
+        setGuestPortalLink(buildGuestPortalUrl(guestPortalOrigin(window.location.origin, import.meta.env.VITE_GUEST_PORTAL_BASE_URL), token));
+        setGuestPortalAccessId(result.guestPortalAccess.accessId);
+      }
+      setStep("portal");
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!guestPortalLink) {
+      setGuestPortalQr(null);
+      return;
+    }
+    QRCode.toDataURL(guestPortalLink, { errorCorrectionLevel: "H", margin: 4, width: 1200 })
+      .then(async (dataUrl) => {
+        if (!cancelled) {
+          setGuestPortalQr(dataUrl);
+          if (guestPortalAccessId) {
+            try { await recordAccessEvent({ data: { bookingId: workspace.booking.id, accessId: guestPortalAccessId, eventType: "qr_generated" } }); } catch { /* Credential access is unaffected by audit telemetry. */ }
+          }
+        }
+      })
+      .catch(async () => {
+        if (!cancelled) {
+          if (guestPortalAccessId) { try { await recordAccessEvent({ data: { bookingId: workspace.booking.id, accessId: guestPortalAccessId, eventType: "qr_generation_failed" } }); } catch { /* QR failure remains visible in the UI. */ } }
+          toast.error("Guest Portal QR generation failed. The secure link is still available.");
+        }
+      });
+    return () => { cancelled = true; };
+  }, [guestPortalLink, guestPortalAccessId, recordAccessEvent, workspace.booking.id]);
 
   const idx = STEPS.findIndex((s) => s.id === step);
   const next = () => setStep(STEPS[Math.min(idx + 1, STEPS.length - 1)].id);
@@ -127,9 +166,64 @@ export function CheckInWizard({ workspace }: { workspace: any }) {
             </p>
           </div>
         )}
+        {step === "portal" && (
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-semibold">Check-in complete — Guest Portal access</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                The guest credential was issued after the authoritative check-in succeeded. The QR code and shareable URL use the same credential.
+              </p>
+            </div>
+            {guestPortalLink ? (
+              <div className="grid gap-4 rounded-lg border p-4 sm:grid-cols-[180px_minmax(0,1fr)]">
+                <div className="flex flex-col items-center gap-2">
+                  {guestPortalQr ? (
+                    <img src={guestPortalQr} alt="StayNas Guest Portal QR code" className="h-44 w-44 rounded bg-white p-1" />
+                  ) : (
+                    <div className="flex h-44 w-44 items-center justify-center rounded bg-muted text-xs text-muted-foreground">Generating QR…</div>
+                  )}
+                  {guestPortalQr && (
+                    <a href={guestPortalQr} download={`staynas-guest-portal-${workspace.booking.id}.png`} className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                      <Download className="size-3.5" /> Download QR
+                    </a>
+                  )}
+                </div>
+                <div className="min-w-0 space-y-3">
+                  <p className="break-all font-mono text-xs">{guestPortalLink}</p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(guestPortalLink);
+                        if (guestPortalAccessId) { try { await recordAccessEvent({ data: { bookingId: workspace.booking.id, accessId: guestPortalAccessId, eventType: "link_shared" } }); } catch { /* Copy succeeds independently of audit telemetry. */ } }
+                        toast.success("Guest Portal link copied");
+                      } catch {
+                        toast.error("Clipboard access is unavailable on this device.");
+                      }
+                    }}
+                  >
+                    <Copy className="mr-1.5 size-3.5" /> Copy guest link
+                  </Button>
+                  <p className="text-xs text-muted-foreground">Keep this link private. Access is property- and reservation-scoped and expires at the configured checkout time.</p>
+                </div>
+              </div>
+            ) : (
+              <p className="rounded-md bg-muted/40 p-3 text-sm text-muted-foreground">
+                {guestPortalIssueError ??
+                  "An active credential already exists, so a new bearer link was not returned. Open the reservation workspace to inspect status and regenerate access if necessary."}
+              </p>
+            )}
+            <Button onClick={() => nav({ to: "/admin/operations/reservations/$id", params: { id: workspace.booking.id } })}>
+              Open reservation workspace
+            </Button>
+          </div>
+        )}
         <div className="mt-6 flex justify-between">
           <Button variant="outline" onClick={back} disabled={idx === 0}>Back</Button>
-          {step === "confirm" ? (
+          {step === "portal" ? (
+            <Button onClick={() => nav({ to: "/admin/operations/reservations/$id", params: { id: workspace.booking.id } })}>Done</Button>
+          ) : step === "confirm" ? (
             <Button onClick={() => m.mutate()} disabled={m.isPending}>{m.isPending ? "Checking in…" : "Complete check-in"}</Button>
           ) : (
             <Button onClick={next}>Continue</Button>

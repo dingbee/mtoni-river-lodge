@@ -23,11 +23,35 @@ export function trackGAEvent(
 ) {
   if (typeof window === "undefined") return;
 
+  const safePath = redactAnalyticsPath(window.location.pathname);
+  const safePageLocation =
+    safePath === window.location.pathname
+      ? window.location.href
+      : `${window.location.origin}${safePath}`;
+
+  const safeParams: GAEventParams = { ...params };
+  const destinationUrl = safeParams.destination_url;
+  if (typeof destinationUrl === "string") {
+    try {
+      const destination = new URL(destinationUrl, window.location.origin);
+      if (destination.pathname.startsWith("/guest/")) {
+        destination.pathname = "/guest/[credential]";
+        destination.search = "";
+        destination.hash = "";
+        safeParams.destination_url = destination.toString();
+      }
+    } catch {
+      if (destinationUrl.startsWith("/guest/")) {
+        safeParams.destination_url = "/guest/[credential]";
+      }
+    }
+  }
+
   const enriched: GAEventParams = {
-    page_location: window.location.href,
+    ...safeParams,
+    page_location: safePageLocation,
     page_title: typeof document !== "undefined" ? document.title : undefined,
-    page_path: window.location.pathname,
-    ...params,
+    page_path: safePath,
   };
 
   if (window.gtag) {
@@ -191,10 +215,15 @@ export function trackBrochureDownload(name: string, url: string, location: strin
   });
 }
 
+/** Remove bearer credentials from any analytics path before dispatch. */
+export function redactAnalyticsPath(path: string): string {
+  return path.startsWith("/guest/") ? "/guest/[credential]" : path;
+}
+
 /* ─── Page view (deduped) ─── */
 
 export function trackPageView(path: string, title?: string) {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || path.startsWith("/guest/")) return;
   const key = `page_view|${path}`;
   if (!shouldFire(key, 250)) return;
   trackGAEvent("page_view", {

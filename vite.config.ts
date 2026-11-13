@@ -29,6 +29,7 @@ export default defineConfig({
           /^\/email\//,
           /^\/sitemap.*\.xml$/,
           /^\/robots\.txt$/,
+          /^\/guest\//,
         ],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
@@ -44,7 +45,8 @@ export default defineConfig({
               !url.pathname.startsWith("/api/") &&
               !url.pathname.startsWith("/_serverFn") &&
               !url.pathname.startsWith("/lovable/") &&
-              !url.pathname.startsWith("/email/"),
+              !url.pathname.startsWith("/email/") &&
+              !url.pathname.startsWith("/guest/"),
             handler: "NetworkFirst",
             options: {
               cacheName: "mtoni-pages",

@@ -1,68 +1,319 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import QRCode from "qrcode";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Loader2, RefreshCw, ShieldCheck, ShieldOff } from "lucide-react";
+import {
+  Copy,
+  Download,
+  ExternalLink,
+  Loader2,
+  Printer,
+  RefreshCw,
+  Share2,
+  ShieldCheck,
+  ShieldOff,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { buildGuestPortalUrl, guestPortalOrigin } from "./guest-portal.shared";
 import {
   getGuestPortalAccessStatus,
   issueGuestPortalAccess,
   revokeGuestPortalAccess,
+  recordGuestPortalAccessEvent,
+  listGuestPortalOccupants,
+  addGuestPortalOccupant,
+  removeGuestPortalOccupant,
+  prepareGuestPortalDeliveryDraft,
 } from "./guest-portal.functions";
+
+function formatDate(value: string | null | undefined, timezone: string | null | undefined) {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: timezone || "UTC",
+  }).format(new Date(value));
+}
 
 export function GuestPortalAccessPanel({
   bookingId,
   bookingStatus,
+  issuedCredential,
+  onCredentialConsumed,
 }: {
   bookingId: string;
   bookingStatus: string;
+  issuedCredential?: { bookingId: string; token: string; accessId: string } | null;
+  onCredentialConsumed?: () => void;
 }) {
   const qc = useQueryClient();
   const [link, setLink] = useState<string | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [accessId, setAccessId] = useState<string | null>(null);
+  const [selectedGuestId, setSelectedGuestId] = useState<string | null>(null);
+  const [availableGuestId, setAvailableGuestId] = useState<string>("");
+  const [deliveryChannel, setDeliveryChannel] = useState<"whatsapp" | "email">("whatsapp");
   const statusFn = useServerFn(getGuestPortalAccessStatus);
   const issueFn = useServerFn(issueGuestPortalAccess);
   const revokeFn = useServerFn(revokeGuestPortalAccess);
+  const recordEventFn = useServerFn(recordGuestPortalAccessEvent);
+  const occupantsFn = useServerFn(listGuestPortalOccupants);
+  const addOccupantFn = useServerFn(addGuestPortalOccupant);
+  const removeOccupantFn = useServerFn(removeGuestPortalOccupant);
+  const prepareDeliveryFn = useServerFn(prepareGuestPortalDeliveryDraft);
 
-  const access = useQuery({
-    queryKey: ["guest-portal-access", bookingId],
-    queryFn: () => statusFn({ data: { bookingId } }),
-    enabled: bookingStatus === "checked_in",
+  const occupants = useQuery({
+    queryKey: ["guest-portal-occupants", bookingId],
+    queryFn: () => occupantsFn({ data: { bookingId } }),
   });
 
+  const activeGuestId = selectedGuestId ?? occupants.data?.leadGuest?.id ?? undefined;
+
+  useEffect(() => {
+    if (!selectedGuestId && occupants.data?.leadGuest?.id) {
+      setSelectedGuestId(occupants.data.leadGuest.id);
+    }
+  }, [selectedGuestId, occupants.data?.leadGuest?.id]);
+
+  const access = useQuery({
+    queryKey: ["guest-portal-access", bookingId, activeGuestId],
+    queryFn: () => statusFn({ data: { bookingId, guestId: activeGuestId } }),
+    enabled: true,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    setQrDataUrl(null);
+    if (!link) return;
+    QRCode.toDataURL(link, {
+      errorCorrectionLevel: "H",
+      margin: 4,
+      width: 1200,
+      color: { dark: "#111827", light: "#FFFFFF" },
+    })
+      .then(async (dataUrl) => {
+        if (!cancelled) {
+          setQrDataUrl(dataUrl);
+          if (accessId) {
+            try { await recordEventFn({ data: { bookingId, accessId, eventType: "qr_generated" } }); } catch { /* QR remains valid if audit telemetry is unavailable. */ }
+          }
+        }
+      })
+      .catch(async () => {
+        if (!cancelled) {
+          if (accessId) { try { await recordEventFn({ data: { bookingId, accessId, eventType: "qr_generation_failed" } }); } catch { /* QR failure remains visible in the UI. */ } }
+          toast.error("QR image could not be generated. The secure link remains valid.");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [link, accessId, bookingId, recordEventFn]);
+
   const issue = useMutation({
-    mutationFn: () => issueFn({ data: { bookingId } }),
+    mutationFn: () => issueFn({ data: { bookingId, guestId: activeGuestId, rotate: true } }),
     onSuccess: (result) => {
-      setLink(window.location.origin + "/guest/" + result.token);
-      toast.success("In-stay guest access created");
+      if (result.token) {
+        setAccessId(result.accessId);
+        setLink(buildGuestPortalUrl(guestPortalOrigin(window.location.origin, import.meta.env.VITE_GUEST_PORTAL_BASE_URL), result.token));
+        toast.success("Guest Portal access generated");
+      } else {
+        setLink(null);
+        toast.info("An active credential already exists. Regenerate it to reveal a new shareable link.");
+      }
       qc.invalidateQueries({ queryKey: ["guest-portal-access", bookingId] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
   const revoke = useMutation({
-    mutationFn: () => revokeFn({ data: { bookingId } }),
-    onSuccess: () => {
+    mutationFn: () =>
+      revokeFn({ data: { bookingId, guestId: activeGuestId ?? null } }),
+    onSuccess: (result) => {
       setLink(null);
-      toast.success("Guest portal access revoked");
+      setQrDataUrl(null);
+      setAccessId(null);
+      toast.success(result.revokedCount ? "Guest Portal access revoked" : "No active credential to revoke");
       qc.invalidateQueries({ queryKey: ["guest-portal-access", bookingId] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const prepareDelivery = useMutation({
+    mutationFn: () => {
+      const currentAccessId = accessId ?? access.data?.accessId;
+      if (!link || !currentAccessId) throw new Error("Generate or reveal the active Guest Portal link before preparing delivery.");
+      return prepareDeliveryFn({ data: { bookingId, accessId: currentAccessId, channel: deliveryChannel, portalUrl: link } });
+    },
+    onSuccess: () => {
+      toast.success("Delivery draft prepared. Review and approve it in AI Concierge Drafts before dispatch.");
+      qc.invalidateQueries({ queryKey: ["guest-portal-access", bookingId] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const addOccupant = useMutation({
+    mutationFn: () => addOccupantFn({ data: { bookingId, guestId: availableGuestId } }),
+    onSuccess: () => {
+      setAvailableGuestId("");
+      toast.success("Registered occupant added to reservation");
+      qc.invalidateQueries({ queryKey: ["guest-portal-occupants", bookingId] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const removeOccupant = useMutation({
+    mutationFn: (guestId: string) => removeOccupantFn({ data: { bookingId, guestId } }),
+    onSuccess: () => {
+      toast.success("Occupant removed and their access revoked");
+      setSelectedGuestId(occupants.data?.leadGuest?.id ?? null);
+      setLink(null);
+      setQrDataUrl(null);
+      setAccessId(null);
+      qc.invalidateQueries({ queryKey: ["guest-portal-occupants", bookingId] });
+      qc.invalidateQueries({ queryKey: ["guest-portal-access", bookingId] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  async function copyLink() {
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link);
+      if (accessId) { try { await recordEventFn({ data: { bookingId, accessId, eventType: "link_shared" } }); } catch { /* Sharing succeeds independently of audit telemetry. */ } }
+      toast.success("Guest Portal link copied");
+    } catch {
+      toast.error("Clipboard access is unavailable on this device.");
+    }
+  }
+
+  async function shareLink() {
+    if (!link) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "StayNas Guest Portal",
+          text: "Open your secure guest portal for this stay.",
+          url: link,
+        });
+        if (accessId) { try { await recordEventFn({ data: { bookingId, accessId, eventType: "link_shared" } }); } catch { /* Sharing succeeds independently of audit telemetry. */ } }
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") toast.error("The share action could not be completed.");
+      }
+      return;
+    }
+    await copyLink();
+  }
+
+  function printCard() {
+    if (!qrDataUrl || !access.data) return;
+    const printWindow = window.open("", "_blank", "width=640,height=760");
+    if (!printWindow) {
+      toast.error("Allow pop-ups to print the guest access card.");
+      return;
+    }
+    const escapeHtml = (value: string) =>
+      value.replace(/[&<>"']/g, (char) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!,
+      );
+    const property = escapeHtml(access.data.propertyName);
+    const guest = escapeHtml(access.data.guestName);
+    printWindow.opener = null;
+    printWindow.document.write(`<!doctype html><html><head><title>Guest Portal Access</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <style>body{font-family:Arial,sans-serif;display:flex;justify-content:center;padding:32px;color:#111}
+      .card{width:440px;text-align:center;border:1px solid #ddd;border-radius:18px;padding:28px}
+      img{width:300px;height:300px;max-width:100%}h1{font-size:22px}p{line-height:1.5;color:#444}
+      @media print{body{padding:0}.card{border:0}}</style></head><body>
+      <main class="card"><h1>${property}</h1><p>Guest Portal Access</p><p>${guest}</p>
+      <img src="${qrDataUrl}" alt="Guest Portal QR code">
+      <p>Scan to open your StayNas Guest Portal.</p>
+      <p>Keep this access card private. Access ends at checkout or when revoked.</p></main>
+      <script>window.onload=()=>window.print();</script></body></html>`);
+    printWindow.document.close();
+  }
+
+  useEffect(() => {
+    if (access.data && !access.data.active) {
+      setLink(null);
+      setQrDataUrl(null);
+      setAccessId(null);
+    }
+  }, [access.data?.active]);
+
+  useEffect(() => {
+    if (!issuedCredential || issuedCredential.bookingId !== bookingId) return;
+    setAccessId(issuedCredential.accessId);
+    setLink(buildGuestPortalUrl(
+      guestPortalOrigin(window.location.origin, import.meta.env.VITE_GUEST_PORTAL_BASE_URL),
+      issuedCredential.token,
+    ));
+    onCredentialConsumed?.();
+  }, [issuedCredential, bookingId, onCredentialConsumed]);
+
+  const active = access.data?.active ?? false;
 
   return (
     <section className="mt-4 rounded-lg border border-border p-4 text-sm">
       <div className="flex items-center gap-2">
         <ShieldCheck className="h-4 w-4 text-muted-foreground" />
         <p className="text-[0.65rem] uppercase tracking-[0.22em] text-muted-foreground">
-          In-stay guest portal
+          Guest Portal access
         </p>
       </div>
 
-      {bookingStatus !== "checked_in" ? (
-        <p className="mt-2 text-muted-foreground">
-          Guest access can be issued after Front Desk records the guest as checked in.
-        </p>
-      ) : access.isLoading ? (
+      {occupants.data && (
+        <div className="mt-3 grid gap-2 rounded-md bg-muted/30 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Guest identity</label>
+            <Select value={activeGuestId ?? ""} onValueChange={(value) => {
+              setSelectedGuestId(value);
+              setLink(null);
+              setQrDataUrl(null);
+              setAccessId(null);
+            }}>
+              <SelectTrigger><SelectValue placeholder="Select registered guest" /></SelectTrigger>
+              <SelectContent>
+                {occupants.data.leadGuest && (
+                  <SelectItem value={occupants.data.leadGuest.id}>{occupants.data.leadGuest.full_name} (Lead guest)</SelectItem>
+                )}
+                {occupants.data.occupants.map((guest: { id: string; full_name: string | null }) => (
+                  <SelectItem key={guest.id} value={guest.id}>{guest.full_name} (Occupant)</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {occupants.data.availableGuests.length > 0 && bookingStatus === "checked_in" && (
+            <>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Add registered occupant</label>
+                <Select value={availableGuestId} onValueChange={setAvailableGuestId}>
+                  <SelectTrigger><SelectValue placeholder="Choose existing guest" /></SelectTrigger>
+                  <SelectContent>
+                    {occupants.data.availableGuests.map((guest: { id: string; full_name: string | null }) => (
+                      <SelectItem key={guest.id} value={guest.id}>{guest.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => addOccupant.mutate()} disabled={!availableGuestId || addOccupant.isPending}>
+                {addOccupant.isPending ? "Adding…" : "Add occupant"}
+              </Button>
+            </>
+          )}
+          {activeGuestId && activeGuestId !== occupants.data.leadGuest?.id && bookingStatus === "checked_in" && (
+            <Button size="sm" variant="outline" onClick={() => {
+              if (window.confirm("Remove this registered occupant and revoke their Guest Portal access?")) removeOccupant.mutate(activeGuestId);
+            }} disabled={removeOccupant.isPending}>
+              Remove occupant
+            </Button>
+          )}
+        </div>
+      )}
+
+      {access.isLoading ? (
         <p className="mt-2 flex items-center gap-2 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Checking access…
         </p>
@@ -70,76 +321,153 @@ export function GuestPortalAccessPanel({
         <p className="mt-2 text-destructive">{(access.error as Error).message}</p>
       ) : (
         <div className="mt-3 space-y-3">
-          {access.data?.active ? (
-            <p className="text-muted-foreground">
-              <span className="font-medium text-foreground">Access active.</span> The bearer link is
-              shown only when first issued. Rotate it if the guest needs a new link.
-              {access.data.expiresAt
-                ? " Expires " + new Date(access.data.expiresAt).toLocaleString() + "."
-                : ""}
+          {bookingStatus !== "checked_in" && (
+            <p className="rounded-md bg-muted/40 p-3 text-muted-foreground">
+              {bookingStatus === "completed" && access.data?.active
+                ? `This stay has checked out. The configured grace period keeps Guest Portal access active until ${formatDate(access.data.expiresAt, access.data.timezone)}.`
+                : bookingStatus === "completed"
+                  ? "This stay has checked out. Guest Portal access has expired or the configured checkout grace period has ended."
+                  : bookingStatus === "cancelled" || bookingStatus === "no_show"
+                    ? "This reservation is no longer eligible for Guest Portal access."
+                    : "Guest Portal access becomes eligible after successful check-in."}
             </p>
-          ) : (
-            <p className="text-muted-foreground">
-              No active in-stay guest access credential exists for this booking.
+          )}
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div><span className="text-muted-foreground">Guest</span><p className="font-medium">{access.data?.guestName}</p></div>
+            <div><span className="text-muted-foreground">Reservation</span><p className="font-medium">{access.data?.reservationReference}</p></div>
+            <div><span className="text-muted-foreground">Property / room</span><p className="font-medium">{access.data?.propertyName}{access.data?.roomName ? " · " + access.data.roomName : ""}</p></div>
+            <div><span className="text-muted-foreground">Credential status</span><p className="font-medium capitalize">{access.data?.status?.replaceAll("_", " ")}</p></div>
+            <div><span className="text-muted-foreground">Issued</span><p>{formatDate(access.data?.createdAt, access.data?.timezone)}</p></div>
+            <div><span className="text-muted-foreground">Expires</span><p>{formatDate(access.data?.expiresAt, access.data?.timezone)}</p></div>
+            <div><span className="text-muted-foreground">Issued by</span><p className="break-all">{access.data?.createdBy ?? "—"}</p></div>
+            <div><span className="text-muted-foreground">Last portal access</span><p>{formatDate(access.data?.lastUsedAt, access.data?.timezone)}</p></div>
+          </div>
+
+          {active && !link && (
+            <p className="rounded-md bg-muted/40 p-3 text-muted-foreground">
+              A valid credential exists. For security, the original bearer URL cannot be recovered. Regenerate access to create and reveal a new link and QR code; the previous link will stop working.
             </p>
           )}
 
           {link && (
-            <div className="rounded-md border border-border bg-muted/30 p-3">
-              <p className="text-xs text-muted-foreground">
-                Share this private link directly with the checked-in guest. It grants access to this
-                booking only.
-              </p>
-              <p className="mt-2 break-all font-mono text-xs">{link}</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    void navigator.clipboard.writeText(link);
-                    toast.success("Guest portal link copied");
-                  }}
-                >
-                  <Copy className="mr-1.5 h-3.5 w-3.5" /> Copy link
-                </Button>
-                <Button size="sm" variant="outline" asChild>
-                  <a href={link} target="_blank" rel="noreferrer">
-                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Open portal
+            <div className="grid gap-3 rounded-md border border-border bg-muted/20 p-3 sm:grid-cols-[160px_minmax(0,1fr)]">
+              <div className="flex flex-col items-center gap-2">
+                {qrDataUrl ? (
+                  <img src={qrDataUrl} alt="StayNas Guest Portal QR code" className="h-40 w-40 rounded bg-white p-1" />
+                ) : (
+                  <div className="flex h-40 w-40 items-center justify-center rounded bg-muted text-xs text-muted-foreground">
+                    Generating QR…
+                  </div>
+                )}
+                {qrDataUrl && (
+                  <a href={qrDataUrl} download={`staynas-guest-portal-${bookingId}.png`} className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                    <Download className="h-3.5 w-3.5" /> Download QR PNG
                   </a>
-                </Button>
+                )}
+              </div>
+              <div className="min-w-0 space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  This QR code encodes the exact same secure URL as the Copy Link action.
+                </p>
+                <p className="break-all font-mono text-xs">{link}</p>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={copyLink}><Copy className="mr-1.5 h-3.5 w-3.5" />Copy link</Button>
+                  <Button size="sm" variant="outline" onClick={shareLink}><Share2 className="mr-1.5 h-3.5 w-3.5" />Share</Button>
+                  <Button size="sm" variant="outline" onClick={printCard} disabled={!qrDataUrl}><Printer className="mr-1.5 h-3.5 w-3.5" />Print card</Button>
+                  <Button size="sm" variant="outline" asChild><a href={link} target="_blank" rel="noreferrer"><ExternalLink className="mr-1.5 h-3.5 w-3.5" />Open portal</a></Button>
+                </div>
               </div>
             </div>
           )}
 
           <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              onClick={() => issue.mutate()}
-              disabled={issue.isPending || revoke.isPending}
-            >
-              {issue.isPending ? (
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-              )}
-              {access.data?.active ? "Rotate access link" : "Create guest portal link"}
-            </Button>
-            {access.data?.active && (
+            {bookingStatus === "checked_in" && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  const message = active
+                    ? "Regenerate guest access? The previous link and QR code will be invalidated."
+                    : "Generate a secure Guest Portal credential for this checked-in guest?";
+                  if (window.confirm(message)) issue.mutate();
+                }}
+                disabled={issue.isPending || revoke.isPending}
+              >
+                {issue.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}
+                {active ? "Regenerate access" : "Generate access"}
+              </Button>
+            )}
+            {active && (
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => revoke.mutate()}
+                onClick={() => {
+                  if (window.confirm("Revoke this guest's Guest Portal access immediately?")) revoke.mutate();
+                }}
                 disabled={revoke.isPending || issue.isPending}
               >
-                {revoke.isPending ? (
-                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <ShieldOff className="mr-1.5 h-3.5 w-3.5" />
-                )}
+                {revoke.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <ShieldOff className="mr-1.5 h-3.5 w-3.5" />}
                 Revoke access
               </Button>
             )}
           </div>
+
+          <div className="border-t border-border pt-3">
+            <p className="text-xs font-medium">Credential history</p>
+            {access.data?.events?.length ? (
+              <ul className="mt-2 space-y-1.5 text-xs text-muted-foreground">
+                {access.data.events.map((event: { id: string; event_type: string; actor_id: string | null; created_at: string }) => (
+                  <li key={event.id} className="flex flex-wrap justify-between gap-2">
+                    <span className="capitalize">{event.event_type.replaceAll("_", " ")}{event.actor_id ? " · " + event.actor_id : ""}</span>
+                    <time>{formatDate(event.created_at, access.data?.timezone)}</time>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-1 text-xs text-muted-foreground">No credential events recorded.</p>
+            )}
+          </div>
+
+          <div className="rounded-md border border-border p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-xs font-medium">Property messaging delivery</p>
+                <p className="text-xs text-muted-foreground">
+                  Status: <span className="capitalize">{(access.data?.deliveryStatus ?? "not_sent").replaceAll("_", " ")}</span>
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Select value={deliveryChannel} onValueChange={(value) => setDeliveryChannel(value as "whatsapp" | "email")}>
+                  <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => prepareDelivery.mutate()}
+                  disabled={!active || !link || prepareDelivery.isPending}
+                >
+                  {prepareDelivery.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+                  Prepare delivery draft
+                </Button>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Uses the property's verified provider binding and existing dispatch ledger. A manager must review and approve the draft; guest consent, WhatsApp service-window and template rules are enforced by dispatch.
+            </p>
+            {access.data?.deliveryDraftId && (
+              <a href="/admin/ai/concierge/drafts" className="mt-2 inline-block text-xs font-medium text-primary underline">
+                Review delivery draft in AI Concierge
+              </a>
+            )}
+          </div>
+          {!access.data?.multipleGuestAccess && (
+            <p className="text-xs text-muted-foreground">
+              Current reservation data supports one linked lead-guest identity. Separate registered-occupant credentials are not yet enabled.
+            </p>
+          )}
         </div>
       )}
     </section>

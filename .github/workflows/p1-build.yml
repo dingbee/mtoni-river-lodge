@@ -12,6 +12,7 @@ on:
       - feat/spe-07-*
       - feat/spe-08-*
       - feat/cc03-founder-*
+      - feat/guest-portal-access-management-release
   pull_request:
     branches:
       - main

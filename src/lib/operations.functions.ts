@@ -239,7 +239,33 @@ export const checkInBooking = createServerFn({ method: "POST" })
       _notes: data.notes ?? null,
     });
     if (error) throw new Error(error.message);
-    return result ?? { ok: true };
+    let guestPortalAccess: { issued: boolean; alreadyActive: boolean; expiresAt: string | null; token: string | null; accessId: string; error?: string } = {
+      issued: false,
+      alreadyActive: false,
+      expiresAt: null,
+      token: null,
+      accessId: "",
+    };
+    try {
+      const { ensureGuestPortalAccessAfterCheckIn } = await import(
+        "@/domains/hospitality/guest-portal/guest-portal-access.server"
+      );
+      guestPortalAccess = await ensureGuestPortalAccessAfterCheckIn(
+        context.supabase,
+        context.userId,
+        data.bookingId,
+      );
+    } catch {
+      guestPortalAccess = {
+        issued: false,
+        alreadyActive: false,
+        expiresAt: null,
+        token: null,
+        accessId: "",
+        error: "Check-in succeeded, but Guest Portal access issuance failed. Retry from the reservation access panel.",
+      };
+    }
+    return { ...(result !== null && typeof result === "object" && !Array.isArray(result) ? result as Record<string, unknown> : { ok: true }), guestPortalAccess };
   });
 
 const checkOutSchema = z.object({

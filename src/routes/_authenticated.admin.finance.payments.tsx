@@ -244,7 +244,7 @@ function Payments() {
                     Provider notifications are reconciliation evidence only. They do not record a payment, refund or settlement in StayNas.
                   </p>
                   <div className="space-y-2">
-                    {timeline!.providerEvidence.map((item: any) => {
+                    {timeline!.providerEvidence.map((item) => {
                       const evidence = (item.evidence ?? {}) as Record<string, unknown>;
                       const amount = evidence.settlementAmount ?? evidence.paymentAmount
                         ?? evidence.refundAmount ?? evidence.grossAmount;
