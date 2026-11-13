@@ -368,7 +368,8 @@ BEGIN
     IF OLD.assigned_to IS DISTINCT FROM NEW.assigned_to THEN
       v_event := CASE WHEN NEW.assigned_to IS NULL THEN 'unassigned' WHEN OLD.assigned_to IS NULL THEN 'assigned' ELSE 'reassigned' END;
       INSERT INTO public.ai_escalation_events(property_id,escalation_id,event_type,from_status,to_status,from_assignee,to_assignee,actor_id,metadata)
-      VALUES (NEW.property_id,NEW.id,v_event,OLD.status,NEW.status,OLD.assigned_to,NEW.assigned_to,v_actor,jsonb_build_object('assignment_due_at',NEW.assignment_due_at,'acknowledgement_due_at',NEW.acknowledgement_due_at,'resolution_due_at',NEW.resolution_due_at,'priority',NEW.priority,'sla_cycle_started_at',NEW.sla_cycle_started_at));
+      VALUES (NEW.property_id,NEW.id,v_event,OLD.status,NEW.status,OLD.assigned_to,NEW.assigned_to,v_actor,jsonb_build_object('assignment_due_at',NEW.assignment_due_at,'acknowledgement_due_at',NEW.acknowledgement_due_at,'resolution_due_at',NEW.resolution_due_at,'priority',NEW.priority,'sla_cycle_started_at',NEW.sla_cycle_started_at,
+        'old_assignment_due_at',OLD.assignment_due_at,'old_acknowledgement_due_at',OLD.acknowledgement_due_at,'old_resolution_due_at',OLD.resolution_due_at,'old_sla_policy_id',OLD.sla_policy_id));
     END IF;
     IF OLD.status IS DISTINCT FROM NEW.status THEN
       v_event := CASE
@@ -381,20 +382,35 @@ BEGIN
         ELSE NULL END;
       IF v_event IS NOT NULL THEN
         INSERT INTO public.ai_escalation_events(property_id,escalation_id,event_type,from_status,to_status,actor_id,metadata)
-        VALUES (NEW.property_id,NEW.id,v_event,OLD.status,NEW.status,v_actor,jsonb_build_object('assignment_due_at',NEW.assignment_due_at,'acknowledgement_due_at',NEW.acknowledgement_due_at,'resolution_due_at',NEW.resolution_due_at,'priority',NEW.priority,'reopened_at',NEW.reopened_at,'sla_cycle_started_at',NEW.sla_cycle_started_at,'resolution_notes',NEW.resolution_notes));
+        VALUES (NEW.property_id,NEW.id,v_event,OLD.status,NEW.status,v_actor,jsonb_build_object('assignment_due_at',NEW.assignment_due_at,'acknowledgement_due_at',NEW.acknowledgement_due_at,'resolution_due_at',NEW.resolution_due_at,'priority',NEW.priority,'reopened_at',NEW.reopened_at,'sla_cycle_started_at',NEW.sla_cycle_started_at,'resolution_notes',NEW.resolution_notes,
+          'old_assignment_due_at',OLD.assignment_due_at,'old_acknowledgement_due_at',OLD.acknowledgement_due_at,'old_resolution_due_at',OLD.resolution_due_at,'old_sla_policy_id',OLD.sla_policy_id));
       END IF;
     END IF;
     IF OLD.priority IS DISTINCT FROM NEW.priority THEN
       INSERT INTO public.ai_escalation_events(property_id,escalation_id,event_type,metadata,actor_id)
-      VALUES (NEW.property_id,NEW.id,'priority_changed',jsonb_build_object('from',OLD.priority,'to',NEW.priority),v_actor)
-      RETURNING id INTO v_event_id;
-      PERFORM public.staynas_set_concierge_escalation_deadlines_for_row(NEW.id);
-      UPDATE public.ai_escalation_events event SET metadata=event.metadata || jsonb_build_object(
-        'assignment_due_at',escalation.assignment_due_at,
-        'acknowledgement_due_at',escalation.acknowledgement_due_at,
-        'resolution_due_at',escalation.resolution_due_at,
-        'sla_policy_id',escalation.sla_policy_id
-      ) FROM public.ai_escalations escalation WHERE event.id=v_event_id AND escalation.id=NEW.id;
+      VALUES (NEW.property_id,NEW.id,'priority_changed',jsonb_build_object(
+        'from',OLD.priority,'to',NEW.priority,
+        'old_assignment_due_at',OLD.assignment_due_at,'old_acknowledgement_due_at',OLD.acknowledgement_due_at,
+        'old_resolution_due_at',OLD.resolution_due_at,'old_sla_policy_id',OLD.sla_policy_id,
+        'assignment_due_at',NEW.assignment_due_at,'acknowledgement_due_at',NEW.acknowledgement_due_at,
+        'resolution_due_at',NEW.resolution_due_at,'sla_policy_id',NEW.sla_policy_id
+      ),v_actor);
+    END IF;
+    IF OLD.priority IS NOT DISTINCT FROM NEW.priority
+       AND OLD.status IS NOT DISTINCT FROM NEW.status
+       AND OLD.assigned_to IS NOT DISTINCT FROM NEW.assigned_to
+       AND (OLD.sla_policy_id IS DISTINCT FROM NEW.sla_policy_id
+         OR OLD.assignment_due_at IS DISTINCT FROM NEW.assignment_due_at
+         OR OLD.acknowledgement_due_at IS DISTINCT FROM NEW.acknowledgement_due_at
+         OR OLD.resolution_due_at IS DISTINCT FROM NEW.resolution_due_at) THEN
+      INSERT INTO public.ai_escalation_events(property_id,escalation_id,event_type,metadata,actor_id)
+      VALUES (NEW.property_id,NEW.id,'sla_policy_changed',jsonb_build_object(
+        'sla_policy_id',NEW.sla_policy_id,'old_sla_policy_id',OLD.sla_policy_id,
+        'assignment_due_at',NEW.assignment_due_at,'old_assignment_due_at',OLD.assignment_due_at,
+        'acknowledgement_due_at',NEW.acknowledgement_due_at,'old_acknowledgement_due_at',OLD.acknowledgement_due_at,
+        'resolution_due_at',NEW.resolution_due_at,'old_resolution_due_at',OLD.resolution_due_at,
+        'sla_cycle_started_at',NEW.sla_cycle_started_at
+      ),v_actor);
     END IF;
   END IF;
   RETURN NEW;
@@ -467,7 +483,7 @@ CREATE TRIGGER ai_escalation_sla_policy_refresh
 
 DROP TRIGGER IF EXISTS ai_escalations_record_lifecycle_event ON public.ai_escalations;
 CREATE TRIGGER ai_escalations_record_lifecycle_event
-  AFTER INSERT OR UPDATE OF status,assigned_to,priority ON public.ai_escalations
+  AFTER INSERT OR UPDATE OF status,assigned_to,priority,sla_policy_id,assignment_due_at,acknowledgement_due_at,resolution_due_at ON public.ai_escalations
   FOR EACH ROW EXECUTE FUNCTION public.staynas_record_concierge_escalation_event();
 
 -- Seed one auditable creation event for each pre-existing escalation.
