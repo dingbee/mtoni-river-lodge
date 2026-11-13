@@ -81,7 +81,7 @@ export const getDirectBookingAnalytics = createServerFn({ method: "POST" })
 
     const startAt = localMidnightUtc(from, property.timezone);
     const endAt = localMidnightUtc(addDays(to, 1), property.timezone);
-    const { data: report, error: reportError } = await context.supabase.rpc(
+    const { data: report, error: reportError } = await (context.supabase as any).rpc(
       "staynas_get_booking_analytics",
       { _property_id: propertyId, _from: startAt, _to: endAt },
     );
