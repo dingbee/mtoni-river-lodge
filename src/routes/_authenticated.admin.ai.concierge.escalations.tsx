@@ -53,7 +53,7 @@ function EscalationsPage() {
         {policies.isLoading && <p className="text-sm text-muted-foreground">Loading SLA policies…</p>}
         <div className="grid gap-3 lg:grid-cols-3">
           {(policies.data ?? []).map((policy: any) => (
-            <SlaPolicyEditor key={policy.id} policy={policy} timezone={policy.property_timezone} saving={savePolicy.isPending} onSave={savePolicy.mutate} />
+            <SlaPolicyEditor key={`${policy.id}:${policy.updated_at}`} policy={policy} timezone={policy.property_timezone} saving={savePolicy.isPending} onSave={savePolicy.mutate} />
           ))}
         </div>
         {policies.data?.[0] && <ReasonPriorityEditor key={JSON.stringify(policies.data[0].reason_priority_map)} initial={policies.data[0].reason_priority_map} saving={saveReasonMap.isPending} onSave={saveReasonMap.mutate} />}
