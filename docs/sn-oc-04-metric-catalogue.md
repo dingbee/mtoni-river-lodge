@@ -1,0 +1,122 @@
+# SN-OC-04 — Operational Intelligence Metric Catalogue
+
+**Status:** implementation contract / UAT baseline  
+**Scope:** property-scoped Concierge and omnichannel operational intelligence  
+**Source-of-truth rule:** this catalogue reports only persisted, traceable source records. Missing evidence is `unavailable`, never a synthetic zero.
+
+## Tenant and environment boundary
+
+The approved UAT tenant is Nolmark CDMA (`f44ff48a-5449-4464-b0cb-83295fadb468`), timezone `Africa/Dar_es_Salaam`, currency `TZS`. The shared Supabase project contains other tenant data. UAT application fixtures may be scoped to this tenant, but schema migrations must be verified against an isolated database before any shared-project application. No production promotion is authorized.
+
+## Verified source contracts
+
+| Domain | Source | Verified fields / constraints | Limitation |
+|---|---|---|---|
+| Sessions | `ai_concierge_sessions` | `id, property_id, channel, created_at, last_active_at, escalated`; property FK and unique (id, property_id) | No explicit resolved/closed timestamp verified |
+| Legacy messages | `ai_concierge_messages` | `session_id, role, created_at, latency_ms, source_omnichannel_message_id`; roles user/assistant/system | Do not use for provider delivery; role alone does not distinguish human vs AI |
+| Omnichannel messages | `ai_omnichannel_messages` | `property_id, session_id, channel, direction, actor_type, message_type, status, occurred_at, created_at`; idempotent provider/client identifiers | Use only non-event inbound guest/provider and outbound assistant/staff messages; exclude system/provider events |
+| Delivery | `ai_omnichannel_delivery_events` | Provider event ID, message, type, occurred/received timestamps | Delivery is not guest response or booking conversion |
+| Dispatch | `ai_communication_dispatch_attempts` | Provider, channel, approval, attempt status and timestamps | Dispatch acceptance is not delivery |
+| Leads | `ai_concierge_leads` | Property and optional session linkage, status, created_at | SN-RT-01 requires consent_at/consent_version; lead status `converted` is not a booking proof |
+| Concierge attribution | `ai_concierge_attributions` | Session, optional booking ID, conversion type, metadata, created_at | Booking click and assisted/direct attribution labels alone are not proof of a confirmed booking |
+| Campaign attribution | `campaign_attribution` | Property, campaign, optional booking, session key, event type, source/medium/referrer, UTM campaign/content/term, occurred_at; unique event key support | Event-level funnel and UTM source/medium/campaign counts are reportable; do not interpret as unique visitors or cross-device attribution without a verified identity link |
+| Booking | `bookings` | Property, booking ID, status, payment status, confirmed/cancelled timestamps, total, currency, paid amount, check-in/out | Financial amounts and revenue are excluded from this sprint |
+| Escalations | `ai_escalations`, `ai_escalation_events`, `ai_escalation_sla_policies`, `ai_escalation_sla_alerts` | Property-owned escalation, priority, assignment, acknowledgement, resolution, reopen cycle, persisted UTC due times, append-only lifecycle events and idempotent alert records (SN-OC-04 migration) | Alert dispatch is in-app only; immutable history records all transitions and alert events; policies are property/priority scoped |
+| Knowledge | `knowledge_documents`, `knowledge_document_versions`, `knowledge_chunks` | Property ownership, published/draft/archived status, current version, chunk version | Document/chunk existence does not prove retrieval or answer grounding |
+| Retrieval | `ai_knowledge_search_log` | Property, query, result_count, matched_source_ids, confidence, created_at | No verified FK to Concierge session/message or generated answer; query text should not be exposed in aggregate APIs |
+| Feedback | `ai_concierge_feedback` | Session, optional message, rating, comment, created_at | Guest feedback is a perception signal, not factual correctness ground truth |
+
+## Metric definitions
+
+### Lead and conversion
+
+| Metric | Definition | Authoritative calculation |
+|---|---|---|
+| Leads generated | Distinct consented lead records created in period | Count distinct `ai_concierge_leads.id` by property and created_at; require non-null consent_at and consent_version |
+| Qualified leads | Distinct leads with explicit qualified status or documented qualification evidence | Count qualified lead records; do not infer from intent score alone |
+| Confirmed booking conversions | Distinct attributed bookings with authoritative confirmed status and confirmed_at | Join attribution to `bookings` by booking_id and property_id; require confirmed status, non-null confirmed_at within the reporting window, and no cancellation |
+| Completed stays | Distinct confirmed bookings with verified completed-stay lifecycle evidence | Do not infer completion solely from check_out date; require authoritative checkout/completion evidence |
+| Lead-to-booking rate | Confirmed attributed bookings / eligible distinct leads | Unavailable until a durable lead_id-to-booking_id relationship exists; do not divide unrelated booking and lead counts |
+| Campaign funnel | Event counts by page_view, booking_click, booking_started, lead_submitted, booking_completed | Count property-scoped campaign_attribution events; event-level, not unique visitor/session conversion |
+| Booked revenue | Sum booking total for verified confirmed bookings, net of cancellation treatment | Use `bookings.total` and `bookings.currency`, grouped by property currency |
+| Realized revenue | Settled amount net of posted refunds/reversals | Use authoritative property payment/folio ledger with verified settlement and reversal evidence; exclude unposted and pending amounts |
+| Attribution coverage | Eligible leads with traceable source touch / eligible distinct leads | Report denominator and missing-source count |
+| Time to conversion | Confirmed booking timestamp minus first eligible lead timestamp | Require same property and verified linkage |
+
+First-touch, last-touch and conversion-touch must preserve original event timestamps and consent eligibility. No backfill may invent absent source data. Cross-device identity matching requires verified identity links and cannot be inferred from names or email similarity.
+
+### Concierge operations
+
+| Metric | Definition | Evidence |
+|---|---|---|
+| Conversations | Distinct property sessions created in period | `ai_concierge_sessions` |
+| Active conversations | Sessions with no verified closure and recent activity | Until closure event exists, report as activity-recency proxy, explicitly labelled |
+| New conversations | Distinct sessions created in period | Session created_at |
+| AI-handled / human-assisted | Distinct sessions with corresponding outbound actor types | `ai_omnichannel_messages.actor_type`; do not infer from legacy role |
+| Escalated conversations | Distinct sessions with linked escalation records | `ai_escalations` joined by session_id |
+| Guest satisfaction | Positive guest ratings / all valid ratings | `ai_concierge_feedback`; expose response count and rating mapping |
+| Knowledge retrieval frequency | Retrieval rows and source-document references | `ai_knowledge_search_log.matched_source_ids` |
+| Knowledge-supported answer rate | Answer messages with traceable retrieval evidence / eligible answer messages | Unavailable until retrieval-to-message evidence linkage is present |
+
+### Response and resolution
+
+Incoming message: `direction='inbound'`, `actor_type='guest'`, `message_type<>'event'`. Valid response: `direction='outbound'`, `actor_type IN ('assistant','staff')`, `message_type NOT IN ('event','template')`, and outbound delivery status recorded/accepted/delivered/read (queued and failed sends are excluded). System/provider events, webhook retries and duplicate provider/client message IDs are excluded.
+
+- First response: first valid outbound message after the first eligible inbound message in the conversation.
+- Subsequent response: each valid outbound response after the preceding eligible inbound message, using a deterministic chronological pairing contract.
+- AI and human response times: split by outbound actor_type.
+- Automated acknowledgements: template messages are excluded because the current schema does not distinguish transport acknowledgements from substantive templates. Other assistant text responses are measured; future explicit acknowledgement metadata is required for exact classification.
+- Unanswered conversations: retain as unanswered; do not drop from denominator.
+- Resolution time: median elapsed duration from the current SLA cycle start to each persisted `resolved` lifecycle event. Reopened cycles are measured independently. First-contact resolution requires a durable first-resolution definition and is not inferred from current status. Session last_active_at is not a resolution timestamp.
+- Timezone: persist/compare UTC instants; bucket display dates using the property's configured timezone. Percentiles use continuous percentile calculation over eligible completed response intervals.
+
+### Escalation SLA
+
+- Lifecycle is enforced as `open → assigned → acknowledged → in_progress → resolved`; dismissal/cancellation, unassignment, reassignment and reopening are separately recorded. Reopening starts a new SLA cycle and resets deadlines.
+- Property policies are independently configurable by priority P1–P3: assignment, acknowledgement and resolution targets; enabled/disabled state; warning threshold percentage; reason-to-priority mapping; 24x7 or weekly operating calendar; and business-hours-only calculation.
+- Default policy rows are seeded per property as editable starting values: P1 assignment 10m / acknowledgement 15m / resolution 120m; P2 20m / 30m / 240m; P3 30m / 60m / 480m. Defaults use 24x7. Property owners/managers can replace these with their operating policy.
+- Business-hours calendars use the property's timezone and weekly windows. Due instants are stored in UTC; elapsed business minutes skip closed windows and handle timezone transitions.
+- Append-only `ai_escalation_events` captures creation, assignment, reassignment, unassignment, acknowledgement, in-progress, resolution, dismissal, priority changes, reopen and SLA warning/breach events, with actor, status/assignee transitions and deadline snapshots. Append-only `ai_escalation_sla_policy_events` records each policy creation, edit, enable/disable action and before/after policy snapshot.
+- The idempotent `staynas_process_concierge_sla_alerts()` worker evaluates assignment, acknowledgement and resolution warning/breach thresholds and writes staff notifications through the in-app notification centre. Supabase pg_cron invokes it every minute; no Vercel Cron dependency.
+- SLA compliance is calculated from completion lifecycle events against the deadline snapshot recorded with that event. Active overdue escalations, approaching alerts, missed alerts, acknowledgement/resolution duration and reopen rate are exposed in operational analytics.
+- Alert channel support is currently in-app only. Email/WhatsApp staff alert delivery is not represented as active until the relevant authorized provider/recipient contract is implemented and verified.
+
+### Knowledge and feedback
+
+- Published/active documents: count property-owned documents with status `published`.
+- Current chunks: count chunks where chunk.version = document.current_version and property IDs match.
+- Retrieval frequency/failure: search log count, result_count=0, and matched source IDs.
+- Freshness: use source_updated_at/review_due_at and document current version.
+- Guest feedback: aggregate valid ratings and negative-feedback counts; never equate ratings/confidence with factual correctness.
+- Factual accuracy: unavailable absent a human-labelled evaluation dataset, versioned rubric and reproducible evaluation run.
+- Correction traceability: use document version history; link to disputed answer only where source message and retrieval evidence are explicitly connected.
+
+## Completeness and UI rules
+
+Each API response must include `period_start`, `period_end`, `timezone`, `generated_at`, `source_status`, and metric-level `available`/ `reason_unavailable` metadata. An empty, fully queried source is zero; missing schema, missing permission, incomplete event coverage or unavailable lineage is unavailable. Do not collapse these states.
+
+## Security and performance
+
+- Derive active property on the server and authorize the role before every query/export.
+- Every cross-table join includes property identity; where child tables lack property_id, join through a session whose property_id is already authorized.
+- Founder aggregate access must use founder authorization, not tenant role bypass.
+- Never return raw message bodies, guest identifiers, provider payloads, credentials or raw knowledge queries in aggregate responses.
+- Use bounded date windows and indexed property/time predicates. Avoid materializing all session IDs into client-visible requests.
+- Exports repeat server-side authorization and apply the same property/time constraints as dashboard queries.
+- No cross-tenant aggregates for tenant users.
+
+## Financial scope boundary
+
+Financial integrity and revenue reconciliation are explicitly excluded from this sprint at the user's direction. Financial amounts are not modified or reclassified by SN-OC-04; revenue remains unavailable until separately reconciled.
+
+## UAT baseline — Nolmark CDMA
+
+Read-only scoped counts at inspection time:
+- Concierge sessions: 0
+- Concierge leads: 0
+- Escalations: 0 (joined through property-owned sessions)
+- Knowledge documents/chunks/search logs: 0
+- Campaign attribution events: 0
+- Bookings: 4 (baseline count only; financial integrity and revenue analysis excluded from this sprint)
+
+These counts are a baseline, not evidence of zero historical conversion. No financial amounts, booking currencies, payment events, folio postings or revenue values are changed or interpreted by SN-OC-04. No synthetic activity has been inserted.

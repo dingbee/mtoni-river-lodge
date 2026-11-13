@@ -33,7 +33,7 @@ export type EscalationReason =
   | "human_requested"
   | "other";
 
-export type EscalationStatus = "open" | "assigned" | "in_progress" | "resolved" | "dismissed";
+export type EscalationStatus = "open" | "assigned" | "acknowledged" | "in_progress" | "resolved" | "dismissed";
 
 export interface ChannelRow {
   id: string;
@@ -91,7 +91,16 @@ export interface EscalationRow {
   status: EscalationStatus;
   assigned_to: string | null;
   resolution_notes: string | null;
+  assigned_at?: string | null;
+  acknowledged_at?: string | null;
   resolved_at: string | null;
+  assignment_due_at?: string | null;
+  acknowledgement_due_at?: string | null;
+  resolution_due_at?: string | null;
+  reopened_at?: string | null;
+  sla_cycle_started_at?: string | null;
+  property_timezone?: string;
+  sla_alerts?: Array<{id:string;milestone:string;alert_type:string;due_at:string;threshold_percent:number;created_at:string}>;
   created_at: string;
   updated_at: string;
 }

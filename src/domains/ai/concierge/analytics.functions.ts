@@ -89,29 +89,26 @@ export const getConciergeAnalytics = createServerFn({ method: "POST" })
     const leadsCount = leads.count ?? 0;
     const intentHighCount = intentsHigh.count ?? 0;
     const bookingClicks = attrClicks.count ?? 0;
-    const assistedBookings = attrBookings.count ?? 0;
+    const bookingAttributionsUnverified = attrBookings.count ?? 0;
     const helpful = feedbackHelpful.count ?? 0;
     const notHelpful = feedbackNot.count ?? 0;
 
     const confRows = (avgConfRow.data ?? []) as Array<{ confidence: number | null }>;
     const avgConfidence = confRows.length
       ? confRows.reduce((a, r) => a + (Number(r.confidence) || 0), 0) / confRows.length
-      : 0;
+      : null;
 
     const avgMessagesPerSession = sessionsCount ? messagesCount / sessionsCount : 0;
-    const conversionRate = sessionsCount ? bookingClicks / sessionsCount : 0;
+    // Booking clicks are engagement events, not verified booking outcomes.
+    // Keep conversion unavailable until an authoritative booking join is implemented.
+    const conversionRate: number | null = null;
     const escalationRate = sessionsCount ? escalationsCount / sessionsCount : 0;
     const feedbackTotal = helpful + notHelpful;
     const satisfaction = feedbackTotal ? helpful / feedbackTotal : 0;
 
-    // Health score components (0-1)
-    const accuracy = clamp01(avgConfidence * 0.7 + (1 - escalationRate) * 0.3);
-    const engagement = clamp01(
-      Math.min(1, avgMessagesPerSession / 6) * 0.6 + Math.min(1, sessionsCount / 100) * 0.4,
-    );
-    const conversion = clamp01(conversionRate * 3);
-    const experience = clamp01(satisfaction || 0.7);
-    const overall = (accuracy + engagement + conversion + experience) / 4;
+    // Do not synthesize an accuracy or composite health score from confidence,
+    // escalation frequency, message volume, or missing feedback. These require
+    // an independently labelled evaluation dataset and explicit methodology.
 
     return {
       window: data.window,
@@ -119,23 +116,22 @@ export const getConciergeAnalytics = createServerFn({ method: "POST" })
         sessions: sessionsCount,
         messages: messagesCount,
         avg_messages_per_session: round(avgMessagesPerSession, 2),
-        avg_confidence: round(avgConfidence, 3),
+        avg_confidence: avgConfidence === null ? null : round(avgConfidence, 3),
         escalation_rate: round(escalationRate, 3),
       },
       conversion: {
         booking_intents: intentHighCount,
         booking_clicks: bookingClicks,
         leads: leadsCount,
-        assisted_bookings: assistedBookings,
-        conversion_rate: round(conversionRate, 3),
+        booking_attributions_unverified: bookingAttributionsUnverified,
+        conversion_rate: conversionRate,
       },
       feedback: { helpful, not_helpful: notHelpful, satisfaction: round(satisfaction, 3) },
-      health: {
-        accuracy: round(accuracy, 3),
-        engagement: round(engagement, 3),
-        conversion: round(conversion, 3),
-        experience: round(experience, 3),
-        overall: round(overall, 3),
+      measurement: {
+        conversion_rate_available: false,
+        conversion_rate_reason: "Booking clicks and attribution labels are not verified booking outcomes.",
+        factual_accuracy_available: false,
+        factual_accuracy_reason: "No human-labelled evaluation dataset is linked to the reported answers.",
       },
     };
   });
@@ -259,7 +255,9 @@ export const classifyConciergeOutcomes = createServerFn({ method: "POST" })
       const evidence: Record<string, any> = {};
 
       if (attr === "assisted_booking" || attr === "direct_booking") {
-        outcome = "converted"; confidence = 0.95; evidence.attribution = attr;
+        // Attribution labels are not proof of a confirmed booking. Preserve the
+        // signal without upgrading it to a conversion outcome.
+        outcome = "booking_attribution_unverified"; confidence = 0.6; evidence.attribution = attr;
       } else if (hasLead) {
         outcome = "lead_captured"; confidence = 0.9;
       } else if (intent === "high" || attr === "booking_click") {
@@ -301,7 +299,12 @@ export const getConciergeOutcomes = createServerFn({ method: "POST" })
       .limit(5000);
     if (error) throw new Error(error.message);
     const counts = new Map<string, number>();
-    for (const r of rows ?? []) counts.set(r.outcome_type as string, (counts.get(r.outcome_type as string) ?? 0) + 1);
+    for (const r of rows ?? []) {
+      // Legacy "converted" classifications were inferred from attribution labels,
+      // not verified bookings. Preserve their volume under an explicitly unverified name.
+      const type = r.outcome_type === "converted" ? "legacy_conversion_unverified" : String(r.outcome_type);
+      counts.set(type, (counts.get(type) ?? 0) + 1);
+    }
     return Array.from(counts.entries())
       .map(([outcome_type, count]) => ({ outcome_type, count }))
       .sort((a, b) => b.count - a.count);

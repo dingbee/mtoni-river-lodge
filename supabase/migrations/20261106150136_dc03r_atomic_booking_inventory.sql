@@ -2,6 +2,28 @@
 -- Property identifiers are resolved server-side by the public booking allowlist;
 -- no RPC below resolves a property from request hostnames or browser-supplied scope.
 
+-- The base booking-hold table predates property tenancy. Establish the
+-- property FK/backfill before any RPC below references booking_holds.property_id.
+ALTER TABLE public.booking_holds
+  ADD COLUMN IF NOT EXISTS property_id uuid REFERENCES public.staynas_properties(id) ON DELETE CASCADE;
+
+UPDATE public.booking_holds hold
+SET property_id = room.property_id
+FROM public.rooms room
+WHERE room.id = hold.room_id AND hold.property_id IS NULL;
+
+DO $booking_hold_scope$
+BEGIN
+  IF EXISTS (SELECT 1 FROM public.booking_holds WHERE property_id IS NULL) THEN
+    RAISE EXCEPTION 'Cannot establish property ownership for every booking hold';
+  END IF;
+END
+$booking_hold_scope$;
+
+ALTER TABLE public.booking_holds ALTER COLUMN property_id SET NOT NULL;
+CREATE INDEX IF NOT EXISTS booking_holds_property_room_dates_idx
+  ON public.booking_holds(property_id,room_id,check_in,check_out,status);
+
 CREATE INDEX IF NOT EXISTS booking_holds_room_active_expiry_dates_idx
   ON public.booking_holds(room_id,expires_at,check_in,check_out)
   WHERE status='active';
@@ -380,25 +402,6 @@ NOTIFY pgrst, 'reload schema';
 
 -- The no-argument resolver is staff-only. Guest requests use the server-owned
 -- publication allowlist; anonymous callers must not invoke hostname resolution.
-REVOKE ALL ON FUNCTION public.staynas_booking_property_id() FROM PUBLIC,anon;
-
--- Preserve the property-aware availability signature for trusted callers;
--- delegate to the membership-checked canonical availability RPC.
-CREATE OR REPLACE FUNCTION public.get_room_availability_for_property(
-  _property_id uuid,_check_in date,_check_out date
-) RETURNS TABLE(
-  room_id uuid,slug text,name text,base_price numeric,currency text,
-  capacity_adults integer,capacity_children integer,max_occupancy integer,
-  nights integer,nightly_total numeric,min_available integer,is_available boolean
-)
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public
-AS $function$
-  SELECT * FROM public.get_room_availability(_check_in,_check_out,_property_id);
-$function$;
-REVOKE ALL ON FUNCTION public.get_room_availability_for_property(uuid,date,date)
-  FROM PUBLIC,anon;
-GRANT EXECUTE ON FUNCTION public.get_room_availability_for_property(uuid,date,date)
-  TO authenticated,service_role;
 
 -- The legacy no-argument resolver previously fell back to Host headers for
 -- anonymous callers. It is now strictly an authenticated staff-membership

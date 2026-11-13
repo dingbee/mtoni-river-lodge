@@ -1,6 +1,17 @@
 name: SN-OC-03 Provider Activation Verification
 
 on:
+  push:
+    branches: [feat/sn-oc-04-operational-intelligence, feat/sn-oc-04-release-candidate]
+    paths:
+      - "src/domains/ai/concierge/**"
+      - "supabase/migrations/**"
+      - "supabase/migrations/20261106150136_dc03r_atomic_booking_inventory.sql"
+      - "supabase/migrations/20261109190000_room_board_sellable_inventory_integration.sql"
+      - "scripts/ci/sn_oc_03_provider_activation.test.sql"
+      - "scripts/ci/sn_oc_04_metric_contract.test.sql"
+      - "scripts/ci/sn_rt_01_concierge_integrity.test.sql"
+      - ".github/workflows/sn-oc-03-verification.yml"
   pull_request:
     branches: [main]
     paths:
@@ -9,6 +20,7 @@ on:
       - "src/routes/api/internal/communications/**"
       - "supabase/migrations/**"
       - "scripts/ci/sn_oc_03_provider_activation.test.sql"
+      - "scripts/ci/sn_oc_04_metric_contract.test.sql"
       - "scripts/ci/sn_rt_01_concierge_integrity.test.sql"
       - "scripts/ci/normalize-optional-legacy-revokes.py"
       - ".github/workflows/sn-oc-03-verification.yml"
@@ -41,6 +53,7 @@ jobs:
       - run: >
           bunx vitest run
           src/domains/ai/concierge/omnichannel.contracts.test.ts
+          src/domains/ai/concierge/operational-intelligence.metrics.test.ts
           src/domains/ai/concierge/webhooks/webhook-processor.server.test.ts
           src/domains/ai/concierge/webhooks/webhook-normalization.server.test.ts
       - name: TypeScript verification
@@ -50,7 +63,12 @@ jobs:
           bunx eslint
           src/domains/ai/concierge/concierge.server.ts
           src/domains/ai/concierge/dispatch.functions.ts
+          src/domains/ai/concierge/analytics.functions.ts
+          src/domains/ai/concierge/operational-intelligence.functions.ts
+          src/domains/ai/concierge/operational-intelligence.metrics.ts
+          src/routes/_authenticated.admin.ai.concierge.analytics.tsx
           src/domains/ai/concierge/omnichannel.functions.ts
+          src/routes/_authenticated.admin.ai.concierge.escalations.tsx
           src/domains/ai/concierge/webhooks/webhook-processor.server.ts
           src/domains/ai/concierge/webhooks/webhook-normalization.server.ts
           src/domains/ai/concierge/webhooks/webhook-signatures.server.ts
@@ -63,6 +81,7 @@ jobs:
       - name: Production build
         run: bun run build
 
+  # Verify the timestamp-ordered migration chain, including booking inventory prerequisites and SN-OC-04.
   database:
     name: Full Supabase migration chain and SN-OC-03 acceptance fixture
     runs-on: ubuntu-latest
@@ -106,6 +125,7 @@ jobs:
           DB_URL="$(supabase status -o env | sed -n 's/^DB_URL=//p' | tr -d '"')"
           test -n "$DB_URL"
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f scripts/ci/sn_oc_03_provider_activation.test.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f scripts/ci/sn_oc_04_metric_contract.test.sql
       - name: Stop isolated Supabase stack
         if: always()
         run: supabase stop --no-backup || true
