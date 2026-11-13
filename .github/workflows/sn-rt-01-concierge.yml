@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - sn-rt-01/*
+      - feat/sn-oc-04-operational-intelligence
     paths:
       - "src/lib/ai-gateway.server.ts"
       - "src/lib/ai-gateway.server.test.ts"
