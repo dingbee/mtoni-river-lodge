@@ -32,6 +32,21 @@ describe("CC02.03 package composition and compatibility", () => {
     }).success).toBe(false);
   });
 
+  it("validates tiered module entitlements and requires module grant parity", () => {
+    const tiered = {
+      ...composition,
+      moduleEntitlements: [
+        { moduleCode: "reservations" as const, level: "included" as const },
+        { moduleCode: "finance" as const, level: "advanced" as const },
+      ],
+    };
+    expect(commercialPackageCompositionSchema.safeParse(tiered).success).toBe(true);
+    expect(commercialPackageCompositionSchema.safeParse({
+      ...tiered,
+      moduleCodes: ["reservations"],
+    }).success).toBe(false);
+  });
+
   it("rejects invalid effective date windows", () => {
     expect(commercialPackageCompositionSchema.safeParse({
       ...composition,
