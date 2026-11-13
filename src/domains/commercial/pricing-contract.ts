@@ -46,6 +46,8 @@ export const commercialPlanPriceSchema = z.object({
   baseAmountMinor: amountMinor.nullable(),
   includedProperties: z.number().int().positive().nullable(),
   additionalPropertyAmountMinor: amountMinor.nullable(),
+  /** Optional until authored; null is distinct from an invented zero fee. */
+  implementationFeeMinor: amountMinor.nullable().optional(),
   status: z.enum(COMMERCIAL_PRICE_STATUSES),
   ...effectiveWindow,
 }).superRefine((value, ctx) => {
