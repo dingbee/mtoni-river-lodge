@@ -84,6 +84,7 @@ export const commercialModuleSchema = z.object({
   code: z.enum(COMMERCIAL_MODULE_CODES),
   name: nonEmptyName,
   description,
+  category: z.string().trim().max(80).default(""),
   status: z.enum(COMMERCIAL_CATALOGUE_STATUSES),
   operationalModuleRefs: z.array(nonEmptyCode).default([]),
 });
