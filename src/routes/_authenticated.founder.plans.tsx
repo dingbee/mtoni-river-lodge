@@ -138,12 +138,10 @@ function FounderCommercialAdministration() {
 
   useEffect(() => { void refresh(); }, [refresh]);
   useEffect(() => {
-    const row = policies.filter((item) => item.policy_type === selected.policy && item.status === "draft").sort((a, b) => b.version - a.version)[0]
-      ?? policies.find((item) => item.policy_type === selected.policy && item.is_current);
-    const editorPayload = row?.payload ?? (selected.policy === "trial_policy" ? payloads.trial_policy.trials : payloads[selected.policy]);
+    const editorPayload = selected.policy === "trial_policy" ? payloads.trial_policy.trials : payloads[selected.policy];
     setJsonText(JSON.stringify(editorPayload, null, 2));
     setStatus("draft"); setNotice(null); setAdvanced(false);
-  }, [section, policies, selected.policy, payloads]);
+  }, [section, policies, selected.policy]);
 
   const updateArray = (policy: PolicyType, key: keyof Payload, rows: Row[]) => {
     setPayloads((old) => ({ ...old, [policy]: { ...old[policy], [key]: rows } }));
