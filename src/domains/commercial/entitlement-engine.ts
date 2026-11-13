@@ -28,6 +28,8 @@ export type SubscriptionStatus =
 
 export interface EntitlementFeaturePolicy {
   featureCode: string;
+  /** Commercial tier metadata from the exact published plan composition. */
+  level?: "included" | "limited" | "advanced" | "enterprise";
 }
 
 export interface EntitlementAddonGrant {
@@ -85,6 +87,8 @@ export interface EntitlementResolution {
   subscriptionId: string;
   featureCode: string;
   reason: string;
+  /** Effective plan tier; defaults to included for explicit add-on/custom/override grants. */
+  entitlementLevel?: "included" | "limited" | "advanced" | "enterprise";
   requiredAddonCodes?: string[];
   usage?: EntitlementResolutionInput["usage"];
 }
@@ -153,7 +157,8 @@ export function resolveEntitlement(
     return deny("temporarily_suspended", "An authorized commercial override suspends this capability.");
   }
 
-  const planIncludes = input.planFeatures.some((item) => item.featureCode === featureCode);
+  const planFeature = input.planFeatures.find((item) => item.featureCode === featureCode);
+  const planIncludes = Boolean(planFeature);
   const customIncludes = (input.customFeatureCodes ?? []).includes(featureCode);
   const overrideGrants = activeOverride?.status === "granted";
   const eligibleAddonCodes = (input.addonFeatureGrants ?? [])
@@ -182,5 +187,11 @@ export function resolveEntitlement(
     return deny("usage_limit_reached", "The configured usage limit has been reached.", { usage: input.usage });
   }
 
-  return { ...base, outcome: "granted", allowed: true, reason: "Capability is authorized by effective commercial policy." };
+  return {
+    ...base,
+    outcome: "granted",
+    allowed: true,
+    entitlementLevel: planFeature?.level ?? "included",
+    reason: "Capability is authorized by effective commercial policy.",
+  };
 }
