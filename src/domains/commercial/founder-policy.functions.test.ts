@@ -24,6 +24,7 @@ function cataloguePayload() {
     modules: [],
     planModules: [],
     addons: [],
+    quotaDefinitions: [],
   };
 }
 
@@ -95,6 +96,12 @@ describe("founder commercial policy payload validation", () => {
     incomplete.plans.pop();
     expect(() => validateFounderPolicyPayload("catalogue", incomplete, "published"))
       .toThrow(/Essential, Professional and Enterprise/);
+  });
+
+  it("accepts optional implementation fees in plan pricing", () => {
+    const payload = pricingPayload();
+    payload.planPrices[0]!.implementationFeeMinor = 125000;
+    expect(validateFounderPolicyPayload("pricing", payload, "draft").planPrices[0]!.implementationFeeMinor).toBe(125000);
   });
 
   it("requires unique pricing coverage for each plan, currency and billing term", () => {
