@@ -327,6 +327,16 @@ BEGIN
      OR (SELECT priority FROM public.ops_tasks WHERE id=result.task_id) <> 1 THEN
     RAISE EXCEPTION 'reason-to-priority mapping must override the supplied priority and align the operations task';
   END IF;
+  UPDATE public.ai_escalation_sla_policies SET assignment_minutes=12
+  WHERE property_id='11111111-1111-4111-8111-111111111111' AND priority=1;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.ai_escalation_events
+    WHERE escalation_id=result.escalation_id AND event_type='sla_policy_changed'
+      AND metadata->>'old_assignment_due_at' IS NOT NULL
+      AND metadata->>'assignment_due_at' IS NOT NULL
+  ) THEN
+    RAISE EXCEPTION 'policy changes must append old and new SLA deadline snapshots to escalation history';
+  END IF;
   PERFORM public.staynas_transition_concierge_escalation(
     result.escalation_id,'11111111-1111-4111-8111-111111111111',NULL,NULL,NULL,3::smallint
   );
