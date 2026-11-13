@@ -1,6 +1,15 @@
 name: SN-OC-03 Provider Activation Verification
 
 on:
+  push:
+    branches: [feat/sn-oc-04-operational-intelligence]
+    paths:
+      - "src/domains/ai/concierge/**"
+      - "supabase/migrations/**"
+      - "scripts/ci/sn_oc_03_provider_activation.test.sql"
+      - "scripts/ci/sn_oc_04_metric_contract.test.sql"
+      - "scripts/ci/sn_rt_01_concierge_integrity.test.sql"
+      - ".github/workflows/sn-oc-03-verification.yml"
   pull_request:
     branches: [main]
     paths:
