@@ -7,7 +7,6 @@ on:
       - fix/pesapal-*
       - fix/ci-*
       - main
-      - feat/sn-oc-04-operational-intelligence
       - feat/finance-*
       - feat/spe-03-*
       - feat/spe-04-*
@@ -56,4 +55,118 @@ jobs:
           src/domains/finance/rate-plan-restrictions.test.ts
           src/domains/finance/rate-plan-publication.test.ts
           src/lib/pesapal-currency.test.ts
-          src/domains/commerc...[truncated]
+          src/domains/commercial/catalogue.test.ts
+          src/domains/commercial/pricing-engine.test.ts
+          src/domains/commercial/package-composition.test.ts
+          src/domains/commercial/trial-configuration.test.ts
+          src/domains/commercial/founder-administration.test.ts
+          src/domains/commercial/commercial-api-contract.test.ts
+          src/domains/commercial/subscription-lifecycle-contract.test.ts
+          src/domains/commercial/subscription.authorization.test.ts
+          src/domains/commercial/founder-policy.functions.test.ts
+          src/domains/commercial/entitlement-engine.test.ts
+          src/domains/commercial/settlement-contract.test.ts
+          src/domains/commercial/commercial-billing-engine.test.ts
+          src/domains/commercial/commercial-payment-adapters.test.ts
+          src/domains/commercial/commercial-reconciliation-engine.test.ts
+          src/domains/payments/provider-adapter.contract.test.ts
+          src/domains/marketing/demo-requests.test.ts
+      # TanStack Start generates routeTree.gen.ts during the Vite build.
+      - name: Generate routes and verify production build
+        run: bun run build
+      - name: TypeScript verification
+        run: bunx tsc --noEmit
+      - name: Finance, shared and StayNas website changed-file lint
+        run: >-
+          bunx eslint
+          src/domains/finance/finance.functions.ts
+          src/domains/finance/payment-contract.ts
+          src/domains/finance/payment-contract.test.ts
+          src/domains/finance/finance-currency.ts
+          src/domains/finance/pricing-engine.ts
+          src/domains/finance/pricing-engine.test.ts
+          src/domains/finance/finance-currency.test.ts
+          src/domains/finance/finance-reconciliation.ts
+          src/domains/finance/finance-reconciliation.test.ts
+          src/domains/finance/seasonal-pricing.ts
+          src/domains/finance/daily-rate-calendar.ts
+          src/domains/finance/rate-overrides.ts
+          src/domains/finance/rate-overrides.test.ts
+          src/domains/finance/rate-plan-restrictions.ts
+          src/domains/finance/rate-plan-restrictions.test.ts
+          src/domains/finance/rate-plan-publication.ts
+          src/domains/finance/rate-plan-publication.test.ts
+          src/routes/_authenticated.admin.finance.rate-plans.tsx
+          src/routes/_authenticated.admin.finance.rate-overrides.tsx
+          src/domains/finance/seasonal-pricing.test.ts
+          src/lib/finance-rpc.ts
+          src/lib/pricing.ts
+          src/routes/_authenticated.admin.finance.payments.tsx
+          src/routes/_authenticated.admin.finance.rate-plans.tsx
+          src/lib/staff-reservations.functions.ts
+          src/components/os/reservations/NewReservationDialog.tsx
+          src/lib/payment-finalize.server.ts
+          src/lib/pesapal-currency.ts
+          src/lib/pesapal-currency.test.ts
+          src/domains/commercial/catalogue.ts
+          src/domains/commercial/catalogue-contract.ts
+          src/domains/commercial/catalogue.test.ts
+          src/domains/commercial/pricing-contract.ts
+          src/domains/commercial/pricing-engine.ts
+          src/domains/commercial/pricing-engine.test.ts
+          src/domains/commercial/package-composition-contract.ts
+          src/domains/commercial/package-composition.test.ts
+          src/domains/commercial/trial-configuration-contract.ts
+          src/domains/commercial/trial-configuration.test.ts
+          src/domains/commercial/founder-administration-contract.ts
+          src/domains/commercial/founder-administration.test.ts
+          src/domains/commercial/commercial-api-contract.ts
+          src/domains/commercial/commercial-api-contract.test.ts
+          src/domains/commercial/subscription-lifecycle-contract.ts
+          src/domains/commercial/subscription-lifecycle-contract.test.ts
+          src/domains/commercial/subscription.functions.ts
+          src/domains/commercial/subscription.authorization.test.ts
+          src/domains/commercial/founder-policy.functions.ts
+          src/domains/commercial/founder-policy.functions.test.ts
+          src/routes/_authenticated.admin.commercial.tsx
+          src/components/os/AdminSidebar.tsx
+          src/components/os/nav-config.ts
+          src/components/site/StayNasProductSite.tsx
+          src/components/site/StayNasWebsiteEnhancements.tsx
+          src/domains/marketing/demo-requests.ts
+          src/domains/marketing/demo-requests.functions.ts
+          src/domains/marketing/demo-requests.test.ts
+          src/routes/api/public/staynas-demo-request.ts
+          src/routes/_authenticated.admin.website-demo-requests.tsx
+          src/routes/modules.tsx
+          src/routes/product-tour.tsx
+          src/routes/architecture.tsx
+          src/routes/security.tsx
+          src/routes/pricing.tsx
+          src/routes/robots[.]txt.ts
+          src/routes/sitemap[.]xml.ts
+          src/domains/commercial/entitlement.functions.ts
+          src/domains/commercial/entitlement-engine.ts
+          src/domains/commercial/entitlement-engine.test.ts
+          src/domains/commercial/settlement-contract.ts
+          src/domains/commercial/settlement-contract.test.ts
+          src/domains/commercial/commercial-billing-engine.ts
+          src/domains/commercial/commercial-billing-engine.test.ts
+          src/domains/commercial/commercial-payment-adapters.ts
+          src/domains/commercial/commercial-payment-adapters.test.ts
+          src/domains/commercial/commercial-reconciliation-engine.ts
+          src/domains/commercial/commercial-reconciliation-engine.test.ts
+          src/domains/commercial/commercial-payment.functions.ts
+          src/domains/commercial/founder-commercial-reporting.functions.ts
+          src/domains/commercial/founder-control-centre.functions.ts
+          src/domains/commercial/founder-reconciliation.functions.ts
+          src/routes/_authenticated.founder.tsx
+          src/routes/_authenticated.founder.reporting.tsx
+          src/routes/_authenticated.founder.reconciliation.tsx
+          src/domains/payments/payment-provider-management.functions.ts
+          src/domains/payments/provider-adapter.contract.ts
+          src/domains/payments/provider-adapter.contract.test.ts
+          src/routes/_authenticated.admin.settings.payment-providers.tsx
+          src/domains/commercial/commercial-pesapal.server.ts
+          src/routes/api/public/commercial-pesapal.ipn.ts
+          --rule 'prettier/prettier: off'

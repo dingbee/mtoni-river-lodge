@@ -114,6 +114,12 @@ BEGIN
 END
 $escalation_integrity$;
 
+ALTER TABLE public.ai_escalations DROP CONSTRAINT IF EXISTS ai_escalations_status_check;
+ALTER TABLE public.ai_escalations
+  ADD CONSTRAINT ai_escalations_status_check
+  CHECK (status IN ('open','assigned','acknowledged','in_progress','resolved','dismissed')) NOT VALID;
+ALTER TABLE public.ai_escalations VALIDATE CONSTRAINT ai_escalations_status_check;
+
 CREATE UNIQUE INDEX IF NOT EXISTS ai_escalations_property_dedupe_uidx
   ON public.ai_escalations(property_id, dedupe_key);
 CREATE INDEX IF NOT EXISTS ai_escalations_property_status_priority_idx
@@ -205,6 +211,7 @@ AS $function$
 DECLARE
   v_escalation_id uuid;
   v_task_id uuid;
+  v_effective_priority smallint;
 BEGIN
   IF p_property_id IS NULL OR p_session_id IS NULL
      OR p_dedupe_key IS NULL OR length(p_dedupe_key) < 16
@@ -252,6 +259,9 @@ BEGIN
     RETURN;
   END IF;
 
+  SELECT escalation.priority INTO v_effective_priority
+  FROM public.ai_escalations escalation WHERE escalation.id=v_escalation_id;
+
   INSERT INTO public.ops_tasks(
     property_id, task_type, title, description, category, priority, status
   )
@@ -259,7 +269,7 @@ BEGIN
     p_property_id, 'concierge_escalation',
     'Guest Concierge escalation',
     left(coalesce(p_summary, 'A guest requested assistance from the Concierge.'), 2000),
-    'concierge', p_priority, 'pending'
+    'concierge', v_effective_priority, 'pending'
   )
   RETURNING id INTO v_task_id;
 
