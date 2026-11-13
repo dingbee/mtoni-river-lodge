@@ -6,6 +6,7 @@ on:
     paths:
       - "src/domains/ai/concierge/**"
       - "supabase/migrations/**"
+      - "supabase/migrations/20261106150136_dc03r_atomic_booking_inventory.sql"
       - "scripts/ci/sn_oc_03_provider_activation.test.sql"
       - "scripts/ci/sn_oc_04_metric_contract.test.sql"
       - "scripts/ci/sn_rt_01_concierge_integrity.test.sql"
