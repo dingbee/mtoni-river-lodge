@@ -121,5 +121,41 @@ export const updateBookingStatus = createServerFn({ method: "POST" })
       _notes: null,
     });
     if (error) throw new Error(error.message);
-    return result ?? { ok: true };
+    if (data.status !== "checked_in") return result ?? { ok: true };
+
+    let guestPortalAccess: {
+      issued: boolean;
+      alreadyActive: boolean;
+      expiresAt: string | null;
+      accessId: string;
+      token?: string | null;
+      error?: string;
+    } = { issued: false, alreadyActive: false, expiresAt: null, accessId: "" };
+
+    try {
+      const { ensureGuestPortalAccessAfterCheckIn } = await import(
+        "@/domains/hospitality/guest-portal/guest-portal-access.server"
+      );
+      const issued = await ensureGuestPortalAccessAfterCheckIn(
+        context.supabase,
+        context.userId,
+        data.id,
+      );
+      guestPortalAccess = {
+        issued: issued.issued,
+        alreadyActive: issued.alreadyActive,
+        expiresAt: issued.expiresAt,
+        accessId: issued.accessId,
+        token: issued.issued ? issued.token : null,
+      };
+    } catch {
+      guestPortalAccess = {
+        issued: false,
+        alreadyActive: false,
+        expiresAt: null,
+        accessId: "",
+        error: "Check-in succeeded, but Guest Portal access issuance failed. Retry from the reservation access panel.",
+      };
+    }
+    return { ...(result !== null && typeof result === "object" && !Array.isArray(result) ? result as Record<string, unknown> : { ok: true }), guestPortalAccess };
   });

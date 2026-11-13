@@ -48,6 +48,7 @@ function AdminBookings() {
   const [to, setTo] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [issuedGuestPortalCredential, setIssuedGuestPortalCredential] = useState<{ bookingId: string; token: string; accessId: string } | null>(null);
 
   const listFn = useServerFn(listBookings);
   const detailFn = useServerFn(getBookingDetail);
@@ -69,8 +70,27 @@ function AdminBookings() {
   const update = useMutation({
     mutationFn: (vars: { id: string; status: BookingLifecycleAction }) =>
       updateFn({ data: vars }),
-    onSuccess: () => {
-      toast.success("Booking updated");
+    onSuccess: (result, variables) => {
+      const payload = result && typeof result === "object" && !Array.isArray(result)
+        ? result as { guestPortalAccess?: { issued: boolean; alreadyActive: boolean; expiresAt: string | null; accessId: string; token?: string | null; error?: string } }
+        : {};
+      const guestPortalAccess = payload.guestPortalAccess;
+      if (guestPortalAccess?.token && guestPortalAccess.accessId) {
+        setIssuedGuestPortalCredential({
+          bookingId: variables.id,
+          token: guestPortalAccess.token,
+          accessId: guestPortalAccess.accessId,
+        });
+      }
+      if (guestPortalAccess?.error) {
+        toast.error(guestPortalAccess.error);
+      } else if (guestPortalAccess?.issued) {
+        toast.success("Booking updated and Guest Portal access issued. Open the reservation access panel to retrieve the QR code or link.");
+      } else if (guestPortalAccess?.alreadyActive) {
+        toast.success("Booking updated. The existing Guest Portal credential remains active.");
+      } else {
+        toast.success("Booking updated");
+      }
       qc.invalidateQueries({ queryKey: ["admin-bookings"] });
       qc.invalidateQueries({ queryKey: ["admin-booking"] });
     },
@@ -365,7 +385,12 @@ function AdminBookings() {
                 )}
 
                 <CheckinAccessPanel bookingId={detail.data.booking.id} />
-                <GuestPortalAccessPanel bookingId={detail.data.booking.id} bookingStatus={detail.data.booking.status} />
+                <GuestPortalAccessPanel
+                  bookingId={detail.data.booking.id}
+                  bookingStatus={detail.data.booking.status}
+                  issuedCredential={issuedGuestPortalCredential?.bookingId === detail.data.booking.id ? issuedGuestPortalCredential : null}
+                  onCredentialConsumed={() => setIssuedGuestPortalCredential(null)}
+                />
 
                 <div className="mt-5">
                   <p className="text-[0.65rem] uppercase tracking-[0.22em] text-muted-foreground">

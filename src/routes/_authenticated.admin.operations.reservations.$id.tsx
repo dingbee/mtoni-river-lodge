@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { Button } from "@/components/ui/button";
 import { RoomStateChip } from "@/components/os/operations/RoomStateChip";
+import { GuestPortalAccessPanel } from "@/domains/hospitality/guest-portal/GuestPortalAccessPanel";
 import { User, DollarSign, ListChecks } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/operations/reservations/$id")({
@@ -41,6 +42,8 @@ function ReservationWorkspace() {
         )}
         <Button asChild size="sm" variant="outline"><Link to="/admin/bookings">All reservations</Link></Button>
       </div>
+
+      <GuestPortalAccessPanel bookingId={b.id} bookingStatus={b.status} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <SectionCard title="Guest" description="Intelligence from CRM">

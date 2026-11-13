@@ -4,6 +4,21 @@ import type { Database } from "@/integrations/supabase/types";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
+import type { Json } from "@/integrations/supabase/types";
+
+type PaymentTimelineProviderEvidence = {
+  id: string;
+  provider_key: string;
+  environment: string;
+  external_reservation_id: string;
+  event_type: string;
+  provider_reference: string | null;
+  evidence: Json;
+  reconciliation_status: string;
+  reconciliation_code: string | null;
+  received_at: string;
+};
+
 import { financeRpc } from "@/lib/finance-rpc";
 import { recordManualPaymentInputSchema } from "./payment-contract";
 import { moneyByCurrency, sumCurrency } from "./finance-currency";
@@ -242,7 +257,7 @@ export const getPaymentTimeline = createServerFn({ method: "POST" })
       context.supabase
         .from("bookings")
         .select(
-          "id, reference, guest_name, guest_email, total, deposit_amount, balance_amount, paid_amount, currency, payment_status, payment_method, payment_completed_at, payment_failed_at, payment_initiated_at, payment_mismatch_at, pesapal_order_tracking_id, pesapal_merchant_reference",
+          "id, property_id, reference, guest_name, guest_email, total, deposit_amount, balance_amount, paid_amount, currency, payment_status, payment_method, payment_completed_at, payment_failed_at, payment_initiated_at, payment_mismatch_at, pesapal_order_tracking_id, pesapal_merchant_reference",
         )
         .eq("id", data.bookingId)
         .maybeSingle(),
@@ -255,7 +270,26 @@ export const getPaymentTimeline = createServerFn({ method: "POST" })
     if (bookingResult.error) throw new Error(`Unable to load booking payment summary: ${bookingResult.error.message}`);
     if (eventsResult.error) throw new Error(`Unable to load payment timeline: ${eventsResult.error.message}`);
     if (!bookingResult.data) throw new Error("Booking not found or property access denied");
-    return { booking: bookingResult.data, events: eventsResult.data ?? [] };
+
+    // Provider evidence is service-role-only. The booking row is first resolved
+    // through the caller's RLS scope, then its property_id is used as the
+    // mandatory tenant filter for the supplemental evidence read.
+    let providerEvidence: PaymentTimelineProviderEvidence[] = [];
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: evidenceRows, error: evidenceError } = await (supabaseAdmin as unknown as import("@supabase/supabase-js").SupabaseClient)
+        .from("staynas_distribution_financial_evidence")
+        .select("id,provider_key,environment,external_reservation_id,event_type,provider_reference,evidence,reconciliation_status,reconciliation_code,received_at")
+        .eq("property_id", bookingResult.data.property_id)
+        .eq("booking_id", data.bookingId)
+        .order("received_at", { ascending: false })
+        .limit(50);
+      if (!evidenceError) providerEvidence = (evidenceRows ?? []) as PaymentTimelineProviderEvidence[];
+    } catch {
+      // Provider evidence is supplemental and must not interrupt the payment ledger.
+    }
+
+    return { booking: bookingResult.data, events: eventsResult.data ?? [], providerEvidence };
   });
 
 export const recordManualPayment = createServerFn({ method: "POST" })

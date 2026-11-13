@@ -65,3 +65,44 @@ export function guestPortalCategories(type: GuestPortalRequestType) {
     (GUEST_REQUEST_CATEGORIES as readonly string[]).includes(category),
   );
 }
+
+/** Build the canonical bearer URL without embedding any guest or booking data. */
+export function isGuestPortalStayEligible(
+  bookingStatus: string,
+  expiresAt: string,
+  now = Date.now(),
+): boolean {
+  return Date.parse(expiresAt) > now &&
+    (bookingStatus === "checked_in" || bookingStatus === "completed");
+}
+
+export function buildGuestPortalUrl(origin: string, token: string): string {
+  if (!token || token.length < 40 || token.length > 200) {
+    throw new Error("Invalid guest access credential.");
+  }
+  const base = new URL(origin);
+  if (base.protocol !== "https:" || base.username || base.password) {
+    throw new Error("Invalid Guest Portal origin.");
+  }
+  return `${base.origin}/guest/${encodeURIComponent(token)}`;
+}
+
+/** Resolve only an explicitly configured environment host or its canonical current origin. */
+export function guestPortalOrigin(currentOrigin: string, configuredOrigin?: string): string {
+  const explicitlyConfigured = Boolean(configuredOrigin?.trim());
+  const base = new URL(configuredOrigin?.trim() || currentOrigin);
+  if (base.protocol !== "https:" || base.username || base.password) {
+    throw new Error("Invalid Guest Portal origin.");
+  }
+  if (
+    base.hostname === "localhost" ||
+    base.hostname === "127.0.0.1" ||
+    base.hostname.endsWith(".vercel.app")
+  ) {
+    throw new Error("Set VITE_GUEST_PORTAL_BASE_URL to an approved StayNas environment domain before issuing guest access.");
+  }
+  if (!explicitlyConfigured && !["staynas.nolmark.co", "uat.staynas.com"].includes(base.hostname)) {
+    throw new Error("Guest access must use the canonical StayNas production domain or an explicitly configured UAT domain.");
+  }
+  return base.origin;
+}

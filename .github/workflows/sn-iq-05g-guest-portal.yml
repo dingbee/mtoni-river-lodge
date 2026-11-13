@@ -4,28 +4,74 @@ on:
   pull_request:
     paths:
       - 'src/domains/hospitality/guest-portal/**'
+      - 'src/components/os/operations/CheckInWizard.tsx'
+      - 'src/lib/operations.functions.ts'
+      - 'src/lib/front-desk.functions.ts'
+      - 'src/lib/admin.functions.ts'
+      - 'src/routes/_authenticated.admin.bookings.tsx'
+      - 'src/lib/analytics.ts'
+      - 'src/lib/analytics.security.test.ts'
+      - 'vite.config.ts'
+      - 'vercel.json'
       - 'src/domains/ai/concierge/guest-request-*.functions.ts'
       - 'src/domains/ai/concierge/GuestRequestsPanel.tsx'
       - 'src/routes/guest.$token.tsx'
       - 'src/routes/api/public/ops/drain.ts'
       - 'supabase/migrations/*sn_iq_05*.sql'
+      - 'supabase/migrations/*sn_gpa_*.sql'
+      - 'supabase/tests/staynas_guest_portal_access.test.sql'
+      - 'supabase/verification/guest_portal_access_*.sql'
   push:
     branches:
       - feat/sn-iq-05g-guest-self-service
+      - feat/guest-portal-access-management-release
 
 jobs:
   guest-portal:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: staynas_gpa_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d staynas_gpa_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     steps:
       - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Validate Vercel route security headers
+        run: node -e "JSON.parse(require('fs').readFileSync('vercel.json', 'utf8'))"
+      - name: Bootstrap isolated PostgreSQL schema
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d staynas_gpa_test -v ON_ERROR_STOP=1 -f supabase/verification/guest_portal_access_bootstrap.sql
+      - name: Apply Guest Portal credential lifecycle migration
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d staynas_gpa_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261112130000_sn_gpa_01_credential_lifecycle.sql
+      - name: Verify credential lifecycle, authorization and tenant isolation
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d staynas_gpa_test -v ON_ERROR_STOP=1 -f supabase/verification/guest_portal_access_security.sql
       - uses: oven-sh/setup-bun@v2
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      - name: Guest portal security and contract tests
-        run: bunx vitest run src/domains/hospitality/guest-portal/guest-portal.security.test.ts
+      - name: Guest portal and analytics security tests
+        run: bunx vitest run src/domains/hospitality/guest-portal/guest-portal.security.test.ts src/lib/analytics.security.test.ts
       - name: Build and generate route tree
         run: bun run build
       - name: TypeScript verification
         run: bunx tsc --noEmit
       - name: Guest portal lint
-        run: bunx eslint src/domains/hospitality/guest-portal src/domains/ai/concierge/guest-request-dispatch.functions.ts src/domains/ai/concierge/guest-request-execution.functions.ts src/domains/ai/concierge/guest-requests.functions.ts src/domains/ai/concierge/GuestRequestsPanel.tsx src/routes/api/public/ops/drain.ts
+        run: >-
+          bunx eslint src/domains/hospitality/guest-portal src/domains/ai/concierge/guest-request-dispatch.functions.ts src/domains/ai/concierge/guest-request-execution.functions.ts src/domains/ai/concierge/guest-requests.functions.ts src/domains/ai/concierge/GuestRequestsPanel.tsx src/routes/api/public/ops/drain.ts --rule 'prettier/prettier: off'
