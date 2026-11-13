@@ -280,6 +280,8 @@ REVOKE ALL ON FUNCTION public.get_room_availability_for_property(uuid,date,date)
 GRANT EXECUTE ON FUNCTION public.get_room_availability_for_property(uuid,date,date)
   TO authenticated,service_role;
 
+NOTIFY pgrst, 'reload schema';
+
  excludes unallocated dirty, inspection, maintenance and out-of-service physical units in addition to date inventory and active holds.';
 
 COMMENT ON FUNCTION public.get_staynas_room_availability_priced(date, date, uuid, integer, integer, integer) IS
