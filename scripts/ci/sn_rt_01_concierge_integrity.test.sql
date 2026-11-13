@@ -251,8 +251,6 @@ SET ROLE service_role;
 DO $service_tests$
 DECLARE result record;
 BEGIN
-  UPDATE public.ai_escalation_sla_policies SET reason_priority_map='{"complaint":1,"payment_issue":1,"human_requested":2,"low_confidence":2,"complex_request":3,"other":3}'::jsonb
-  WHERE property_id='11111111-1111-4111-8111-111111111111';
   SELECT * INTO result FROM public.staynas_create_concierge_escalation(
     '11111111-1111-4111-8111-111111111111',
     '11111111-1111-4111-8111-111111111112',
@@ -305,6 +303,10 @@ END
 $service_tests$;
 RESET ROLE;
 RESET request.jwt.claim.role;
+
+-- Configure an explicit property reason map as the database owner before staff role simulation.
+  UPDATE public.ai_escalation_sla_policies SET reason_priority_map='{"complaint":1,"payment_issue":1,"human_requested":2,"low_confidence":2,"complex_request":3,"other":3}'::jsonb
+  WHERE property_id='11111111-1111-4111-8111-111111111111';
 
 -- Staff authorization must be bound to the active property membership.
 SET request.jwt.claim.role = 'authenticated';
