@@ -114,6 +114,12 @@ BEGIN
 END
 $escalation_integrity$;
 
+ALTER TABLE public.ai_escalations DROP CONSTRAINT IF EXISTS ai_escalations_status_check;
+ALTER TABLE public.ai_escalations
+  ADD CONSTRAINT ai_escalations_status_check
+  CHECK (status IN ('open','assigned','acknowledged','in_progress','resolved','dismissed')) NOT VALID;
+ALTER TABLE public.ai_escalations VALIDATE CONSTRAINT ai_escalations_status_check;
+
 CREATE UNIQUE INDEX IF NOT EXISTS ai_escalations_property_dedupe_uidx
   ON public.ai_escalations(property_id, dedupe_key);
 CREATE INDEX IF NOT EXISTS ai_escalations_property_status_priority_idx
