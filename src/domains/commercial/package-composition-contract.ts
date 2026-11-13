@@ -4,7 +4,7 @@ import {
   COMMERCIAL_PLAN_CODES,
 } from "./catalogue-contract";
 
-/** CC02.03 contracts only: no plan/module matrix or add-on rules are presumed. */
+/** CC02.03 versioned package composition with optional tiered module entitlements. */
 const code = z.string().trim().min(2).max(60).regex(/^[a-z][a-z0-9_]*$/);
 const isoDate = z.string().date();
 
