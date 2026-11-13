@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { trackGAEvent, trackPageView } from "@/lib/analytics";
-import { ArrowRight, ArrowUpRight, BedDouble, Building2, CalendarCheck, ChartNoAxesCombined, Check, ChevronDown, ChevronRight, CircleDot, CreditCard, ExternalLink, Globe2, House, Layers3, Menu, Network, ShieldCheck, Sparkles, Users, Workflow, Wrench, X } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BedDouble, Building2, CalendarCheck, ChartNoAxesCombined, Check, ChevronDown, ChevronRight, CircleDot, CreditCard, ExternalLink, Globe2, House, Layers3, Menu, Network, ShieldCheck, Sparkles, Users, Workflow, Wrench, X, Search } from "lucide-react";
 import { STAYNAS_PUBLIC_CAPABILITIES, STAYNAS_PILLARS, type PublicCapability } from "@/lib/staynas-public-capabilities";
 import { StayNasDemoRequestForm, StayNasModulePreview } from "@/components/site/StayNasWebsiteEnhancements";
 
@@ -20,8 +20,34 @@ const capabilityIcons: Record<string, typeof BedDouble> = {
   ecosystem: Layers3,
 };
 
+const PUBLIC_SEARCH_ITEMS = [
+  { title: "Platform overview", category: "Platform", to: "/platform", terms: "hospitality operating system connected platform overview property operations commercial guest experience finance intelligence" },
+  { title: "Reservations & booking lifecycle", category: "Operations", to: "/modules#reservations", terms: "reservations booking availability rates guest details amendments confirmation booking lifecycle" },
+  { title: "Front desk & digital check-in", category: "Operations", to: "/modules#front-desk", terms: "reception arrivals departures check in check-out room assignment guest arrival pass" },
+  { title: "Housekeeping & inspections", category: "Operations", to: "/modules#housekeeping", terms: "cleaning room turnover task assignment inspection maintenance room readiness" },
+  { title: "Rooms & inventory", category: "Operations", to: "/modules#rooms-inventory", terms: "rooms accommodation categories room types capacity inventory allocation status" },
+  { title: "Guest profiles & intelligence", category: "Guest experience", to: "/modules#guest-intelligence", terms: "guest crm profiles preferences stay history returning guest service context" },
+  { title: "AI Concierge", category: "Guest experience", to: "/modules#staynas-ai", terms: "artificial intelligence concierge property knowledge guest questions facilities services policies" },
+  { title: "Finance & payments", category: "Financial control", to: "/modules#finance", terms: "finance payments balances folio invoices settlements reconciliation revenue" },
+  { title: "Revenue & pricing", category: "Commercial", to: "/modules#revenue", terms: "revenue rate plans pricing rules adr revpar restrictions performance" },
+  { title: "Booking distribution", category: "Commercial", to: "/integrations", terms: "channel manager ota booking channels distribution connectors inventory availability" },
+  { title: "Platform integrations", category: "Connected ecosystem", to: "/integrations", terms: "integrations api providers connectors payment communication distribution ecosystem" },
+  { title: "Hospitality business solutions", category: "Solutions", to: "/solutions", terms: "hotels lodges resorts serviced apartments hostels multi property hospitality business" },
+  { title: "Product walkthrough", category: "Explore", to: "/product-tour", terms: "tour demo guest journey workflow discover how staynas works" },
+  { title: "Platform architecture", category: "Explore", to: "/architecture", terms: "architecture multi tenant property aware organisation data boundaries platform" },
+  { title: "Trust & security", category: "Resources", to: "/security", terms: "security privacy permissions roles access tenant isolation governance" },
+  { title: "Plans & pricing", category: "Commercial", to: "/pricing", terms: "pricing plans subscription commercial packages fees add ons" },
+  { title: "Request a demonstration", category: "Get started", to: "/request-demo", terms: "contact sales book demo request demonstration enquiry talk to team" },
+  { title: "Multi-property management", category: "Administration", to: "/modules#multi-property", terms: "groups organisations multiple properties central oversight tenant boundaries" },
+  { title: "Workflow automation", category: "Intelligence", to: "/modules#automation", terms: "automation events notifications tasks approvals operational workflows" },
+  { title: "Reporting & management intelligence", category: "Management", to: "/modules#reporting-intelligence", terms: "analytics reports dashboards metrics management performance" },
+] as const;
+
 export function ProductSiteHeader() {
   const [open, setOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [activeMenu, setActiveMenu] = useState<"root" | "platform">("root");
   const links = [
     { to: "/platform", label: "Platform" },
@@ -38,6 +64,29 @@ export function ProductSiteHeader() {
     { heading: "Guest", items: [{ to: "/modules#staynas-ai", label: "AI Concierge" }, { to: "/modules#guest-intelligence", label: "Guest profiles & intelligence" }] },
     { heading: "Revenue", items: [{ to: "/modules#revenue", label: "Revenue & pricing" }, { to: "/modules#finance", label: "Finance" }, { to: "/integrations", label: "Booking & distribution" }] },
   ] as const;
+
+  useEffect(() => {
+    const onShortcut = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setSearchOpen(true); }
+      else if (event.key === "/" && !["INPUT", "TEXTAREA"].includes((event.target as HTMLElement)?.tagName)) { event.preventDefault(); setSearchOpen(true); }
+    };
+    window.addEventListener("keydown", onShortcut);
+    return () => window.removeEventListener("keydown", onShortcut);
+  }, []);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const timer = window.setTimeout(() => searchInputRef.current?.focus(), 60);
+    const onEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setSearchOpen(false); };
+    window.addEventListener("keydown", onEscape);
+    return () => { window.clearTimeout(timer); document.body.style.overflow = previousOverflow; window.removeEventListener("keydown", onEscape); };
+  }, [searchOpen]);
+
+  const searchResults = searchQuery.trim()
+    ? PUBLIC_SEARCH_ITEMS.filter((item) => (item.title + " " + item.category + " " + item.terms).toLowerCase().includes(searchQuery.trim().toLowerCase())).slice(0, 8)
+    : PUBLIC_SEARCH_ITEMS.slice(0, 6);
 
   useEffect(() => {
     if (!open) return;
@@ -66,13 +115,24 @@ export function ProductSiteHeader() {
           <Link to="/solutions" className="text-sm text-white/70 transition hover:text-white">Solutions</Link>
           <Link to="/pricing" className="text-sm text-white/70 transition hover:text-white">Pricing</Link>
           <a href="https://nolmark.co" target="_blank" rel="noreferrer" className="text-sm text-white/70 transition hover:text-white">Company <ExternalLink className="ml-1 inline h-3 w-3"/></a>
+          <button type="button" aria-label="Search StayNas" onClick={() => setSearchOpen(true)} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 text-white/80 transition hover:bg-white/10 hover:text-white"><Search className="h-5 w-5"/></button>
           <Link to="/request-demo" className="inline-flex items-center gap-2 rounded-full bg-[#d7bd85] px-5 py-3 text-sm font-semibold text-[#14271f] transition hover:bg-[#e5d0a4]">Book a Demo <ArrowUpRight className="h-4 w-4"/></Link>
         </nav>
+        <div className="flex items-center gap-2 lg:hidden"><button type="button" aria-label="Search StayNas" onClick={() => setSearchOpen(true)} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-white transition hover:bg-white/10"><Search className="h-5 w-5"/></button>
         <button type="button" aria-label="Open navigation menu" aria-expanded={open} aria-controls="staynas-mobile-navigation" onClick={() => setOpen(true)} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-white transition hover:bg-white/10 lg:hidden">
           <Menu className="h-5 w-5"/>
-        </button>
+        </button></div>
       </div>
 
+      {searchOpen && <div className="fixed inset-0 z-[120] flex items-start justify-center bg-[#071710]/65 px-4 pb-6 pt-[max(8vh,36px)] backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Search StayNas" onMouseDown={(event) => { if (event.target === event.currentTarget) setSearchOpen(false); }}>
+        <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-[#deded4] bg-[#f8f6ef] text-[#15251f] shadow-2xl">
+          <div className="flex items-center gap-3 border-b border-[#e5dfd3] px-5 py-4"><Search className="h-5 w-5 shrink-0 text-[#92794b]"/><input ref={searchInputRef} value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search StayNas, features, solutions..." aria-label="Search StayNas website" className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-[#928b80]"/><kbd className="hidden rounded border border-[#d8d0c2] px-2 py-1 text-[10px] text-[#81796f] sm:inline">ESC</kbd><button type="button" aria-label="Close search" onClick={() => setSearchOpen(false)} className="rounded-full p-2 transition hover:bg-[#ece8de]"><X className="h-5 w-5"/></button></div>
+          <div className="max-h-[min(65vh,560px)] overflow-y-auto p-3"><p className="px-3 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#97896f]">{searchQuery.trim() ? "Search results" : "Explore StayNas"}</p>
+            {searchResults.length ? searchResults.map((item) => <a key={item.title} href={item.to} onClick={() => setSearchOpen(false)} className="group flex items-center justify-between gap-4 rounded-xl px-3 py-3 transition hover:bg-[#ecefe8]"><span className="min-w-0"><span className="block text-sm font-medium text-[#24382e]">{item.title}</span><span className="mt-1 block text-xs text-[#8a857d]">{item.category}</span></span><ArrowUpRight className="h-4 w-4 shrink-0 text-[#a88a52] transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5"/></a>) : <p className="px-3 py-10 text-center text-sm text-[#77736c]">No matches yet. Try reservations, rooms, finance or concierge.</p>}
+          </div>
+          <div className="flex items-center justify-between border-t border-[#e5dfd3] px-5 py-3 text-[10px] text-[#928b80]"><span>Search across the StayNas website</span><span>⌘ K / Ctrl K</span></div>
+        </div>
+      </div>}
       {open && <div className="fixed inset-0 z-[100] lg:hidden">
         <button type="button" aria-label="Close navigation overlay" onClick={closeMenu} className="absolute inset-0 h-full w-full cursor-default bg-[#071710]/55 backdrop-blur-[2px]"/>
         <aside id="staynas-mobile-navigation" role="dialog" aria-modal="true" aria-label="StayNas navigation" onClick={(event) => event.stopPropagation()} className="absolute inset-y-0 right-0 flex h-[100dvh] w-[min(100%,440px)] flex-col overflow-hidden bg-[#f6f5ef] text-[#15251f] shadow-2xl">
