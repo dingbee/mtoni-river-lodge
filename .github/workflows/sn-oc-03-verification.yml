@@ -81,6 +81,7 @@ jobs:
       - name: Production build
         run: bun run build
 
+  # Verify the timestamp-ordered migration chain, including booking inventory prerequisites and SN-OC-04.
   database:
     name: Full Supabase migration chain and SN-OC-03 acceptance fixture
     runs-on: ubuntu-latest
