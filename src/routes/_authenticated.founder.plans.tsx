@@ -93,9 +93,16 @@ function FounderCommercialAdministration() {
     setLoading(true); setError(null);
     try {
       const [rows, auditRows] = await Promise.all([listPoliciesFn(), listAuditFn()]);
+      const policyRows = rows as PolicyRow[];
       const next = { catalogue: emptyPayload(), pricing: emptyPayload(), composition: emptyPayload(), trial_policy: emptyPayload() };
-      for (const row of rows as PolicyRow[]) next[row.policy_type] = asPayload(row.payload);
-      setPolicies(rows as PolicyRow[]);
+      for (const type of ["catalogue", "pricing", "composition", "trial_policy"] as PolicyType[]) {
+        const family = policyRows.filter((row) => row.policy_type === type);
+        const latestDraft = family.filter((row) => row.status === "draft").sort((a, b) => b.version - a.version)[0];
+        const currentPublished = family.find((row) => row.is_current);
+        const selectedPolicy = latestDraft ?? currentPublished;
+        if (selectedPolicy) next[type] = asPayload(selectedPolicy.payload);
+      }
+      setPolicies(policyRows);
       setAudit(auditRows as Array<Record<string, unknown>>);
       setPayloads(next);
     } catch (cause) {
