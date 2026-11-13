@@ -138,16 +138,15 @@ export function ProductSiteHeader() {
         <aside id="staynas-mobile-navigation" role="dialog" aria-modal="true" aria-label="StayNas navigation" onClick={(event) => event.stopPropagation()} className="absolute inset-y-0 right-0 flex h-[100dvh] w-[min(100%,440px)] flex-col overflow-hidden bg-[#F6F2F1] text-[#2A2725] shadow-2xl">
           <div className="flex min-h-[88px] items-center justify-between border-b border-[#EAE2D3] px-6 sm:px-8">
             <div className="flex min-w-0 items-center gap-3">
-              {activeMenu === "platform" && <button type="button" aria-label="Back to main navigation" onClick={() => setActiveMenu("root")} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#2A2725] transition hover:bg-[#EAE2D3]"><ChevronRight className="h-6 w-6 rotate-180"/></button>}
-              <Link to="/" onClick={closeMenu} className="flex items-center gap-3" aria-label="StayNas home">
+              {activeMenu === "platform" ? <>
+                <button type="button" aria-label="Back to main navigation" onClick={() => setActiveMenu("root")} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#2A2725] transition hover:bg-[#EAE2D3]"><ChevronRight className="h-6 w-6 rotate-180"/></button>
+                <span className="text-lg font-semibold text-[#2A2725]">Platform</span>
+              </> : <Link to="/" onClick={closeMenu} className="flex items-center gap-3" aria-label="StayNas home">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#AE8F60] text-lg font-semibold text-[#2A2725]">S</span>
                 <span className="truncate text-[17px] font-semibold tracking-[0.1em] text-[#2A2725]">STAYNAS <span className="font-normal tracking-normal text-[#3A4A3F]">Hospitality OS</span></span>
-              </Link>
+              </Link>}
             </div>
-            <div className="flex items-center gap-2">
-              {activeMenu === "platform" && <span className="text-base font-semibold text-[#2A2725]">Platform</span>}
-              <button type="button" aria-label="Close navigation menu" onClick={closeMenu} className="inline-flex h-11 w-11 items-center justify-center rounded-full text-[#2A2725] transition hover:bg-[#EAE2D3]"><X className="h-7 w-7"/></button>
-            </div>
+            <button type="button" aria-label="Close navigation menu" onClick={closeMenu} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#2A2725] transition hover:bg-[#EAE2D3]"><X className="h-7 w-7"/></button>
           </div>
 
           <nav aria-label="Mobile navigation" className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-8 pt-3 sm:px-8">
