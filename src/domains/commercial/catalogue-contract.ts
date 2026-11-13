@@ -58,6 +58,7 @@ export const commercialPlanSchema = z.object({
   name: nonEmptyName,
   description,
   status: z.enum(COMMERCIAL_PLAN_STATUSES),
+  sortOrder: z.number().int().default(0),
 });
 export type CommercialPlan = z.infer<typeof commercialPlanSchema>;
 
