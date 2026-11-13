@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { COMMERCIAL_MODULE_CODES } from "@/domains/commercial/catalogue-contract";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -175,7 +176,8 @@ function FounderCommercialAdministration() {
   </div>;
 
   const renderCapabilities = () => <div className="space-y-4">
-    <SectionHeading title="StayNas capability registry" description="Hospitality-specific registered commercial modules. Codes are fixed to the existing StayNas capability contract; descriptions, categories and availability are founder-managed." />
+    <SectionHeading title="StayNas capability registry" description="Hospitality-specific registered commercial modules. Codes are fixed to the existing StayNas capability contract; descriptions, categories and availability are founder-managed."
+      action={<button className={buttonClass} onClick={()=>update("catalogue",v=>{for(const code of COMMERCIAL_MODULE_CODES){if(!v.modules.some(m=>m.code===code))v.modules.push({code,name:MODULE_LABELS[code]??code,description:"",category:"",status:"draft",operationalModuleRefs:[]});}return v;})}>Register missing StayNas modules</button>} />
     <div className="overflow-x-auto rounded-lg border"><table className="w-full min-w-[850px] text-left text-sm"><thead className="bg-muted/60 text-xs text-muted-foreground"><tr><th className="p-3">Capability</th><th className="p-3">Display name</th><th className="p-3">Category</th><th className="p-3">Description</th><th className="p-3">Availability</th></tr></thead><tbody className="divide-y">
       {modules.map((m) => <tr key={m.code}><td className="p-3 font-mono text-xs">{m.code}</td><td className="p-3"><input className={inputClass} value={m.name} onChange={(e)=>update("catalogue",v=>{const x=v.modules.find(z=>z.code===m.code);if(x)x.name=e.target.value;return v;})}/></td><td className="p-3"><input className={inputClass} value={m.category ?? ""} placeholder="Category" onChange={(e)=>update("catalogue",v=>{const x=v.modules.find(z=>z.code===m.code);if(x)x.category=e.target.value;return v;})}/></td><td className="p-3"><input className={inputClass} value={m.description} onChange={(e)=>update("catalogue",v=>{const x=v.modules.find(z=>z.code===m.code);if(x)x.description=e.target.value;return v;})}/></td><td className="p-3"><select className={selectClass} value={m.status} onChange={(e)=>update("catalogue",v=>{const x=v.modules.find(z=>z.code===m.code);if(x)x.status=e.target.value;return v;})}><option value="draft">Draft</option><option value="active">Available</option><option value="retired">Retired</option></select></td></tr>)}
     </tbody></table></div>
