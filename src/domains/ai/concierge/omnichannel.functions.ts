@@ -522,7 +522,7 @@ export const listEscalations = createServerFn({ method: "POST" })
   .inputValidator((input: { status?: EscalationStatus | "all" }) => input ?? {})
   .handler(async ({ data, context }) => {
     const propertyId = await requirePropertyScope(context.supabase, context.userId);
-    let q = context.supabase
+    let q = (context.supabase as any)
       .from("ai_escalations")
       .select("*")
       .eq("property_id", propertyId)
