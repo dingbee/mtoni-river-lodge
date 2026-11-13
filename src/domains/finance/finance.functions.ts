@@ -259,7 +259,7 @@ export const getPaymentTimeline = createServerFn({ method: "POST" })
     // The authenticated booking lookup above is the authorization boundary.
     // Read provider evidence with the service client only after that scoped
     // lookup succeeds, and constrain it to the same property + booking.
-    const { data: providerEvidence, error: evidenceError } = await (supabaseAdmin as any)
+    const { data: providerEvidence, error: evidenceError } = await supabaseAdmin
       .from("staynas_distribution_financial_evidence")
       .select("id, provider_key, event_type, evidence, reconciliation_status, provider_reference, received_at, reconciliation_code")
       .eq("property_id", bookingResult.data.property_id)
