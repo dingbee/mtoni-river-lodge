@@ -130,7 +130,7 @@ CREATE TABLE IF NOT EXISTS public.ai_escalation_events (
   escalation_id uuid NOT NULL REFERENCES public.ai_escalations(id) ON DELETE RESTRICT,
   event_type text NOT NULL CHECK (event_type IN (
     'created','assigned','reassigned','unassigned','acknowledged','in_progress',
-    'resolved','reopened','dismissed','priority_changed',
+    'resolved','reopened','dismissed','priority_changed','sla_policy_changed',
     'assignment_approaching_breach','assignment_breached',
     'acknowledgement_approaching_breach','acknowledgement_breached',
     'resolution_approaching_breach','resolution_breached'
