@@ -126,9 +126,12 @@ INSERT INTO public.rooms(id,property_id,catalogue_type_id,slug,name,status,base_
    '94000000-0000-4000-8000-000000000001','cps06-e2e-room','CPS-06 E2E Room','active',100,'TZS'),
   ('95000000-0000-4000-8000-000000000002','93000000-0000-4000-8000-000000000002',
    '94000000-0000-4000-8000-000000000002','cps06-e2e-room-two','CPS-06 E2E Room Two','active',100,'TZS');
+-- Published campaign fixtures must use the trusted server database role.
+SET LOCAL ROLE service_role;
 INSERT INTO public.booking_campaigns(id,organisation_id,property_id,slug,name,status) VALUES
   ('96000000-0000-4000-8000-000000000001','92000000-0000-4000-8000-000000000001',
    '93000000-0000-4000-8000-000000000001','cps06-e2e-campaign','CPS-06 E2E Campaign','published');
+RESET ROLE;
 
 SELECT set_config('request.jwt.claims','{"role":"service_role","sub":"91000000-0000-4000-8000-000000000001"}',true);
 SELECT set_config('request.jwt.claim.role','service_role',true);
