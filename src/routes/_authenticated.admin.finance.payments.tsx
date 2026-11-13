@@ -235,7 +235,6 @@ function Payments() {
                   {!timelineError && !(timeline?.events ?? []).length && <p className="text-muted-foreground">No events yet.</p>}
                 </div>
               </div>
-}
             </div>
           )}
           <DialogFooter>
