@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import type { ReactNode } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -108,25 +107,29 @@ function FounderCommercialAdministration() {
   useEffect(() => {
     const row = policies.filter((item) => item.policy_type === selected.policy && item.status === "draft").sort((a, b) => b.version - a.version)[0]
       ?? policies.find((item) => item.policy_type === selected.policy && item.is_current);
-    setJsonText(JSON.stringify(row?.payload ?? payloads[selected.policy], null, 2));
+    const editorPayload = row?.payload ?? (selected.policy === "trial_policy" ? payloads.trial_policy.trials : payloads[selected.policy]);
+    setJsonText(JSON.stringify(editorPayload, null, 2));
     setStatus("draft"); setNotice(null); setAdvanced(false);
   }, [section, policies, selected.policy, payloads]);
 
   const updateArray = (policy: PolicyType, key: keyof Payload, rows: Row[]) => {
     setPayloads((old) => ({ ...old, [policy]: { ...old[policy], [key]: rows } }));
   };
-  const updateRow = (policy: PolicyType, key: keyof Payload, index: number, field: string, value: unknown) => {
-    const rows = [...payloads[policy][key]];
-    rows[index] = { ...rows[index], [field]: value };
-    updateArray(policy, key, rows);
+  const updateRowFields = (policy: PolicyType, key: keyof Payload, index: number, patch: Row) => {
+    setPayloads((old) => {
+      const rows = [...old[policy][key]];
+      rows[index] = { ...rows[index], ...patch };
+      return { ...old, [policy]: { ...old[policy], [key]: rows } };
+    });
   };
+  const updateRow = (policy: PolicyType, key: keyof Payload, index: number, field: string, value: unknown) => updateRowFields(policy, key, index, { [field]: value });
   const addRow = (policy: PolicyType, key: keyof Payload, row: Row) => updateArray(policy, key, [...payloads[policy][key], row]);
   const removeRow = (policy: PolicyType, key: keyof Payload, index: number) => updateArray(policy, key, payloads[policy][key].filter((_, i) => i !== index));
 
   const save = async () => {
     setSaving(true); setError(null); setNotice(null);
     try {
-      let raw: unknown = payloads[selected.policy];
+      let raw: unknown = selected.policy === "trial_policy" ? payloads.trial_policy.trials : payloads[selected.policy];
       if (advanced) raw = JSON.parse(jsonText);
       const result = await savePolicyFn({ data: { policyType: selected.policy, status, payload: raw, effectiveFrom: null, effectiveTo: null } });
       setNotice(`${result.policyType} version ${result.version} saved as ${result.status}. Previous versions remain immutable.`);
