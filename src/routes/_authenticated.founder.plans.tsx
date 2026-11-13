@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";\nimport type { ReactNode } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -38,7 +38,7 @@ const moduleLabels: Record<string, string> = Object.fromEntries(COMMERCIAL_MODUL
 const arrayAt = (payload: Payload, key: keyof Payload): Row[] => Array.isArray(payload[key]) ? payload[key] : [];
 const asPayload = (raw: unknown): Payload => {
   const base = emptyPayload();
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return base;
+  if (Array.isArray(raw)) { base.trials = raw as Row[]; return base; }\n  if (!raw || typeof raw !== "object") return base;
   const source = raw as Record<string, unknown>;
   for (const key of Object.keys(base) as (keyof Payload)[]) {
     const sourceKey = key === "trials" ? "trialPolicies" : key;
@@ -155,7 +155,7 @@ function FounderCommercialAdministration() {
       </select>
     </label>
   );
-  const SectionTitle = ({ title, description, action }: { title: string; description?: string; action?: () => void }) => (
+  const SectionTitle = useCallback(({ title, description, action }: { title: string; description?: string; action?: () => void }) => (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div><h2 className="text-base font-semibold">{title}</h2>{description && <p className={`mt-1 ${mutedClass}`}>{description}</p>}</div>
       {action && <button type="button" className={buttonClass} onClick={action}>+ Add record</button>}
@@ -213,7 +213,7 @@ function FounderCommercialAdministration() {
         </section>}
 
         {section === "entitlements" && <section className="mt-5 space-y-3"><SectionTitle title="Plan entitlement matrix" description="This contract currently supports explicit inclusion records. A missing cell is unconfigured; it is not an exclusion or an invented quota." action={() => addRow("catalogue", "planModules", { planCode: "essential", planVersion: 1, moduleCode: "reservations", included: true })} />
-          <TableWrap><thead><tr><Th>Capability</Th>{planLabels && COMMERCIAL_PLAN_CODES.map((code) => <Th key={code}>{planLabels[code]}</Th>)}</tr></thead><tbody>{COMMERCIAL_MODULE_CODES.map((code) => <tr key={code}><Td><strong>{moduleLabels[code]}</strong><div className="text-[10px] text-muted-foreground">{code}</div></Td>{COMMERCIAL_PLAN_CODES.map((planCode) => { const found = planModules.find((row) => row.planCode === planCode && row.moduleCode === code); return <Td key={planCode}>{found ? <span className="inline-flex rounded-full bg-emerald-500/10 px-2 py-1 font-medium text-emerald-700">Included · v{String(found.planVersion)}</span> : <span className="text-muted-foreground">Not configured</span>}<button type="button" className="mt-2 block text-primary underline" onClick={() => found ? removeRow("catalogue", "planModules", planModules.indexOf(found)) : addRow("catalogue", "planModules", { planCode, planVersion: 1, moduleCode: code, included: true })}>{found ? "Remove inclusion" : "Include capability"}</button></Td>; })}</tr>)}</tbody></TableWrap>
+          <TableWrap><thead><tr><Th>Capability</Th>{COMMERCIAL_PLAN_CODES.map((code) => <Th key={code}>{planLabels[code]}</Th>)}</tr></thead><tbody>{COMMERCIAL_MODULE_CODES.map((code) => <tr key={code}><Td><strong>{moduleLabels[code]}</strong><div className="text-[10px] text-muted-foreground">{code}</div></Td>{COMMERCIAL_PLAN_CODES.map((planCode) => { const found = planModules.find((row) => row.planCode === planCode && row.moduleCode === code); return <Td key={planCode}>{found ? <span className="inline-flex rounded-full bg-emerald-500/10 px-2 py-1 font-medium text-emerald-700">Included · v{String(found.planVersion)}</span> : <span className="text-muted-foreground">Not configured</span>}<button type="button" className="mt-2 block text-primary underline" onClick={() => found ? removeRow("catalogue", "planModules", planModules.indexOf(found)) : addRow("catalogue", "planModules", { planCode, planVersion: 1, moduleCode: code, included: true })}>{found ? "Remove inclusion" : "Include capability"}</button></Td>; })}</tr>)}</tbody></TableWrap>
           <p className={mutedClass}>Limited, advanced, unavailable and numeric quota states are not represented by the existing persisted entitlement contract. They are intentionally not simulated here.</p>
         </section>}
 
