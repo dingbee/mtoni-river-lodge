@@ -10,15 +10,33 @@ const isoDate = z.string().date();
 
 export const COMMERCIAL_COMPOSITION_STATUSES = ["draft", "published", "retired"] as const;
 
+export const COMMERCIAL_ENTITLEMENT_LEVELS = ["included", "limited", "advanced", "enterprise", "unavailable"] as const;
+export const commercialModuleEntitlementSchema = z.object({
+  moduleCode: z.enum(COMMERCIAL_MODULE_CODES),
+  level: z.enum(COMMERCIAL_ENTITLEMENT_LEVELS),
+});
+export type CommercialModuleEntitlement = z.infer<typeof commercialModuleEntitlementSchema>;
+
 export const commercialPackageCompositionSchema = z.object({
   planCode: z.enum(COMMERCIAL_PLAN_CODES),
   planVersion: z.number().int().positive(),
   status: z.enum(COMMERCIAL_COMPOSITION_STATUSES),
   moduleCodes: z.array(z.enum(COMMERCIAL_MODULE_CODES)),
+  /** Optional per-module commercial tier; legacy moduleCodes remain supported. */
+  moduleEntitlements: z.array(commercialModuleEntitlementSchema).optional(),
   addonCodes: z.array(code).default([]),
   effectiveFrom: isoDate.nullable(),
   effectiveTo: isoDate.nullable(),
 }).superRefine((value, ctx) => {
+  if (value.moduleEntitlements && new Set(value.moduleEntitlements.map((item) => item.moduleCode)).size !== value.moduleEntitlements.length) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["moduleEntitlements"], message: "A module may only have one entitlement level per plan" });
+  }
+  if (value.moduleEntitlements) {
+    const enabled = value.moduleEntitlements.filter((item) => item.level !== "unavailable").map((item) => item.moduleCode).sort();
+    if (enabled.join("|") !== [...value.moduleCodes].sort().join("|")) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["moduleCodes"], message: "moduleCodes must match all non-unavailable module entitlement entries" });
+    }
+  }
   if (new Set(value.moduleCodes).size !== value.moduleCodes.length) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["moduleCodes"], message: "A module may only appear once in a package composition" });
   }
