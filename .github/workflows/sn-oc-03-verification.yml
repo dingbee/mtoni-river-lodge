@@ -2,7 +2,7 @@ name: SN-OC-03 Provider Activation Verification
 
 on:
   push:
-    branches: [feat/sn-oc-04-operational-intelligence]
+    branches: [feat/sn-oc-04-operational-intelligence, feat/sn-oc-04-release-candidate]
     paths:
       - "src/domains/ai/concierge/**"
       - "supabase/migrations/**"
