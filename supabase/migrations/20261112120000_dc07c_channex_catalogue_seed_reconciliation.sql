@@ -1,4 +1,4 @@
--- DC-07C â€” make the Channex sandbox catalogue reproducible from an empty database.
+-- DC-07C Ã¢â‚¬â€ make the Channex sandbox catalogue reproducible from an empty database.
 -- The original DC-07A activation migration only UPDATEd an existing row. On a
 -- clean migration chain that row did not exist, leaving the provider catalogue empty.
 -- This forward-only correction is idempotent and keeps the adapter health-only.
@@ -48,4 +48,16 @@ BEGIN
     SELECT 1
     FROM public.staynas_distribution_provider_catalogue
     WHERE provider_key = 'channex'
-      AND adap¶»§q«^
+      AND adapter_key = 'channex'
+      AND adapter_version = '1.0.0'
+      AND lifecycle = 'active'
+      AND capabilities = ARRAY['connection.health']::text[]
+      AND environment_config #>> '{sandbox,apiBaseUrl}' = 'https://staging.channex.io/api/v1'
+      AND environment_config #> '{sandbox,allowedHosts}' = '["staging.channex.io"]'::jsonb
+  ) THEN
+    RAISE EXCEPTION 'DC-07C Channex sandbox provider catalogue seed is incomplete';
+  END IF;
+END
+$verify$;
+
+COMMIT;
