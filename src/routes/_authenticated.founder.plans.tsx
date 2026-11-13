@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { Check, ChevronDown, CircleHelp, Plus, RefreshCw, Save, ShieldCheck, Trash2 } from "lucide-react";
+import {
+  COMMERCIAL_MODULE_CODES,
+  COMMERCIAL_PLAN_CODES,
+  type CommercialModuleCode,
+  type CommercialPlanCode,
+} from "@/domains/commercial/catalogue-contract";
 import {
   listFounderCommercialPolicies,
   listFounderCommercialPolicyAudit,
@@ -9,45 +16,56 @@ import {
 
 type PolicyType = "catalogue" | "pricing" | "composition" | "trial_policy";
 type PolicyRow = {
-  id: string;
-  policy_type: PolicyType;
-  version: number;
-  status: "draft" | "published" | "retired";
-  payload: unknown;
-  effective_from: string | null;
-  effective_to: string | null;
-  created_at: string;
-  is_current: boolean;
+  id: string; policy_type: PolicyType; version: number; status: "draft" | "published" | "retired";
+  payload: any; effective_from: string | null; effective_to: string | null; created_at: string; is_current: boolean;
 };
-
-const TYPES: { value: PolicyType; label: string; description: string; template: string }[] = [
-  {
-    value: "catalogue",
-    label: "Plan catalogue",
-    description: "Define Essential, Professional and Enterprise plans, version records, modules and add-ons.",
-    template: JSON.stringify({ plans: [], planVersions: [], modules: [], planModules: [], addons: [] }, null, 2),
-  },
-  {
-    value: "pricing",
-    label: "Pricing",
-    description: "Configure TZS/USD monthly and annual prices, hybrid property pricing and add-on charges. No FX conversion is applied.",
-    template: JSON.stringify({ planPrices: [], addonPrices: [] }, null, 2),
-  },
-  {
-    value: "composition",
-    label: "Package composition",
-    description: "Define included modules, optional add-ons and explicit compatibility rules.",
-    template: JSON.stringify({ compositions: [], compatibilityRules: [] }, null, 2),
-  },
-  {
-    value: "trial_policy",
-    label: "Trial policies",
-    description: "Configure plan-version trial policies. The contract fixes duration at 14 days and trigger at subscription activation.",
-    template: JSON.stringify([], null, 2),
-  },
+type Plan = { code: CommercialPlanCode; name: string; description: string; status: "draft" | "published" | "retired" };
+type PlanVersion = { planCode: CommercialPlanCode; version: number; status: "draft" | "published" | "retired"; effectiveFrom: string | null; effectiveTo: string | null; changeReason: string | null };
+type Module = { code: CommercialModuleCode; name: string; description: string; status: "draft" | "active" | "retired"; operationalModuleRefs: string[] };
+type PlanModule = { planCode: CommercialPlanCode; planVersion: number; moduleCode: CommercialModuleCode; included: true };
+type Addon = { code: string; name: string; description: string; status: "draft" | "active" | "retired" };
+type PlanPrice = { priceCode: string; planCode: CommercialPlanCode; planVersion: number; currency: "TZS" | "USD"; billingTerm: "monthly" | "annual"; priceMode: "fixed" | "quote_required"; baseAmountMinor: number | null; includedProperties: number | null; additionalPropertyAmountMinor: number | null; status: "draft" | "active" | "retired"; effectiveFrom: string | null; effectiveTo: string | null };
+type AddonPrice = { priceCode: string; addonCode: string; currency: "TZS" | "USD"; billingTerm: "monthly" | "annual"; chargeModel: "flat" | "per_property"; amountMinor: number; status: "draft" | "active" | "retired"; effectiveFrom: string | null; effectiveTo: string | null };
+type Composition = { planCode: CommercialPlanCode; planVersion: number; status: "draft" | "published" | "retired"; moduleCodes: CommercialModuleCode[]; addonCodes: string[]; effectiveFrom: string | null; effectiveTo: string | null };
+type Compatibility = { addonCode: string; requiresModuleCodes: CommercialModuleCode[]; conflictsWithAddonCodes: string[] };
+type Trial = { planCode: CommercialPlanCode; planVersion: number; policyVersion: number; enabled: boolean; durationDays: 14; startTrigger: "subscription_activated"; effectiveFrom: string | null; effectiveTo: string | null };
+type Catalogue = { plans: Plan[]; planVersions: PlanVersion[]; modules: Module[]; planModules: PlanModule[]; addons: Addon[] };
+type Pricing = { planPrices: PlanPrice[]; addonPrices: AddonPrice[] };
+type PackagePolicy = { compositions: Composition[]; compatibilityRules: Compatibility[] };
+type Payloads = { catalogue: Catalogue; pricing: Pricing; composition: PackagePolicy; trial_policy: Trial[] };
+type Tab = "plans" | "capabilities" | "entitlements" | "pricing" | "composition" | "addons" | "trials";
+const PLAN_CODES = COMMERCIAL_PLAN_CODES;
+const PLAN_LABEL: Record<CommercialPlanCode, string> = { essential: "Core", professional: "Pro", enterprise: "Enterprise" };
+const MODULE_LABEL: Record<CommercialModuleCode, string> = {
+  reservations:"Reservations", rooms:"Rooms", front_desk:"Front desk", operations:"Operations",
+  housekeeping:"Housekeeping", guests:"Guest CRM", finance:"Finance", revenue:"Revenue management",
+  automation:"Automation", concierge:"Concierge", content:"Content management", marketing:"Marketing",
+  integrations:"Integrations", intelligence:"Business intelligence",
+};
+const EMPTY: Payloads = {
+  catalogue: { plans: [], planVersions: [], modules: [], planModules: [], addons: [] },
+  pricing: { planPrices: [], addonPrices: [] },
+  composition: { compositions: [], compatibilityRules: [] },
+  trial_policy: [],
+};
+const TABS: { id: Tab; label: string; policy: PolicyType; description: string }[] = [
+  { id:"plans", label:"Plans", policy:"catalogue", description:"Create and maintain the three commercial plans and their immutable versions." },
+  { id:"capabilities", label:"Capabilities", policy:"catalogue", description:"Maintain the StayNas capability catalogue used by package and entitlement administration." },
+  { id:"entitlements", label:"Entitlements", policy:"catalogue", description:"Assign existing StayNas capabilities to each plan version. This contract currently supports included or not included." },
+  { id:"pricing", label:"Pricing", policy:"pricing", description:"Manage currency-specific monthly and annual subscription prices and additional-property charges." },
+  { id:"composition", label:"Package composition", policy:"composition", description:"Configure included capabilities, add-ons and explicit compatibility rules by plan version." },
+  { id:"addons", label:"Add-ons", policy:"catalogue", description:"Manage separately chargeable commercial add-ons." },
+  { id:"trials", label:"Trial policies", policy:"trial_policy", description:"Configure the fixed 14-day trial policy for each plan version." },
 ];
+const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(" ");
+const inputClass = "mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm";
+const labelClass = "block text-xs font-medium text-muted-foreground";
+const human = (value: string) => value.replaceAll("_"," ").replace(/\b\w/g, c => c.toUpperCase());
+const moneyMajor = (minor: number | null) => minor === null ? "" : String(minor / 100);
+const moneyMinor = (major: string) => major.trim() === "" ? null : Math.round(Number(major) * 100);
 
 export const Route = createFileRoute("/_authenticated/founder/plans")({
+  head: () => ({ meta: [{ title: "Plans & Pricing — StayNas Founder" }, { name: "robots", content: "noindex,nofollow" }] }),
   beforeLoad: async () => {
     const { getCommercialFounderStatus } = await import("@/domains/_platform/founder-admin.functions");
     const access = await getCommercialFounderStatus();
@@ -60,184 +78,121 @@ function FounderCommercialAdministration() {
   const listPoliciesFn = useServerFn(listFounderCommercialPolicies);
   const listAuditFn = useServerFn(listFounderCommercialPolicyAudit);
   const savePolicyFn = useServerFn(saveFounderCommercialPolicy);
-  const [selected, setSelected] = useState<PolicyType>("catalogue");
-  const [policies, setPolicies] = useState<PolicyRow[]>([]);
-  const [audit, setAudit] = useState<Array<Record<string, unknown>>>([]);
-  const [payloadText, setPayloadText] = useState(TYPES[0]!.template);
-  const [status, setStatus] = useState<"draft" | "published">("draft");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [tab,setTab] = useState<Tab>("plans");
+  const [payloads,setPayloads] = useState<Payloads>(EMPTY);
+  const [policies,setPolicies] = useState<PolicyRow[]>([]);
+  const [audit,setAudit] = useState<Array<Record<string,unknown>>>([]);
+  const [loading,setLoading] = useState(true);
+  const [saving,setSaving] = useState(false);
+  const [saveAs,setSaveAs] = useState<"draft"|"published">("draft");
+  const [error,setError] = useState("");
+  const [notice,setNotice] = useState("");
+  const [planDraft,setPlanDraft] = useState<CommercialPlanCode>("essential");
+  const [newAddon,setNewAddon] = useState({code:"",name:"",description:""});
+  const [newCapability,setNewCapability] = useState<CommercialModuleCode>("reservations");
+  const activeTab = TABS.find(t=>t.id===tab)!;
+  const currentRows = useMemo(()=>policies.filter(p=>p.policy_type===activeTab.policy).sort((a,b)=>b.version-a.version),[policies,activeTab.policy]);
 
-  const selectedType = TYPES.find((item) => item.value === selected)!;
-  const selectedRows = useMemo(
-    () => policies.filter((row) => row.policy_type === selected).sort((a, b) => b.version - a.version),
-    [policies, selected],
-  );
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const refresh = useCallback(async()=>{
+    setLoading(true);setError("");
     try {
-      const [rows, auditRows] = await Promise.all([
-        listPoliciesFn(),
-        listAuditFn(),
-      ]);
-      setPolicies(rows as PolicyRow[]);
-      setAudit(auditRows as Array<Record<string, unknown>>);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Founder authorization or configuration lookup failed.");
-    } finally {
-      setLoading(false);
-    }
-  }, [listPoliciesFn, listAuditFn]);
+      const [rows,auditRows] = await Promise.all([listPoliciesFn(),listAuditFn()]);
+      const policyRows = rows as PolicyRow[];
+      setPolicies(policyRows);setAudit(auditRows as Array<Record<string,unknown>>);
+      const next: Payloads = structuredClone(EMPTY);
+      for(const type of ["catalogue","pricing","composition","trial_policy"] as PolicyType[]){
+        const versions=policyRows.filter(p=>p.policy_type===type);
+        const selected=versions.find(p=>p.is_current) ?? versions.find(p=>p.status==="draft") ?? versions[0];
+        if(selected?.payload) (next as any)[type]=selected.payload;
+      }
+      setPayloads(next);
+    } catch(cause) { setError(cause instanceof Error?cause.message:"Commercial configuration could not be loaded."); }
+    finally { setLoading(false); }
+  },[listPoliciesFn,listAuditFn]);
+  useEffect(()=>{void refresh();},[refresh]);
 
-  useEffect(() => { void refresh(); }, [refresh]);
-
-  useEffect(() => {
-    const currentRows = policies.filter((row) => row.policy_type === selected);
-    const newestDraft = currentRows
-      .filter((row) => row.status === "draft")
-      .sort((a, b) => b.version - a.version)[0];
-    const current = newestDraft
-      ?? currentRows.find((row) => row.is_current)
-      ?? currentRows.sort((a, b) => b.version - a.version)[0];
-    setPayloadText(current ? JSON.stringify(current.payload, null, 2) : selectedType.template);
-    setStatus("draft");
-    setNotice(null);
-  }, [selected, policies, selectedType.template]);
-
-  const save = async () => {
-    setSaving(true);
-    setError(null);
-    setNotice(null);
-    try {
-      const payload: unknown = JSON.parse(payloadText);
-      const result = await savePolicyFn({
-        data: {
-          policyType: selected,
-          status,
-          payload,
-          effectiveFrom: null,
-          effectiveTo: null,
-        },
-      });
-      setNotice(`${result.policyType} version ${result.version} saved as ${result.status}. A new version was appended; previous versions remain immutable.`);
+  const updateCatalogue=(fn:(current:Catalogue)=>Catalogue)=>setPayloads(p=>({...p,catalogue:fn(p.catalogue)}));
+  const updatePricing=(fn:(current:Pricing)=>Pricing)=>setPayloads(p=>({...p,pricing:fn(p.pricing)}));
+  const updateComposition=(fn:(current:PackagePolicy)=>PackagePolicy)=>setPayloads(p=>({...p,composition:fn(p.composition)}));
+  const updateTrials=(fn:(current:Trial[])=>Trial[])=>setPayloads(p=>({...p,trial_policy:fn(p.trial_policy)}));
+  const plans=payloads.catalogue.plans;
+  const versions=payloads.catalogue.planVersions;
+  const selectedVersion=(code:CommercialPlanCode)=>versions.filter(v=>v.planCode===code).sort((a,b)=>b.version-a.version)[0]?.version ?? 1;
+  const moduleRows=payloads.catalogue.modules;
+  const capabilityRows=moduleRows.length?moduleRows:COMMERCIAL_MODULE_CODES.map(code=>({code,name:MODULE_LABEL[code],description:"Existing StayNas commercial capability.",status:"active" as const,operationalModuleRefs:[]}));
+  const save = async()=>{
+    setSaving(true);setError("");setNotice("");
+    try{
+      const result=await savePolicyFn({data:{policyType:activeTab.policy,status:saveAs,payload:payloads[activeTab.policy],effectiveFrom:null,effectiveTo:null}});
+      setNotice(`${human(result.policyType)} version ${result.version} saved as ${result.status}.`);
       await refresh();
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "The policy could not be saved.");
-    } finally {
-      setSaving(false);
-    }
+    }catch(cause){setError(cause instanceof Error?cause.message:"Commercial policy could not be saved. Check required fields and publication rules.");}
+    finally{setSaving(false);}
   };
+  const addPlan=(code:CommercialPlanCode)=>{
+    const existing=plans.find(p=>p.code===code);
+    if(existing){setNotice(`${PLAN_LABEL[code]} already exists in the catalogue.`);return;}
+    updateCatalogue(c=>({...c,plans:[...c.plans,{code,name:PLAN_LABEL[code],description:`${PLAN_LABEL[code]} hospitality plan`,status:"draft"}]}));
+    setNotice(`${PLAN_LABEL[code]} added as an unsaved draft.`);
+  };
+  const addVersion=(code:CommercialPlanCode)=>{
+    const version=selectedVersion(code)+1;
+    updateCatalogue(c=>({...c,planVersions:[...c.planVersions,{planCode:code,version,status:"draft",effectiveFrom:null,effectiveTo:null,changeReason:""}]}));
+  };
+  const addModule=(code:CommercialModuleCode)=>{
+    if(moduleRows.some(m=>m.code===code)){setNotice("Capability already exists.");return;}
+    updateCatalogue(c=>({...c,modules:[...c.modules,{code,name:MODULE_LABEL[code],description:"Existing StayNas commercial capability.",status:"active",operationalModuleRefs:[]}]}));
+  };
+  const addPlanPriceSet=(code:CommercialPlanCode)=>{
+    const version=selectedVersion(code);
+    updatePricing(p=>{
+      const rows=[...p.planPrices];
+      for(const currency of ["TZS","USD"] as const) for(const billingTerm of ["monthly","annual"] as const){
+        if(rows.some(r=>r.planCode===code&&r.planVersion===version&&r.currency===currency&&r.billingTerm===billingTerm))continue;
+        const quote=code==="enterprise";
+        rows.push({priceCode:`${code}_v${version}_${currency.toLowerCase()}_${billingTerm}`,planCode:code,planVersion:version,currency,billingTerm,priceMode:quote?"quote_required":"fixed",baseAmountMinor:quote?null:0,includedProperties:quote?null:1,additionalPropertyAmountMinor:quote?null:0,status:"draft",effectiveFrom:null,effectiveTo:null});
+      }
+      return {...p,planPrices:rows};
+    });
+  };
+  const updatePlanPrice=(index:number,patch:Partial<PlanPrice>)=>updatePricing(p=>({...p,planPrices:p.planPrices.map((r,i)=>i===index?{...r,...patch}:r)}));
 
-  return (
-    <div className="mx-auto w-full max-w-6xl space-y-6">
+  return <main className="min-h-screen bg-background px-4 py-6 text-foreground sm:px-7 lg:px-10">
+    <div className="mx-auto max-w-7xl space-y-6">
+      <a href="/founder" className="text-sm text-muted-foreground underline">← Back to Founder Commercial Control Centre</a>
       <header className="space-y-2">
-        <a href="/founder" className="text-sm text-muted-foreground underline">← Back to Founder Commercial Control Centre</a>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Nolmark CDMA · Founder authority</p>
-        <h1 className="text-2xl font-semibold tracking-tight">Commercial policy administration</h1>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          Global StayNas commercial configuration. Changes are versioned and audited. Tenant workspaces cannot author or override these policies.
-        </p>
+        <div className="flex flex-wrap items-end justify-between gap-3"><div><h1 className="text-3xl font-semibold tracking-tight">Plans & Pricing</h1><p className="mt-1 max-w-3xl text-sm text-muted-foreground">Manage StayNas commercial plans, capabilities, entitlements, prices, package composition and trial policies.</p></div><div className="flex items-center gap-2"><span className="rounded-full border px-3 py-1.5 text-xs text-muted-foreground">Founder-only · Versioned</span><button onClick={()=>void refresh()} disabled={loading} className="inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm"><RefreshCw className="size-4"/>Refresh</button></div></div>
       </header>
-
-      <div className="rounded-xl border border-border bg-card p-4">
-        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Commercial policy types">
-          {TYPES.map((item) => (
-            <button
-              key={item.value}
-              type="button"
-              role="tab"
-              aria-selected={selected === item.value}
-              onClick={() => setSelected(item.value)}
-              className={`rounded-lg border px-3 py-2 text-sm ${selected === item.value ? "border-primary bg-primary/10 font-semibold" : "border-border"}`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-        <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
-          <section className="min-w-0 space-y-3">
-            <div>
-              <h2 className="font-semibold">{selectedType.label}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">{selectedType.description}</p>
-            </div>
-            <label className="block text-sm font-medium" htmlFor="commercial-policy-json">Policy document (JSON)</label>
-            <textarea
-              id="commercial-policy-json"
-              value={payloadText}
-              onChange={(event) => setPayloadText(event.target.value)}
-              spellCheck={false}
-              className="min-h-[360px] w-full rounded-lg border border-border bg-background p-3 font-mono text-xs leading-5"
-            />
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="text-sm" htmlFor="commercial-policy-status">Save as</label>
-              <select id="commercial-policy-status" value={status} onChange={(event) => setStatus(event.target.value as "draft" | "published")} className="rounded-md border border-border bg-background px-3 py-2 text-sm">
-                <option value="draft">Draft</option>
-                <option value="published">Publish as current version</option>
-              </select>
-              <button type="button" disabled={saving || loading} onClick={() => void save()} className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">
-                {saving ? "Saving…" : status === "published" ? "Publish version" : "Save draft"}
-              </button>
-              <button type="button" disabled={loading} onClick={() => void refresh()} className="rounded-md border border-border px-4 py-2 text-sm">Refresh</button>
-            </div>
-            {error && <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
-            {notice && <p role="status" className="rounded-md border border-border bg-muted/40 p-3 text-sm">{notice}</p>}
-          </section>
-
-          <aside className="space-y-4">
-            <div className="rounded-lg border border-border p-3">
-              <h3 className="text-sm font-semibold">Version history</h3>
-              {loading ? <p className="mt-2 text-sm text-muted-foreground">Loading…</p> : selectedRows.length === 0 ? (
-                <p className="mt-2 text-sm text-muted-foreground">No configuration has been authored. Trial activation remains unavailable until a valid trial policy is published.</p>
-              ) : (
-                <ul className="mt-3 space-y-3">
-                  {selectedRows.map((row) => (
-                    <li key={row.id} className="border-t border-border pt-2 text-xs">
-                      <div className="flex items-center justify-between gap-2">
-                        <strong>Version {row.version}</strong>
-                        <span className="rounded-full bg-muted px-2 py-1">{row.is_current ? "current" : row.status}</span>
-                      </div>
-                      <p className="mt-1 text-muted-foreground">{new Date(row.created_at).toLocaleString()}</p>
-                      <button type="button" onClick={() => { setPayloadText(JSON.stringify(row.payload, null, 2)); setStatus("draft"); }} className="mt-2 text-primary underline">Load into editor</button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <div className="rounded-lg border border-border p-3">
-              <h3 className="text-sm font-semibold">Security boundary</h3>
-              <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                Every read revalidates the authenticated founder identity and active founder-tenant membership. Writes are schema-validated in the server handler and independently re-authorized by the database RPC. Configuration versions are append-only.
-              </p>
-            </div>
-          </aside>
-        </div>
-      </div>
-
-      <section className="rounded-xl border border-border bg-card p-4">
-        <h2 className="font-semibold">Policy change audit</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Latest 100 founder policy configuration events.</p>
-        {audit.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">No policy changes recorded.</p> : (
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-[600px] text-left text-xs">
-              <thead><tr className="border-b border-border text-muted-foreground"><th className="p-2">Time</th><th className="p-2">Action</th><th className="p-2">Outcome</th><th className="p-2">Reference</th></tr></thead>
-              <tbody>
-                {audit.map((event, index) => (
-                  <tr key={String(event.id ?? index)} className="border-b border-border/70">
-                    <td className="p-2">{String(event.occurred_at ?? "")}</td>
-                    <td className="p-2">{String(event.action ?? "")}</td>
-                    <td className="p-2">{String(event.outcome ?? "")}</td>
-                    <td className="p-2 font-mono">{String(event.resource_ref ?? "")}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <section className="grid gap-3 sm:grid-cols-3">
+        {PLAN_CODES.map(code=><div key={code} className="rounded-xl border bg-card p-4"><p className="text-xs uppercase tracking-wider text-muted-foreground">{PLAN_LABEL[code]}</p><p className="mt-2 text-2xl font-semibold tabular-nums">{plans.some(p=>p.code===code)?"Configured":"Not configured"}</p><p className="mt-1 text-xs text-muted-foreground">{versions.filter(v=>v.planCode===code).length} authored versions</p></div>)}
       </section>
+      <div className="rounded-xl border bg-card p-2">
+        <nav className="flex gap-2 overflow-x-auto pb-1" aria-label="Plans and pricing sections">
+          {TABS.map(item=><button key={item.id} onClick={()=>{setTab(item.id);setError("");setNotice("");}} aria-current={tab===item.id?"page":undefined} className={cx("shrink-0 rounded-lg border px-3 py-2 text-sm",tab===item.id?"border-primary bg-primary/10 font-semibold":"border-transparent text-muted-foreground hover:border-border hover:text-foreground")}>{item.label}</button>)}
+        </nav>
+      </div>
+      <section className="rounded-xl border bg-card p-4 sm:p-6 space-y-5">
+        <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-semibold">{activeTab.label}</h2><p className="mt-1 text-sm text-muted-foreground">{activeTab.description}</p></div><span className="rounded-full bg-muted px-3 py-1 text-xs">{currentRows.length? `Latest saved v${currentRows[0]!.version}`:"No saved version"}</span></div>
+        {loading?<div className="py-16 text-center text-sm text-muted-foreground">Loading founder commercial configuration…</div>:<>
+          {tab==="plans"&&<div className="space-y-5">
+            <div className="flex flex-wrap items-end gap-3"><label className={labelClass}>Add plan<select className={inputClass} value={planDraft} onChange={e=>setPlanDraft(e.target.value as CommercialPlanCode)}>{PLAN_CODES.map(c=><option key={c} value={c}>{PLAN_LABEL[c]}</option>)}</select></label><button onClick={()=>addPlan(planDraft)} className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground"><Plus className="size-4"/>Add plan</button></div>
+            <div className="overflow-x-auto rounded-lg border"><table className="w-full min-w-[760px] text-left text-sm"><thead className="bg-muted/50 text-xs text-muted-foreground"><tr><th className="p-3">Code</th><th className="p-3">Plan name</th><th className="p-3">Description</th><th className="p-3">Status</th><th className="p-3">Versions</th><th className="p-3"></th></tr></thead><tbody className="divide-y">{PLAN_CODES.map(code=>{const p=plans.find(x=>x.code===code);return <tr key={code}><td className="p-3 font-mono text-xs">{code}</td><td className="p-3"><input aria-label={`${PLAN_LABEL[code]} plan name`} disabled={!p} value={p?.name??"—"} onChange={e=>updateCatalogue(c=>({...c,plans:c.plans.map(x=>x.code===code?{...x,name:e.target.value}:x)}))} className="h-9 w-40 rounded-md border bg-background px-2 disabled:border-transparent disabled:bg-transparent"/></td><td className="p-3"><input aria-label={`${PLAN_LABEL[code]} description`} disabled={!p} value={p?.description??""} onChange={e=>updateCatalogue(c=>({...c,plans:c.plans.map(x=>x.code===code?{...x,description:e.target.value}:x)}))} className="h-9 w-64 rounded-md border bg-background px-2 disabled:border-transparent disabled:bg-transparent"/></td><td className="p-3"><select disabled={!p} value={p?.status??"draft"} onChange={e=>updateCatalogue(c=>({...c,plans:c.plans.map(x=>x.code===code?{...x,status:e.target.value as Plan["status"]}:x)}))} className="h-9 rounded-md border bg-background px-2"><option value="draft">Draft</option><option value="published">Published</option><option value="retired">Retired</option></select></td><td className="p-3 tabular-nums">{versions.filter(v=>v.planCode===code).length}</td><td className="p-3"><button onClick={()=>addVersion(code)} disabled={!p} className="rounded-md border px-3 py-2 text-xs disabled:opacity-40">New version</button></td></tr>})}</tbody></table></div>
+            <div className="rounded-lg border p-4"><h3 className="font-medium">Plan version history</h3><div className="mt-3 overflow-x-auto"><table className="w-full min-w-[620px] text-left text-sm"><thead className="text-xs text-muted-foreground"><tr><th className="p-2">Plan</th><th className="p-2">Version</th><th className="p-2">Status</th><th className="p-2">Effective from</th><th className="p-2">Change reason</th></tr></thead><tbody className="divide-y">{versions.map((v,i)=><tr key={`${v.planCode}-${v.version}-${i}`}><td className="p-2">{PLAN_LABEL[v.planCode]}</td><td className="p-2">v{v.version}</td><td className="p-2"><select value={v.status} onChange={e=>updateCatalogue(c=>({...c,planVersions:c.planVersions.map(x=>x===v?{...x,status:e.target.value as PlanVersion["status"]}:x)}))} className="h-9 rounded-md border bg-background px-2"><option value="draft">Draft</option><option value="published">Published</option><option value="retired">Retired</option></select></td><td className="p-2"><input type="date" value={v.effectiveFrom??""} onChange={e=>updateCatalogue(c=>({...c,planVersions:c.planVersions.map(x=>x===v?{...x,effectiveFrom:e.target.value||null}:x)}))} className="h-9 rounded-md border bg-background px-2"/></td><td className="p-2"><input value={v.changeReason??""} onChange={e=>updateCatalogue(c=>({...c,planVersions:c.planVersions.map(x=>x===v?{...x,changeReason:e.target.value}:x)}))} className="h-9 w-56 rounded-md border bg-background px-2"/></td></tr>)}{versions.length===0&&<tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Add a plan, then create its first version. Publishing requires all three plans and at least one version per plan.</td></tr>}</tbody></table></div></div>
+          </div>}
+          {tab==="capabilities"&&<div className="space-y-4"><div className="flex flex-wrap gap-2"><label className={labelClass}>StayNas capability<select className={inputClass} value={newCapability} onChange={e=>setNewCapability(e.target.value as CommercialModuleCode)}>{COMMERCIAL_MODULE_CODES.map(c=><option key={c} value={c}>{MODULE_LABEL[c]}</option>)}</select></label><button onClick={()=>addModule(newCapability)} className="mt-5 inline-flex h-10 items-center gap-2 rounded-lg border px-4 text-sm"><Plus className="size-4"/>Add capability</button></div><div className="grid gap-3 md:grid-cols-2">{capabilityRows.map(m=><div key={m.code} className="rounded-lg border p-4"><div className="flex items-center justify-between gap-2"><strong>{m.name}</strong><span className="rounded-full bg-muted px-2 py-1 text-xs">{m.status}</span></div><p className="mt-1 text-xs text-muted-foreground">{m.code}</p><input aria-label={`${m.name} description`} value={m.description} onChange={e=>updateCatalogue(c=>({...c,modules:c.modules.map(x=>x.code===m.code?{...x,description:e.target.value}:x)}))} className="mt-3 h-9 w-full rounded-md border bg-background px-2 text-sm"/><label className="mt-3 block text-xs text-muted-foreground">Operational module references<input value={m.operationalModuleRefs.join(", ")} onChange={e=>updateCatalogue(c=>({...c,modules:c.modules.map(x=>x.code===m.code?{...x,operationalModuleRefs:e.target.value.split(",").map(s=>s.trim()).filter(Boolean)}:x)}))} placeholder="Existing registry identifiers, comma separated" className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm"/></label></div>)}</div></div>}
+          {tab==="entitlements"&&<div className="space-y-3"><p className="text-xs text-muted-foreground">This is the current CC-02 contract: capabilities are explicitly included or not included per plan version. Tiered limited/advanced access and usage quotas are not represented by the existing enforcement contract and are deliberately not simulated here.</p><div className="overflow-x-auto rounded-lg border"><table className="w-full min-w-[760px] text-left text-sm"><thead className="bg-muted/50 text-xs text-muted-foreground"><tr><th className="p-3">Capability</th>{PLAN_CODES.map(c=><th key={c} className="p-3">{PLAN_LABEL[c]} · v{selectedVersion(c)}</th>)}</tr></thead><tbody className="divide-y">{capabilityRows.map(m=><tr key={m.code}><td className="p-3"><strong>{m.name}</strong><p className="text-xs text-muted-foreground">{m.code}</p></td>{PLAN_CODES.map(c=>{const version=selectedVersion(c);const checked=payloads.catalogue.planModules.some(x=>x.planCode===c&&x.planVersion===version&&x.moduleCode===m.code);return <td key={c} className="p-3"><label className="inline-flex items-center gap-2"><input type="checkbox" checked={checked} onChange={e=>updateCatalogue(cat=>({...cat,planModules:e.target.checked?[...cat.planModules,{planCode:c,planVersion:version,moduleCode:m.code,included:true}]:cat.planModules.filter(x=>!(x.planCode===c&&x.planVersion===version&&x.moduleCode===m.code))}))} className="size-4 accent-primary"/><span className="text-xs">{checked?"Included":"Not included"}</span></label></td>})}</tr>)}</tbody></table></div></div>}
+          {tab==="pricing"&&<div className="space-y-4"><div className="flex flex-wrap items-end gap-3"><label className={labelClass}>Create pricing set for<select className={inputClass} value={planDraft} onChange={e=>setPlanDraft(e.target.value as CommercialPlanCode)}>{PLAN_CODES.map(c=><option key={c} value={c}>{PLAN_LABEL[c]}</option>)}</select></label><button onClick={()=>addPlanPriceSet(planDraft)} className="h-10 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground">Add currency & term rows</button></div><div className="overflow-x-auto rounded-lg border"><table className="w-full min-w-[1100px] text-left text-sm"><thead className="bg-muted/50 text-xs text-muted-foreground"><tr><th className="p-3">Plan / version</th><th className="p-3">Currency</th><th className="p-3">Billing</th><th className="p-3">Price mode</th><th className="p-3">Base price</th><th className="p-3">Included properties</th><th className="p-3">Additional property</th><th className="p-3">Status</th><th className="p-3"/></tr></thead><tbody className="divide-y">{payloads.pricing.planPrices.map((r,i)=><tr key={r.priceCode}><td className="p-3">{PLAN_LABEL[r.planCode]} · v{r.planVersion}<p className="text-xs text-muted-foreground">{r.priceCode}</p></td><td className="p-3"><select value={r.currency} onChange={e=>updatePlanPrice(i,{currency:e.target.value as PlanPrice["currency"]})} className="h-9 rounded-md border bg-background px-2"><option>TZS</option><option>USD</option></select></td><td className="p-3"><select value={r.billingTerm} onChange={e=>updatePlanPrice(i,{billingTerm:e.target.value as PlanPrice["billingTerm"]})} className="h-9 rounded-md border bg-background px-2"><option value="monthly">Monthly</option><option value="annual">Annual</option></select></td><td className="p-3"><select value={r.priceMode} onChange={e=>{const mode=e.target.value as PlanPrice["priceMode"];updatePlanPrice(i,mode==="quote_required"?{priceMode:mode,baseAmountMinor:null,includedProperties:null,additionalPropertyAmountMinor:null}:{priceMode:mode,baseAmountMinor:0,includedProperties:1,additionalPropertyAmountMinor:0});}} className="h-9 rounded-md border bg-background px-2"><option value="fixed">Fixed</option><option value="quote_required" disabled={r.planCode!=="enterprise"}>Quote required</option></select></td><td className="p-3"><input type="number" min="0" step="0.01" disabled={r.priceMode!=="fixed"} value={moneyMajor(r.baseAmountMinor)} onChange={e=>updatePlanPrice(i,{baseAmountMinor:moneyMinor(e.target.value)})} className="h-9 w-28 rounded-md border bg-background px-2 disabled:opacity-40"/></td><td className="p-3"><input type="number" min="1" step="1" disabled={r.priceMode!=="fixed"} value={r.includedProperties??""} onChange={e=>updatePlanPrice(i,{includedProperties:e.target.value===""?null:Number(e.target.value)})} className="h-9 w-24 rounded-md border bg-background px-2 disabled:opacity-40"/></td><td className="p-3"><input type="number" min="0" step="0.01" disabled={r.priceMode!=="fixed"} value={moneyMajor(r.additionalPropertyAmountMinor)} onChange={e=>updatePlanPrice(i,{additionalPropertyAmountMinor:moneyMinor(e.target.value)})} className="h-9 w-32 rounded-md border bg-background px-2 disabled:opacity-40"/></td><td className="p-3"><select value={r.status} onChange={e=>updatePlanPrice(i,{status:e.target.value as PlanPrice["status"]})} className="h-9 rounded-md border bg-background px-2"><option value="draft">Draft</option><option value="active">Active</option><option value="retired">Retired</option></select></td><td className="p-3"><button aria-label="Remove price row" onClick={()=>updatePricing(p=>({...p,planPrices:p.planPrices.filter((_,j)=>j!==i)}))} className="rounded-md p-2 text-muted-foreground hover:text-destructive"><Trash2 className="size-4"/></button></td></tr>)}{payloads.pricing.planPrices.length===0&&<tr><td colSpan={9} className="p-8 text-center text-muted-foreground">No pricing rows yet. Add a plan pricing set to create TZS/USD monthly and annual entries.</td></tr>}</tbody></table></div><p className="text-xs text-muted-foreground">Amounts are entered in major currency units and stored as integer minor units. No currency conversion is performed. Enterprise pricing is quote-required.</p><div className="rounded-lg border p-4"><h3 className="font-medium">Add-on pricing</h3><div className="mt-3 overflow-x-auto"><table className="w-full min-w-[850px] text-left text-sm"><thead className="text-xs text-muted-foreground"><tr><th className="p-2">Add-on</th><th className="p-2">Currency</th><th className="p-2">Term</th><th className="p-2">Charge model</th><th className="p-2">Amount</th><th className="p-2">Status</th><th/></tr></thead><tbody className="divide-y">{payloads.pricing.addonPrices.map((r,i)=><tr key={r.priceCode}><td className="p-2">{r.addonCode}</td><td className="p-2"><select value={r.currency} onChange={e=>updatePricing(p=>({...p,addonPrices:p.addonPrices.map((x,j)=>j===i?{...x,currency:e.target.value as AddonPrice["currency"]}:x)}))} className="h-9 rounded-md border bg-background px-2"><option>TZS</option><option>USD</option></select></td><td className="p-2"><select value={r.billingTerm} onChange={e=>updatePricing(p=>({...p,addonPrices:p.addonPrices.map((x,j)=>j===i?{...x,billingTerm:e.target.value as AddonPrice["billingTerm"]}:x)}))} className="h-9 rounded-md border bg-background px-2"><option value="monthly">Monthly</option><option value="annual">Annual</option></select></td><td className="p-2"><select value={r.chargeModel} onChange={e=>updatePricing(p=>({...p,addonPrices:p.addonPrices.map((x,j)=>j===i?{...x,chargeModel:e.target.value as AddonPrice["chargeModel"]}:x)}))} className="h-9 rounded-md border bg-background px-2"><option value="flat">Flat</option><option value="per_property">Per property</option></select></td><td className="p-2"><input type="number" min="0" step="0.01" value={moneyMajor(r.amountMinor)} onChange={e=>updatePricing(p=>({...p,addonPrices:p.addonPrices.map((x,j)=>j===i?{...x,amountMinor:moneyMinor(e.target.value)??0}:x)}))} className="h-9 w-28 rounded-md border bg-background px-2"/></td><td className="p-2"><select value={r.status} onChange={e=>updatePricing(p=>({...p,addonPrices:p.addonPrices.map((x,j)=>j===i?{...x,status:e.target.value as AddonPrice["status"]}:x)}))} className="h-9 rounded-md border bg-background px-2"><option value="draft">Draft</option><option value="active">Active</option><option value="retired">Retired</option></select></td><td className="p-2"><button onClick={()=>updatePricing(p=>({...p,addonPrices:p.addonPrices.filter((_,j)=>j!==i)}))} className="p-2 text-muted-foreground hover:text-destructive"><Trash2 className="size-4"/></button></td></tr>)}</tbody></table></div><p className="mt-2 text-xs text-muted-foreground">Add-on price rows are authored after the add-on catalogue has been saved.</p></div></div>}
+          {tab==="composition"&&<div className="space-y-4">{PLAN_CODES.map(code=>{const version=selectedVersion(code);const row=payloads.composition.compositions.find(x=>x.planCode===code&&x.planVersion===version);return <div key={code} className="rounded-lg border p-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><h3 className="font-medium">{PLAN_LABEL[code]} · v{version}</h3><p className="text-xs text-muted-foreground">Select included capabilities and optional add-ons.</p></div><button onClick={()=>updateComposition(p=>({...p,compositions:row?p.compositions.filter(x=>x!==row):[...p.compositions,{planCode:code,planVersion:version,status:"draft",moduleCodes:[],addonCodes:[],effectiveFrom:null,effectiveTo:null}]}))} className="rounded-md border px-3 py-2 text-xs">{row?"Remove composition":"Create composition"}</button></div>{row&&<div className="mt-4 grid gap-3 sm:grid-cols-2">{capabilityRows.map(m=><label key={m.code} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={row.moduleCodes.includes(m.code)} onChange={e=>updateComposition(p=>({...p,compositions:p.compositions.map(x=>x===row?{...x,moduleCodes:e.target.checked?[...x.moduleCodes,m.code]:x.moduleCodes.filter(c=>c!==m.code)}:x)}))} className="size-4 accent-primary"/>{m.name}</label>)}{payloads.catalogue.addons.map(a=><label key={a.code} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={row.addonCodes.includes(a.code)} onChange={e=>updateComposition(p=>({...p,compositions:p.compositions.map(x=>x===row?{...x,addonCodes:e.target.checked?[...x.addonCodes,a.code]:x.addonCodes.filter(c=>c!==a.code)}:x)}))} className="size-4 accent-primary"/>{a.name} <span className="text-xs text-muted-foreground">add-on</span></label>)}</div>}</div>})}<div className="rounded-lg border p-4"><h3 className="font-medium">Add-on compatibility</h3><p className="mt-1 text-xs text-muted-foreground">Define only confirmed dependencies and conflicts; an absent rule does not imply a restriction.</p>{payloads.composition.compatibilityRules.map((rule,i)=><div key={rule.addonCode} className="mt-3 grid gap-2 sm:grid-cols-3"><input value={rule.addonCode} onChange={e=>updateComposition(p=>({...p,compatibilityRules:p.compatibilityRules.map((x,j)=>j===i?{...x,addonCode:e.target.value}:x)}))} className={inputClass}/><input value={rule.requiresModuleCodes.join(",")} onChange={e=>updateComposition(p=>({...p,compatibilityRules:p.compatibilityRules.map((x,j)=>j===i?{...x,requiresModuleCodes:e.target.value.split(",").map(s=>s.trim()).filter(Boolean) as CommercialModuleCode[]}:x)}))} placeholder="Required module codes" className={inputClass}/><input value={rule.conflictsWithAddonCodes.join(",")} onChange={e=>updateComposition(p=>({...p,compatibilityRules:p.compatibilityRules.map((x,j)=>j===i?{...x,conflictsWithAddonCodes:e.target.value.split(",").map(s=>s.trim()).filter(Boolean)}:x)}))} placeholder="Conflicting add-on codes" className={inputClass}/></div>)}<button onClick={()=>updateComposition(p=>({...p,compatibilityRules:[...p.compatibilityRules,{addonCode:"",requiresModuleCodes:[],conflictsWithAddonCodes:[]}]}))} className="mt-3 rounded-md border px-3 py-2 text-xs">Add compatibility rule</button></div></div>}
+          {tab==="addons"&&<div className="space-y-4"><div className="grid gap-3 rounded-lg border p-4 sm:grid-cols-3"><label className={labelClass}>Code<input value={newAddon.code} onChange={e=>setNewAddon(v=>({...v,code:e.target.value}))} placeholder="e.g. premium_support" className={inputClass}/></label><label className={labelClass}>Name<input value={newAddon.name} onChange={e=>setNewAddon(v=>({...v,name:e.target.value}))} className={inputClass}/></label><label className={labelClass}>Description<input value={newAddon.description} onChange={e=>setNewAddon(v=>({...v,description:e.target.value}))} className={inputClass}/></label><button onClick={()=>{if(!newAddon.code||!newAddon.name){setError("Add-on code and name are required.");return;}if(payloads.catalogue.addons.some(a=>a.code===newAddon.code)){setError("Add-on code already exists.");return;}updateCatalogue(c=>({...c,addons:[...c.addons,{...newAddon,status:"draft"}]}));setNewAddon({code:"",name:"",description:""});}} className="h-10 rounded-lg bg-primary px-4 text-sm text-primary-foreground sm:w-fit"><Plus className="mr-1 inline size-4"/>Add add-on</button></div><div className="overflow-x-auto rounded-lg border"><table className="w-full min-w-[700px] text-left text-sm"><thead className="bg-muted/50 text-xs text-muted-foreground"><tr><th className="p-3">Code</th><th className="p-3">Name</th><th className="p-3">Description</th><th className="p-3">Status</th><th/></tr></thead><tbody className="divide-y">{payloads.catalogue.addons.map((a,i)=><tr key={a.code}><td className="p-3 font-mono text-xs">{a.code}</td><td className="p-3"><input value={a.name} onChange={e=>updateCatalogue(c=>({...c,addons:c.addons.map((x,j)=>j===i?{...x,name:e.target.value}:x)}))} className="h-9 w-40 rounded-md border bg-background px-2"/></td><td className="p-3"><input value={a.description} onChange={e=>updateCatalogue(c=>({...c,addons:c.addons.map((x,j)=>j===i?{...x,description:e.target.value}:x)}))} className="h-9 w-64 rounded-md border bg-background px-2"/></td><td className="p-3"><select value={a.status} onChange={e=>updateCatalogue(c=>({...c,addons:c.addons.map((x,j)=>j===i?{...x,status:e.target.value as Addon["status"]}:x)}))} className="h-9 rounded-md border bg-background px-2"><option value="draft">Draft</option><option value="active">Active</option><option value="retired">Retired</option></select></td><td className="p-3"><button onClick={()=>updateCatalogue(c=>({...c,addons:c.addons.filter((_,j)=>j!==i)}))} className="p-2 text-muted-foreground hover:text-destructive"><Trash2 className="size-4"/></button></td></tr>)}</tbody></table></div></div>}
+          {tab==="trials"&&<div className="space-y-3">{PLAN_CODES.map(code=>{const version=selectedVersion(code);const row=payloads.trial_policy.find(x=>x.planCode===code&&x.planVersion===version);return <div key={code} className="flex flex-wrap items-center justify-between gap-4 rounded-lg border p-4"><div><h3 className="font-medium">{PLAN_LABEL[code]} · v{version}</h3><p className="text-xs text-muted-foreground">14 days · starts when subscription is activated</p></div><div className="flex items-center gap-3"><label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={row?.enabled??false} onChange={e=>updateTrials(rows=>row?rows.map(x=>x===row?{...x,enabled:e.target.checked}:x):[...rows,{planCode:code,planVersion:version,policyVersion:1,enabled:e.target.checked,durationDays:14,startTrigger:"subscription_activated",effectiveFrom:null,effectiveTo:null}])} className="size-4 accent-primary"/>Trial enabled</label><span className="text-xs text-muted-foreground">{row?"Configured":"Not configured"}</span></div></div>})}</div>}
+        </>}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4"><div className="flex items-center gap-2"><label htmlFor="policy-status" className="text-xs text-muted-foreground">Save as</label><select id="policy-status" value={saveAs} onChange={e=>setSaveAs(e.target.value as "draft"|"published")} className="h-10 rounded-lg border bg-background px-3 text-sm"><option value="draft">Draft</option><option value="published">Publish current version</option></select></div><button onClick={()=>void save()} disabled={saving||loading} className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50"><Save className="size-4"/>{saving?"Saving…":saveAs==="published"?"Publish version":"Save draft"}</button></div>
+        {error&&<p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}{notice&&<p role="status" className="rounded-lg border bg-muted/40 p-3 text-sm">{notice}</p>}
+      </section>
+      <section className="rounded-xl border bg-card p-4"><div className="flex items-center gap-2"><ShieldCheck className="size-4"/><h2 className="font-semibold">Founder authority and version history</h2></div><p className="mt-1 text-xs text-muted-foreground">Every server operation revalidates founder authority. Published policy versions are immutable and append-only. No tenant-side authoring or direct browser table writes.</p><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[700px] text-left text-xs"><thead className="text-muted-foreground"><tr><th className="p-2">Policy</th><th className="p-2">Version</th><th className="p-2">Status</th><th className="p-2">Created</th><th className="p-2">Current</th></tr></thead><tbody className="divide-y">{policies.slice(0,40).map(p=><tr key={p.id}><td className="p-2">{human(p.policy_type)}</td><td className="p-2">v{p.version}</td><td className="p-2">{human(p.status)}</td><td className="p-2">{new Date(p.created_at).toLocaleString()}</td><td className="p-2">{p.is_current?"Yes":"—"}</td></tr>)}{policies.length===0&&<tr><td colSpan={5} className="p-4 text-muted-foreground">No policy versions have been authored.</td></tr>}</tbody></table></div></section>
+      <section className="rounded-xl border bg-card p-4"><h2 className="font-semibold">Policy change audit</h2><p className="mt-1 text-xs text-muted-foreground">Latest 100 founder policy configuration events.</p><div className="mt-3 overflow-x-auto"><table className="w-full min-w-[600px] text-left text-xs"><thead className="text-muted-foreground"><tr><th className="p-2">Time</th><th className="p-2">Action</th><th className="p-2">Outcome</th><th className="p-2">Reference</th></tr></thead><tbody className="divide-y">{audit.map((e,i)=><tr key={String(e.id??i)}><td className="p-2">{String(e.occurred_at??"")}</td><td className="p-2">{String(e.action??"")}</td><td className="p-2">{String(e.outcome??"")}</td><td className="p-2 font-mono">{String(e.resource_ref??"")}</td></tr>)}{audit.length===0&&<tr><td colSpan={4} className="p-3 text-muted-foreground">No policy changes recorded.</td></tr>}</tbody></table></div></section>
+      <footer className="flex items-start gap-2 border-t pt-4 text-xs text-muted-foreground"><CircleHelp className="mt-0.5 size-4 shrink-0"/>Structured interface over the existing CC-02 policy contracts. No production commercial values are pre-populated. Quota limits and tiered entitlement levels require a separate enforcement-contract extension before they can be safely administered.</footer>
     </div>
-  );
+  </main>;
 }
