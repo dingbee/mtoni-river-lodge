@@ -149,6 +149,14 @@ BEGIN
      OR NOT EXISTS (SELECT 1 FROM pg_proc WHERE pronamespace='public'::regnamespace AND proname='staynas_sla_business_minutes') THEN
     RAISE EXCEPTION 'SN-OC-04 SLA calculation and alert worker functions are missing';
   END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='public.ai_escalations'::regclass
+      AND conname='ai_escalations_status_check'
+      AND pg_get_constraintdef(oid) LIKE '%acknowledged%'
+  ) THEN
+    RAISE EXCEPTION 'SN-RT-01 must allow the acknowledged escalation lifecycle state';
+  END IF;
   IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.ai_escalation_sla_policies'::regclass)
      OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.ai_escalation_events'::regclass)
      OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.ai_escalation_sla_alerts'::regclass)
