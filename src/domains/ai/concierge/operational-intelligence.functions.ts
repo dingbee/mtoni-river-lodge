@@ -130,9 +130,11 @@ export const getConciergeOperationalIntelligence = createServerFn({ method: "POS
         .select("id,status,confirmed_at,cancelled_at")
         .eq("property_id", propertyId).in("id", bookingIdList.slice(offset, offset + 200));
       if (error) throw new Error(error.message);
-      verifiedBookings.push(...(bookingRows ?? []).filter((row: any) =>
-        row.confirmed_at && !row.cancelled_at && ["confirmed", "checked_in", "completed"].includes(String(row.status)),
-      ));
+      verifiedBookings.push(...(bookingRows ?? []).filter((row: any) => {
+        const confirmedAt = row.confirmed_at ? Date.parse(row.confirmed_at) : Number.NaN;
+        return Number.isFinite(confirmedAt) && confirmedAt >= Date.parse(since) && confirmedAt <= Date.now()
+          && !row.cancelled_at && ["confirmed", "checked_in", "completed"].includes(String(row.status));
+      }));
     }
     const confirmedBookingCount = new Set(verifiedBookings.map((row: any) => row.id)).size;
     const closedInWindow = new Set(slaEventRows.filter((event: any) => ["resolved","dismissed"].includes(event.event_type)).map((event: any) => event.escalation_id));
