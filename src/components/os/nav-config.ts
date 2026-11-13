@@ -131,7 +131,7 @@ export const NAV: NavEntry[] = [
         { id: "system.entitlements", label: "Module Entitlements", href: "/admin/staff/entitlements", icon: ShieldCheck },
         { id: "system.activity", label: "Activity Log", href: "/admin/staff/activity", icon: History },
         { id: "system.settings", label: "Settings", href: "/settings", icon: Settings },
-        { id: "commercial", label: "Commercial Policies", href: "/admin/commercial", icon: BadgeDollarSign },
+        { id: "commercial", label: "Commercial Control Centre", href: "/founder", icon: BadgeDollarSign },
       ],
     },
   },
