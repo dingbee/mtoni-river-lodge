@@ -10,7 +10,7 @@ export function percentileMinutes(values: number[], p: number): number | null {
   const position = (sorted.length - 1) * p;
   const lower = Math.floor(position);
   const upper = Math.ceil(position);
-  return round(sorted[lower] + (sorted[upper] - sorted[lower]) * (position - lower) / 60_000);
+  return round((sorted[lower] + (sorted[upper] - sorted[lower]) * (position - lower)) / 60_000);
 }
 
 export function responseIntervals(rows: any[]) {
