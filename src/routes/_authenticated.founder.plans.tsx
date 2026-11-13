@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -6,7 +7,6 @@ import {
   listFounderCommercialPolicyAudit,
   saveFounderCommercialPolicy,
 } from "@/domains/commercial/founder-policy.functions";
-import { COMMERCIAL_MODULE_CODES } from "@/domains/commercial/catalogue-contract";
 
 type PolicyType = "catalogue" | "pricing" | "composition" | "trial_policy";
 type Section = "plans" | "capabilities" | "entitlements" | "pricing" | "quotas" | "composition" | "addons" | "trials" | "properties";
@@ -60,7 +60,6 @@ const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 const numberOrNull = (value: string) => value.trim() === "" ? null : Number(value);
 const minorToMajor = (value: number | null | undefined) => value == null ? "" : String(value / 100);
 const majorToMinor = (value: string) => value.trim() === "" ? null : Math.round(Number(value) * 100);
-const today = () => new Date().toISOString().slice(0, 10);
 
 export const Route = createFileRoute("/_authenticated/founder/plans")({
   beforeLoad: async () => {
@@ -71,7 +70,7 @@ export const Route = createFileRoute("/_authenticated/founder/plans")({
   component: FounderCommercialAdministration,
 });
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return <label className="block min-w-0 text-xs font-medium text-muted-foreground">{label}{children}</label>;
 }
 function SectionHeading({ title, description, action }: { title: string; description: string; action?: React.ReactNode }) {
@@ -200,7 +199,7 @@ function FounderCommercialAdministration() {
     <SectionHeading title="Subscription pricing" description="Prices are stored as integer minor units. Enter major currency units here; no exchange-rate conversion is performed."
       action={<button className={buttonClass} onClick={()=>update("pricing",v=>{const p=PLAN_CODES.find(code=>!v.planPrices.some(x=>x.planCode===code&&x.currency==="TZS"&&x.billingTerm==="monthly"));if(p){v.planPrices.push({priceCode:`${p}_tzs_monthly`,planCode:p,planVersion:1,currency:"TZS",billingTerm:"monthly",priceMode:p==="enterprise"?"quote_required":"fixed",baseAmountMinor:null,includedProperties:null,additionalPropertyAmountMinor:null,implementationFeeMinor:null,status:"draft",effectiveFrom:null,effectiveTo:null});}return v;})}>Add plan price</button>} />
     <div className="overflow-x-auto rounded-lg border"><table className="w-full min-w-[1150px] text-left text-sm"><thead className="bg-muted/60 text-xs text-muted-foreground"><tr><th className="p-3">Plan / version</th><th className="p-3">Currency</th><th className="p-3">Term</th><th className="p-3">Price mode</th><th className="p-3">Subscription</th><th className="p-3">Implementation</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead><tbody className="divide-y">
-      {pricing.planPrices.map((p,i)=><tr key={p.priceCode}><td className="p-3">{codeLabel(p.planCode)} · v{p.planVersion}</td><td className="p-3"><select className={selectClass} value={p.currency} onChange={e=>update("pricing",v=>{v.planPrices[i].currency=e.target.value;return v;})}><option>TZS</option><option>USD</option></select></td><td className="p-3"><select className={selectClass} value={p.billingTerm} onChange={e=>update("pricing",v=>{v.planPrices[i].billingTerm=e.target.value;return v;})}><option value="monthly">Monthly</option><option value="annual">Annual</option></select></td><td className="p-3"><select className={selectClass} value={p.priceMode} onChange={e=>update("pricing",v=>{v.planPrices[i].priceMode=e.target.value;return v;})}><option value="fixed">Fixed</option><option value="quote_required">Quote required</option></select></td><td className="p-3"><input className={inputClass} type="number" min="0" step="0.01" placeholder="Major units" disabled={p.priceMode==="quote_required"} value={minorToMajor(p.baseAmountMinor)} onChange={e=>update("pricing",v=>{v.planPrices[i].baseAmountMinor=majorToMinor(e.target.value);return v;})}/></td><td className="p-3"><input className={inputClass} type="number" min="0" step="0.01" placeholder="Fee" value={minorToMajor(p.implementationFeeMinor)} onChange={e=>update("pricing",v=>{v.planPrices[i].implementationFeeMinor=majorToMinor(e.target.value);return v;})}/></td><td className="p-3"><select className={selectClass} value={p.status} onChange={e=>update("pricing",v=>{v.planPrices[i].status=e.target.value;return v;})}><option value="draft">Draft</option><option value="active">Active</option><option value="retired">Retired</option></select></td><td className="p-3"><button className={buttonClass} onClick={()=>update("pricing",v=>{v.planPrices.splice(i,1);return v;})}>Remove</button></td></tr>)}
+      {pricing.planPrices.map((p,i)=><tr key={p.priceCode}><td className="p-3">{codeLabel(p.planCode)} · v{p.planVersion}</td><td className="p-3"><select className={selectClass} value={p.currency} onChange={e=>update("pricing",v=>{v.planPrices[i].currency=e.target.value;v.planPrices[i].priceCode=`${v.planPrices[i].planCode}_${e.target.value.toLowerCase()}_${v.planPrices[i].billingTerm}`;return v;})}><option>TZS</option><option>USD</option></select></td><td className="p-3"><select className={selectClass} value={p.billingTerm} onChange={e=>update("pricing",v=>{v.planPrices[i].billingTerm=e.target.value;v.planPrices[i].priceCode=`${v.planPrices[i].planCode}_${v.planPrices[i].currency.toLowerCase()}_${e.target.value}`;return v;})}><option value="monthly">Monthly</option><option value="annual">Annual</option></select></td><td className="p-3"><select className={selectClass} value={p.priceMode} onChange={e=>update("pricing",v=>{v.planPrices[i].priceMode=e.target.value; if(e.target.value==="quote_required"){v.planPrices[i].baseAmountMinor=null;v.planPrices[i].includedProperties=null;v.planPrices[i].additionalPropertyAmountMinor=null;} return v;})}><option value="fixed">Fixed</option><option value="quote_required">Quote required</option></select></td><td className="p-3"><input className={inputClass} type="number" min="0" step="0.01" placeholder="Major units" disabled={p.priceMode==="quote_required"} value={minorToMajor(p.baseAmountMinor)} onChange={e=>update("pricing",v=>{v.planPrices[i].baseAmountMinor=majorToMinor(e.target.value);return v;})}/></td><td className="p-3"><input className={inputClass} type="number" min="0" step="0.01" placeholder="Fee" value={minorToMajor(p.implementationFeeMinor)} onChange={e=>update("pricing",v=>{v.planPrices[i].implementationFeeMinor=majorToMinor(e.target.value);return v;})}/></td><td className="p-3"><select className={selectClass} value={p.status} onChange={e=>update("pricing",v=>{v.planPrices[i].status=e.target.value;return v;})}><option value="draft">Draft</option><option value="active">Active</option><option value="retired">Retired</option></select></td><td className="p-3"><button className={buttonClass} onClick={()=>update("pricing",v=>{v.planPrices.splice(i,1);return v;})}>Remove</button></td></tr>)}
     </tbody></table></div>
     <div className={panelClass}><h3 className="font-semibold">Currency coverage</h3><p className="mt-1 text-xs text-muted-foreground">Publishing requires each canonical plan to have monthly and annual entries in both TZS and USD. Enterprise uses quote-required pricing under the existing contract.</p></div>
   </div>;
