@@ -5,13 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "NODE_OPTIONS=--max-old-space-size=8192 vite build",
-    "build:dev": "NODE_OPTIONS=--max-old-space-size=8192 vite build --mode development",
+    "build": "rm -f src/routeTree.gen.ts && NODE_OPTIONS=--max-old-space-size=8192 vite build",
+    "build:dev": "rm -f src/routeTree.gen.ts && NODE_OPTIONS=--max-old-space-size=8192 vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
     "build:local": "bash local/scripts/build-ui.sh",
-    "build:hosted": "NODE_OPTIONS=--max-old-space-size=8192 vite build"
+    "build:hosted": "rm -f src/routeTree.gen.ts && NODE_OPTIONS=--max-old-space-size=8192 vite build"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
