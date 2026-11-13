@@ -674,12 +674,24 @@ BEGIN
       WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN NULL ELSE resolved_at END,
     reopened_at=CASE WHEN v_next_status='open' AND v_escalation.status IN ('resolved','dismissed') THEN now() ELSE reopened_at END,
     sla_cycle_started_at=CASE WHEN v_next_status='open' AND v_escalation.status<>'open' THEN now() ELSE sla_cycle_started_at END,
-    assignment_due_at=CASE WHEN v_next_status='open' AND v_escalation.status<>'open' THEN
-      CASE WHEN policy.business_hours_only THEN public.staynas_sla_add_minutes(now(),policy.assignment_minutes,COALESCE(property.timezone,'UTC'),policy.operating_hours) ELSE now()+make_interval(mins=>policy.assignment_minutes) END ELSE assignment_due_at END,
-    acknowledgement_due_at=CASE WHEN v_next_status='open' AND v_escalation.status<>'open' THEN
-      CASE WHEN policy.business_hours_only THEN public.staynas_sla_add_minutes(now(),policy.acknowledgement_minutes,COALESCE(property.timezone,'UTC'),policy.operating_hours) ELSE now()+make_interval(mins=>policy.acknowledgement_minutes) END ELSE acknowledgement_due_at END,
-    resolution_due_at=CASE WHEN v_next_status='open' AND v_escalation.status<>'open' THEN
-      CASE WHEN policy.business_hours_only THEN public.staynas_sla_add_minutes(now(),policy.resolution_minutes,COALESCE(property.timezone,'UTC'),policy.operating_hours) ELSE now()+make_interval(mins=>policy.resolution_minutes) END ELSE resolution_due_at END,
+    assignment_due_at=CASE
+      WHEN v_next_status='open' AND v_escalation.status<>'open' THEN
+        CASE WHEN policy.business_hours_only THEN public.staynas_sla_add_minutes(now(),policy.assignment_minutes,COALESCE(property.timezone,'UTC'),policy.operating_hours) ELSE now()+make_interval(mins=>policy.assignment_minutes) END
+      WHEN p_priority IS NOT NULL AND p_priority IS DISTINCT FROM v_escalation.priority THEN
+        CASE WHEN policy.business_hours_only THEN public.staynas_sla_add_minutes(COALESCE(v_escalation.sla_cycle_started_at,v_escalation.created_at),policy.assignment_minutes,COALESCE(property.timezone,'UTC'),policy.operating_hours) ELSE COALESCE(v_escalation.sla_cycle_started_at,v_escalation.created_at)+make_interval(mins=>policy.assignment_minutes) END
+      ELSE assignment_due_at END,
+    acknowledgement_due_at=CASE
+      WHEN v_next_status='open' AND v_escalation.status<>'open' THEN
+        CASE WHEN policy.business_hours_only THEN public.staynas_sla_add_minutes(now(),policy.acknowledgement_minutes,COALESCE(property.timezone,'UTC'),policy.operating_hours) ELSE now()+make_interval(mins=>policy.acknowledgement_minutes) END
+      WHEN p_priority IS NOT NULL AND p_priority IS DISTINCT FROM v_escalation.priority THEN
+        CASE WHEN policy.business_hours_only THEN public.staynas_sla_add_minutes(COALESCE(v_escalation.sla_cycle_started_at,v_escalation.created_at),policy.acknowledgement_minutes,COALESCE(property.timezone,'UTC'),policy.operating_hours) ELSE COALESCE(v_escalation.sla_cycle_started_at,v_escalation.created_at)+make_interval(mins=>policy.acknowledgement_minutes) END
+      ELSE acknowledgement_due_at END,
+    resolution_due_at=CASE
+      WHEN v_next_status='open' AND v_escalation.status<>'open' THEN
+        CASE WHEN policy.business_hours_only THEN public.staynas_sla_add_minutes(now(),policy.resolution_minutes,COALESCE(property.timezone,'UTC'),policy.operating_hours) ELSE now()+make_interval(mins=>policy.resolution_minutes) END
+      WHEN p_priority IS NOT NULL AND p_priority IS DISTINCT FROM v_escalation.priority THEN
+        CASE WHEN policy.business_hours_only THEN public.staynas_sla_add_minutes(COALESCE(v_escalation.sla_cycle_started_at,v_escalation.created_at),policy.resolution_minutes,COALESCE(property.timezone,'UTC'),policy.operating_hours) ELSE COALESCE(v_escalation.sla_cycle_started_at,v_escalation.created_at)+make_interval(mins=>policy.resolution_minutes) END
+      ELSE resolution_due_at END,
     updated_at=now()
   FROM public.ai_escalation_sla_policies policy
   JOIN public.staynas_properties property ON property.id=policy.property_id
