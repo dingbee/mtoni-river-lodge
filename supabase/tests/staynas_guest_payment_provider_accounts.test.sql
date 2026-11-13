@@ -62,6 +62,37 @@ BEGIN
   EXCEPTION WHEN foreign_key_violation THEN NULL;
   END;
 
+  UPDATE public.staynas_guest_payment_provider_accounts
+     SET integration_status='ready'
+   WHERE provider_account_ref='ci-merchant';
+  INSERT INTO public.staynas_guest_payment_provider_accounts(
+    organisation_id,property_id,provider,provider_account_ref,credential_secret_ref,
+    environment,supported_currencies,integration_status,status
+  ) VALUES (
+    'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','11111111-1111-4111-8111-111111111111',
+    'pesapal','ci-pesapal',v_secret_id,'sandbox',ARRAY['TZS'],'ready','inactive'
+  );
+  PERFORM public.staynas_set_guest_checkout_provider(
+    'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+    '11111111-1111-4111-8111-111111111111',
+    (SELECT id FROM public.staynas_guest_payment_provider_accounts WHERE provider_account_ref='ci-merchant')
+  );
+  IF (SELECT count(*) FROM public.staynas_guest_payment_provider_accounts
+       WHERE property_id='11111111-1111-4111-8111-111111111111' AND status='active') <> 1
+     OR (SELECT provider FROM public.staynas_guest_payment_provider_accounts
+          WHERE property_id='11111111-1111-4111-8111-111111111111' AND status='active') <> 'mpesa' THEN
+    RAISE EXCEPTION 'Selecting a checkout provider must activate exactly the selected provider';
+  END IF;
+  PERFORM public.staynas_set_guest_checkout_provider(
+    'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+    '11111111-1111-4111-8111-111111111111',
+    NULL
+  );
+  IF EXISTS (SELECT 1 FROM public.staynas_guest_payment_provider_accounts
+              WHERE property_id='11111111-1111-4111-8111-111111111111' AND status='active') THEN
+    RAISE EXCEPTION 'Disabling online checkout must deactivate all guest providers';
+  END IF;
+
   PERFORM set_config('request.jwt.claim.role','authenticated',true);
   BEGIN
     PERFORM public.staynas_read_provider_secret(v_secret_id);

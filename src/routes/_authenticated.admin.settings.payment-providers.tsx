@@ -10,12 +10,12 @@ import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { getFounderAdminStatus } from "@/domains/_platform/founder-admin.functions";
 import {
-  listPlatformPaymentProviderConfigs,
   listPropertyPaymentProviderConfigs,
-  savePlatformPaymentProviderConfig,
   savePropertyPaymentProviderConfig,
-  setPlatformPaymentProviderStatus,
-  setPropertyPaymentProviderStatus,
+  setPropertyGuestCheckoutProvider,
+  listFounderGuestPaymentProviders,
+  saveFounderPropertyPaymentProviderConfig,
+  setFounderGuestCheckoutProvider,
 } from "@/domains/payments/payment-provider-management.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/settings/payment-providers")({
@@ -52,25 +52,23 @@ type ProviderRow = {
 function PaymentProviderSettings() {
   const queryClient = useQueryClient();
   const founderStatusFn = useServerFn(getFounderAdminStatus);
-  const platformListFn = useServerFn(listPlatformPaymentProviderConfigs);
   const propertyListFn = useServerFn(listPropertyPaymentProviderConfigs);
-  const savePlatformFn = useServerFn(savePlatformPaymentProviderConfig);
   const savePropertyFn = useServerFn(savePropertyPaymentProviderConfig);
-  const setPlatformStatusFn = useServerFn(setPlatformPaymentProviderStatus);
-  const setPropertyStatusFn = useServerFn(setPropertyPaymentProviderStatus);
+  const setGuestCheckoutProviderFn = useServerFn(setPropertyGuestCheckoutProvider);
+  const founderGuestListFn = useServerFn(listFounderGuestPaymentProviders);
+  const saveFounderPropertyFn = useServerFn(saveFounderPropertyPaymentProviderConfig);
+  const setFounderGuestCheckoutFn = useServerFn(setFounderGuestCheckoutProvider);
   const founderStatus = useQuery({ queryKey: ["settings.founder-admin-status"], queryFn: () => founderStatusFn() });
   const isFounder = founderStatus.data?.isFounderAdmin === true;
-  const platformQuery = useQuery({
-    queryKey: ["payments.platform-provider-configs"],
-    queryFn: () => platformListFn(),
-    enabled: founderStatus.isSuccess && isFounder,
-  });
+  const [selectedPropertyId, setSelectedPropertyId] = useState("");
+  const founderGuestQuery = useQuery({ queryKey: ["payments.founder-guest-provider-configs"], queryFn: () => founderGuestListFn(), enabled: founderStatus.isSuccess && isFounder });
+  const selectedFounderProperty = founderGuestQuery.data?.find((property) => property.id === selectedPropertyId) ?? founderGuestQuery.data?.[0];
   const propertyQuery = useQuery({
     queryKey: ["payments.property-provider-configs"],
     queryFn: () => propertyListFn(),
     enabled: founderStatus.isSuccess && !isFounder,
   });
-  const rows = (isFounder ? platformQuery.data : propertyQuery.data) as ProviderRow[] | undefined;
+  const rows = (isFounder ? selectedFounderProperty?.providers : propertyQuery.data) as ProviderRow[] | undefined;
 
   const [provider, setProvider] = useState<string>("mpesa");
   const [accountReference, setAccountReference] = useState("");
@@ -99,26 +97,26 @@ function PaymentProviderSettings() {
         credentialsJson: credentialsJson || undefined,
       };
       return isFounder
-        ? savePlatformFn({ data: common })
+        ? selectedFounderProperty ? saveFounderPropertyFn({ data: { ...common, propertyId: selectedFounderProperty.id } }) : Promise.reject(new Error("Select a property first."))
         : savePropertyFn({ data: common });
     },
     onSuccess: () => {
       toast.success("Provider configuration saved in Supabase Vault. It remains inactive until its adapter is certified.");
       setCredentialsJson("");
       setAccountReference("");
-      queryClient.invalidateQueries({ queryKey: [isFounder ? "payments.platform-provider-configs" : "payments.property-provider-configs"] });
+      queryClient.invalidateQueries({ queryKey: [isFounder ? "payments.founder-guest-provider-configs" : "payments.property-provider-configs"] });
     },
     onError: (error: unknown) => toast.error((error as Error).message),
   });
 
-  const statusMutation = useMutation({
-    mutationFn: (input: { providerConfigId: string; status: "inactive" | "active" | "suspended" }) =>
-      isFounder
-        ? setPlatformStatusFn({ data: input })
-        : setPropertyStatusFn({ data: input }),
+
+  const guestCheckoutMutation = useMutation({
+    mutationFn: (providerConfigId: string | null) => isFounder
+      ? selectedFounderProperty ? setFounderGuestCheckoutFn({ data: { propertyId: selectedFounderProperty.id, providerConfigId } }) : Promise.reject(new Error("Select a property first."))
+      : setGuestCheckoutProviderFn({ data: { providerConfigId } }),
     onSuccess: () => {
-      toast.success("Provider status updated.");
-      queryClient.invalidateQueries({ queryKey: [isFounder ? "payments.platform-provider-configs" : "payments.property-provider-configs"] });
+      toast.success("Guest checkout settings updated.");
+      queryClient.invalidateQueries({ queryKey: [isFounder ? "payments.founder-guest-provider-configs" : "payments.property-provider-configs"] });
     },
     onError: (error: unknown) => toast.error((error as Error).message),
   });
@@ -132,19 +130,26 @@ function PaymentProviderSettings() {
     save.mutate();
   };
 
-  const queryError = isFounder ? platformQuery.error : propertyQuery.error;
-  const isLoading = isFounder ? platformQuery.isLoading : propertyQuery.isLoading;
+  const queryError = isFounder ? founderGuestQuery.error : propertyQuery.error;
+  const isLoading = isFounder ? founderGuestQuery.isLoading : propertyQuery.isLoading;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Payment Provider Administration"
         description={isFounder
-          ? "Configure providers used for StayNas platform subscription collections. These are platform-level credentials, separate from property guest-payment accounts."
-          : "Configure payment providers for guest payments at the active property. These credentials are isolated from StayNas subscription billing."}
+          ? "Manage mobile-money and other guest-payment providers for each tenant property."
+          : "Configure mobile-money and other guest-payment providers for the active property."}
       />
 
-      <SectionCard title={isFounder ? "Platform subscription collections" : "Property guest payments"}>
+      {isFounder && <SectionCard title="Select property" description="Choose the property whose guest-payment settings you are managing.">
+        <label className="block space-y-1 text-sm"><span className="font-medium">Property</span>
+          <select className="w-full rounded-md border border-input bg-background px-3 py-2" value={selectedFounderProperty?.id ?? ""} onChange={(event) => setSelectedPropertyId(event.target.value)}>
+            {(founderGuestQuery.data ?? []).map((property) => <option key={property.id} value={property.id}>{property.organisationName} — {property.name}</option>)}
+          </select>
+        </label>
+      </SectionCard>}
+      <SectionCard title="Property guest payments">
         <div className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-sm">
           <p className="font-medium">Configuration is separate from activation</p>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -210,11 +215,49 @@ function PaymentProviderSettings() {
 
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-muted-foreground">New or updated configurations are saved as inactive.</p>
-            <Button type="submit" disabled={save.isPending || !accountReference.trim() || !currencies.length}>
+            <Button type="submit" disabled={save.isPending || !accountReference.trim() || !currencies.length || (isFounder && !selectedFounderProperty)}>
               {save.isPending ? "Saving securely…" : "Save provider configuration"}
             </Button>
           </div>
         </form>
+      </SectionCard>
+
+
+      <SectionCard title="Guest checkout controls" description="Select one certified provider account for this property, or leave online payments disabled. Pay at Property remains available as the fallback.">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-3">
+              <div>
+                <p className="text-sm font-medium">Online guest payments</p>
+                <p className="text-xs text-muted-foreground">
+                  {rows?.some((row) => row.status === "active") ? "Enabled — one provider is selected." : "Disabled — guests can pay at the property."}
+                </p>
+              </div>
+              <Button size="sm" variant="outline"
+                disabled={guestCheckoutMutation.isPending || !rows?.some((row) => row.status === "active")}
+                onClick={() => guestCheckoutMutation.mutate(null)}>
+                Disable online payments
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Select checkout provider</p>
+              {(rows ?? []).map((row) => (
+                <div key={row.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-3">
+                  <div>
+                    <p className="text-sm font-medium">{providers.find((item) => item.value === row.provider)?.label ?? row.provider}</p>
+                    <p className="text-xs text-muted-foreground">{row.accountReference} · {row.environment.toUpperCase()} · {row.integrationStatus.replaceAll("_", " ")}</p>
+                  </div>
+                  <Button size="sm" variant={row.status === "active" ? "default" : "outline"}
+                    disabled={guestCheckoutMutation.isPending || row.status === "active" || row.integrationStatus !== "ready"}
+                    onClick={() => guestCheckoutMutation.mutate(row.id)}>
+                    {row.status === "active" ? "Selected" : row.integrationStatus === "ready" ? "Select provider" : "Adapter not certified"}
+                  </Button>
+                </div>
+              ))}
+              {!rows?.some((row) => row.integrationStatus === "ready") && (
+                <p className="text-xs text-muted-foreground">No certified property guest-payment adapter is available yet. Provider credentials can be prepared above, but checkout activation remains blocked until certification.</p>
+              )}
+            </div>
+          </div>
       </SectionCard>
 
       <SectionCard title="Configured providers" description="Credentials are never displayed after saving. Activation is withheld until an approved adapter is available.">
@@ -239,11 +282,12 @@ function PaymentProviderSettings() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {row.status === "active" ? (
-                    <Button size="sm" variant="outline" disabled={statusMutation.isPending} onClick={() => statusMutation.mutate({ providerConfigId: row.id, status: "suspended" })}>Suspend</Button>
+                    <Button size="sm" variant="outline" disabled={guestCheckoutMutation.isPending} onClick={() => guestCheckoutMutation.mutate(null)}>Disable checkout</Button>
                   ) : (
-                    <Button size="sm" variant="outline" disabled={statusMutation.isPending || row.integrationStatus !== "ready"} onClick={() => statusMutation.mutate({ providerConfigId: row.id, status: "active" })}>Activate</Button>
+                    <Button size="sm" variant="outline" disabled={guestCheckoutMutation.isPending || row.integrationStatus !== "ready"} onClick={() => guestCheckoutMutation.mutate(row.id)}>
+                      {row.integrationStatus === "ready" ? "Select provider" : "Adapter not certified"}
+                    </Button>
                   )}
-                  {row.status !== "inactive" && <Button size="sm" variant="ghost" disabled={statusMutation.isPending} onClick={() => statusMutation.mutate({ providerConfigId: row.id, status: "inactive" })}>Set inactive</Button>}
                 </div>
               </div>
             ))}
