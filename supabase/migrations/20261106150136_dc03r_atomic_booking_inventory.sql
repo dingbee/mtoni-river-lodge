@@ -402,7 +402,6 @@ NOTIFY pgrst, 'reload schema';
 
 -- The no-argument resolver is staff-only. Guest requests use the server-owned
 -- publication allowlist; anonymous callers must not invoke hostname resolution.
-REVOKE ALL ON FUNCTION public.staynas_booking_property_id() FROM PUBLIC,anon;
 
 -- Preserve the property-aware availability signature for trusted callers;
 -- delegate to the membership-checked canonical availability RPC.
