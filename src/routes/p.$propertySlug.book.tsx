@@ -108,6 +108,7 @@ function readPersisted(): Partial<PersistedState> {
 function BookPage() {
   const { propertySlug } = Route.useParams();
   const { property, branding } = Route.useLoaderData();
+  const recordPageViewFn = useServerFn(recordPublicDirectBookingAnalyticsEvent);
   // Step + session live in the URL so back/forward is always explicit
   // routing, never a browser-history pop into a different session.
   const {
