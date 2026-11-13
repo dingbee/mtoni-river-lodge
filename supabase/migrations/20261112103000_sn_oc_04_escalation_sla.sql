@@ -446,7 +446,7 @@ DECLARE r record;
 BEGIN
   IF NOT NEW.enabled AND EXISTS (
     SELECT 1 FROM public.ai_escalations
-    WHERE sla_policy_id=OLD.id
+    WHERE sla_policy_id=OLD.id AND status IN ('open','assigned','acknowledged','in_progress')
   ) THEN
     RAISE EXCEPTION 'Cannot disable an SLA policy while any escalation references it';
   END IF;
