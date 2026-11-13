@@ -359,7 +359,7 @@ export async function resolveVerifiedFounderActor(context: {
   userId: string;
 }): Promise<VerifiedTenantActor> {
   const supabase = context.supabase as SupabaseClient<Database>;
-  const commercialRpc = supabase.rpc as unknown as (
+  const commercialRpc = supabase.rpc.bind(supabase) as unknown as (
     name: string,
     args: Record<string, unknown>,
   ) => Promise<{ data: unknown; error: unknown | null }>;
