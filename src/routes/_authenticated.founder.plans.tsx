@@ -57,7 +57,6 @@ const TABS: { id: Tab; label: string; policy: PolicyType; description: string }[
   { id:"addons", label:"Add-ons", policy:"catalogue", description:"Manage separately chargeable commercial add-ons." },
   { id:"trials", label:"Trial policies", policy:"trial_policy", description:"Configure the fixed 14-day trial policy for each plan version." },
 ];
-const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(" ");
 const inputClass = "mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm";
 const labelClass = "block text-xs font-medium text-muted-foreground";
 const human = (value: string) => value.replaceAll("_"," ").replace(/\b\w/g, c => c.toUpperCase());
