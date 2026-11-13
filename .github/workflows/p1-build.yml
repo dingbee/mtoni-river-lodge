@@ -6,6 +6,7 @@ on:
       - p1-hos-boundary
       - fix/ci-*
       - main
+      - feat/sn-oc-04-operational-intelligence
       - feat/finance-*
       - feat/spe-03-*
       - feat/spe-04-*
