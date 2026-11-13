@@ -2,6 +2,28 @@
 -- Property identifiers are resolved server-side by the public booking allowlist;
 -- no RPC below resolves a property from request hostnames or browser-supplied scope.
 
+-- The base booking-hold table predates property tenancy. Establish the
+-- property FK/backfill before any RPC below references booking_holds.property_id.
+ALTER TABLE public.booking_holds
+  ADD COLUMN IF NOT EXISTS property_id uuid REFERENCES public.staynas_properties(id) ON DELETE CASCADE;
+
+UPDATE public.booking_holds hold
+SET property_id = room.property_id
+FROM public.rooms room
+WHERE room.id = hold.room_id AND hold.property_id IS NULL;
+
+DO $booking_hold_scope$
+BEGIN
+  IF EXISTS (SELECT 1 FROM public.booking_holds WHERE property_id IS NULL) THEN
+    RAISE EXCEPTION 'Cannot establish property ownership for every booking hold';
+  END IF;
+END
+$booking_hold_scope$;
+
+ALTER TABLE public.booking_holds ALTER COLUMN property_id SET NOT NULL;
+CREATE INDEX IF NOT EXISTS booking_holds_property_room_dates_idx
+  ON public.booking_holds(property_id,room_id,check_in,check_out,status);
+
 CREATE INDEX IF NOT EXISTS booking_holds_room_active_expiry_dates_idx
   ON public.booking_holds(room_id,expires_at,check_in,check_out)
   WHERE status='active';
