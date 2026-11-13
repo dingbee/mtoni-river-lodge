@@ -114,7 +114,7 @@ async function resolveNotificationPropertyId(supabase: Sb, userId: string, decis
     .eq("user_id", userId)
     .eq("status", "active");
   if (error) throw new Error(error.message);
-  const memberships = [...new Set((data ?? []).map((row: any) => String(row.property_id)))];
+  const memberships: string[] = [...new Set<string>((data ?? []).map((row: any) => String(row.property_id)))];
   if (typeof explicit === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(explicit)) {
     if (!memberships.includes(explicit)) throw new Error("Intelligence decision property is not an active property membership.");
     return explicit;
