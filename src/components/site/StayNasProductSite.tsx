@@ -90,13 +90,36 @@ export function ProductSiteHeader() {
 
   useEffect(() => {
     if (!open) return;
-    const previousOverflow = document.body.style.overflow;
+    const scrollY = window.scrollY;
+    const previous = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      width: document.body.style.width,
+      overflow: document.body.style.overflow,
+      overscrollBehavior: document.body.style.overscrollBehavior,
+    };
     const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    // overflow:hidden alone does not reliably stop background scrolling on iOS.
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
     document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
     window.addEventListener("keydown", onKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
+      document.body.style.position = previous.position;
+      document.body.style.top = previous.top;
+      document.body.style.left = previous.left;
+      document.body.style.right = previous.right;
+      document.body.style.width = previous.width;
+      document.body.style.overflow = previous.overflow;
+      document.body.style.overscrollBehavior = previous.overscrollBehavior;
       window.removeEventListener("keydown", onKeyDown);
+      window.scrollTo(0, scrollY);
     };
   }, [open]);
 
@@ -104,7 +127,9 @@ export function ProductSiteHeader() {
   const toggleGroup = (label: string) => setExpanded((current) => current === label ? null : label);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#3A4A3F]/95 text-white backdrop-blur-xl">
+    <>
+    <div aria-hidden="true" className="h-[76px] w-full" />
+    <header className="fixed inset-x-0 top-0 z-50 w-full border-b border-white/10 bg-[#3A4A3F]/95 text-white backdrop-blur-xl">
       <div className="mx-auto flex h-[76px] max-w-7xl items-center justify-between px-5 sm:px-8 lg:px-10">
         <Link to="/" onClick={closeMenu} className="flex items-center gap-3" aria-label="StayNas home">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#AE8F60] text-lg font-semibold text-[#2A2725]">S</span>
@@ -135,7 +160,7 @@ export function ProductSiteHeader() {
       </div>}
       {open && <div className="fixed inset-0 z-[100] lg:hidden">
         <button type="button" aria-label="Close navigation overlay" onClick={closeMenu} className="absolute inset-0 h-full w-full cursor-default bg-[#2A2725]/55 backdrop-blur-[2px]"/>
-        <aside id="staynas-mobile-navigation" role="dialog" aria-modal="true" aria-label="StayNas navigation" onClick={(event) => event.stopPropagation()} className="absolute inset-y-0 right-0 flex h-[100dvh] w-[min(100%,440px)] flex-col overflow-hidden bg-[#F6F2F1] text-[#2A2725] shadow-2xl">
+        <aside id="staynas-mobile-navigation" role="dialog" aria-modal="true" aria-label="StayNas navigation" onClick={(event) => event.stopPropagation()} className="absolute inset-y-0 right-0 flex h-[100dvh] w-[min(100%,440px)] flex-col overflow-hidden overscroll-contain bg-[#F6F2F1] text-[#2A2725] shadow-2xl" style={{ touchAction: "pan-y" }}>
           <div className="flex min-h-[88px] items-center justify-between border-b border-[#EAE2D3] px-6 sm:px-8">
             <div className="flex min-w-0 items-center gap-3">
               {activeMenu === "platform" ? <>
@@ -217,6 +242,7 @@ export function ProductSiteHeader() {
       }
     `}</style>
     </header>
+    </>
   );
 }
 
