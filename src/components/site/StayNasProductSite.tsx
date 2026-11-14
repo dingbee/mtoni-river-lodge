@@ -158,8 +158,8 @@ export function ProductSiteHeader() {
           <div className="flex items-center justify-between border-t border-[#EAE2D3] px-5 py-3 text-[10px] text-[#3A4A3F]"><span>Search across the StayNas website</span><span>⌘ K / Ctrl K</span></div>
         </div>
       </div>}
-      {open && <div className="fixed inset-0 z-[100] lg:hidden">
-        <button type="button" aria-label="Close navigation overlay" onClick={closeMenu} className="absolute inset-0 h-full w-full cursor-default bg-[#2A2725]/55 backdrop-blur-[2px]"/>
+      {open && <div className="fixed inset-0 z-[100] lg:hidden" onClick={closeMenu}>
+        <div aria-hidden="true" className="absolute inset-0 bg-[#2A2725]/55 backdrop-blur-[2px]"/>
         <aside id="staynas-mobile-navigation" role="dialog" aria-modal="true" aria-label="StayNas navigation" onClick={(event) => event.stopPropagation()} className="absolute inset-y-0 right-0 flex h-[100dvh] w-[min(100%,440px)] flex-col overflow-hidden overscroll-contain bg-[#F6F2F1] text-[#2A2725] shadow-2xl" style={{ touchAction: "pan-y" }}>
           <div className="flex min-h-[88px] items-center justify-between border-b border-[#EAE2D3] px-6 sm:px-8">
             <div className="flex min-w-0 items-center gap-3">
