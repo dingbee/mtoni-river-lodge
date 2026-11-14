@@ -221,42 +221,64 @@ export function ProductSiteHeader() {
 }
 
 export function ProductSiteFooter() {
+  const [expanded, setExpanded] = useState<string | null>("Platform");
   const groups = [
     { title: "Platform", links: [{ to: "/platform", label: "Platform overview" }, { to: "/modules", label: "Modules" }, { to: "/product-tour", label: "Product walkthrough" }, { to: "/integrations", label: "Integrations" }, { to: "/pricing", label: "Plans & pricing" }] },
     { title: "Solutions", links: [{ to: "/solutions", label: "By hospitality business" }, { to: "/request-demo", label: "Request a demonstration" }] },
     { title: "Resources", links: [{ to: "/architecture", label: "Platform architecture" }, { to: "/security", label: "Trust & security" }] },
     { title: "Company", links: [{ to: "/request-demo", label: "Contact StayNas" }, { to: "https://nolmark.co", label: "Nolmark CDMA", external: true }] },
+    { title: "Support", links: [{ to: "mailto:support@staynas.nolmark.co", label: "Contact support", external: true }, { to: "/privacy", label: "Privacy" }] },
   ] as const;
+
+  const renderLinks = (group: typeof groups[number]) => (
+    <ul className={group.title === "Platform" ? "mt-5 grid grid-cols-2 gap-x-5 gap-y-4" : "mt-5 space-y-4"}>
+      {group.links.map((item) => <li key={item.label}>
+        {"external" in item && item.external
+          ? <a href={item.to} target={item.to.startsWith("http") ? "_blank" : undefined} rel={item.to.startsWith("http") ? "noreferrer" : undefined} className="text-sm leading-6 text-[#F6F2F1]/65 transition hover:text-[#AE8F60]">{item.label}</a>
+          : <Link to={item.to} className="text-sm leading-6 text-[#F6F2F1]/65 transition hover:text-[#AE8F60]">{item.label}</Link>}
+      </li>)}
+    </ul>
+  );
 
   return (
     <footer className="bg-[#2A2725] text-[#F6F2F1]">
-      <div className="mx-auto max-w-7xl px-6 pb-12 pt-16 lg:px-10 lg:pt-20">
-        <div className="grid gap-10 border-b border-[#F6F2F1]/15 pb-14 lg:grid-cols-[1.1fr_.9fr] lg:gap-20">
-          <div>
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#AE8F60] font-semibold text-[#2A2725]">S</span>
-              <span className="text-lg font-semibold tracking-[0.16em]">STAYNAS</span>
-            </div>
-            <h2 className="mt-9 max-w-xl font-serif text-4xl leading-[1.12] tracking-tight sm:text-5xl">Hospitality insights,<br/><span className="text-[#AE8F60]">straight to you.</span></h2>
-            <p className="mt-5 max-w-md text-sm leading-7 text-[#F6F2F1]/65">Product thinking, hospitality operations and ideas for running a better-connected property.</p>
-            <Link to="/request-demo" className="mt-7 inline-flex min-h-14 w-full max-w-md items-center justify-between rounded-full bg-[#3A4A3F] px-6 text-sm text-[#F6F2F1]/75 transition hover:bg-[#91A673] hover:text-[#2A2725]">
-              <span>Get in touch with StayNas</span><ArrowUpRight className="h-5 w-5 text-[#AE8F60]"/>
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 gap-x-7 gap-y-9 sm:grid-cols-2">
-            {groups.map((group) => <section key={group.title}>
-              <h3 className="text-base font-semibold text-[#F6F2F1]">{group.title}</h3>
-              <ul className="mt-5 space-y-4">
-                {group.links.map((item) => <li key={item.label}>
-                  {"external" in item && item.external
-                    ? <a href={item.to} target="_blank" rel="noreferrer" className="text-sm text-[#F6F2F1]/65 transition hover:text-[#91A673]">{item.label}</a>
-                    : <Link to={item.to} className="text-sm text-[#F6F2F1]/65 transition hover:text-[#91A673]">{item.label}</Link>}
-                </li>)}
-              </ul>
-            </section>)}
-          </div>
+      <div className="mx-auto max-w-7xl px-6 pb-10 pt-14 lg:px-10 lg:pb-12 lg:pt-20">
+        <div className="border-b border-[#F6F2F1]/15 pb-12 lg:pb-16">
+          <h2 className="max-w-2xl font-serif text-[38px] leading-[1.12] tracking-tight sm:text-5xl">Hospitality insights,<br/><span className="text-[#AE8F60]">straight to you.</span></h2>
+          <p className="mt-5 max-w-xl text-sm leading-7 text-[#F6F2F1]/65">Product thinking, hospitality operations and ideas for running a better-connected property.</p>
+          <form className="mt-8 flex min-h-[64px] w-full max-w-2xl items-center rounded-full bg-[#3A4A3F] pl-6 pr-3 focus-within:ring-2 focus-within:ring-[#AE8F60]" onSubmit={(event) => {
+            event.preventDefault();
+            const email = new FormData(event.currentTarget).get("email");
+            if (typeof email === "string" && email.trim()) {
+              window.location.href = `mailto:support@staynas.nolmark.co?subject=StayNas%20updates&body=Please%20send%20me%20StayNas%20hospitality%20insights%20and%20updates.%0A%0AEmail:%20${encodeURIComponent(email.trim())}`;
+            }
+          }}>
+            <label className="sr-only" htmlFor="staynas-footer-email">Your email address</label>
+            <input id="staynas-footer-email" name="email" type="email" required placeholder="What's your email?" className="min-w-0 flex-1 bg-transparent text-base text-[#F6F2F1] outline-none placeholder:text-[#F6F2F1]/55"/>
+            <button type="submit" aria-label="Request StayNas email updates" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#AE8F60] transition hover:bg-[#2A2725]/40 hover:text-[#F6F2F1]"><ArrowUpRight className="h-6 w-6"/></button>
+          </form>
         </div>
-        <div className="flex flex-col gap-4 pt-6 text-xs text-[#F6F2F1]/45 sm:flex-row sm:items-center sm:justify-between">
+
+        <div className="hidden grid-cols-6 gap-x-8 gap-y-10 border-b border-[#F6F2F1]/15 py-12 lg:grid">
+          {groups.map((group) => <section key={group.title} className={group.title === "Platform" ? "col-span-2" : "col-span-1"}>
+            <h3 className="text-base font-semibold text-[#F6F2F1]">{group.title}</h3>
+            {renderLinks(group)}
+          </section>)}
+        </div>
+
+        <div className="border-b border-[#F6F2F1]/15 lg:hidden">
+          {groups.map((group) => {
+            const isExpanded = expanded === group.title;
+            return <section key={group.title} className="border-b border-[#F6F2F1]/15 last:border-b-0">
+              <button type="button" aria-expanded={isExpanded} onClick={() => setExpanded(isExpanded ? null : group.title)} className="flex min-h-[76px] w-full items-center justify-between text-left text-lg font-medium text-[#F6F2F1]">
+                {group.title}<span aria-hidden="true" className="text-xl font-light">{isExpanded ? "−" : "+"}</span>
+              </button>
+              {isExpanded && <div className="pb-7">{renderLinks(group)}</div>}
+            </section>;
+          })}
+        </div>
+
+        <div className="flex flex-col gap-3 pt-7 text-xs leading-6 text-[#F6F2F1]/45 sm:flex-row sm:items-center sm:justify-between">
           <span>© {new Date().getFullYear()} StayNas. All rights reserved.</span>
           <span>Hospitality Operating System · staynas.com</span>
         </div>
