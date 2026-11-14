@@ -252,7 +252,7 @@ export function StayNasCommercialPage() {
     <section className="mx-auto max-w-5xl px-6 py-16 lg:px-10">
       <div className="mx-auto max-w-2xl text-center"><p className="text-[10px] font-semibold uppercase tracking-[0.23em] text-[#AE8F60]">Frequently asked questions</p><h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Questions about StayNas plans and commercial options.</h2><p className="mt-4 text-sm leading-7 text-[#3A4A3F]">The answers below explain the current plan direction. Final commercial configuration is confirmed by authorised Founder Administration.</p></div>
       <div className="mt-10 divide-y divide-[#EAE2D3] border-y border-[#EAE2D3]">
-        {faqs.map((faq,index) => <details key={faq.q} className="group py-5"><summary className="flex cursor-pointer list-none items-center justify-between gap-5 text-left text-sm font-semibold text-[#3A4A3F] marker:content-none"><span><span className="mr-3 text-[10px] font-semibold tracking-widest text-[#AE8F60]">0{index+1}</span>{faq.q}</span><ChevronRight className="h-4 w-4 shrink-0 text-[#3A4A3F] transition-transform group-open:rotate-90"/></summary><p className="max-w-4xl pb-1 pl-9 pt-4 text-sm leading-7 text-[#3A4A3F]">{faq.a}</p></details>)}
+        {faqs.map((faq) => <details key={faq.q} className="group py-5"><summary className="flex cursor-pointer list-none items-center justify-between gap-5 text-left text-sm font-semibold text-[#3A4A3F] marker:content-none"><span>{faq.q}</span><ChevronRight className="h-4 w-4 shrink-0 text-[#3A4A3F] transition-transform group-open:rotate-90"/></summary><p className="max-w-4xl pb-1 pt-4 text-sm leading-7 text-[#3A4A3F]">{faq.a}</p></details>)}
       </div>
     </section>
   </main>;
