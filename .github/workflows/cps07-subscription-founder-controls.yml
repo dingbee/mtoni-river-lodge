@@ -1,0 +1,40 @@
+name: CPS-07 subscription and founder controls
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/domains/commercial/catalogue-contract.ts"
+      - "src/domains/commercial/catalogue.test.ts"
+      - "src/domains/commercial/entitlement-engine.ts"
+      - "src/domains/commercial/entitlement-engine.test.ts"
+      - "src/domains/commercial/entitlement.functions.ts"
+      - "src/domains/commercial/subscription-change-request.functions.ts"
+      - "src/domains/commercial/subscription-change-request.functions.test.ts"
+      - "src/domains/commercial/founder-control-centre.functions.ts"
+      - "src/routes/_authenticated.settings.tsx"
+      - "src/routes/_authenticated.settings.subscription.tsx"
+      - "src/routes/_authenticated.founder.subscription-requests.tsx"
+      - "src/routes/_authenticated.founder.subscriptions.tsx"
+      - "src/routeTree.gen.ts"
+      - "src/integrations/supabase/types.ts"
+      - "supabase/migrations/20261112130000_cps07_subscription_addon_enforcement.sql"
+      - "supabase/tests/cps07_*.sql"
+      - ".github/workflows/cps07-subscription-founder-controls.yml"
+  push:
+    branches: [feat/cps07-subscription-founder-controls]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cps07-subscription-founder-controls-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  application:
+    name: Build, TypeScript, lint and commercial regression tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeh¶»§q«^
