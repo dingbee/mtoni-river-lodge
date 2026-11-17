@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import type { ComponentType, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getOpsDashboard } from "@/lib/operations.functions";
 import {
-  ArrowLeftCircle, ArrowRightCircle, BedDouble, CheckCircle2, ClipboardList,
-  Clock3, DollarSign, Percent, Sparkles, Users, Wrench, AlertTriangle,
+  AlertTriangle, BedDouble, ClipboardList, Clock3, Sparkles, Users, Wrench,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/operations/")({
@@ -129,7 +129,7 @@ function OpsDashboard() {
   );
 }
 
-function ActionLink({ to, icon: Icon, label }: { to: string; icon: React.ComponentType<{ className?: string }>; label: string }) {
+function ActionLink({ to, icon: Icon, label }: { to: string; icon: ComponentType<{ className?: string }>; label: string }) {
   return (
     <Link to={to as any} className="group flex min-h-[68px] items-center gap-3 rounded-xl border bg-card px-3 py-3 transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
       <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#172B43]/[0.07] text-[#263B52]">
@@ -157,7 +157,7 @@ function MetricCard({ label, value, icon: Icon, tone = "default" }: {
 }
 
 function DataPanel({ title, subtitle, action, children }: {
-  title: string; subtitle: string; action?: React.ReactNode; children: React.ReactNode;
+  title: string; subtitle: string; action?: ReactNode; children: React.ReactNode;
 }) {
   return (
     <section className="rounded-xl border bg-card p-4 sm:p-5">
