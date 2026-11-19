@@ -117,7 +117,7 @@ export const getGuestExperiences = createServerFn({ method: "POST" })
       .in("booking_id", ids)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    const bMap = new Map((bookings ?? []).map((b: any) => [b.id, b]));
+    const bMap = new Map<string, any>((bookings ?? []).map((b: any) => [b.id, b] as [string, any]));
     return (rows ?? []).map((r: any) => ({
       id: r.id,
       name: r.extra?.name ?? "Experience",
