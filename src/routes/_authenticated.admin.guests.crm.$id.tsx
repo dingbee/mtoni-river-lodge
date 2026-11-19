@@ -68,7 +68,10 @@ function GuestProfilePage() {
 
   const data = summaryQ.data as any;
   const g = data.guest;
-  const stats = data.stats ?? { total_stays: 0, total_nights: 0, lifetime_spend: 0, first_stay: null, last_stay: null };
+  const stats = data.stats ?? { total_stays: 0, total_nights: 0, lifetime_spend: null, lifetime_spend_currency: null, lifetime_spend_by_currency: {}, first_stay: null, last_stay: null };
+  const lifetimeSpendLabel = stats.lifetime_spend == null
+    ? Object.keys(stats.lifetime_spend_by_currency ?? {}).length > 1 ? "Multiple currencies" : "—"
+    : stats.lifetime_spend_currency ? `${stats.lifetime_spend_currency} ${Number(stats.lifetime_spend).toLocaleString()}` : "Currency unavailable";
 
   return (
     <div className="w-full min-w-0 space-y-6 overflow-x-clip">
@@ -205,7 +208,7 @@ function GuestProfilePage() {
             <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
               <div><dt className="text-muted-foreground">Total stays</dt><dd className="text-lg font-medium">{stats.total_stays}</dd></div>
               <div><dt className="text-muted-foreground">Nights</dt><dd className="text-lg font-medium">{stats.total_nights}</dd></div>
-              <div className="col-span-2"><dt className="text-muted-foreground">Lifetime spend</dt><dd className="text-lg font-medium">${Number(stats.lifetime_spend).toLocaleString()}</dd></div>
+              <div className="col-span-2"><dt className="text-muted-foreground">Lifetime spend</dt><dd className="text-lg font-medium">{lifetimeSpendLabel}</dd></div>
               <div><dt className="text-muted-foreground">First stay</dt><dd>{stats.first_stay ? new Date(stats.first_stay).toLocaleDateString() : "—"}</dd></div>
               <div><dt className="text-muted-foreground">Last stay</dt><dd>{stats.last_stay ? new Date(stats.last_stay).toLocaleDateString() : "—"}</dd></div>
             </dl>
