@@ -1,6 +1,6 @@
 -- StayNas property operating currency, transaction immutability and property isolation contracts.
 BEGIN;
-SELECT plan(10);
+SELECT plan(12);
 
 INSERT INTO public.staynas_organisations (id, slug, name) VALUES
   ('91000000-0000-4000-8000-000000000001', 'currency-org-a', 'Currency Organisation A'),
@@ -164,10 +164,37 @@ BEGIN
 END
 $test$;
 
+-- Property-owned AI monetary artifacts must carry the property currency and cannot be relabelled.
+INSERT INTO public.ai_revenue_opportunities (property_id, currency, kind, title, estimated_impact)
+VALUES
+  ('92000000-0000-4000-8000-000000000002', 'KES', 'currency_test', 'Property B opportunity', 200),
+  ('92000000-0000-4000-8000-000000000001', 'TZS', 'currency_test', 'Property A opportunity', 100);
+DO $artifact_currency$
+BEGIN
+  BEGIN
+    INSERT INTO public.ai_revenue_opportunities (property_id, currency, kind, title, estimated_impact)
+    VALUES ('92000000-0000-4000-8000-000000000001', 'KES', 'currency_test', 'Wrong currency', 50);
+    RAISE EXCEPTION 'Wrong-currency AI artifact unexpectedly succeeded';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM = 'Wrong-currency AI artifact unexpectedly succeeded' THEN RAISE; END IF;
+  END;
+  BEGIN
+    UPDATE public.ai_revenue_opportunities SET currency = 'USD'
+    WHERE title = 'Property A opportunity';
+    RAISE EXCEPTION 'Historical AI artifact currency mutation unexpectedly succeeded';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM = 'Historical AI artifact currency mutation unexpectedly succeeded' THEN RAISE; END IF;
+  END;
+END
+$artifact_currency$;
+SELECT pass('AI monetary artifacts must match and retain property currency');
+
 -- An authorised owner changes only Property A. Historical booking amount and currency remain unchanged.
 SELECT set_config('request.jwt.claim.sub', '93000000-0000-4000-8000-000000000001', true);
 SELECT set_config('request.jwt.claim.role', 'authenticated', true);
 SET LOCAL ROLE authenticated;
+SELECT is((SELECT count(*) FROM public.ai_revenue_opportunities WHERE property_id = '92000000-0000-4000-8000-000000000002'),
+  0::bigint, 'Property A cannot read Property B AI monetary artifacts');
 SELECT * FROM public.staynas_update_property_currency('USD');
 RESET ROLE;
 
