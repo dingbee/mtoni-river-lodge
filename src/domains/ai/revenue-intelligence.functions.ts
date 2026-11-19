@@ -191,6 +191,7 @@ export const generateRevenueForecast = createServerFn({ method: "POST" })
       id = row?.id ?? null;
       await sb.from("ai_activity_logs").insert({
         user_id: context.userId,
+        property_id: propertyId,
         question: `Revenue forecast (${horizon}d)`,
         domains_accessed: ["finance","reservations"],
         tool_called: "revenue.forecast",
@@ -319,6 +320,7 @@ export const generatePricingRecommendations = createServerFn({ method: "POST" })
       );
       await context.supabase.from("ai_activity_logs").insert({
         user_id: context.userId,
+        property_id: propertyId,
         question: "Pricing advisor run",
         domains_accessed: ["finance","reservations"],
         tool_called: "revenue.pricing",
@@ -372,6 +374,7 @@ export const actionPricingRecommendation = createServerFn({ method: "POST" })
     }).eq("id", data.id).eq("property_id", propertyId);
     await context.supabase.from("ai_activity_logs").insert({
       user_id: context.userId,
+        property_id: propertyId,
       question: `Pricing recommendation ${data.id} ${data.action}`,
       domains_accessed: ["finance"],
       tool_called: "revenue.pricing.action",
@@ -526,6 +529,7 @@ export const scanRevenueOpportunities = createServerFn({ method: "POST" })
       );
       await sb.from("ai_activity_logs").insert({
         user_id: context.userId,
+        property_id: propertyId,
         question: "Revenue opportunity scan",
         domains_accessed: ["finance","reservations","marketing"],
         tool_called: "revenue.opportunities",
@@ -621,6 +625,7 @@ export const scanRevenueAlerts = createServerFn({ method: "POST" })
       );
       await sb.from("ai_activity_logs").insert({
         user_id: context.userId,
+        property_id: propertyId,
         question: "Revenue alert scan",
         domains_accessed: ["finance","reservations"],
         tool_called: "revenue.alerts",
