@@ -65,9 +65,10 @@ export const saveCampaign = createServerFn({ method: "POST" })
     };
     if (data.id) {
       const { data: existing, error: existingError } = await sb.from("campaigns")
-        .select("id, property_id, currency").eq("id", data.id).maybeSingle();
+        .select("id, property_id, currency, budget").eq("id", data.id).maybeSingle();
       if (existingError || !existing) throw new Error(existingError?.message ?? "Campaign not found.");
       if (existing.property_id && existing.property_id !== propertyId) throw new Error("Campaign belongs to another property.");
+      if (existing.budget != null && !existing.currency) throw new Error("This legacy campaign has a budget but no recorded currency. Its amount cannot be relabelled; create a new campaign in the property's operating currency.");
       if (existing.currency && String(existing.currency).toUpperCase() !== propertyCurrency) throw new Error("This legacy campaign has a different stored currency. Its budget cannot be relabelled; create a new campaign in the property's operating currency.");
       const { data: row, error } = await sb.from("campaigns").update(payload).eq("id", data.id).select("*").single();
       if (error) throw error;
