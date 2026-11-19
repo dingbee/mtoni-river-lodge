@@ -102,7 +102,7 @@ $booking_currency$;
 
 CREATE OR REPLACE FUNCTION public.staynas_guard_child_transaction_currency()
 RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $child_currency$
-DECLARE v_booking_currency text;
+DECLARE v_booking_currency text; v_booking_property_id uuid; v_property_currency text;
 BEGIN
   IF TG_OP = 'UPDATE' THEN
     IF OLD.currency IS DISTINCT FROM NEW.currency
@@ -126,14 +126,62 @@ BEGIN
     RAISE EXCEPTION 'New financial transaction currency must be a valid three-letter ISO 4217 code';
   END IF;
   NEW.currency := upper(btrim(NEW.currency));
-  IF NEW.currency !~ '^[A-Z]{3}$' THEN
+  IF NEW.currency !~ '^[A-Z]{3}
+  RETURN NEW;
+END;
+$child_currency$;
+
+DROP TRIGGER IF EXISTS trg_staynas_guard_room_price_currency ON public.rooms;
+CREATE TRIGGER trg_staynas_guard_room_price_currency BEFORE INSERT OR UPDATE ON public.rooms
+FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_room_price_currency();
+DROP TRIGGER IF EXISTS trg_staynas_guard_extra_price_currency ON public.extras;
+CREATE TRIGGER trg_staynas_guard_extra_price_currency BEFORE INSERT OR UPDATE ON public.extras
+FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_extra_price_currency();
+DROP TRIGGER IF EXISTS trg_staynas_guard_booking_extra_currency ON public.booking_extras;
+CREATE TRIGGER trg_staynas_guard_booking_extra_currency BEFORE INSERT OR UPDATE ON public.booking_extras
+FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_booking_extra_currency();
+DROP TRIGGER IF EXISTS trg_staynas_guard_booking_transaction_currency ON public.bookings;
+CREATE TRIGGER trg_staynas_guard_booking_transaction_currency BEFORE INSERT OR UPDATE ON public.bookings
+FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_booking_transaction_currency();
+DROP TRIGGER IF EXISTS trg_staynas_guard_payment_event_currency ON public.payment_events;
+CREATE TRIGGER trg_staynas_guard_payment_event_currency BEFORE INSERT OR UPDATE ON public.payment_events
+FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+DROP TRIGGER IF EXISTS trg_staynas_guard_folio_posting_currency ON public.pms_folio_postings;
+CREATE TRIGGER trg_staynas_guard_folio_posting_currency BEFORE INSERT OR UPDATE ON public.pms_folio_postings
+FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+DROP TRIGGER IF EXISTS trg_staynas_guard_folio_adjustment_currency ON public.pms_folio_adjustments;
+CREATE TRIGGER trg_staynas_guard_folio_adjustment_currency BEFORE INSERT OR UPDATE ON public.pms_folio_adjustments
+FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+DROP TRIGGER IF EXISTS trg_staynas_guard_promotion_redemption_currency ON public.staynas_promotion_redemptions;
+CREATE TRIGGER trg_staynas_guard_promotion_redemption_currency BEFORE INSERT OR UPDATE ON public.staynas_promotion_redemptions
+FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+
+REVOKE ALL ON FUNCTION public.staynas_guard_room_price_currency() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.staynas_guard_extra_price_currency() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.staynas_guard_booking_extra_currency() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.staynas_guard_booking_transaction_currency() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.staynas_guard_child_transaction_currency() FROM PUBLIC,anon,authenticated;
+
+COMMIT;
+ THEN
     RAISE EXCEPTION 'New financial transaction currency must be a valid three-letter ISO 4217 code';
   END IF;
+  IF TG_TABLE_NAME = 'staynas_promotion_redemptions' THEN
+    SELECT upper(p.currency) INTO v_property_currency
+    FROM public.staynas_properties p WHERE p.id = NEW.property_id;
+    IF v_property_currency IS NULL OR NEW.currency IS DISTINCT FROM v_property_currency THEN
+      RAISE EXCEPTION 'Promotion redemption currency must match its property operating currency';
+    END IF;
+  END IF;
   IF NEW.booking_id IS NOT NULL THEN
-    SELECT upper(b.currency) INTO v_booking_currency
+    SELECT upper(b.currency), b.property_id INTO v_booking_currency, v_booking_property_id
     FROM public.bookings b WHERE b.id = NEW.booking_id;
     IF v_booking_currency IS NULL OR NEW.currency IS DISTINCT FROM v_booking_currency THEN
       RAISE EXCEPTION 'Transaction currency must match its booking transaction currency';
+    END IF;
+    IF TG_TABLE_NAME = 'staynas_promotion_redemptions'
+       AND NEW.property_id IS DISTINCT FROM v_booking_property_id THEN
+      RAISE EXCEPTION 'Promotion redemption booking must belong to the same property';
     END IF;
   END IF;
   RETURN NEW;
