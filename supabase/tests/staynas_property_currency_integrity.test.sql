@@ -1,6 +1,6 @@
 -- StayNas property operating currency, transaction immutability and property isolation contracts.
 BEGIN;
-SELECT plan(7);
+SELECT plan(9);
 
 INSERT INTO public.staynas_organisations (id, slug, name) VALUES
   ('91000000-0000-4000-8000-000000000001', 'currency-org-a', 'Currency Organisation A'),
@@ -41,6 +41,28 @@ INSERT INTO public.rooms (id, property_id, catalogue_type_id, slug, name, base_p
   ('95000000-0000-4000-8000-000000000001', '92000000-0000-4000-8000-000000000001', '94000000-0000-4000-8000-000000000001', 'currency-room-a', 'Currency Room A', 1000, 'TZS', 'active'),
   ('95000000-0000-4000-8000-000000000002', '92000000-0000-4000-8000-000000000002', '94000000-0000-4000-8000-000000000002', 'currency-room-b', 'Currency Room B', 2000, 'KES', 'active');
 
+-- New room and extra pricing cannot be entered in a different property currency.
+DO $pricing_currency$
+BEGIN
+  BEGIN
+    INSERT INTO public.rooms (id, property_id, catalogue_type_id, slug, name, base_price, currency, status)
+    VALUES ('95000000-0000-4000-8000-000000000004', '92000000-0000-4000-8000-000000000001',
+      '94000000-0000-4000-8000-000000000001', 'currency-room-a-wrong', 'Wrong Currency Room', 100, 'KES', 'active');
+    RAISE EXCEPTION 'Wrong-currency room price unexpectedly succeeded';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM = 'Wrong-currency room price unexpectedly succeeded' THEN RAISE; END IF;
+  END;
+  BEGIN
+    INSERT INTO public.extras (property_id, slug, name, price, currency)
+    VALUES ('92000000-0000-4000-8000-000000000001', 'currency-extra-a-wrong', 'Wrong Currency Extra', 50, 'KES');
+    RAISE EXCEPTION 'Wrong-currency extra price unexpectedly succeeded';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM = 'Wrong-currency extra price unexpectedly succeeded' THEN RAISE; END IF;
+  END;
+END
+$pricing_currency$;
+SELECT pass('Room and extra prices must match the property's operating currency');
+
 -- Both properties accept only their own operating currency at booking creation.
 INSERT INTO public.bookings
   (id, reference, room_id, property_id, check_in, check_out, nights, guest_name, guest_email, subtotal, total, currency, payment_status)
@@ -52,6 +74,24 @@ INSERT INTO public.payment_events (booking_id, event_type, amount, currency, ide
 VALUES ('96000000-0000-4000-8000-000000000001', 'payment_received', 250, 'TZS', 'currency-test-payment-a');
 INSERT INTO public.pms_folio_postings (booking_id, idempotency_key, amount, currency, description)
 VALUES ('96000000-0000-4000-8000-000000000001', 'currency-test-folio-a', 75, 'TZS', 'Currency test posting');
+
+-- A booking cannot consume an extra owned by another property, even if that extra's
+-- currency happens to be valid for the other property.
+INSERT INTO public.extras (property_id, slug, name, price, currency)
+VALUES ('92000000-0000-4000-8000-000000000002', 'currency-extra-b-kes', 'Property B Extra', 50, 'KES');
+DO $booking_extra_currency$
+BEGIN
+  BEGIN
+    INSERT INTO public.booking_extras (booking_id, extra_id, quantity, unit_price, line_total)
+    SELECT '96000000-0000-4000-8000-000000000001', id, 1, 50, 50
+    FROM public.extras WHERE slug = 'currency-extra-b-kes';
+    RAISE EXCEPTION 'Cross-property booking extra unexpectedly succeeded';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM = 'Cross-property booking extra unexpectedly succeeded' THEN RAISE; END IF;
+  END;
+END
+$booking_extra_currency$;
+SELECT pass('Booking extras must belong to the booking property and transaction currency');
 
 DO $child_currency$
 BEGIN
