@@ -422,6 +422,7 @@ export const decideExecutiveItem = createServerFn({ method: "POST" })
         title: (row as any).title ?? "AI recommendation",
         description: (row as any).reasoning ?? "",
         priority: 2,
+        property_id: propertyId,
       });
     }
 
@@ -691,7 +692,8 @@ export const getAiValueSummary = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
-    const s = context.supabase;
+    const s: any = context.supabase;
+    const { propertyId, currency } = await getExecutivePropertyContext(s, context.userId);
     const [{ data: guest }, { data: pricing }, { data: revOps }, { data: marketing }, { data: activity }] = await Promise.all([
       s.from("ai_guest_recommendations").select("status, expected_value, currency").eq("property_id", propertyId).gte("created_at", daysAgo(90)),
       s.from("ai_pricing_recommendations").select("status, expected_impact, currency").eq("property_id", propertyId).gte("created_at", daysAgo(90)),
@@ -705,20 +707,31 @@ export const getAiValueSummary = createServerFn({ method: "GET" })
       { key: "revenue.opportunity", rows: revOps ?? [] },
       { key: "marketing", rows: marketing ?? [] },
     ];
-    const totals = { generated: 0, accepted: 0, dismissed: 0, converted: 0, valueEstimate: 0 };
-    const perModule: Record<string, { generated: number; accepted: number; dismissed: number; converted: number; value: number }> = {};
+    const totals = { generated: 0, accepted: 0, dismissed: 0, converted: 0 };
+    const perModule: Record<string, { generated: number; accepted: number; dismissed: number; converted: number }> = {};
+    const valueByCurrency = new Map<string, number>();
     for (const b of buckets) {
       const g = b.rows.length;
       const a = b.rows.filter((r: any) => r.status === "accepted").length;
       const dm = b.rows.filter((r: any) => r.status === "dismissed").length;
       const cv = b.rows.filter((r: any) => r.status === "converted").length;
-      const v = b.rows.filter((r: any) => r.status === "accepted" || r.status === "converted").reduce((s: number, r: any) => s + Number(r.impact_score ?? 0), 0);
-      perModule[b.key] = { generated: g, accepted: a, dismissed: dm, converted: cv, value: v };
-      totals.generated += g; totals.accepted += a; totals.dismissed += dm; totals.converted += cv; totals.valueEstimate += v;
+      for (const r of b.rows.filter((item: any) => item.status === "accepted" || item.status === "converted")) {
+        const code = String(r.currency ?? "").trim().toUpperCase();
+        if (/^[A-Z]{3}$/.test(code)) {
+          const amount = Number(r.expected_value ?? r.expected_impact ?? r.estimated_impact ?? r.impact_score ?? 0);
+          valueByCurrency.set(code, (valueByCurrency.get(code) ?? 0) + (Number.isFinite(amount) ? amount : 0));
+        }
+      }
+      perModule[b.key] = { generated: g, accepted: a, dismissed: dm, converted: cv };
+      totals.generated += g; totals.accepted += a; totals.dismissed += dm; totals.converted += cv;
     }
+    const valueEstimateByCurrency = Object.fromEntries([...valueByCurrency.entries()].sort(([a], [b]) => a.localeCompare(b)));
     return {
+      currency,
       totals,
       perModule,
+      valueEstimate: Object.keys(valueEstimateByCurrency).length <= 1 ? valueEstimateByCurrency[currency] ?? 0 : null,
+      valueEstimateByCurrency,
       aiRuns: activity?.length ?? 0,
       adoption: totals.generated > 0 ? (totals.accepted + totals.converted) / totals.generated : 0,
     };
