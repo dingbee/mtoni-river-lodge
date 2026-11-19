@@ -64,6 +64,27 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 3.1.0
+      - name: Isolate Supabase project and ports from concurrent verification jobs
+        run: |
+          sed -i "s/^project_id = .*/project_id = \"staynasci${GITHUB_RUN_ID}\"/" supabase/config.toml
+          cat >> supabase/config.toml <<'EOF'
+          [api]
+          port = 56421
+          [db]
+          port = 56422
+          shadow_port = 56420
+          [studio]
+          port = 56423
+          [local_smtp]
+          enabled = true
+          port = 56424
+          smtp_port = 56425
+          pop3_port = 56426
+          [analytics]
+          port = 56427
+          [db.pooler]
+          port = 56429
+          EOF
       - name: Start isolated Supabase stack
         run: supabase start -x studio,mailpit,edge-runtime,logflare,vector,supavisor
       - name: Run isolated property-currency pgTAP contracts
