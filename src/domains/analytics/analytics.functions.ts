@@ -268,19 +268,25 @@ export const getExecutiveAnalytics = createServerFn({ method: "POST" })
     const s: any = context.supabase;
     const { propertyId, currency } = await getActivePropertyContext(s, context.userId);
     const from = daysAgoISO(30);
-    const [{ data: risks }, { data: recs }, { data: bookings }, { data: reviews }, { data: alerts }] = await Promise.all([
+    const [{ data: risks }, { data: recs }, { data: bookings }, { data: previousBookings }, { data: reviews }, { data: alerts }] = await Promise.all([
       s.from("ai_strategic_risks").select("id, severity, status"),
       s.from("ai_analytics_recommendations").select("id, status, impact, title, confidence").order("created_at", { ascending: false }).limit(10),
       s.from("bookings").select("id, total, currency, status").eq("property_id", propertyId).gte("created_at", from),
+      s.from("bookings").select("id, total, currency, status").eq("property_id", propertyId).gte("created_at", daysAgoISO(60)).lt("created_at", from),
       s.from("reviews").select("rating").eq("status", "approved").gte("created_at", from),
       s.from("ops_alerts").select("id, resolved_at").eq("property_id", propertyId).is("resolved_at", null),
     ]);
     const b = ((bookings ?? []) as Row[]).filter((r) => r.status !== "cancelled");
     const monetaryBookings = b.filter((r) => String(r.currency ?? "").trim().toUpperCase() === currency);
     const rev = monetaryBookings.reduce((n, r) => n + Number(r.total ?? 0), 0);
+    const previousRevenue = ((previousBookings ?? []) as Row[])
+      .filter((r) => r.status !== "cancelled" && String(r.currency ?? "").trim().toUpperCase() === currency)
+      .reduce((n, r) => n + Number(r.total ?? 0), 0);
     const rating = (reviews ?? []).length ? (reviews ?? []).reduce((n: number, r: any) => n + Number(r.rating ?? 0), 0) / (reviews ?? []).length : 0;
     const openRisks = (risks ?? []).filter((r: any) => r.status !== "resolved").length;
-    const financialHealth = Math.min(100, Math.round(rev / 500));
+    const financialHealth = previousRevenue > 0
+      ? Math.max(0, Math.min(100, Math.round(50 + ((rev - previousRevenue) / previousRevenue) * 25)))
+      : rev > 0 ? 60 : 40;
     const marketingHealth = Math.max(0, Math.min(100, Math.round((rating - 3) * 33 + 50)));
     const operationalHealth = Math.max(0, 100 - (alerts ?? []).length * 8);
     const guestSatisfaction = Math.round(rating * 20);
