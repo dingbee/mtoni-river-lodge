@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Building2,
   ArrowRight,
+  ArrowLeft,
   Network,
   ScrollText,
   CreditCard,
@@ -132,6 +133,13 @@ function SettingsHub() {
 
   return (
     <div className="space-y-6">
+      <Link
+        to="/admin/operations"
+        className="inline-flex min-h-10 items-center gap-2 rounded-md border border-[color:var(--os-hairline)] px-3 text-sm text-[color:var(--os-ink-2)] transition hover:bg-[color:var(--os-surface-2)]"
+      >
+        <ArrowLeft className="size-4" aria-hidden />
+        Back to workspace
+      </Link>
       <PageHeader title="Settings" description="Property, integrations, access and preferences." />
 
       <SectionCard title="Appearance">
