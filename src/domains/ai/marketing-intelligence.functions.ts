@@ -812,7 +812,7 @@ export const generateWeeklyPriorities = createServerFn({ method: "POST" })
       await logActivity(context.supabase, context.userId, "marketing.priorities.generate",
         "Weekly priorities generated", summary, ["marketing"]);
     }
-    return { id, priorities: ranked, summary, evidence };
+    return { id, propertyId, currency, priorities: ranked, summary, evidence };
   });
 
 // ---------------------------------------------------------------------------
