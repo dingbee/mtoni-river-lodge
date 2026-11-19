@@ -104,6 +104,10 @@ CREATE POLICY staynas_property_update_ai_revenue_alerts ON public.ai_revenue_ale
     AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin','finance']::public.app_role[]));
 
 -- Restrict existing AI pricing recommendations to the active property as well.
+-- Remove the exact legacy policy names as well; permissive RLS policies are OR-combined.
+DROP POLICY IF EXISTS "Property staff action AI pricing rec" ON public.ai_pricing_recommendations;
+DROP POLICY IF EXISTS "Property staff create AI pricing rec" ON public.ai_pricing_recommendations;
+DROP POLICY IF EXISTS "Property staff read AI pricing recom" ON public.ai_pricing_recommendations;
 DROP POLICY IF EXISTS "Property staff action AI pricing recommendations" ON public.ai_pricing_recommendations;
 DROP POLICY IF EXISTS "Property staff create AI pricing recommendations" ON public.ai_pricing_recommendations;
 DROP POLICY IF EXISTS "Property staff read AI pricing recommendations" ON public.ai_pricing_recommendations;
@@ -582,18 +586,55 @@ AS $function$
 DECLARE
   v_booking_currency text;
 BEGIN
-  IF TG_OP = 'UPDATE' AND OLD.currency IS DISTINCT FROM NEW.currency THEN
-    RAISE EXCEPTION 'Historical transaction currency is immutable';
-  END IF;
-  IF TG_OP = 'UPDATE' AND TG_TABLE_NAME <> 'payment_events'
-     AND OLD.booking_id IS DISTINCT FROM NEW.booking_id THEN
-    RAISE EXCEPTION 'Historical folio and redemption booking association is immutable';
-  END IF;
-  IF TG_OP = 'INSERT' THEN
+  IF TG_OP = 'UPDATE' THEN
+    IF OLD.currency IS DISTINCT FROM NEW.currency
+       OR OLD.booking_id IS DISTINCT FROM NEW.booking_id THEN
+      RAISE EXCEPTION 'Historical transaction currency and booking association are immutable';
+    END IF;
+    -- Preserve legacy payment events with an unknown currency. Metadata/status
+    -- updates remain possible, but their historical currency is never guessed.
+    IF NEW.currency IS NULL OR btrim(NEW.currency) = '' THEN
+      RETURN NEW;
+    END IF;
+  ELSE
     NEW.currency := upper(btrim(COALESCE(NEW.currency, '')));
   END IF;
-  IF NEW.currency IS NULL OR upper(NEW.currency) !~ '^[A-Z]{3}$' THEN
-    RAISE EXCEPTION 'Transaction currency must be a valid three-letter ISO 4217 code';
+  IF NEW.currency IS NULL OR upper(NEW.currency) !~ '^[A-Z]{3}
+  RETURN NEW;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS trg_staynas_guard_booking_transaction_currency ON public.bookings;
+CREATE TRIGGER trg_staynas_guard_booking_transaction_currency
+  BEFORE INSERT OR UPDATE ON public.bookings
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_booking_transaction_currency();
+
+DROP TRIGGER IF EXISTS trg_staynas_guard_payment_event_currency ON public.payment_events;
+CREATE TRIGGER trg_staynas_guard_payment_event_currency
+  BEFORE INSERT OR UPDATE ON public.payment_events
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+
+DROP TRIGGER IF EXISTS trg_staynas_guard_folio_posting_currency ON public.pms_folio_postings;
+CREATE TRIGGER trg_staynas_guard_folio_posting_currency
+  BEFORE INSERT OR UPDATE ON public.pms_folio_postings
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+
+DROP TRIGGER IF EXISTS trg_staynas_guard_folio_adjustment_currency ON public.pms_folio_adjustments;
+CREATE TRIGGER trg_staynas_guard_folio_adjustment_currency
+  BEFORE INSERT OR UPDATE ON public.pms_folio_adjustments
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+
+DROP TRIGGER IF EXISTS trg_staynas_guard_promotion_redemption_currency ON public.staynas_promotion_redemptions;
+CREATE TRIGGER trg_staynas_guard_promotion_redemption_currency
+  BEFORE INSERT OR UPDATE ON public.staynas_promotion_redemptions
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+
+REVOKE ALL ON FUNCTION public.staynas_guard_booking_transaction_currency() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.staynas_guard_child_transaction_currency() FROM PUBLIC, anon, authenticated;
+
+COMMIT;
+ THEN
+    RAISE EXCEPTION 'New transaction currency must be a valid three-letter ISO 4217 code';
   END IF;
   IF NEW.booking_id IS NOT NULL THEN
     SELECT upper(b.currency) INTO v_booking_currency
