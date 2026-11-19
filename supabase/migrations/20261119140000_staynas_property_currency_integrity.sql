@@ -526,13 +526,11 @@ BEGIN
        OR OLD.booking_id IS DISTINCT FROM NEW.booking_id THEN
       RAISE EXCEPTION 'Historical transaction currency and booking association are immutable';
     END IF;
-    -- Legacy payment events with NULL currency remain updateable without guessing history.
-    IF NEW.currency IS NULL OR btrim(NEW.currency) = '' THEN
-      RETURN NEW;
-    END IF;
-  ELSE
-    NEW.currency := upper(btrim(COALESCE(NEW.currency, '')));
+    -- Do not revalidate historical rows against today's booking state. Preserve
+    -- existing metadata/status update paths without rewriting or guessing history.
+    RETURN NEW;
   END IF;
+  NEW.currency := upper(btrim(COALESCE(NEW.currency, '')));
   IF NEW.currency IS NULL OR upper(NEW.currency) !~ '^[A-Z]{3}$' THEN
     RAISE EXCEPTION 'New transaction currency must be a valid three-letter ISO 4217 code';
   END IF;
