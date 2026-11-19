@@ -1,6 +1,6 @@
 -- StayNas property operating currency, transaction immutability and property isolation contracts.
 BEGIN;
-SELECT plan(13);
+SELECT plan(14);
 
 INSERT INTO public.staynas_organisations (id, slug, name) VALUES
   ('91000000-0000-4000-8000-000000000001', 'currency-org-a', 'Currency Organisation A'),
@@ -272,6 +272,20 @@ BEGIN
 END
 $redemption_currency$;
 SELECT pass('Promotion redemptions retain historical booking currency and reject mismatches');
+
+-- Redemptions without a booking are validated against the property's current
+-- operating currency using the shared trigger's optional property_id field.
+INSERT INTO public.staynas_property_promotions
+  (id, property_id, code, name, discount_type, discount_value, currency, status)
+VALUES
+  ('98000000-0000-4000-8000-000000000002', '92000000-0000-4000-8000-000000000001',
+   'CURR-NO-BOOKING', 'No Booking Currency Promotion', 'fixed', 5, 'USD', 'active');
+INSERT INTO public.staynas_promotion_redemptions
+  (property_id, promotion_id, booking_id, guest_key, discount_amount, currency)
+VALUES
+  ('92000000-0000-4000-8000-000000000001',
+   '98000000-0000-4000-8000-000000000002', NULL, 'currency-guest-no-booking', 5, 'USD');
+SELECT pass('Unbooked promotion redemptions must match current property currency');
 
 -- Active property switching changes the selected currency context for a multi-property owner.
 SELECT set_config('request.jwt.claim.sub', '93000000-0000-4000-8000-000000000002', true);
