@@ -111,17 +111,21 @@ BEGIN
     END IF;
     RETURN NEW;
   END IF;
-  NEW.currency := upper(btrim(COALESCE(NEW.currency, '')));
-  -- Payment provider events are audit evidence. Missing provider currency remains
-  -- NULL; finalized folio/redemption transactions must always carry a valid code.
+  -- Provider callback events are evidence, not settled financial transactions.
+  -- Read event_type through JSON because this trigger is shared by tables whose
+  -- row types do not contain that column. Preserve NULL currency exactly.
   IF TG_TABLE_NAME = 'payment_events' THEN
-    IF NEW.currency = ''
-       AND (COALESCE(NEW.event_type,'') LIKE 'ipn:%'
-         OR COALESCE(NEW.event_type,'') LIKE 'status_check:%'
-         OR COALESCE(NEW.event_type,'') = 'security:payment_mismatch') THEN
+    IF NEW.currency IS NULL
+       AND (COALESCE(to_jsonb(NEW)->>'event_type','') LIKE 'ipn:%'
+         OR COALESCE(to_jsonb(NEW)->>'event_type','') LIKE 'status_check:%'
+         OR COALESCE(to_jsonb(NEW)->>'event_type','') = 'security:payment_mismatch') THEN
       RETURN NEW;
     END IF;
   END IF;
+  IF NEW.currency IS NULL OR btrim(NEW.currency) = '' THEN
+    RAISE EXCEPTION 'New financial transaction currency must be a valid three-letter ISO 4217 code';
+  END IF;
+  NEW.currency := upper(btrim(NEW.currency));
   IF NEW.currency !~ '^[A-Z]{3}$' THEN
     RAISE EXCEPTION 'New financial transaction currency must be a valid three-letter ISO 4217 code';
   END IF;
