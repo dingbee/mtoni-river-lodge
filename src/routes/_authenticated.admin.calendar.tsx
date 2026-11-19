@@ -345,7 +345,7 @@ function UnifiedCalendarPage() {
           </div>
         ) : (
           <>
-          <div className="overflow-x-auto overscroll-x-contain rounded-xl border border-border bg-card shadow-sm" style={{ WebkitOverflowScrolling: "touch" }}>
+          <div className="staynas-calendar-scroll overflow-x-auto overscroll-x-contain rounded-xl border border-border bg-card shadow-sm" style={{ WebkitOverflowScrolling: "touch" }}>
             <div className="min-w-max">
               <p className="border-b bg-muted/20 px-3 py-2 text-[11px] font-medium text-muted-foreground sm:hidden">Swipe horizontally to view more dates <span aria-hidden="true">→</span></p>
               <div
