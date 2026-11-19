@@ -25,6 +25,16 @@ export const Route = createFileRoute("/_authenticated/admin/marketing/campaigns"
 
 const STATUSES = ["draft", "scheduled", "running", "paused", "completed", "archived"] as const;
 
+type CampaignRow = {
+  id: string;
+  name: string;
+  status: string;
+  start_date: string | null;
+  end_date: string | null;
+  budget: number | null;
+  currency: string | null;
+};
+
 const EMPTY: CampaignInput = {
   name: "", status: "draft", currency: "",
   utm_source: "", utm_medium: "", utm_campaign: "", utm_term: "", utm_content: "",
@@ -52,7 +62,7 @@ function Campaigns() {
   const delFn = useServerFn(deleteCampaign);
   const qc = useQueryClient();
 
-  const { data: campaigns, isLoading } = useQuery({
+  const { data: campaigns, isLoading } = useQuery<CampaignRow[]>({
     queryKey: ["admin.campaigns"],
     queryFn: () => listFn(),
   });
