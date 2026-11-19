@@ -516,7 +516,29 @@ ALTER TABLE public.ai_executive_kpi_snapshots
 DO $kpi_constraints$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.ai_executive_kpi_snapshots'::regclass AND conname = 'ai_executive_kpi_snapshots_currency_iso3_chk') THEN
-    ALTER TABLE public.ai_executive_kpi_snapshots ADD CONSTRAINT ai_executive_kpi_snapshots_currency_iso3_chk CHECK (currency IS NULL OR currency ~ '^[A-Z]{3}ALTER TABLE public.campaigns
+    ALTER TABLE public.ai_executive_kpi_snapshots ADD CONSTRAINT ai_executive_kpi_snapshots_currency_iso3_chk CHECK (currency IS NULL OR currency ~ '^[A-Z]{3}$');
+  END IF;
+END
+$kpi_constraints$;
+DROP INDEX IF EXISTS public.ai_executive_kpi_snapshots_key;
+CREATE UNIQUE INDEX IF NOT EXISTS ai_executive_kpi_snapshots_property_period_uidx
+  ON public.ai_executive_kpi_snapshots(property_id, currency, period, period_start);
+ALTER TABLE public.ai_executive_kpi_snapshots ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS staynas_property_ai_executive_kpi_snapshots ON public.ai_executive_kpi_snapshots;
+CREATE POLICY staynas_property_ai_executive_kpi_snapshots ON public.ai_executive_kpi_snapshots
+  FOR ALL TO authenticated
+  USING (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[]))
+  WITH CHECK (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[]));
+GRANT SELECT, INSERT, UPDATE ON public.ai_executive_kpi_snapshots TO authenticated;
+
+
+-- Campaign budgets are property operating spend. Unassigned legacy campaigns remain
+-- inaccessible from property workspaces; no historic campaign is automatically attributed.
+ALTER TABLE public.campaigns
   ADD COLUMN IF NOT EXISTS property_id uuid REFERENCES public.staynas_properties(id) ON DELETE RESTRICT;
 DO $campaign_constraints$
 BEGIN
