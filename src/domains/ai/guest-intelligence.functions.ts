@@ -259,22 +259,24 @@ export const generateOpportunities = createServerFn({ method: "POST" })
       "You are Mtoni AI recommending upsell opportunities for a booking at Mtoni River Lodge (Moshi, Tanzania).",
       "Only recommend from this catalog: airport_transfer, romantic_dinner, picnic, spa_treatment, kilimanjaro_day_hike, maasai_village_tour, coffee_farm_tour, guided_forest_walk.",
       "Return strict JSON:",
-      '{"opportunities": [{"title": string, "category": string, "reasoning": string, "confidence": number, "expected_value_usd": number}]}',
+      `{"opportunities": [{"title": string, "category": string, "reasoning": string, "confidence": number, "expected_value": number}]}`,
+      `Every expected_value amount MUST be denominated in ${bookingCurrency}. Do not convert currencies or default to USD.`,
       "Each opportunity MUST cite facts in reasoning. Confidence 0-1. Do NOT recommend automatic booking.",
     ].join("\n");
     const raw = await chat(system, `Facts: ${JSON.stringify(facts).slice(0, 4000)}`);
-    const parsed = tryJson<{ opportunities: Array<{ title: string; category: string; reasoning: string; confidence: number; expected_value_usd: number }> }>(raw)
+    const parsed = tryJson<{ opportunities: Array<{ title: string; category: string; reasoning: string; confidence: number; expected_value: number }> }>(raw)
       ?? { opportunities: [] };
 
     if (data.persist && parsed.opportunities?.length) {
-      await context.supabase.from("ai_guest_recommendations").insert(
+      const sb: any = context.supabase;
+      await sb.from("ai_guest_recommendations").insert(
         parsed.opportunities.map((o) => ({
-          booking_id: ctx.booking.id, guest_id: ctx.guest?.id ?? null,
+          booking_id: ctx.booking.id, property_id: ctx.propertyId, currency: bookingCurrency, guest_id: ctx.guest?.id ?? null,
           kind: "opportunity",
           title: o.title,
           reasoning: o.reasoning,
           confidence: Math.max(0, Math.min(1, Number(o.confidence ?? 0.5))),
-          expected_value: Number(o.expected_value_usd ?? 0) || null,
+          expected_value: Number(o.expected_value ?? 0) || null,
           category: o.category ?? "experience",
           evidence: [{ domain: "guests", note: "opportunity" }] as never,
           model: MODEL,
@@ -292,7 +294,7 @@ export const generateOpportunities = createServerFn({ method: "POST" })
       });
     }
 
-    return { opportunities: parsed.opportunities ?? [] };
+    return { currency: bookingCurrency, opportunities: (parsed.opportunities ?? []).map((opportunity) => ({ ...opportunity, currency: bookingCurrency })) };
   });
 
 /** Recommendation actions. */
