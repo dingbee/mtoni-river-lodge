@@ -160,7 +160,10 @@ export const generateGuestBriefing = createServerFn({ method: "POST" })
       preferences: ctx.preferences,
       notes: ctx.notes.map((n: any) => n.body),
       history_count: ctx.history.length,
+      currency: bookingCurrency,
       lifetime_spend: lifetimeSpend,
+      lifetime_spend_currency: bookingCurrency,
+      lifetime_spend_by_currency: lifetimeSpendByCurrency,
       tags: ctx.tags.map((t: any) => t.name),
     };
 
