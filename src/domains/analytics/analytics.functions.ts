@@ -195,9 +195,10 @@ export const getOperationsAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const from = daysAgoISO(30);
+    const { propertyId } = await getActivePropertyContext(context.supabase, context.userId);
     const [{ data: tasks }, { data: alerts }, { data: recovery }, { data: readiness }] = await Promise.all([
-      context.supabase.from("ops_tasks").select("id, status, task_type, created_at, completed_at").gte("created_at", from),
-      context.supabase.from("ops_alerts").select("id, status, created_at").gte("created_at", from),
+      context.supabase.from("ops_tasks").select("id, status, task_type, created_at, completed_at").eq("property_id", propertyId).gte("created_at", from),
+      context.supabase.from("ops_alerts").select("id, status, created_at").eq("property_id", propertyId).gte("created_at", from),
       context.supabase.from("ai_service_recovery_insights").select("id, status").gte("created_at", from),
       context.supabase.from("ai_room_readiness_insights").select("id, priority, status").gte("created_at", from),
     ]);
@@ -217,15 +218,16 @@ export const getAiAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const from = daysAgoISO(30);
-    const s = context.supabase;
+    const s: any = context.supabase;
+    const { propertyId } = await getActivePropertyContext(s, context.userId);
     const [logs, feedback, escalations, concierge, copilot, guestRecs, revRecs, mktRecs] = await Promise.all([
       s.from("ai_activity_logs").select("id, module, latency_ms, success, created_at").gte("created_at", from),
       s.from("ai_feedback").select("id, rating").gte("created_at", from),
       s.from("ai_escalations").select("id, status").gte("created_at", from),
       s.from("ai_concierge_sessions").select("id, created_at").gte("created_at", from),
       s.from("ai_copilot_sessions").select("id, created_at").gte("created_at", from),
-      s.from("ai_guest_recommendations").select("id, status").gte("created_at", from),
-      s.from("ai_pricing_recommendations").select("id, status").gte("created_at", from),
+      s.from("ai_guest_recommendations").select("id, status").eq("property_id", propertyId).gte("created_at", from),
+      s.from("ai_pricing_recommendations").select("id, status").eq("property_id", propertyId).gte("created_at", from),
       s.from("ai_marketing_recommendations").select("id, status").gte("created_at", from),
     ]);
     const l = (logs.data ?? []) as Row[];
@@ -263,17 +265,19 @@ export const getAiAnalytics = createServerFn({ method: "POST" })
 export const getExecutiveAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const s = context.supabase;
+    const s: any = context.supabase;
+    const { propertyId, currency } = await getActivePropertyContext(s, context.userId);
     const from = daysAgoISO(30);
     const [{ data: risks }, { data: recs }, { data: bookings }, { data: reviews }, { data: alerts }] = await Promise.all([
       s.from("ai_strategic_risks").select("id, severity, status"),
       s.from("ai_analytics_recommendations").select("id, status, impact, title, confidence").order("created_at", { ascending: false }).limit(10),
-      s.from("bookings").select("id, total, status").gte("created_at", from),
+      s.from("bookings").select("id, total, currency, status").eq("property_id", propertyId).gte("created_at", from),
       s.from("reviews").select("rating").eq("status", "approved").gte("created_at", from),
-      s.from("ops_alerts").select("id, resolved_at").is("resolved_at", null),
+      s.from("ops_alerts").select("id, resolved_at").eq("property_id", propertyId).is("resolved_at", null),
     ]);
     const b = ((bookings ?? []) as Row[]).filter((r) => r.status !== "cancelled");
-    const rev = b.reduce((n, r) => n + Number(r.total ?? 0), 0);
+    const monetaryBookings = b.filter((r) => String(r.currency ?? "").trim().toUpperCase() === currency);
+    const rev = monetaryBookings.reduce((n, r) => n + Number(r.total ?? 0), 0);
     const rating = (reviews ?? []).length ? (reviews ?? []).reduce((n: number, r: any) => n + Number(r.rating ?? 0), 0) / (reviews ?? []).length : 0;
     const openRisks = (risks ?? []).filter((r: any) => r.status !== "resolved").length;
     const financialHealth = Math.min(100, Math.round(rev / 500));
@@ -282,10 +286,11 @@ export const getExecutiveAnalytics = createServerFn({ method: "POST" })
     const guestSatisfaction = Math.round(rating * 20);
     const aiHealth = 90 - Math.min(50, openRisks * 5);
     return {
+      propertyId, currency, excludedOtherCurrencyBookings: b.length - monetaryBookings.length,
       health: { financialHealth, marketingHealth, operationalHealth, guestSatisfaction, aiHealth },
       risks: risks ?? [],
       topOpportunities: recs ?? [],
-      weeklySummary: `${b.length} bookings · $${Math.round(rev).toLocaleString()} revenue · ${(reviews ?? []).length} new reviews · ${openRisks} open risks.`,
+      weeklySummary: `${b.length} bookings · ${currency} ${Math.round(rev).toLocaleString()} revenue · ${(reviews ?? []).length} new reviews · ${openRisks} open risks.`,
     };
   });
 
@@ -299,25 +304,32 @@ export const generateAnalyticsReport = createServerFn({ method: "POST" })
     const days = dayMap[data.kind];
     const start = daysAgoISO(days);
     const end = todayISO();
-    const { data: bookings } = await context.supabase.from("bookings").select("id, total, status, nights").gte("created_at", start);
+    const { propertyId, currency } = await getActivePropertyContext(context.supabase, context.userId);
+    const { data: bookings, error: bookingsError } = await context.supabase.from("bookings")
+      .select("id, total, status, nights, currency").eq("property_id", propertyId).gte("created_at", start);
+    if (bookingsError) throw new Error(bookingsError.message);
     const active = ((bookings ?? []) as Row[]).filter((b) => b.status !== "cancelled");
-    const revenue = active.reduce((n, b) => n + Number(b.total ?? 0), 0);
+    const monetaryActive = active.filter((b) => String(b.currency ?? "").trim().toUpperCase() === currency);
+    const revenue = monetaryActive.reduce((n, b) => n + Number(b.total ?? 0), 0);
     const payload = {
       period: data.kind,
       totals: {
+        propertyId, currency,
         bookings: active.length,
         cancelled: (bookings ?? []).length - active.length,
         revenue,
+        excludedOtherCurrencyBookings: active.length - monetaryActive.length,
         nights: active.reduce((n, b) => n + (b.nights ?? 0), 0),
       },
     };
-    const { data: inserted, error } = await context.supabase
+    const { data: inserted, error } = await (context.supabase as any)
       .from("analytics_reports")
       .insert({
+        property_id: propertyId, currency,
         kind: data.kind, period: data.kind,
         period_start: start, period_end: end,
         title: `${data.kind[0].toUpperCase() + data.kind.slice(1)} report — ${end}`,
-        summary: `${active.length} bookings, $${Math.round(revenue).toLocaleString()} revenue over last ${days} days.`,
+        summary: `${active.length} bookings, ${currency} ${Math.round(revenue).toLocaleString()} revenue over last ${days} days.`,
         payload, status: "draft",
       })
       .select().single();
@@ -328,31 +340,38 @@ export const generateAnalyticsReport = createServerFn({ method: "POST" })
 export const listAnalyticsReports = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data } = await context.supabase
+    const propertyId = await getActivePropertyContext(context.supabase, context.userId).then((value) => value.propertyId);
+    const { data } = await (context.supabase as any)
       .from("analytics_reports")
-      .select("id, kind, period, period_start, period_end, title, summary, status, created_at")
+      .select("id, kind, period, period_start, period_end, title, summary, status, created_at, currency")
+      .eq("property_id", propertyId)
       .order("created_at", { ascending: false }).limit(50);
     return data ?? [];
   });
 
-async function bookingsSum(supabase: any, days: number) {
-  const { data } = await supabase.from("bookings").select("total, status, nights, created_at").gte("created_at", daysAgoISO(days));
+async function bookingsSum(supabase: any, days: number, propertyId: string, currency: string) {
+  const { data, error } = await supabase.from("bookings").select("total, status, nights, created_at, currency")
+    .eq("property_id", propertyId).gte("created_at", daysAgoISO(days));
+  if (error) throw new Error(error.message);
   const active = ((data ?? []) as Row[]).filter((b) => b.status !== "cancelled");
+  const monetary = active.filter((b) => String(b.currency ?? "").trim().toUpperCase() === currency);
   return {
-    revenue: active.reduce((n, r) => n + Number(r.total ?? 0), 0),
-    bookings: active.length,
-    nights: active.reduce((n, r) => n + (r.nights ?? 0), 0),
+    currency, revenue: monetary.reduce((n, r) => n + Number(r.total ?? 0), 0),
+    bookings: active.length, nights: active.reduce((n, r) => n + (r.nights ?? 0), 0),
+    excludedOtherCurrencyBookings: active.length - monetary.length,
   };
 }
 
 export const computeTrends = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    const { propertyId, currency } = await getActivePropertyContext(context.supabase, context.userId);
+    const sb: any = context.supabase;
     const windows = [7, 30, 90, 365];
     const out: any[] = [];
     for (const w of windows) {
-      const cur = await bookingsSum(context.supabase, w);
-      const prev = await bookingsSum(context.supabase, w * 2);
+      const cur = await bookingsSum(sb, w, propertyId, currency);
+      const prev = await bookingsSum(sb, w * 2, propertyId, currency);
       const prevOnly = {
         revenue: prev.revenue - cur.revenue,
         bookings: prev.bookings - cur.bookings,
@@ -361,13 +380,14 @@ export const computeTrends = createServerFn({ method: "POST" })
       const push = async (metric: string, cv: number, pv: number) => {
         const delta = pct(cv, pv);
         const rec = {
+          property_id: propertyId, currency,
           domain: "bookings", metric, window_days: w,
           current_value: cv, previous_value: pv, delta_pct: delta,
           direction: delta > 1 ? "up" : delta < -1 ? "down" : "flat",
           evidence: { window: w },
         };
         out.push(rec);
-        await context.supabase.from("ai_trend_snapshots").insert(rec);
+        await sb.from("ai_trend_snapshots").insert(rec);
       };
       await push("revenue", cur.revenue, prevOnly.revenue);
       await push("bookings", cur.bookings, prevOnly.bookings);
