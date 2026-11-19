@@ -476,7 +476,7 @@ function HousekeepingPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="housekeeping-inspection-title"
-            className="flex max-h-[calc(100dvh-7rem-env(safe-area-inset-bottom))] w-full flex-col overflow-hidden rounded-t-2xl border bg-card shadow-2xl sm:max-h-[min(88dvh,760px)] sm:max-w-xl sm:rounded-2xl"
+            className="!max-h-[calc(100dvh-7rem-env(safe-area-inset-bottom))] !overflow-hidden flex w-full flex-col rounded-t-2xl border bg-card shadow-2xl sm:!max-h-[min(88dvh,760px)] sm:max-w-xl sm:rounded-2xl"
           >
             <div className="flex shrink-0 items-start justify-between gap-4 border-b px-4 py-4 sm:px-5">
 
