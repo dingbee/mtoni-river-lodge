@@ -132,15 +132,15 @@ function RevenueDashboard() {
                     </div>
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-4">
                       <StatCard compact label="Revenue" value={money(item.revenue, item.currency)} icon={DollarSign} />
-                      <StatCard label="Paid" value={money(item.paid, item.currency)} icon={Wallet} />
-                      <StatCard label="Outstanding" value={money(item.outstanding, item.currency)} icon={AlertCircle} />
-                      <StatCard label="Deposits received" value={money(item.deposits, item.currency)} icon={Wallet} />
-                      <StatCard label="Today" value={money(today, item.currency)} icon={DollarSign} />
-                      <StatCard label="Month-to-date" value={money(mtd, item.currency)} icon={TrendingUp} />
-                      <StatCard label="Year-to-date" value={money(ytd, item.currency)} icon={TrendingUp} />
-                      <StatCard label="Refunds" value={money(refunds, item.currency)} icon={RefreshCw} />
-                      <StatCard label="ADR" value={money(item.adr, item.currency)} icon={Percent} hint="Average daily rate" />
-                      <StatCard label="RevPAR" value={money(item.revpar, item.currency)} icon={Activity} />
+                      <StatCard compact label="Paid" value={money(item.paid, item.currency)} icon={Wallet} />
+                      <StatCard compact label="Outstanding" value={money(item.outstanding, item.currency)} icon={AlertCircle} />
+                      <StatCard compact label="Deposits received" value={money(item.deposits, item.currency)} icon={Wallet} />
+                      <StatCard compact label="Today" value={money(today, item.currency)} icon={DollarSign} />
+                      <StatCard compact label="Month-to-date" value={money(mtd, item.currency)} icon={TrendingUp} />
+                      <StatCard compact label="Year-to-date" value={money(ytd, item.currency)} icon={TrendingUp} />
+                      <StatCard compact label="Refunds" value={money(refunds, item.currency)} icon={RefreshCw} />
+                      <StatCard compact label="ADR" value={money(item.adr, item.currency)} icon={Percent} hint="Average daily rate" />
+                      <StatCard compact label="RevPAR" value={money(item.revpar, item.currency)} icon={Activity} />
                     </div>
                   </div>
                 );
@@ -150,7 +150,7 @@ function RevenueDashboard() {
           </SectionCard>
 
           <div className="grid gap-3 lg:grid-cols-2">
-            <SectionCard title="revenue by room" className="[&>header>div>h2]:font-sans [&>header>div>h2]:text-lg">
+            <SectionCard title="Revenue by room" className="[&>header>div>h2]:font-sans [&>header>div>h2]:text-lg">
               <div className="space-y-3 text-sm leading-6">
                 {data.revenueByRoom.length === 0 && (
                   <p className="text-sm text-muted-foreground">No revenue in this range.</p>
@@ -164,7 +164,7 @@ function RevenueDashboard() {
               </div>
             </SectionCard>
 
-            <SectionCard title="revenue by source" className="[&>header>div>h2]:font-sans [&>header>div>h2]:text-lg">
+            <SectionCard title="Revenue by source" className="[&>header>div>h2]:font-sans [&>header>div>h2]:text-lg">
               <div className="space-y-2">
                 {data.revenueBySource.map((r) => (
                   <div key={`${r.currency}-${r.source}`} className="flex items-center justify-between gap-3 border-b border-border/50 pb-2 text-sm leading-5 last:border-0">
@@ -175,10 +175,10 @@ function RevenueDashboard() {
               </div>
             </SectionCard>
 
-            <SectionCard title="top guest nationalities" className="[&>header>div>h2]:font-sans [&>header>div>h2]:text-lg">
+            <SectionCard title="Top guest nationalities" className="[&>header>div>h2]:font-sans [&>header>div>h2]:text-lg">
               <div className="space-y-2">
                 {data.revenueByCountry.map((r) => (
-                  <div key={`${r.currency}-${r.country}`} className="flex items-center justify-between text-sm">
+                  <div key={`${r.currency}-${r.country}`} className="flex items-center justify-between gap-3 border-b border-border/50 pb-2 text-sm leading-5 last:border-0">
                     <span>{r.country}</span>
                     <span className="font-medium">{money(r.total, r.currency)}</span>
                   </div>
@@ -186,7 +186,7 @@ function RevenueDashboard() {
               </div>
             </SectionCard>
 
-            <SectionCard title="revenue trend by month" className="[&>header>div>h2]:font-sans [&>header>div>h2]:text-lg">
+            <SectionCard title="Revenue trend by month" className="[&>header>div>h2]:font-sans [&>header>div>h2]:text-lg">
               <div className="space-y-2">
                 {data.revenueTrend.map((r) => (
                   <div key={`${r.currency}-${r.month}`} className="flex items-center justify-between text-sm">
