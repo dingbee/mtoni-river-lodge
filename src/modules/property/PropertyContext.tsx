@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   listStayNasProperties,
   setStayNasActiveProperty,
+  updateStayNasPropertyCurrency,
   type StayNasPropertyRecord,
 } from "./property.functions";
 
@@ -28,7 +29,7 @@ const FALLBACK_PROPERTY: StayNasProperty = {
   name: "Nolmark CDMA",
   code: "NOLMARK",
   timezone: "Africa/Dar_es_Salaam",
-  currency: "USD",
+  currency: "",
   status: "active",
 };
 
@@ -39,6 +40,7 @@ type PropertyContextValue = {
   properties: StayNasProperty[];
   property: StayNasProperty;
   setProperty: (propertyId: string) => void;
+  updateCurrency: (currency: string) => Promise<void>;
 };
 
 const PropertyContext = createContext<PropertyContextValue | null>(null);
@@ -58,6 +60,7 @@ function toProperty(row: StayNasPropertyRecord): StayNasProperty {
 export function PropertyProvider({ children }: { children: React.ReactNode }) {
   const listFn = useServerFn(listStayNasProperties);
   const setActiveFn = useServerFn(setStayNasActiveProperty);
+  const updateCurrencyFn = useServerFn(updateStayNasPropertyCurrency);
   const [properties, setProperties] = useState<StayNasProperty[]>([FALLBACK_PROPERTY]);
   const [activePropertyId, setActivePropertyId] = useState(FALLBACK_PROPERTY.id);
   const [organisation, setOrganisation] = useState<StayNasOrganisation>({
@@ -118,6 +121,19 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
     }
   }, [properties, setActiveFn]);
 
+  const updateCurrency = useCallback(async (currency: string) => {
+    const result = await updateCurrencyFn({ data: { currency } });
+    setProperties((current) => current.map((item) =>
+      item.id === result.propertyId ? { ...item, currency: result.currency } : item,
+    ));
+    setOrganisation((current) => ({
+      ...current,
+      properties: current.properties.map((item) =>
+        item.id === result.propertyId ? { ...item, currency: result.currency } : item,
+      ),
+    }));
+  }, [updateCurrencyFn]);
+
   const property = useMemo(
     () => properties.find((p) => p.id === activePropertyId) ?? properties[0],
     [activePropertyId, properties],
@@ -128,7 +144,8 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
     properties,
     property,
     setProperty,
-  }), [organisation, properties, property, setProperty]);
+    updateCurrency,
+  }), [organisation, properties, property, setProperty, updateCurrency]);
 
   return <PropertyContext.Provider value={value}>{children}</PropertyContext.Provider>;
 }
