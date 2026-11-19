@@ -320,6 +320,7 @@ type DecisionRow = {
   id: string; origin: string; module: string; title: string; reasoning: string | null;
   confidence: number | null; impact_score: number | null; kind: string | null;
   action: string | null; status: string; created_at: string; route: string;
+  currency: string | null;
   priority: number;
 };
 
@@ -336,10 +337,10 @@ export const getExecutiveDecisions = createServerFn({ method: "GET" })
       { data: marketing },
       { data: approvals },
     ] = await Promise.all([
-      s.from("ai_guest_recommendations").select("id, title, reasoning, confidence, expected_value, category, status, created_at, booking_id").eq("property_id", propertyId).eq("status","pending"),
-      s.from("ai_pricing_recommendations").select("id, reasoning, confidence, expected_impact, delta_pct, action, status, created_at").eq("property_id", propertyId).eq("status","pending"),
-      s.from("ai_revenue_opportunities").select("id, title, detail, confidence, estimated_impact, kind, status, created_at").eq("property_id", propertyId).eq("status","pending"),
-      s.from("ai_marketing_recommendations").select("id, title, reasoning, confidence, impact_score, kind, status, created_at").eq("property_id", propertyId).eq("status","pending"),
+      s.from("ai_guest_recommendations").select("id, title, reasoning, confidence, expected_value, category, status, created_at, booking_id, currency").eq("property_id", propertyId).eq("status","pending"),
+      s.from("ai_pricing_recommendations").select("id, reasoning, confidence, expected_impact, delta_pct, action, status, created_at, currency").eq("property_id", propertyId).eq("status","pending"),
+      s.from("ai_revenue_opportunities").select("id, title, detail, confidence, estimated_impact, kind, recommended_action, status, created_at, currency").eq("property_id", propertyId).eq("status","pending"),
+      s.from("ai_marketing_recommendations").select("id, title, reasoning, confidence, impact_score, kind, action, target_route, status, created_at, currency").eq("property_id", propertyId).eq("status","pending"),
       s.from("approval_requests").select("id, subject, details, status, created_at").eq("status","pending"),
     ]);
 
@@ -348,7 +349,7 @@ export const getExecutiveDecisions = createServerFn({ method: "GET" })
         id: r.id, origin: "Guest Intelligence", module: "guest",
         title: r.title, reasoning: r.reasoning,
         confidence: r.confidence, impact_score: Number(r.expected_value ?? 0),
-        kind: r.category ?? null, action: null, status: r.status, created_at: r.created_at,
+        kind: r.category ?? null, action: null, status: r.status, created_at: r.created_at, currency: r.currency ?? null,
         route: r.booking_id ? `/admin/ai/guests/${r.booking_id}` : "/admin/ai/guests/dashboard",
         priority: Number(r.expected_value ?? 0) * (Number(r.confidence ?? 0.5) || 0.5),
       })),
@@ -356,7 +357,7 @@ export const getExecutiveDecisions = createServerFn({ method: "GET" })
         id: r.id, origin: "Revenue · Pricing", module: "revenue.pricing",
         title: `Pricing recommendation: ${r.action}`, reasoning: r.reasoning,
         confidence: r.confidence, impact_score: Number(r.expected_impact ?? 0),
-        kind: null, action: r.action, status: r.status, created_at: r.created_at,
+        kind: null, action: r.action, status: r.status, created_at: r.created_at, currency: r.currency ?? null,
         route: "/admin/ai/revenue/pricing",
         priority: Number(r.expected_impact ?? 0) * (Number(r.confidence ?? 0.5) || 0.5),
       })),
@@ -364,7 +365,7 @@ export const getExecutiveDecisions = createServerFn({ method: "GET" })
         id: r.id, origin: "Revenue · Opportunity", module: "revenue.opportunity",
         title: r.title, reasoning: r.detail,
         confidence: r.confidence, impact_score: Number(r.estimated_impact ?? 0),
-        kind: r.kind, action: r.recommended_action, status: r.status, created_at: r.created_at,
+        kind: r.kind, action: r.recommended_action, status: r.status, created_at: r.created_at, currency: r.currency ?? null,
         route: "/admin/ai/revenue/opportunities",
         priority: Number(r.estimated_impact ?? 0) * (Number(r.confidence ?? 0.5) || 0.5),
       })),
@@ -372,7 +373,7 @@ export const getExecutiveDecisions = createServerFn({ method: "GET" })
         id: r.id, origin: "Marketing", module: "marketing",
         title: r.title, reasoning: r.reasoning,
         confidence: r.confidence, impact_score: r.impact_score,
-        kind: r.kind, action: r.action, status: r.status, created_at: r.created_at,
+        kind: r.kind, action: r.action, status: r.status, created_at: r.created_at, currency: r.currency ?? null,
         route: r.target_route ?? "/admin/ai/marketing/priorities",
         priority: (Number(r.impact_score ?? 0)) * (Number(r.confidence ?? 0.5) || 0.5),
       })),
@@ -486,7 +487,8 @@ export const getExecutiveKpis = createServerFn({ method: "GET" })
 
     return {
       period: data.period,
-      live: { occupancy, adr, revpar, avgReview, repeat, aiAdoption: adoption, aiRunsLast90: adopted?.length ?? 0 },
+      currency,
+      live: { occupancy, adr, revpar, currency, avgReview, repeat, aiAdoption: adoption, aiRunsLast90: adopted?.length ?? 0 },
       snapshots: snaps ?? [],
     };
   });
