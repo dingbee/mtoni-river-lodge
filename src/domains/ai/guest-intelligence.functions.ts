@@ -71,13 +71,14 @@ async function loadBookingContext(supabase: any, bookingId: string, userId: stri
 function computeHealthScore(input: {
   historyCount: number;
   lifetimeSpend: number;
+  currency: string;
   cancellationCount: number;
   vip: boolean;
   hasBalance: boolean;
 }) {
   const dims = [
     { key: "repeat_visits",   weight: 25, value: Math.min(1, input.historyCount / 5),           note: `${input.historyCount} previous stay(s)` },
-    { key: "lifetime_spend",  weight: 25, value: Math.min(1, input.lifetimeSpend / 5000),        note: `Lifetime spend ~${input.lifetimeSpend}` },
+    { key: "lifetime_spend",  weight: 25, value: Math.min(1, input.lifetimeSpend / 5000),        note: `Lifetime spend ${input.currency} ${input.lifetimeSpend}` },
     { key: "vip_status",      weight: 15, value: input.vip ? 1 : 0,                              note: input.vip ? "VIP guest" : "Not VIP" },
     { key: "payment_health",  weight: 20, value: input.hasBalance ? 0.3 : 1,                     note: input.hasBalance ? "Outstanding balance" : "Paid in full" },
     { key: "reliability",     weight: 15, value: Math.max(0, 1 - input.cancellationCount * 0.3), note: `${input.cancellationCount} cancellation(s)` },
@@ -140,6 +141,7 @@ export const generateGuestBriefing = createServerFn({ method: "POST" })
     const health = computeHealthScore({
       historyCount: ctx.history.length,
       lifetimeSpend,
+      currency: bookingCurrency,
       cancellationCount,
       vip: Boolean(ctx.guest?.vip_since),
       hasBalance: Number(ctx.booking.balance_due ?? 0) > 0,
