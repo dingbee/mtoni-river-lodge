@@ -1952,3 +1952,60 @@ html[data-os-theme] :is(
 .mtoni-os :is(p,span,a,button,label) {
   overflow-wrap: break-word;
 }
+
+
+
+/* StayNas responsive foundation — layout and typography only.
+   Existing OS colour tokens and Light / Dark / System preferences remain authoritative. */
+.mtoni-os { min-width:0; width:100%; overflow-x:clip; font-synthesis:none; }
+.mtoni-os :is(h1,h2,h3,h4,.font-display) { font-weight:400 !important; letter-spacing:-.018em; }
+.mtoni-os :is(.font-semibold,.font-bold) { font-weight:500 !important; }
+.mtoni-os th,.mtoni-os [aria-current="page"],.mtoni-os [data-context-active="true"] { font-weight:500 !important; }
+.mtoni-os .os-card,.mtoni-os .os-card-flat,.mtoni-os [data-slot="card"],.mtoni-os .bg-card { box-shadow:none; }
+.mtoni-os main#admin-main { width:100%; min-width:0; max-width:100%; }
+.mtoni-os main#admin-main > * { min-width:0; max-width:100%; }
+.mtoni-os :is(input,select,textarea,button,[role="button"],a) { touch-action:manipulation; }
+.mtoni-os :is(input,select,textarea) { max-width:100%; }
+.mtoni-os :is(.overflow-x-auto,[data-scroll-container]) { max-width:100%; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
+@media (max-width:1279px) { .mtoni-os .staynas-mobile-property { display:block; } }
+@media (max-width:767px) {
+ .mtoni-os main#admin-main { padding:14px 12px max(22px,env(safe-area-inset-bottom)); }
+ .mtoni-os main#admin-main > .space-y-6 { gap:1rem; }
+ .mtoni-os :is(.os-card,.os-card-flat,[data-slot="card"],.bg-card) { border-radius:12px; }
+ .mtoni-os :is(h1,h2,h3,h4) { overflow-wrap:anywhere; line-height:1.25; }
+ .mtoni-os :is(.grid-cols-3,.grid-cols-4,.grid-cols-5) { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .mtoni-os :is(.flex.items-end,.flex.flex-wrap.items-end) > label,
+ .mtoni-os :is(.flex.items-end,.flex.flex-wrap.items-end) > div:has(> select),
+ .mtoni-os :is(.flex.items-end,.flex.flex-wrap.items-end) > div:has(> input[type="date"]) { min-width:min(100%,145px); flex:1 1 145px; }
+ .mtoni-os :is(.flex.items-end,.flex.flex-wrap.items-end) :is(input,select) { width:100%; }
+ .mtoni-os [role="dialog"],.mtoni-os [data-slot="dialog-content"] { max-height:calc(100dvh - env(safe-area-inset-top) - 12px); overflow-y:auto; overscroll-behavior:contain; }
+ .mtoni-os .staynas-booking-filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+ .mtoni-os .staynas-booking-filters > div { min-width:0; }
+ .mtoni-os .staynas-booking-filters :is(select,input) { width:100%; min-width:0; }
+ .mtoni-os .staynas-ops-toolbar { align-items:stretch; }
+ .mtoni-os .staynas-ops-toolbar > div:last-child { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+ .mtoni-os .staynas-ops-toolbar > div:last-child button { min-width:0; min-height:42px; justify-content:center; padding-inline:9px; white-space:normal; }
+ .mtoni-os .staynas-housekeeping-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+ .mtoni-os .staynas-housekeeping-metrics > div { padding:12px; min-width:0; }
+ .mtoni-os .staynas-housekeeping-metrics .text-2xl { font-size:1.35rem; }
+ .mtoni-os .staynas-calendar-scroll { max-width:calc(100vw - 24px); overflow-x:auto; overscroll-behavior-x:contain; }
+ .mtoni-os .staynas-staff-table { overflow:visible; }
+ .mtoni-os .staynas-staff-table__table,.mtoni-os .staynas-staff-table__table tbody,.mtoni-os .staynas-staff-table__table tr,.mtoni-os .staynas-staff-table__table td { display:block; width:100%; }
+ .mtoni-os .staynas-staff-table__table thead { display:none; }
+ .mtoni-os .staynas-staff-table__table tbody { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; }
+ .mtoni-os .staynas-staff-table__table tbody tr { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px 12px; padding:13px; border:1px solid var(--os-hairline); border-radius:12px; background:var(--os-surface); }
+ .mtoni-os .staynas-staff-table__table td { min-width:0; padding:0; overflow-wrap:anywhere; font-size:12px; }
+ .mtoni-os .staynas-staff-table__table td:first-child,.mtoni-os .staynas-staff-table__table td:last-child { grid-column:1/-1; }
+ .mtoni-os .staynas-staff-table__table td:nth-child(2)::before { content:"Department"; }
+ .mtoni-os .staynas-staff-table__table td:nth-child(3)::before { content:"Role"; }
+ .mtoni-os .staynas-staff-table__table td:nth-child(4)::before { content:"Status"; }
+ .mtoni-os .staynas-staff-table__table td:nth-child(5)::before { content:"User ID"; }
+ .mtoni-os .staynas-staff-table__table td:nth-child(6)::before { content:"Added"; }
+ .mtoni-os .staynas-staff-table__table td:nth-child(7)::before { content:"Last sign-in"; }
+ .mtoni-os .staynas-staff-table__table td:nth-child(n+2):nth-child(-n+7)::before { display:block; margin-bottom:4px; color:var(--os-ink-3); font-size:10px; letter-spacing:.04em; }
+ .mtoni-os .staynas-staff-table__table td:last-child > * { width:100%; }
+ .mtoni-os .staynas-finance-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+ .mtoni-os .staynas-finance-actions a { min-height:40px; display:flex; align-items:center; padding:8px 10px; border:1px solid var(--os-hairline); border-radius:9px; font-size:12px; line-height:1.3; }
+}
+@media (min-width:768px) and (max-width:1023px) { .mtoni-os main#admin-main { padding-inline:18px; } .mtoni-os .staynas-staff-table { overflow-x:auto; } }
+@media (prefers-reduced-motion:reduce) { .mtoni-os *,.mtoni-os *::before,.mtoni-os *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; scroll-behavior:auto !important; } }

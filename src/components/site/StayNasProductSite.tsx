@@ -261,7 +261,7 @@ export function ProductSiteFooter() {
       {group.links.map((item) => <li key={item.label}>
         {"external" in item && item.external
           ? <a href={item.to} target={item.to.startsWith("http") ? "_blank" : undefined} rel={item.to.startsWith("http") ? "noreferrer" : undefined} className="text-sm leading-6 text-[#F6F2F1]/65 transition hover:text-[#AE8F60]">{item.label}</a>
-          : <Link to={item.to} className="text-sm leading-6 text-[#F6F2F1]/65 transition hover:text-[#AE8F60]">{item.label}</Link>}
+          : <Link to={item.to as never} className="text-sm leading-6 text-[#F6F2F1]/65 transition hover:text-[#AE8F60]">{item.label}</Link>}
       </li>)}
     </ul>
   );

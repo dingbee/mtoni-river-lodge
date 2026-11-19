@@ -7,8 +7,8 @@ export const Route = createFileRoute("/_authenticated/admin/operations")({
 });
 
 const TABS = [
-  { to: "/admin/operations", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { to: "/admin/operations/rooms", label: "Room Board", icon: Bed },
+  { to: "/admin/operations", label: "Overview", icon: LayoutDashboard, exact: true },
+  { to: "/admin/operations/rooms", label: "Room board", icon: Bed },
   { to: "/admin/operations/arrivals", label: "Arrivals", icon: UserCheck, exact: true },
   { to: "/admin/operations/housekeeping", label: "Housekeeping", icon: ClipboardCheck },
   { to: "/admin/operations/tasks", label: "Tasks", icon: ListChecks },
@@ -18,18 +18,19 @@ const TABS = [
 
 function OperationsLayout() {
   return (
-    <div className="space-y-4">
-      <nav className="flex flex-wrap gap-1 overflow-x-auto rounded-lg border bg-card p-1 text-sm">
+    <div className="space-y-5">
+      <nav aria-label="Operations navigation" className="-mx-4 flex gap-1 overflow-x-auto border-b px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:flex-wrap lg:overflow-visible lg:border-0 lg:px-0 lg:pb-0">
         {TABS.map((t) => (
           <Link
             key={t.to}
             to={t.to as any}
             activeOptions={{ exact: (t as any).exact ?? false }}
-            activeProps={{ className: "bg-primary text-primary-foreground" }}
-            inactiveProps={{ className: "text-muted-foreground hover:bg-muted" }}
-            className="inline-flex items-center gap-1.5 rounded px-3 py-1.5"
+            activeProps={{ className: "border-[#C5A875] bg-[#172B43] text-white" }}
+            inactiveProps={{ className: "border-transparent bg-card text-muted-foreground hover:bg-muted hover:text-foreground" }}
+            className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-lg border px-3 text-xs font-normal transition-colors"
           >
-            <t.icon className="size-4" /> {t.label}
+            <t.icon className="size-4" />
+            {t.label}
           </Link>
         ))}
       </nav>

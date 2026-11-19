@@ -135,7 +135,7 @@ function AdminBookings() {
         title="Filters"
         description="Narrow the reservation book by status, payment and arrival window."
       >
-        <div className="flex flex-wrap items-end gap-3">
+        <div className="staynas-booking-filters flex flex-wrap items-end gap-3">
           <div>
             <label className="block text-[0.6rem] uppercase tracking-[0.22em] text-muted-foreground">
               Status
