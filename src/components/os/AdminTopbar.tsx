@@ -183,6 +183,9 @@ export function AdminTopbar({
           </Button>
         )}
       </header>
+      <div className="staynas-mobile-property border-b border-[color:var(--os-hairline)] bg-[color:var(--os-surface)] px-3 py-2 xl:hidden">
+        <PropertySwitcher />
+      </div>
 
       <CommandPalette open={commandOpen} onOpenChange={onCommandOpenChange} />
       <NotificationsPanel open={notifOpen} onOpenChange={setNotifOpen} />
