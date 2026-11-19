@@ -186,6 +186,8 @@ export const generateGuestBriefing = createServerFn({ method: "POST" })
         await context.supabase.from("ai_guest_recommendations").insert(
           parsed.prep.map((p) => ({
             booking_id: ctx.booking.id,
+            property_id: ctx.propertyId,
+            currency: bookingCurrency,
             guest_id: ctx.guest?.id ?? null,
             kind: "prep",
             title: p.title,
@@ -201,7 +203,7 @@ export const generateGuestBriefing = createServerFn({ method: "POST" })
       if (alerts.length) {
         await context.supabase.from("ai_guest_alerts").upsert(
           alerts.map((a) => ({
-            booking_id: ctx.booking.id, guest_id: ctx.guest?.id ?? null,
+            booking_id: ctx.booking.id, property_id: ctx.propertyId, guest_id: ctx.guest?.id ?? null,
             kind: a.kind, severity: a.severity, title: a.title, detail: a.detail,
             evidence: [{ note: "auto-detected" }] as never,
           })),
@@ -302,8 +304,10 @@ export const listRecommendations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { bookingId?: string } | undefined) => ({ bookingId: input?.bookingId ?? null }))
   .handler(async ({ data, context }) => {
-    let q = context.supabase.from("ai_guest_recommendations")
-      .select("*").order("created_at", { ascending: false }).limit(100);
+    const { data: propertyId, error: propertyError } = await context.supabase.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
+    let q = (context.supabase as any).from("ai_guest_recommendations")
+      .select("*").eq("property_id", propertyId).order("created_at", { ascending: false }).limit(100);
     if (data.bookingId) q = q.eq("booking_id", data.bookingId);
     const { data: rows, error } = await q;
     if (error) throw error;
@@ -318,22 +322,25 @@ export const actionRecommendation = createServerFn({ method: "POST" })
     return { id: input.id, action: input.action };
   })
   .handler(async ({ data, context }) => {
+    const { data: propertyId, error: propertyError } = await context.supabase.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
+    const sb: any = context.supabase;
     const status = data.action === "accept" ? "accepted" : data.action === "dismiss" ? "dismissed" : "converted";
     let taskId: string | null = null;
     if (data.action === "convert") {
-      const { data: rec } = await context.supabase.from("ai_guest_recommendations").select("*").eq("id", data.id).maybeSingle();
+      const { data: rec } = await sb.from("ai_guest_recommendations").select("*").eq("id", data.id).eq("property_id", propertyId).maybeSingle();
       if (rec) {
-        const { data: task } = await context.supabase.from("ops_tasks").insert({
-          booking_id: rec.booking_id, task_type: "ai_recommendation",
+        const { data: task } = await sb.from("ops_tasks").insert({
+          property_id: propertyId, booking_id: rec.booking_id, task_type: "ai_recommendation",
           title: rec.title, description: rec.reasoning,
           priority: 2,
         }).select("id").maybeSingle();
         taskId = task?.id ?? null;
       }
     }
-    const { error } = await context.supabase.from("ai_guest_recommendations")
+    const { error } = await sb.from("ai_guest_recommendations")
       .update({ status, actioned_by: context.userId, actioned_at: new Date().toISOString(), action_task_id: taskId ?? undefined })
-      .eq("id", data.id);
+      .eq("id", data.id).eq("property_id", propertyId);
     if (error) throw error;
     await context.supabase.from("ai_activity_logs").insert({
       user_id: context.userId,
@@ -352,8 +359,10 @@ export const actionRecommendation = createServerFn({ method: "POST" })
 export const listGuestAlerts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase.from("ai_guest_alerts")
-      .select("*").eq("status", "open").order("created_at", { ascending: false }).limit(200);
+    const { data: propertyId, error: propertyError } = await context.supabase.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
+    const { data, error } = await (context.supabase as any).from("ai_guest_alerts")
+      .select("*").eq("property_id", propertyId).eq("status", "open").order("created_at", { ascending: false }).limit(200);
     if (error) throw error;
     return data ?? [];
   });
@@ -365,22 +374,25 @@ export const actionGuestAlert = createServerFn({ method: "POST" })
     return { id: input.id, action: input.action };
   })
   .handler(async ({ data, context }) => {
+    const { data: propertyId, error: propertyError } = await context.supabase.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
+    const sb: any = context.supabase;
     if (data.action === "dismiss") {
-      const { error } = await context.supabase.from("ai_guest_alerts")
+      const { error } = await sb.from("ai_guest_alerts")
         .update({ status: "dismissed", dismissed_at: new Date().toISOString(), dismissed_by: context.userId })
-        .eq("id", data.id);
+        .eq("id", data.id).eq("property_id", propertyId);
       if (error) throw error;
       return { ok: true };
     }
-    const { data: alert } = await context.supabase.from("ai_guest_alerts").select("*").eq("id", data.id).maybeSingle();
+    const { data: alert } = await sb.from("ai_guest_alerts").select("*").eq("id", data.id).eq("property_id", propertyId).maybeSingle();
     if (!alert) throw new Error("Alert not found");
-    const { data: task } = await context.supabase.from("ops_tasks").insert({
-      booking_id: alert.booking_id, task_type: "ai_alert",
+    const { data: task } = await sb.from("ops_tasks").insert({
+      property_id: propertyId, booking_id: alert.booking_id, task_type: "ai_alert",
       title: alert.title, description: alert.detail,
       priority: alert.severity === "critical" ? 1 : 2,
     }).select("id").maybeSingle();
-    await context.supabase.from("ai_guest_alerts")
-      .update({ status: "converted", task_id: task?.id ?? null }).eq("id", data.id);
+    await sb.from("ai_guest_alerts")
+      .update({ status: "converted", task_id: task?.id ?? null }).eq("id", data.id).eq("property_id", propertyId);
     return { ok: true, taskId: task?.id };
   });
 
@@ -390,14 +402,17 @@ export const getGuestDashboard = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const t = today();
     const soon = daysFromNow(14);
+    const { data: propertyId, error: propertyError } = await context.supabase.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
+    const sb: any = context.supabase;
     const [arrivalsRes, alertsRes, recsRes] = await Promise.all([
-      context.supabase.from("bookings")
+      sb.from("bookings")
         .select("id, reference, guest_id, guest_name, check_in, check_out, room_id, balance_due, guest_type, special_requests, currency")
-        .gte("check_in", t).lte("check_in", soon)
+        .eq("property_id", propertyId).gte("check_in", t).lte("check_in", soon)
         .in("status", ["confirmed", "checked_in"])
         .order("check_in"),
-      context.supabase.from("ai_guest_alerts").select("*").eq("status", "open").order("created_at", { ascending: false }),
-      context.supabase.from("ai_guest_recommendations").select("*").eq("status", "pending").eq("kind", "opportunity").order("created_at", { ascending: false }).limit(20),
+      sb.from("ai_guest_alerts").select("*").eq("property_id", propertyId).eq("status", "open").order("created_at", { ascending: false }),
+      sb.from("ai_guest_recommendations").select("*").eq("property_id", propertyId).eq("status", "pending").eq("kind", "opportunity").order("created_at", { ascending: false }).limit(20),
     ]);
     const arrivals = arrivalsRes.data ?? [];
     const alerts = alertsRes.data ?? [];
