@@ -36,8 +36,10 @@ function weekStart(d = new Date()) {
   return w.toISOString().slice(0, 10);
 }
 async function logActivity(supabase: any, userId: string, tool: string, question: string, response: string, domains: string[]) {
+  const { propertyId } = await getMarketingPropertyContext(supabase, userId);
   await supabase.from("ai_activity_logs").insert({
     user_id: userId,
+    property_id: propertyId,
     question,
     domains_accessed: domains,
     tool_called: tool,
