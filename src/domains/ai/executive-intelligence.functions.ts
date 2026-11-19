@@ -532,7 +532,7 @@ export const captureKpiSnapshot = createServerFn({ method: "POST" })
 
     const { data: row, error } = await s
       .from("ai_executive_kpi_snapshots")
-      .upsert({ property_id: propertyId, currency, period: data.period, period_start, period_end, kpis, evidence: { rooms: totalUnits, days, nights } }, { onConflict: "property_id,period,period_start" })
+      .upsert({ property_id: propertyId, currency, period: data.period, period_start, period_end, kpis, evidence: { rooms: totalUnits, days, nights } }, { onConflict: "property_id,currency,period,period_start" })
       .select("*").single();
     if (error) throw error;
     return row;
