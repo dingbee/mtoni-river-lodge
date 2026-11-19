@@ -198,7 +198,7 @@ export const getOperationsAnalytics = createServerFn({ method: "POST" })
     const { propertyId } = await getActivePropertyContext(context.supabase, context.userId);
     const [{ data: tasks }, { data: alerts }, { data: recovery }, { data: readiness }] = await Promise.all([
       context.supabase.from("ops_tasks").select("id, status, task_type, created_at, completed_at").eq("property_id", propertyId).gte("created_at", from),
-      context.supabase.from("ops_alerts").select("id, status, created_at").eq("property_id", propertyId).gte("created_at", from),
+      (context.supabase as any).from("ops_alerts").select("id, status, created_at").eq("property_id", propertyId).gte("created_at", from),
       context.supabase.from("ai_service_recovery_insights").select("id, status").gte("created_at", from),
       context.supabase.from("ai_room_readiness_insights").select("id, priority, status").gte("created_at", from),
     ]);
