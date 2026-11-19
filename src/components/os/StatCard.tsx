@@ -58,7 +58,7 @@ export function StatCard({
           </span>
         )}
       </div>
-      <p className=cn("break-words font-sans font-semibold leading-tight tracking-tight text-[color:var(--os-ink)] tabular-nums", compact ? "mt-2 text-xl sm:text-2xl" : "mt-4 text-[2.4rem] sm:mt-5")>
+      <p className={cn("break-words font-sans font-semibold leading-tight tracking-tight text-[color:var(--os-ink)] tabular-nums", compact ? "mt-2 text-xl sm:text-2xl" : "mt-4 text-[2.4rem] sm:mt-5")>
         {value}
       </p>
       <div className={cn("flex items-center justify-between gap-2", compact ? "mt-2" : "mt-4")}>
