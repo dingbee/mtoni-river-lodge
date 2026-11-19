@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Save, Trash2, Copy, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/os/PageHeader";
@@ -59,6 +59,9 @@ function Campaigns() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<CampaignInput>({ ...EMPTY, currency: property.currency });
+  useEffect(() => {
+    if (!selectedId) setForm((current) => ({ ...current, currency: property.currency }));
+  }, [property.currency, selectedId]);
 
   const selectCampaign = (id: string | null) => {
     setSelectedId(id);
