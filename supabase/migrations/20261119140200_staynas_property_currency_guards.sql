@@ -68,11 +68,19 @@ CREATE OR REPLACE FUNCTION public.staynas_guard_booking_transaction_currency()
 RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $booking_currency$
 DECLARE v_property_currency text; v_room_currency text;
 BEGIN
-  IF TG_OP = 'UPDATE' AND (
-    OLD.currency IS DISTINCT FROM NEW.currency
-    OR OLD.property_id IS DISTINCT FROM NEW.property_id
-  ) THEN
-    RAISE EXCEPTION 'Booking property and transaction currency are immutable';
+  IF TG_OP = 'UPDATE' THEN
+    IF OLD.currency IS DISTINCT FROM NEW.currency
+       OR OLD.property_id IS DISTINCT FROM NEW.property_id THEN
+      RAISE EXCEPTION 'Booking property and transaction currency are immutable';
+    END IF;
+    IF OLD.room_id IS DISTINCT FROM NEW.room_id THEN
+      SELECT upper(r.currency) INTO v_room_currency
+      FROM public.rooms r WHERE r.id = NEW.room_id AND r.property_id = NEW.property_id;
+      IF v_room_currency IS DISTINCT FROM upper(NEW.currency) THEN
+        RAISE EXCEPTION 'A reassigned room must use the booking transaction currency';
+      END IF;
+    END IF;
+    RETURN NEW;
   END IF;
   IF TG_OP = 'INSERT' THEN
     NEW.currency := upper(btrim(COALESCE(NEW.currency, '')));
@@ -106,7 +114,11 @@ BEGIN
   NEW.currency := upper(btrim(COALESCE(NEW.currency, '')));
   -- Payment provider events are audit evidence. Missing provider currency remains
   -- NULL; finalized folio/redemption transactions must always carry a valid code.
-  IF TG_TABLE_NAME = 'payment_events' AND NEW.currency = '' THEN
+  IF TG_TABLE_NAME = 'payment_events'
+     AND NEW.currency = ''
+     AND (COALESCE(NEW.event_type,'') LIKE 'ipn:%'
+       OR COALESCE(NEW.event_type,'') LIKE 'status_check:%'
+       OR COALESCE(NEW.event_type,'') = 'security:payment_mismatch') THEN
     RETURN NEW;
   END IF;
   IF NEW.currency !~ '^[A-Z]{3}$' THEN
