@@ -9,6 +9,7 @@ AS $function$
 DECLARE
   v_uid uuid := auth.uid();
   v_property_id uuid;
+  v_previous text;
   v_currency text := upper(trim(_currency));
   v_updated_at timestamptz;
 BEGIN
