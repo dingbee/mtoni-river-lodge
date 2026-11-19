@@ -199,23 +199,23 @@ export const generateExecutiveBriefing = createServerFn({ method: "POST" })
       s.from("bookings").select("id, reference, guest_name, balance_due, currency").eq("property_id", propertyId).eq("check_out", today()).in("status", ["confirmed","checked_in","completed"]),
       s.from("ops_tasks").select("id, title, priority").eq("property_id", propertyId).is("completed_at", null).order("priority", { ascending: true }).limit(20),
       s.from("ops_alerts").select("id, message, severity").eq("property_id", propertyId).is("resolved_at", null).order("created_at", { ascending: false }).limit(20),
-      s.from("ai_guest_recommendations").select("id, title, reasoning, confidence, impact_score, kind, currency").eq("property_id", propertyId).eq("status","pending").order("impact_score",{ ascending: false, nullsFirst: false }).limit(10),
-      s.from("ai_guest_alerts").select("id, title, severity, reasoning").eq("property_id", propertyId).eq("status","open").order("severity",{ ascending: false }).limit(10),
-      s.from("ai_pricing_recommendations").select("id, title, reasoning, confidence, impact_score, action, currency").eq("property_id", propertyId).eq("status","pending").order("impact_score",{ ascending: false, nullsFirst: false }).limit(10),
-      s.from("ai_revenue_opportunities").select("id, title, reasoning, confidence, impact_score, kind, currency").eq("property_id", propertyId).eq("status","pending").order("impact_score",{ ascending: false, nullsFirst: false }).limit(10),
-      s.from("ai_revenue_alerts").select("id, title, severity, reasoning, currency").eq("property_id", propertyId).eq("status","open").order("severity",{ ascending: false }).limit(10),
+      s.from("ai_guest_recommendations").select("id, title, reasoning, confidence, expected_value, category, status, created_at, booking_id, currency").eq("property_id", propertyId).eq("status","pending").order("expected_value",{ ascending: false, nullsFirst: false }).limit(10),
+      s.from("ai_guest_alerts").select("id, title, severity, detail").eq("property_id", propertyId).eq("status","open").order("severity",{ ascending: false }).limit(10),
+      s.from("ai_pricing_recommendations").select("id, reasoning, confidence, expected_impact, delta_pct, action, status, created_at, room_id, current_rate, suggested_rate, currency").eq("property_id", propertyId).eq("status","pending").order("expected_impact",{ ascending: false, nullsFirst: false }).limit(10),
+      s.from("ai_revenue_opportunities").select("id, kind, title, detail, estimated_impact, confidence, recommended_action, status, created_at, currency").eq("property_id", propertyId).eq("status","pending").order("estimated_impact",{ ascending: false, nullsFirst: false }).limit(10),
+      s.from("ai_revenue_alerts").select("id, kind, title, severity, detail, currency").eq("property_id", propertyId).eq("status","open").order("severity",{ ascending: false }).limit(10),
       s.from("ai_revenue_forecasts").select("horizon_days, expected_occupancy, expected_revenue, currency").eq("property_id", propertyId).eq("currency", currency).order("created_at",{ ascending: false }).limit(3),
       s.from("ai_marketing_recommendations").select("id, title, reasoning, confidence, impact_score, kind, currency").eq("property_id", propertyId).eq("status","pending").order("impact_score",{ ascending: false, nullsFirst: false }).limit(10),
-      s.from("ai_marketing_priorities").select("id, title, reasoning, priority_score, currency").eq("property_id", propertyId).order("priority_score",{ ascending: false, nullsFirst: false }).limit(5),
+      s.from("ai_marketing_priorities").select("id, week_start, priorities, summary, confidence, currency").eq("property_id", propertyId).order("week_start",{ ascending: false }).limit(5),
       s.from("ai_reputation_insights").select("id, summary, avg_rating, review_count").eq("property_id", propertyId).order("created_at",{ ascending: false }).limit(1),
       s.from("ai_strategic_risks").select("id, title, severity, reasoning").eq("property_id", propertyId).eq("status","open").order("severity",{ ascending: false }).limit(10),
     ]);
 
     // Merge & rank top recommendations across domains
     const all = [
-      ...(guestRecs ?? []).map((r: any) => ({ ...r, origin: "guest" })),
-      ...(pricing ?? []).map((r: any) => ({ ...r, origin: "revenue.pricing" })),
-      ...(revOps ?? []).map((r: any) => ({ ...r, origin: "revenue.opportunity" })),
+      ...(guestRecs ?? []).map((r: any) => ({ ...r, impact_score: Number(r.expected_value ?? 0), kind: r.category ?? r.kind, origin: "guest" })),
+      ...(pricing ?? []).map((r: any) => ({ ...r, title: `Pricing recommendation: ${r.action}`, impact_score: Number(r.expected_impact ?? 0), kind: "pricing", origin: "revenue.pricing" })),
+      ...(revOps ?? []).map((r: any) => ({ ...r, reasoning: r.detail, impact_score: Number(r.estimated_impact ?? 0), origin: "revenue.opportunity" })),
       ...(marketingRecs ?? []).map((r: any) => ({ ...r, origin: "marketing" })),
     ];
     const ranked = all
@@ -336,44 +336,44 @@ export const getExecutiveDecisions = createServerFn({ method: "GET" })
       { data: marketing },
       { data: approvals },
     ] = await Promise.all([
-      s.from("ai_guest_recommendations").select("id, title, reasoning, confidence, impact_score, kind, status, created_at, booking_id").eq("property_id", propertyId).eq("status","pending"),
-      s.from("ai_pricing_recommendations").select("id, title, reasoning, confidence, impact_score, action, status, created_at").eq("property_id", propertyId).eq("status","pending"),
-      s.from("ai_revenue_opportunities").select("id, title, reasoning, confidence, impact_score, kind, status, created_at").eq("property_id", propertyId).eq("status","pending"),
+      s.from("ai_guest_recommendations").select("id, title, reasoning, confidence, expected_value, category, status, created_at, booking_id").eq("property_id", propertyId).eq("status","pending"),
+      s.from("ai_pricing_recommendations").select("id, reasoning, confidence, expected_impact, delta_pct, action, status, created_at").eq("property_id", propertyId).eq("status","pending"),
+      s.from("ai_revenue_opportunities").select("id, title, detail, confidence, estimated_impact, kind, status, created_at").eq("property_id", propertyId).eq("status","pending"),
       s.from("ai_marketing_recommendations").select("id, title, reasoning, confidence, impact_score, kind, status, created_at").eq("property_id", propertyId).eq("status","pending"),
-      s.from("approval_requests").select("id, title, description, status, created_at").eq("status","pending"),
+      s.from("approval_requests").select("id, subject, details, status, created_at").eq("status","pending"),
     ]);
 
     const rows: DecisionRow[] = [
       ...(guest ?? []).map((r: any): DecisionRow => ({
         id: r.id, origin: "Guest Intelligence", module: "guest",
         title: r.title, reasoning: r.reasoning,
-        confidence: r.confidence, impact_score: r.impact_score,
-        kind: r.kind, action: null, status: r.status, created_at: r.created_at,
+        confidence: r.confidence, impact_score: Number(r.expected_value ?? 0),
+        kind: r.category ?? null, action: null, status: r.status, created_at: r.created_at,
         route: r.booking_id ? `/admin/ai/guests/${r.booking_id}` : "/admin/ai/guests/dashboard",
-        priority: (Number(r.impact_score ?? 0)) * (Number(r.confidence ?? 0.5) || 0.5),
+        priority: Number(r.expected_value ?? 0) * (Number(r.confidence ?? 0.5) || 0.5),
       })),
       ...(pricing ?? []).map((r: any): DecisionRow => ({
         id: r.id, origin: "Revenue · Pricing", module: "revenue.pricing",
-        title: r.title, reasoning: r.reasoning,
-        confidence: r.confidence, impact_score: r.impact_score,
+        title: `Pricing recommendation: ${r.action}`, reasoning: r.reasoning,
+        confidence: r.confidence, impact_score: Number(r.expected_impact ?? 0),
         kind: null, action: r.action, status: r.status, created_at: r.created_at,
         route: "/admin/ai/revenue/pricing",
-        priority: (Number(r.impact_score ?? 0)) * (Number(r.confidence ?? 0.5) || 0.5),
+        priority: Number(r.expected_impact ?? 0) * (Number(r.confidence ?? 0.5) || 0.5),
       })),
       ...(revOps ?? []).map((r: any): DecisionRow => ({
         id: r.id, origin: "Revenue · Opportunity", module: "revenue.opportunity",
-        title: r.title, reasoning: r.reasoning,
-        confidence: r.confidence, impact_score: r.impact_score,
-        kind: r.kind, action: null, status: r.status, created_at: r.created_at,
+        title: r.title, reasoning: r.detail,
+        confidence: r.confidence, impact_score: Number(r.estimated_impact ?? 0),
+        kind: r.kind, action: r.recommended_action, status: r.status, created_at: r.created_at,
         route: "/admin/ai/revenue/opportunities",
-        priority: (Number(r.impact_score ?? 0)) * (Number(r.confidence ?? 0.5) || 0.5),
+        priority: Number(r.estimated_impact ?? 0) * (Number(r.confidence ?? 0.5) || 0.5),
       })),
       ...(marketing ?? []).map((r: any): DecisionRow => ({
         id: r.id, origin: "Marketing", module: "marketing",
         title: r.title, reasoning: r.reasoning,
         confidence: r.confidence, impact_score: r.impact_score,
-        kind: r.kind, action: null, status: r.status, created_at: r.created_at,
-        route: "/admin/ai/marketing/priorities",
+        kind: r.kind, action: r.action, status: r.status, created_at: r.created_at,
+        route: r.target_route ?? "/admin/ai/marketing/priorities",
         priority: (Number(r.impact_score ?? 0)) * (Number(r.confidence ?? 0.5) || 0.5),
       })),
     ];
@@ -381,7 +381,7 @@ export const getExecutiveDecisions = createServerFn({ method: "GET" })
     rows.sort((a: any, b: any) => b.priority - a.priority);
     return {
       decisions: rows,
-      approvals: approvals ?? [],
+      approvals: (approvals ?? []).map((r: any) => ({ ...r, title: r.subject, description: r.details })),
     };
   });
 
@@ -391,7 +391,8 @@ export const decideExecutiveItem = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string; module: string; action: "accept" | "dismiss" | "assign" | "convert"; note?: string | null }) => d)
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
-    const s = context.supabase;
+    const s: any = context.supabase;
+    const { propertyId } = await getExecutivePropertyContext(s, context.userId);
     const table = {
       "guest": "ai_guest_recommendations",
       "revenue.pricing": "ai_pricing_recommendations",
@@ -407,8 +408,9 @@ export const decideExecutiveItem = createServerFn({ method: "POST" })
       : "assigned";
 
     const { data: row, error } = await (s.from(table as any) as any)
-      .update({ status: newStatus, reviewed_by: context.userId, reviewed_at: new Date().toISOString(), review_note: data.note ?? null })
+      .update({ status: newStatus, actioned_by: context.userId, actioned_at: new Date().toISOString() })
       .eq("id", data.id)
+      .eq("property_id", propertyId)
       .select("*")
       .maybeSingle();
     if (error) throw error;
@@ -691,10 +693,10 @@ export const getAiValueSummary = createServerFn({ method: "GET" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
     const s = context.supabase;
     const [{ data: guest }, { data: pricing }, { data: revOps }, { data: marketing }, { data: activity }] = await Promise.all([
-      s.from("ai_guest_recommendations").select("status, impact_score").gte("created_at", daysAgo(90)),
-      s.from("ai_pricing_recommendations").select("status, impact_score").gte("created_at", daysAgo(90)),
-      s.from("ai_revenue_opportunities").select("status, impact_score").gte("created_at", daysAgo(90)),
-      s.from("ai_marketing_recommendations").select("status, impact_score").gte("created_at", daysAgo(90)),
+      s.from("ai_guest_recommendations").select("status, expected_value, currency").eq("property_id", propertyId).gte("created_at", daysAgo(90)),
+      s.from("ai_pricing_recommendations").select("status, expected_impact, currency").eq("property_id", propertyId).gte("created_at", daysAgo(90)),
+      s.from("ai_revenue_opportunities").select("status, estimated_impact, currency").eq("property_id", propertyId).gte("created_at", daysAgo(90)),
+      s.from("ai_marketing_recommendations").select("status, impact_score, currency").eq("property_id", propertyId).gte("created_at", daysAgo(90)),
       s.from("ai_activity_logs").select("id").gte("created_at", daysAgo(90)),
     ]);
     const buckets = [
