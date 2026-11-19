@@ -103,10 +103,12 @@ export const getGuestExperiences = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const { data: bookings } = await sb
       .from("bookings")
-      .select("id, reference, check_in, check_out")
-      .eq("guest_id", data.id);
+      .select("id, reference, check_in, check_out, currency")
+      .eq("guest_id", data.id).eq("property_id", propertyId);
     const ids = (bookings ?? []).map((b: any) => b.id);
     if (ids.length === 0) return [];
     const { data: rows, error } = await sb
@@ -122,6 +124,7 @@ export const getGuestExperiences = createServerFn({ method: "POST" })
       slug: r.extra?.slug,
       quantity: r.quantity,
       line_total: Number(r.line_total ?? 0),
+      currency: bMap.get(r.booking_id)?.currency ?? null,
       booking: bMap.get(r.booking_id) ?? null,
       created_at: r.created_at,
     }));
@@ -136,10 +139,12 @@ export const getGuestPayments = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const { data: bookings } = await sb
       .from("bookings")
       .select("id, reference, total, deposit_amount, paid_amount, balance_amount, currency, payment_status, invoice_number")
-      .eq("guest_id", data.id);
+      .eq("guest_id", data.id).eq("property_id", propertyId);
     const ids = (bookings ?? []).map((b: any) => b.id);
     const { data: events } = ids.length
       ? await sb
