@@ -1,6 +1,6 @@
 -- StayNas property operating currency, transaction immutability and property isolation contracts.
 BEGIN;
-SELECT plan(9);
+SELECT plan(10);
 
 INSERT INTO public.staynas_organisations (id, slug, name) VALUES
   ('91000000-0000-4000-8000-000000000001', 'currency-org-a', 'Currency Organisation A'),
@@ -72,6 +72,11 @@ VALUES
 
 INSERT INTO public.payment_events (booking_id, event_type, amount, currency, idempotency_key)
 VALUES ('96000000-0000-4000-8000-000000000001', 'payment_received', 250, 'TZS', 'currency-test-payment-a');
+-- An unverified provider event with no currency remains auditable as NULL, not USD or property currency.
+INSERT INTO public.payment_events (booking_id, event_type, amount, currency, idempotency_key)
+VALUES ('96000000-0000-4000-8000-000000000001', 'ipn:completed', 10, NULL, 'currency-test-payment-unknown');
+SELECT is((SELECT currency IS NULL FROM public.payment_events WHERE idempotency_key = 'currency-test-payment-unknown'),
+  true, 'Unknown provider currency remains NULL and is never guessed');
 INSERT INTO public.pms_folio_postings (booking_id, idempotency_key, amount, currency, description)
 VALUES ('96000000-0000-4000-8000-000000000001', 'currency-test-folio-a', 75, 'TZS', 'Currency test posting');
 
