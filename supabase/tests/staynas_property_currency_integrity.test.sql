@@ -61,7 +61,7 @@ BEGIN
   END;
 END
 $pricing_currency$;
-SELECT pass('Room and extra prices must match the property's operating currency');
+SELECT pass('Room and extra prices must match the property operating currency');
 
 -- Both properties accept only their own operating currency at booking creation.
 INSERT INTO public.bookings
