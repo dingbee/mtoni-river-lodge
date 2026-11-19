@@ -23,9 +23,12 @@ export const listUpcomingArrivals = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const from = today();
     const to = daysFromNow(data.days);
+    const { data: propertyId, error: propertyError } = await context.supabase.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const { data: rows, error } = await context.supabase
       .from("bookings")
       .select("id, reference, guest_id, guest_name, guest_email, country, check_in, check_out, nights, adults, children, room_id, status, payment_status, balance_due, total, currency, guest_type, special_requests")
+      .eq("property_id", propertyId)
       .gte("check_in", from)
       .lte("check_in", to)
       .in("status", ["confirmed", "checked_in"])
@@ -34,9 +37,11 @@ export const listUpcomingArrivals = createServerFn({ method: "GET" })
     return rows ?? [];
   });
 
-async function loadBookingContext(supabase: any, bookingId: string) {
+async function loadBookingContext(supabase: any, bookingId: string, userId: string) {
+  const { data: propertyId, error: propertyError } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
+  if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
   const { data: booking, error } = await supabase
-    .from("bookings").select("*").eq("id", bookingId).maybeSingle();
+    .from("bookings").select("*").eq("id", bookingId).eq("property_id", propertyId).maybeSingle();
   if (error) throw error;
   if (!booking) throw new Error("Booking not found.");
   const guestId = booking.guest_id as string | null;
@@ -45,13 +50,14 @@ async function loadBookingContext(supabase: any, bookingId: string) {
     guestId ? supabase.from("guests").select("*").eq("id", guestId).maybeSingle() : Promise.resolve({ data: null }),
     guestId ? supabase.from("guest_preferences").select("category,key,value").eq("guest_id", guestId) : Promise.resolve({ data: [] }),
     guestId ? supabase.from("guest_notes").select("body,created_at").eq("guest_id", guestId).eq("is_deleted", false).order("created_at", { ascending: false }).limit(10) : Promise.resolve({ data: [] }),
-    guestId ? supabase.from("bookings").select("id,reference,check_in,check_out,total,currency,status").eq("guest_id", guestId).neq("id", bookingId).order("check_in", { ascending: false }).limit(20) : Promise.resolve({ data: [] }),
+    guestId ? supabase.from("bookings").select("id,reference,check_in,check_out,total,currency,status").eq("guest_id", guestId).eq("property_id", propertyId).neq("id", bookingId).order("check_in", { ascending: false }).limit(20) : Promise.resolve({ data: [] }),
     booking.room_id ? supabase.from("rooms").select("id,name,slug,short_description").eq("id", booking.room_id).maybeSingle() : Promise.resolve({ data: null }),
     guestId ? supabase.from("guest_tag_assignments").select("guest_tags(name,color)").eq("guest_id", guestId) : Promise.resolve({ data: [] }),
   ]);
 
   return {
     booking,
+    propertyId,
     guest: guestRes.data,
     preferences: prefsRes.data ?? [],
     notes: notesRes.data ?? [],
@@ -121,8 +127,15 @@ export const generateGuestBriefing = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const start = Date.now();
-    const ctx = await loadBookingContext(context.supabase, data.bookingId);
-    const lifetimeSpend = (ctx.history ?? []).reduce((s: number, r: any) => s + Number(r.total ?? 0), 0);
+    const ctx = await loadBookingContext(context.supabase, data.bookingId, context.userId);
+    const bookingCurrency = String(ctx.booking.currency ?? "").trim().toUpperCase();
+    if (!/^[A-Z]{3}$/.test(bookingCurrency)) throw new Error("Booking transaction currency is missing or invalid; guest intelligence is blocked.");
+    const lifetimeSpendByCurrency = (ctx.history ?? []).reduce((totals: Record<string, number>, row: any) => {
+      const code = String(row.currency ?? "UNKNOWN").trim().toUpperCase() || "UNKNOWN";
+      totals[code] = (totals[code] ?? 0) + Number(row.total ?? 0);
+      return totals;
+    }, {});
+    const lifetimeSpend = lifetimeSpendByCurrency[bookingCurrency] ?? 0;
     const cancellationCount = (ctx.history ?? []).filter((r: any) => r.status === "cancelled").length;
     const health = computeHealthScore({
       historyCount: ctx.history.length,
@@ -217,7 +230,14 @@ export const generateOpportunities = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const start = Date.now();
-    const ctx = await loadBookingContext(context.supabase, data.bookingId);
+    const ctx = await loadBookingContext(context.supabase, data.bookingId, context.userId);
+    const bookingCurrency = String(ctx.booking.currency ?? "").trim().toUpperCase();
+    if (!/^[A-Z]{3}$/.test(bookingCurrency)) throw new Error("Booking transaction currency is missing or invalid; opportunity generation is blocked.");
+    const lifetimeSpendByCurrency = (ctx.history ?? []).reduce((totals: Record<string, number>, row: any) => {
+      const code = String(row.currency ?? "UNKNOWN").trim().toUpperCase() || "UNKNOWN";
+      totals[code] = (totals[code] ?? 0) + Number(row.total ?? 0);
+      return totals;
+    }, {});
     const facts = {
       stay_length: ctx.booking.nights,
       adults: ctx.booking.adults, children: ctx.booking.children,
@@ -226,7 +246,10 @@ export const generateOpportunities = createServerFn({ method: "POST" })
       guest_type: ctx.booking.guest_type,
       preferences: ctx.preferences,
       history_count: ctx.history.length,
-      lifetime_spend: (ctx.history ?? []).reduce((s: number, r: any) => s + Number(r.total ?? 0), 0),
+      currency: bookingCurrency,
+      lifetime_spend: lifetimeSpendByCurrency[bookingCurrency] ?? 0,
+      lifetime_spend_currency: bookingCurrency,
+      lifetime_spend_by_currency: lifetimeSpendByCurrency,
       special_requests: ctx.booking.special_requests,
     };
     const system = [
