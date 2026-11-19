@@ -78,7 +78,9 @@ export const listGuests = createServerFn({ method: "POST" })
     return {
       rows: (rows ?? []).map((r: any) => ({
         ...r,
-        lifetime_spend: Number(r.lifetime_spend ?? 0),
+        lifetime_spend: r.lifetime_spend == null ? null : Number(r.lifetime_spend),
+        lifetime_spend_currency: r.lifetime_spend_currency ?? null,
+        lifetime_spend_by_currency: r.lifetime_spend_by_currency ?? {},
       })),
       total: count ?? 0,
       page: data.page,
@@ -155,7 +157,9 @@ export const getGuestSummary = createServerFn({ method: "POST" })
         ? {
             total_stays: dir.total_stays,
             total_nights: dir.total_nights,
-            lifetime_spend: Number(dir.lifetime_spend ?? 0),
+            lifetime_spend: dir.lifetime_spend == null ? null : Number(dir.lifetime_spend),
+            lifetime_spend_currency: dir.lifetime_spend_currency ?? null,
+            lifetime_spend_by_currency: dir.lifetime_spend_by_currency ?? {},
             first_stay: dir.first_stay,
             last_stay: dir.last_stay,
             cancelled_count: dir.cancelled_count,
