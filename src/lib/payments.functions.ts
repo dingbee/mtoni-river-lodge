@@ -52,15 +52,17 @@ export const initiatePayment = createServerFn({ method: "POST" })
     const merchantRef = `${booking.reference}-D${Date.now().toString(36).slice(-4).toUpperCase()}`;
     const callbackUrl = `${baseUrl}/booking/return?ref=${encodeURIComponent(booking.reference)}`;
 
+    const transactionCurrency = String(booking.currency ?? "").trim().toUpperCase();
+    if (!/^[A-Z]{3}$/.test(transactionCurrency)) {
+      throw new Error("Booking transaction currency is missing or invalid; payment initiation is blocked.");
+    }
     const [firstName, ...rest] = (booking.guest_name ?? "").trim().split(/\s+/);
     const lastName = rest.join(" ") || firstName || "Guest";
 
     const order = await submitPesapalOrder({
       merchantReference: merchantRef,
       amount: deposit,
-      currency: booking.currency && /^[A-Z]{3}$/.test(booking.currency)
-        ? booking.currency
-        : (() => { throw new Error("Booking transaction currency is missing or invalid; payment initiation is blocked."); })(),
+      currency: transactionCurrency,
       description: `Mtoni River Lodge deposit – ${booking.reference}`,
       callbackUrl,
       notificationId,
