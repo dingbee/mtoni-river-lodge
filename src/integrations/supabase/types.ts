@@ -91,7 +91,6 @@ export type Database = {
         }
         Insert: {
           property_id?: string | null
-          property_id?: string | null
           created_at?: string
           domains_accessed?: string[]
           duration_ms?: number | null
@@ -108,7 +107,6 @@ export type Database = {
           user_id: string
         }
         Update: {
-          property_id?: string | null
           property_id?: string | null
           created_at?: string
           domains_accessed?: string[]
@@ -3766,7 +3764,6 @@ export type Database = {
         }
         Insert: {
           property_id?: string | null
-          property_id?: string | null
           created_at?: string
           detected_at?: string
           domains?: string[]
@@ -3782,7 +3779,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          property_id?: string | null
           property_id?: string | null
           created_at?: string
           detected_at?: string
@@ -4852,7 +4848,6 @@ export type Database = {
         }
         Insert: {
           property_id?: string | null
-          property_id?: string | null
           associated_content?: Json
           audience?: string | null
           budget?: number | null
@@ -4875,7 +4870,6 @@ export type Database = {
           utm_term?: string | null
         }
         Update: {
-          property_id?: string | null
           property_id?: string | null
           associated_content?: Json
           audience?: string | null
