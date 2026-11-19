@@ -48,6 +48,44 @@ VALUES
   ('96000000-0000-4000-8000-000000000001', 'CURR-A-001', '95000000-0000-4000-8000-000000000001', '92000000-0000-4000-8000-000000000001', current_date + 30, current_date + 31, 1, 'Currency Guest A', 'currency-a@example.test', 1000, 1000, 'TZS', 'paid'),
   ('96000000-0000-4000-8000-000000000002', 'CURR-B-001', '95000000-0000-4000-8000-000000000002', '92000000-0000-4000-8000-000000000002', current_date + 30, current_date + 31, 1, 'Currency Guest B', 'currency-b@example.test', 2000, 2000, 'KES', 'paid');
 
+INSERT INTO public.payment_events (booking_id, event_type, amount, currency, idempotency_key)
+VALUES ('96000000-0000-4000-8000-000000000001', 'payment_received', 250, 'TZS', 'currency-test-payment-a');
+INSERT INTO public.pms_folio_postings (booking_id, idempotency_key, amount, currency, description)
+VALUES ('96000000-0000-4000-8000-000000000001', 'currency-test-folio-a', 75, 'TZS', 'Currency test posting');
+
+DO $child_currency$
+BEGIN
+  BEGIN
+    INSERT INTO public.payment_events (booking_id, event_type, amount, currency)
+    VALUES ('96000000-0000-4000-8000-000000000001', 'payment_received', 10, 'KES');
+    RAISE EXCEPTION 'Wrong-currency payment event unexpectedly succeeded';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM = 'Wrong-currency payment event unexpectedly succeeded' THEN RAISE; END IF;
+  END;
+  BEGIN
+    UPDATE public.payment_events SET currency = 'USD'
+    WHERE idempotency_key = 'currency-test-payment-a';
+    RAISE EXCEPTION 'Historical payment event currency mutation unexpectedly succeeded';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM = 'Historical payment event currency mutation unexpectedly succeeded' THEN RAISE; END IF;
+  END;
+  BEGIN
+    INSERT INTO public.pms_folio_postings (booking_id, idempotency_key, amount, currency, description)
+    VALUES ('96000000-0000-4000-8000-000000000001', 'currency-test-folio-wrong', 10, 'KES', 'Wrong currency');
+    RAISE EXCEPTION 'Wrong-currency folio posting unexpectedly succeeded';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM = 'Wrong-currency folio posting unexpectedly succeeded' THEN RAISE; END IF;
+  END;
+  BEGIN
+    UPDATE public.pms_folio_postings SET currency = 'USD'
+    WHERE idempotency_key = 'currency-test-folio-a';
+    RAISE EXCEPTION 'Historical folio currency mutation unexpectedly succeeded';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM = 'Historical folio currency mutation unexpectedly succeeded' THEN RAISE; END IF;
+  END;
+END
+$child_currency$;
+
 INSERT INTO public.guests (id, full_name) VALUES
   ('97000000-0000-4000-8000-000000000001', 'Currency Test Guest');
 UPDATE public.bookings SET guest_id = '97000000-0000-4000-8000-000000000001'
