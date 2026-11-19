@@ -55,7 +55,7 @@ export const updateStayNasPropertyCurrency = createServerFn({ method: "POST" })
     currency: z.string().trim().regex(/^[A-Za-z]{3}$/).transform((value) => value.toUpperCase()),
   }).parse(d))
   .handler(async ({ data, context }) => {
-    const { data: result, error } = await propertyClient(context.supabase).rpc(
+    const { data: result, error } = await (propertyClient(context.supabase) as any).rpc(
       "staynas_update_property_currency",
       { _currency: data.currency },
     );
