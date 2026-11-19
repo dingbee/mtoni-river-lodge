@@ -72,7 +72,7 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     void listFn()
-      .then((rows) => {
+      .then(async (rows) => {
         if (cancelled) return;
         const mapped = rows.map(toProperty);
         const serverActive = mapped.find((p) => rows.find((r) => r.id === p.id)?.is_active);
