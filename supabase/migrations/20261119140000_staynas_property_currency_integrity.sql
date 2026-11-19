@@ -624,8 +624,158 @@ BEGIN
     RETURN NEW;
   END IF;
   NEW.currency := upper(btrim(COALESCE(NEW.currency, '')));
+  -- Provider status/mismatch events are evidence, not a settled ledger posting.
+  -- Preserve an unknown provider currency as NULL; never infer or substitute one.
+  IF TG_TABLE_NAME = 'payment_events' AND (NEW.currency IS NULL OR NEW.currency = '') THEN
+    RETURN NEW;
+  END IF;
+  IF NEW.currency IS NULL OR upper(NEW.currency) !~ '^[A-Z]{3}
+  IF NEW.booking_id IS NOT NULL THEN
+    SELECT upper(b.currency) INTO v_booking_currency
+    FROM public.bookings b WHERE b.id = NEW.booking_id;
+    IF v_booking_currency IS NULL OR upper(NEW.currency) IS DISTINCT FROM v_booking_currency THEN
+      RAISE EXCEPTION 'Transaction currency must match its booking transaction currency';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$child_currency$;
+
+DROP TRIGGER IF EXISTS trg_staynas_guard_booking_transaction_currency ON public.bookings;
+CREATE TRIGGER trg_staynas_guard_booking_transaction_currency
+  BEFORE INSERT OR UPDATE ON public.bookings
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_booking_transaction_currency();
+DROP TRIGGER IF EXISTS trg_staynas_guard_payment_event_currency ON public.payment_events;
+CREATE TRIGGER trg_staynas_guard_payment_event_currency
+  BEFORE INSERT OR UPDATE ON public.payment_events
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+DROP TRIGGER IF EXISTS trg_staynas_guard_folio_posting_currency ON public.pms_folio_postings;
+CREATE TRIGGER trg_staynas_guard_folio_posting_currency
+  BEFORE INSERT OR UPDATE ON public.pms_folio_postings
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+DROP TRIGGER IF EXISTS trg_staynas_guard_folio_adjustment_currency ON public.pms_folio_adjustments;
+CREATE TRIGGER trg_staynas_guard_folio_adjustment_currency
+  BEFORE INSERT OR UPDATE ON public.pms_folio_adjustments
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+DROP TRIGGER IF EXISTS trg_staynas_guard_promotion_redemption_currency ON public.staynas_promotion_redemptions;
+CREATE TRIGGER trg_staynas_guard_promotion_redemption_currency
+  BEFORE INSERT OR UPDATE ON public.staynas_promotion_redemptions
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+
+REVOKE ALL ON FUNCTION public.staynas_guard_room_price_currency() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.staynas_guard_extra_price_currency() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.staynas_guard_booking_extra_currency() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.staynas_guard_booking_transaction_currency() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.staynas_guard_child_transaction_currency() FROM PUBLIC, anon, authenticated;
+
+GRANT SELECT, INSERT ON public.ai_revenue_forecasts TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_revenue_opportunities TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_revenue_alerts TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_pricing_recommendations TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.financial_alerts TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_guest_recommendations TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_guest_alerts TO authenticated;
+GRANT SELECT, INSERT ON public.analytics_reports TO authenticated;
+GRANT SELECT, INSERT ON public.ai_trend_snapshots TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_analytics_recommendations TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_executive_briefings TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_marketing_recommendations TO authenticated;
+GRANT SELECT, INSERT ON public.ai_marketing_priorities TO authenticated;
+GRANT SELECT, INSERT ON public.ai_reputation_insights TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_strategic_risks TO authenticated;
+GRANT SELECT, INSERT ON public.ai_activity_logs TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_executive_kpi_snapshots TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.campaigns TO authenticated;
+
+COMMIT;
+
+       OR v_room_currency IS DISTINCT FROM v_property_currency
+       OR upper(COALESCE(NEW.currency,'')) IS DISTINCT FROM v_property_currency THEN
+      RAISE EXCEPTION 'New booking currency must match the authoritative property operating currency';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$booking_currency$;
+
+CREATE OR REPLACE FUNCTION public.staynas_guard_child_transaction_currency()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $child_currency$
+DECLARE
+  v_booking_currency text;
+BEGIN
+  IF TG_OP = 'UPDATE' THEN
+    IF OLD.currency IS DISTINCT FROM NEW.currency
+       OR OLD.booking_id IS DISTINCT FROM NEW.booking_id THEN
+      RAISE EXCEPTION 'Historical transaction currency and booking association are immutable';
+    END IF;
+    -- Do not revalidate historical rows against today's booking state. Preserve
+    -- existing metadata/status update paths without rewriting or guessing history.
+    RETURN NEW;
+  END IF;
+  NEW.currency := upper(btrim(COALESCE(NEW.currency, '')));
   IF NEW.currency IS NULL OR upper(NEW.currency) !~ '^[A-Z]{3}$' THEN
     RAISE EXCEPTION 'New transaction currency must be a valid three-letter ISO 4217 code';
+  END IF;
+  IF NEW.booking_id IS NOT NULL THEN
+    SELECT upper(b.currency) INTO v_booking_currency
+    FROM public.bookings b WHERE b.id = NEW.booking_id;
+    IF v_booking_currency IS NULL OR upper(NEW.currency) IS DISTINCT FROM v_booking_currency THEN
+      RAISE EXCEPTION 'Transaction currency must match its booking transaction currency';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$child_currency$;
+
+DROP TRIGGER IF EXISTS trg_staynas_guard_booking_transaction_currency ON public.bookings;
+CREATE TRIGGER trg_staynas_guard_booking_transaction_currency
+  BEFORE INSERT OR UPDATE ON public.bookings
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_booking_transaction_currency();
+DROP TRIGGER IF EXISTS trg_staynas_guard_payment_event_currency ON public.payment_events;
+CREATE TRIGGER trg_staynas_guard_payment_event_currency
+  BEFORE INSERT OR UPDATE ON public.payment_events
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+DROP TRIGGER IF EXISTS trg_staynas_guard_folio_posting_currency ON public.pms_folio_postings;
+CREATE TRIGGER trg_staynas_guard_folio_posting_currency
+  BEFORE INSERT OR UPDATE ON public.pms_folio_postings
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+DROP TRIGGER IF EXISTS trg_staynas_guard_folio_adjustment_currency ON public.pms_folio_adjustments;
+CREATE TRIGGER trg_staynas_guard_folio_adjustment_currency
+  BEFORE INSERT OR UPDATE ON public.pms_folio_adjustments
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+DROP TRIGGER IF EXISTS trg_staynas_guard_promotion_redemption_currency ON public.staynas_promotion_redemptions;
+CREATE TRIGGER trg_staynas_guard_promotion_redemption_currency
+  BEFORE INSERT OR UPDATE ON public.staynas_promotion_redemptions
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+
+REVOKE ALL ON FUNCTION public.staynas_guard_booking_transaction_currency() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.staynas_guard_child_transaction_currency() FROM PUBLIC, anon, authenticated;
+
+GRANT SELECT, INSERT ON public.ai_revenue_forecasts TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_revenue_opportunities TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_revenue_alerts TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_pricing_recommendations TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.financial_alerts TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_guest_recommendations TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_guest_alerts TO authenticated;
+GRANT SELECT, INSERT ON public.analytics_reports TO authenticated;
+GRANT SELECT, INSERT ON public.ai_trend_snapshots TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_analytics_recommendations TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_executive_briefings TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_marketing_recommendations TO authenticated;
+GRANT SELECT, INSERT ON public.ai_marketing_priorities TO authenticated;
+GRANT SELECT, INSERT ON public.ai_reputation_insights TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_strategic_risks TO authenticated;
+GRANT SELECT, INSERT ON public.ai_activity_logs TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_executive_kpi_snapshots TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.campaigns TO authenticated;
+
+COMMIT;
+ THEN
+    RAISE EXCEPTION 'New financial transaction currency must be a valid three-letter ISO 4217 code';
   END IF;
   IF NEW.booking_id IS NOT NULL THEN
     SELECT upper(b.currency) INTO v_booking_currency
