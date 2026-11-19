@@ -419,17 +419,17 @@ export const getGuestDashboard = createServerFn({ method: "GET" })
     ]);
     const arrivals = arrivalsRes.data ?? [];
     const alerts = alertsRes.data ?? [];
-    const todayArrivals = arrivals.filter((a) => a.check_in === t);
+    const todayArrivals = arrivals.filter((a: any) => a.check_in === t);
     return {
       today: t,
       todayArrivals,
       upcomingArrivals: arrivals,
-      vipArrivals: arrivals.filter((a) => a.guest_type === "vip"),
-      outstandingBalances: arrivals.filter((a) => Number(a.balance_due ?? 0) > 0),
-      specialRequests: arrivals.filter((a) => (a.special_requests ?? "").length > 0),
-      birthdays: alerts.filter((a) => a.kind === "birthday"),
-      anniversaries: alerts.filter((a) => a.kind === "anniversary"),
-      repeatGuests: alerts.filter((a) => a.kind === "repeat_guest"),
+      vipArrivals: arrivals.filter((a: any) => a.guest_type === "vip"),
+      outstandingBalances: arrivals.filter((a: any) => Number(a.balance_due ?? 0) > 0),
+      specialRequests: arrivals.filter((a: any) => (a.special_requests ?? "").length > 0),
+      birthdays: alerts.filter((a: any) => a.kind === "birthday"),
+      anniversaries: alerts.filter((a: any) => a.kind === "anniversary"),
+      repeatGuests: alerts.filter((a: any) => a.kind === "repeat_guest"),
       opportunities: recsRes.data ?? [],
       openAlerts: alerts,
     };
