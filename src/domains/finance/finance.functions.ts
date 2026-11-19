@@ -605,6 +605,14 @@ async function getActiveFinancePropertyId(supabase: SupabaseClient<Database>, us
   return data as string;
 }
 
+async function getActiveFinancePropertyContext(supabase: SupabaseClient<Database>, userId: string): Promise<{ propertyId: string; currency: string }> {
+  const propertyId = await getActiveFinancePropertyId(supabase, userId);
+  const { data: property, error } = await supabase.from("staynas_properties").select("currency").eq("id", propertyId).single();
+  const currency = String(property?.currency ?? "").trim().toUpperCase();
+  if (error || !/^[A-Z]{3}$/.test(currency)) throw new Error("The active property must have an explicit operating currency before financial forecasts can run.");
+  return { propertyId, currency };
+}
+
 const pricingRuleSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().min(1),
@@ -713,61 +721,42 @@ export const getRevenueForecast = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const { propertyId, currency } = await getActiveFinancePropertyContext(context.supabase, context.userId);
     const horizon = 90;
     const to = daysAgo(-horizon);
-    const [{ data: future }, { data: rooms }, { data: past }] = await Promise.all([
-      context.supabase
-        .from("bookings")
-        .select("total, nights, status, check_in, created_at")
-        .gt("check_in", todayISO())
-        .lte("check_in", to),
-      context.supabase.from("rooms").select("id, total_units"),
-      context.supabase
-        .from("bookings")
-        .select("total, status, check_in, created_at")
-        .gte("check_in", daysAgo(90))
-        .lte("check_in", todayISO()),
+    const [{ data: future, error: futureError }, { data: rooms, error: roomsError }, { data: past, error: pastError }] = await Promise.all([
+      context.supabase.from("bookings").select("total, nights, status, check_in, created_at, currency")
+        .eq("property_id", propertyId).gt("check_in", todayISO()).lte("check_in", to),
+      context.supabase.from("rooms").select("id, total_units").eq("property_id", propertyId),
+      context.supabase.from("bookings").select("total, status, check_in, created_at, currency")
+        .eq("property_id", propertyId).gte("check_in", daysAgo(90)).lte("check_in", todayISO()),
     ]);
+    if (futureError || roomsError || pastError) throw new Error(futureError?.message ?? roomsError?.message ?? pastError?.message);
     const totalUnits = (rooms ?? []).reduce((a, r) => a + Number(r.total_units ?? 1), 0) || 1;
     const active = (future ?? []).filter((b) => b.status !== "cancelled");
-    const pipeline = active.reduce((a, b) => a + Number(b.total ?? 0), 0);
+    const monetaryActive = active.filter((b) => String(b.currency ?? "").trim().toUpperCase() === currency);
+    const pipeline = monetaryActive.reduce((a, b) => a + Number(b.total ?? 0), 0);
     const nightsBooked = active.reduce((a, b) => a + Number(b.nights ?? 0), 0);
     const expectedOccupancy = nightsBooked / (totalUnits * horizon);
-
-    // Simple pace comparison — last 30 days new bookings vs previous 30
     const now = Date.now();
-    const past30 = (past ?? []).filter(
-      (b) => new Date(b.created_at).getTime() > now - 30 * 86_400_000 && b.status !== "cancelled",
-    );
-    const prev30 = (past ?? []).filter(
-      (b) =>
-        new Date(b.created_at).getTime() <= now - 30 * 86_400_000 &&
-        new Date(b.created_at).getTime() > now - 60 * 86_400_000 &&
-        b.status !== "cancelled",
-    );
+    const past30 = (past ?? []).filter((b) => String(b.currency ?? "").trim().toUpperCase() === currency && new Date(b.created_at).getTime() > now - 30 * 86_400_000 && b.status !== "cancelled");
+    const prev30 = (past ?? []).filter((b) => String(b.currency ?? "").trim().toUpperCase() === currency &&
+      new Date(b.created_at).getTime() <= now - 30 * 86_400_000 &&
+      new Date(b.created_at).getTime() > now - 60 * 86_400_000 && b.status !== "cancelled");
     const paceRevenue = past30.reduce((a, b) => a + Number(b.total ?? 0), 0);
     const prevRevenue = prev30.reduce((a, b) => a + Number(b.total ?? 0), 0);
     const paceDelta = prevRevenue > 0 ? (paceRevenue - prevRevenue) / prevRevenue : 0;
-
-    // Group forward pipeline by month
     const byMonth = new Map<string, number>();
-    for (const b of active) {
-      const m = String(b.check_in).slice(0, 7);
-      byMonth.set(m, (byMonth.get(m) ?? 0) + Number(b.total ?? 0));
+    for (const b of monetaryActive) {
+      const month = String(b.check_in).slice(0, 7);
+      byMonth.set(month, (byMonth.get(month) ?? 0) + Number(b.total ?? 0));
     }
-
     return {
-      horizonDays: horizon,
-      expectedOccupancy,
-      expectedRevenue: pipeline,
-      pipeline,
-      paceDelta,
-      past30Revenue: paceRevenue,
-      prev30Revenue: prevRevenue,
-      forecastVariance: paceDelta,
-      byMonth: Array.from(byMonth.entries())
-        .map(([month, total]) => ({ month, total }))
-        .sort((a, b) => a.month.localeCompare(b.month)),
+      propertyId, currency, horizonDays: horizon,
+      expectedOccupancy, expectedRevenue: pipeline, pipeline, paceDelta,
+      past30Revenue: paceRevenue, prev30Revenue: prevRevenue, forecastVariance: paceDelta,
+      excludedOtherCurrencyBookings: active.length - monetaryActive.length,
+      byMonth: Array.from(byMonth.entries()).map(([month, total]) => ({ month, total, currency })).sort((a, b) => a.month.localeCompare(b.month)),
     };
   });
 
