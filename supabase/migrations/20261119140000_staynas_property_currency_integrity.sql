@@ -137,7 +137,7 @@ CREATE POLICY "Finance manage financial alerts" ON public.financial_alerts
 GRANT SELECT, INSERT ON public.ai_revenue_forecasts TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.ai_revenue_opportunities TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.ai_revenue_alerts TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.financial_alerts TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.financial_alerts TO authenticated;
 
 -- Property-scoped CRM spend summary. Existing spend values are not converted or rewritten.
 CREATE OR REPLACE VIEW public.guest_directory WITH (security_invoker = true) AS
@@ -373,8 +373,8 @@ CREATE POLICY "Managers write trend_snapshots" ON public.ai_trend_snapshots
 
 GRANT SELECT, INSERT, UPDATE ON public.ai_guest_recommendations TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.ai_guest_alerts TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.analytics_reports TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_trend_snapshots TO authenticated;
+GRANT SELECT, INSERT ON public.analytics_reports TO authenticated;
+GRANT SELECT, INSERT ON public.ai_trend_snapshots TO authenticated;
 
 
 -- Executive analytics recommendations inherit the source property's currency.
@@ -494,11 +494,11 @@ CREATE POLICY staynas_property_ai_strategic_risks ON public.ai_strategic_risks
     AND public.staynas_user_has_property_access(auth.uid(), property_id)
     AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin','finance']::public.app_role[]));
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_executive_briefings TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_marketing_recommendations TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_marketing_priorities TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_reputation_insights TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_strategic_risks TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_executive_briefings TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_marketing_recommendations TO authenticated;
+GRANT SELECT, INSERT ON public.ai_marketing_priorities TO authenticated;
+GRANT SELECT, INSERT ON public.ai_reputation_insights TO authenticated;
+GRANT SELECT ON public.ai_strategic_risks TO authenticated;
 
 
 -- Campaign budgets are property operating spend. Legacy unassigned campaigns remain
