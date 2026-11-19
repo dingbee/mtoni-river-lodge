@@ -461,29 +461,32 @@ export const getCrmDashboard = createServerFn({ method: "GET" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const today = new Date().toISOString().slice(0, 10);
     const in7 = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
     const [recent, returning, vip, arrivals] = await Promise.all([
       sb
         .from("guest_directory")
-        .select("id, full_name, email, country, status, last_stay, total_stays, lifetime_spend")
+        .select("id, full_name, email, country, status, last_stay, total_stays, lifetime_spend, lifetime_spend_currency, lifetime_spend_by_currency")
         .order("created_at", { ascending: false })
         .limit(5),
       sb
         .from("guest_directory")
-        .select("id, full_name, email, country, status, last_stay, total_stays, lifetime_spend")
+        .select("id, full_name, email, country, status, last_stay, total_stays, lifetime_spend, lifetime_spend_currency, lifetime_spend_by_currency")
         .gte("total_stays", 2)
         .order("last_stay", { ascending: false, nullsFirst: false })
         .limit(5),
       sb
         .from("guest_directory")
-        .select("id, full_name, email, country, status, last_stay, total_stays, lifetime_spend")
+        .select("id, full_name, email, country, status, last_stay, total_stays, lifetime_spend, lifetime_spend_currency, lifetime_spend_by_currency")
         .eq("status", "vip")
         .order("last_stay", { ascending: false, nullsFirst: false })
         .limit(5),
       sb
         .from("bookings")
         .select("id, reference, guest_name, guest_id, check_in, check_out, status")
+        .eq("property_id", propertyId)
         .gte("check_in", today)
         .lte("check_in", in7)
         .in("status", ["confirmed", "pending"])
