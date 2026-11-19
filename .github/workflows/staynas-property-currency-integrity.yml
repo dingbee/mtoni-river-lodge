@@ -47,14 +47,11 @@ jobs:
       - name: Lint changed application modules
         run: >-
           bunx eslint
-          src/domains/ai/executive-intelligence.functions.ts
-          src/domains/ai/marketing-intelligence.functions.ts
-          src/domains/marketing/campaigns/campaigns.functions.ts
-          src/routes/_authenticated.admin.marketing.campaigns.tsx
+          src/components/os/PropertySwitcher.tsx
+          src/components/os/crm/DirectoryTable.tsx
+          src/modules/property/PropertyContext.tsx
+          src/modules/property/property.functions.ts
           src/routes/_authenticated.admin.settings.index.tsx
-          src/lib/payments.functions.ts
-          src/lib/guest-intelligence.functions.ts
-          src/lib/operations.functions.ts
           --rule 'prettier/prettier: off'
 
   database:
