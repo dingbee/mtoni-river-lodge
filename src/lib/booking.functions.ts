@@ -188,8 +188,8 @@ export const checkAvailability = createServerFn({ method: "POST" })
       if (!allowedPlanIds?.size || (data.ratePlanId && !allowedPlanIds.has(data.ratePlanId))) {
         return null;
       }
-      if (String(r.currency ?? "").toUpperCase() !== channel.currency) {
-        throw new Error("Room currency does not match the published direct-booking channel");
+      if (r.pricing_quote?.mode === "legacy" && String(r.currency ?? "").toUpperCase() !== channel.currency) {
+        throw new Error("Legacy room price currency does not match the published direct-booking channel");
       }
       let ratePlanOptions: PublicRatePlanOption[] = [];
       if (r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" || r.pricing_quote?.pricing_evidence?.rate_plan_id) {
