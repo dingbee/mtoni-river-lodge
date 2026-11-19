@@ -66,7 +66,7 @@ function Campaigns() {
   const selectCampaign = (id: string | null) => {
     setSelectedId(id);
     if (!id) { setForm({ ...EMPTY, currency: property.currency }); return; }
-    const row = (campaigns ?? []).find((c: any) => c.id === id);
+    const row = (campaigns ?? []).find((c) => c.id === id);
     if (row) setForm({ ...(row as unknown as CampaignInput), id: row.id });
   };
 
@@ -100,7 +100,7 @@ function Campaigns() {
   }
   const totalBudgetLabel = [...totalBudgetByCurrency.entries()].sort(([a], [b]) => a.localeCompare(b))
     .map(([code, amount]) => `${code} ${amount.toLocaleString()}`).join(" · ") || "—";
-  const runningCount = (campaigns ?? []).filter((c: any) => c.status === "running" || c.status === "scheduled").length;
+  const runningCount = (campaigns ?? []).filter((c) => c.status === "running" || c.status === "scheduled").length;
 
   return (
     <div className="space-y-6">
@@ -119,7 +119,7 @@ function Campaigns() {
         >
           {isLoading ? <LoadingState /> : (
             <ul className="space-y-1">
-              {(campaigns ?? []).map((c: any) => (
+              {(campaigns ?? []).map((c) => (
                 <li key={c.id}>
                   <button
                     onClick={() => selectCampaign(c.id)}
