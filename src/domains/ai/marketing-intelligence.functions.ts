@@ -823,7 +823,8 @@ export const listMarketingRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { kind?: "seo" | "content" | "campaign"; status?: string } | undefined) => input ?? {})
   .handler(async ({ data, context }) => {
-    let q = context.supabase.from("ai_marketing_recommendations").select("*").order("created_at", { ascending: false }).limit(200);
+    const propertyId = await getMarketingPropertyContext(context.supabase, context.userId).then((value) => value.propertyId);
+    let q = (context.supabase as any).from("ai_marketing_recommendations").select("*").eq("property_id", propertyId).order("created_at", { ascending: false }).limit(200);
     if (data.kind) q = q.eq("kind", data.kind);
     if (data.status) q = q.eq("status", data.status);
     const { data: rows } = await q;
@@ -838,12 +839,15 @@ export const actionMarketingRecommendation = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data, context }) => {
+    const propertyId = await getMarketingPropertyContext(context.supabase, context.userId).then((value) => value.propertyId);
+    const sb: any = context.supabase;
     const status = data.action === "accept" ? "accepted" : data.action === "dismiss" ? "dismissed" : "converted";
     let taskId: string | null = null;
     if (data.action === "convert") {
-      const { data: rec } = await context.supabase.from("ai_marketing_recommendations").select("*").eq("id", data.id).maybeSingle();
+      const { data: rec } = await sb.from("ai_marketing_recommendations").select("*").eq("id", data.id).eq("property_id", propertyId).maybeSingle();
       if (rec) {
-        const { data: task } = await context.supabase.from("ops_tasks").insert({
+        const { data: task } = await sb.from("ops_tasks").insert({
+          property_id: propertyId,
           task_type: `marketing_${(rec as any).kind}`,
           title: (rec as any).title,
           description: (rec as any).reasoning,
@@ -852,12 +856,12 @@ export const actionMarketingRecommendation = createServerFn({ method: "POST" })
         taskId = task?.id ?? null;
       }
     }
-    await context.supabase.from("ai_marketing_recommendations").update({
+    await sb.from("ai_marketing_recommendations").update({
       status,
       actioned_by: context.userId,
       actioned_at: new Date().toISOString(),
       action_task_id: taskId ?? undefined,
-    }).eq("id", data.id);
+    }).eq("id", data.id).eq("property_id", propertyId);
     await logActivity(context.supabase, context.userId, "marketing.recommendation.action",
       `Recommendation ${data.id} ${data.action}`, `Marked ${status}`, ["marketing"]);
     return { ok: true, status, taskId };
