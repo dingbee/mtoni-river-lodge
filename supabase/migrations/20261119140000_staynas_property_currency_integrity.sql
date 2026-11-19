@@ -35,7 +35,8 @@ END
 $currency_checks$;
 
 DROP INDEX IF EXISTS public.ai_executive_briefings_date_idx;
-CREATE UNIQUE INDEX IF NOT EXISTS ai_executive_briefings_property_date_uidx ON public.ai_executive_briefings(property_id,briefing_date);
+DROP INDEX IF EXISTS public.ai_executive_briefings_property_date_uidx;
+CREATE UNIQUE INDEX IF NOT EXISTS ai_executive_briefings_property_currency_date_uidx ON public.ai_executive_briefings(property_id,currency,briefing_date);
 DROP INDEX IF EXISTS public.ai_executive_kpi_snapshots_key;
 CREATE UNIQUE INDEX IF NOT EXISTS ai_executive_kpi_snapshots_property_period_uidx ON public.ai_executive_kpi_snapshots(property_id,currency,period,period_start);
 
