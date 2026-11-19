@@ -58,6 +58,7 @@ export type BookingPricingQuote = {
   quote_hash?: string;
   quote_expires_at?: string;
   ok?: boolean;
+  mode?: string;
   error_code?: string;
   message?: string;
   pricing_evidence?: Record<string, string | number | null>;
