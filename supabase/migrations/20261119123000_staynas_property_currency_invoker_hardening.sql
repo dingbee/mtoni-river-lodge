@@ -30,7 +30,7 @@ BEGIN
   IF NOT FOUND THEN RAISE EXCEPTION 'Active property configuration was not found'; END IF;
   IF v_previous IS DISTINCT FROM v_currency THEN
     UPDATE public.staynas_properties AS p
-    SET currency = v_currency, updated_at = now()
+    SET currency = v_currency
     WHERE p.id = v_property_id
     RETURNING p.updated_at INTO v_updated_at;
     INSERT INTO public.staynas_property_settings_audit(
