@@ -779,7 +779,7 @@ export const listFinancialAlerts = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
-    const { data, error } = await context.supabase
+    const { data, error } = await (context.supabase as any)
       .from("financial_alerts")
       .select("*")
       .eq("property_id", propertyId)
@@ -820,6 +820,7 @@ export const scanFinancialAlerts = createServerFn({ method: "POST" })
         reference: b.reference,
         amount: b.balance_amount,
         currency: b.currency,
+        property_id: propertyId,
       });
     }
 
@@ -840,6 +841,7 @@ export const scanFinancialAlerts = createServerFn({ method: "POST" })
         reference: b.reference,
         amount: b.total,
         currency: b.currency,
+        property_id: propertyId,
       });
     }
 
@@ -859,6 +861,7 @@ export const scanFinancialAlerts = createServerFn({ method: "POST" })
         reference: b.reference,
         amount: b.total,
         currency: b.currency,
+        property_id: propertyId,
       });
     }
 
@@ -883,7 +886,7 @@ export const scanFinancialAlerts = createServerFn({ method: "POST" })
     }
 
     // Dedupe against existing open alerts by (alert_type, booking_id)
-    const { data: existing } = await context.supabase
+    const { data: existing } = await (context.supabase as any)
       .from("financial_alerts")
       .select("alert_type, booking_id")
       .eq("property_id", propertyId)
@@ -893,7 +896,7 @@ export const scanFinancialAlerts = createServerFn({ method: "POST" })
       (i) => !seen.has(`${i.alert_type}:${(i.booking_id as string) ?? ""}`),
     );
     if (fresh.length > 0) {
-      await context.supabase.from("financial_alerts").insert(fresh as never);
+      await (context.supabase as any).from("financial_alerts").insert(fresh);
     }
     return { created: fresh.length, scanned: inserts.length };
   });
@@ -911,7 +914,7 @@ export const resolveFinancialAlert = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
-    const { error } = await context.supabase
+    const { error } = await (context.supabase as any)
       .from("financial_alerts")
       .update({
         status: data.status,
