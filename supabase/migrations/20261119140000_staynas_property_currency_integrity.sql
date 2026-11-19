@@ -582,11 +582,12 @@ AS $function$
 DECLARE
   v_booking_currency text;
 BEGIN
-  IF TG_OP = 'UPDATE' AND (
-    OLD.currency IS DISTINCT FROM NEW.currency
-    OR OLD.booking_id IS DISTINCT FROM NEW.booking_id
-  ) THEN
-    RAISE EXCEPTION 'Historical transaction currency and booking association are immutable';
+  IF TG_OP = 'UPDATE' AND OLD.currency IS DISTINCT FROM NEW.currency THEN
+    RAISE EXCEPTION 'Historical transaction currency is immutable';
+  END IF;
+  IF TG_OP = 'UPDATE' AND TG_TABLE_NAME <> 'payment_events'
+     AND OLD.booking_id IS DISTINCT FROM NEW.booking_id THEN
+    RAISE EXCEPTION 'Historical folio and redemption booking association is immutable';
   END IF;
   IF TG_OP = 'INSERT' THEN
     NEW.currency := upper(btrim(COALESCE(NEW.currency, '')));
