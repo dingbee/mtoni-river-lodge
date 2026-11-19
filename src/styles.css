@@ -1967,7 +1967,7 @@ html[data-os-theme] :is(
 .mtoni-os :is(input,select,textarea,button,[role="button"],a) { touch-action:manipulation; }
 .mtoni-os :is(input,select,textarea) { max-width:100%; }
 .mtoni-os :is(.overflow-x-auto,[data-scroll-container]) { max-width:100%; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
-.mtoni-os .staynas-mobile-property { display:none; }
+@media (max-width:1279px) { .mtoni-os .staynas-mobile-property { display:block; } }
 @media (max-width:767px) {
  .mtoni-os main#admin-main { padding:14px 12px max(22px,env(safe-area-inset-bottom)); }
  .mtoni-os main#admin-main > .space-y-6 { gap:1rem; }
