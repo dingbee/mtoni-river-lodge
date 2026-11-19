@@ -139,7 +139,7 @@ export function AdminTopbar({
             <DropdownMenuLabel>Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link to="/settings">Settings</Link>
+              <Link to="/admin/settings/">Settings</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link to="/">View website</Link>
