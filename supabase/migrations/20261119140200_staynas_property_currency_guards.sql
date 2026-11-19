@@ -126,44 +126,7 @@ BEGIN
     RAISE EXCEPTION 'New financial transaction currency must be a valid three-letter ISO 4217 code';
   END IF;
   NEW.currency := upper(btrim(NEW.currency));
-  IF NEW.currency !~ '^[A-Z]{3}
-  RETURN NEW;
-END;
-$child_currency$;
-
-DROP TRIGGER IF EXISTS trg_staynas_guard_room_price_currency ON public.rooms;
-CREATE TRIGGER trg_staynas_guard_room_price_currency BEFORE INSERT OR UPDATE ON public.rooms
-FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_room_price_currency();
-DROP TRIGGER IF EXISTS trg_staynas_guard_extra_price_currency ON public.extras;
-CREATE TRIGGER trg_staynas_guard_extra_price_currency BEFORE INSERT OR UPDATE ON public.extras
-FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_extra_price_currency();
-DROP TRIGGER IF EXISTS trg_staynas_guard_booking_extra_currency ON public.booking_extras;
-CREATE TRIGGER trg_staynas_guard_booking_extra_currency BEFORE INSERT OR UPDATE ON public.booking_extras
-FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_booking_extra_currency();
-DROP TRIGGER IF EXISTS trg_staynas_guard_booking_transaction_currency ON public.bookings;
-CREATE TRIGGER trg_staynas_guard_booking_transaction_currency BEFORE INSERT OR UPDATE ON public.bookings
-FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_booking_transaction_currency();
-DROP TRIGGER IF EXISTS trg_staynas_guard_payment_event_currency ON public.payment_events;
-CREATE TRIGGER trg_staynas_guard_payment_event_currency BEFORE INSERT OR UPDATE ON public.payment_events
-FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
-DROP TRIGGER IF EXISTS trg_staynas_guard_folio_posting_currency ON public.pms_folio_postings;
-CREATE TRIGGER trg_staynas_guard_folio_posting_currency BEFORE INSERT OR UPDATE ON public.pms_folio_postings
-FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
-DROP TRIGGER IF EXISTS trg_staynas_guard_folio_adjustment_currency ON public.pms_folio_adjustments;
-CREATE TRIGGER trg_staynas_guard_folio_adjustment_currency BEFORE INSERT OR UPDATE ON public.pms_folio_adjustments
-FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
-DROP TRIGGER IF EXISTS trg_staynas_guard_promotion_redemption_currency ON public.staynas_promotion_redemptions;
-CREATE TRIGGER trg_staynas_guard_promotion_redemption_currency BEFORE INSERT OR UPDATE ON public.staynas_promotion_redemptions
-FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
-
-REVOKE ALL ON FUNCTION public.staynas_guard_room_price_currency() FROM PUBLIC,anon,authenticated;
-REVOKE ALL ON FUNCTION public.staynas_guard_extra_price_currency() FROM PUBLIC,anon,authenticated;
-REVOKE ALL ON FUNCTION public.staynas_guard_booking_extra_currency() FROM PUBLIC,anon,authenticated;
-REVOKE ALL ON FUNCTION public.staynas_guard_booking_transaction_currency() FROM PUBLIC,anon,authenticated;
-REVOKE ALL ON FUNCTION public.staynas_guard_child_transaction_currency() FROM PUBLIC,anon,authenticated;
-
-COMMIT;
- THEN
+  IF NEW.currency !~ '^[A-Z]{3}$' THEN
     RAISE EXCEPTION 'New financial transaction currency must be a valid three-letter ISO 4217 code';
   END IF;
   IF TG_TABLE_NAME = 'staynas_promotion_redemptions' AND NEW.booking_id IS NULL THEN
