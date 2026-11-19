@@ -376,4 +376,29 @@ GRANT SELECT, INSERT, UPDATE ON public.ai_guest_alerts TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.analytics_reports TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_trend_snapshots TO authenticated;
 
+
+-- Executive analytics recommendations inherit the source property's currency.
+ALTER TABLE public.ai_analytics_recommendations
+  ADD COLUMN IF NOT EXISTS property_id uuid REFERENCES public.staynas_properties(id) ON DELETE RESTRICT,
+  ADD COLUMN IF NOT EXISTS currency text;
+DO $analytics_constraints$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.ai_analytics_recommendations'::regclass AND conname = 'ai_analytics_recommendations_currency_iso3_chk') THEN
+    ALTER TABLE public.ai_analytics_recommendations ADD CONSTRAINT ai_analytics_recommendations_currency_iso3_chk CHECK (currency IS NULL OR currency ~ '^[A-Z]{3});
+  END IF;
+END
+$analytics_constraints$;
+CREATE INDEX IF NOT EXISTS ai_analytics_recommendations_property_created_idx
+  ON public.ai_analytics_recommendations(property_id, created_at DESC);
+DROP POLICY IF EXISTS "Managers write analytics_recs" ON public.ai_analytics_recommendations;
+CREATE POLICY "Managers write analytics_recs" ON public.ai_analytics_recommendations
+  FOR ALL TO authenticated
+  USING (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[]))
+  WITH CHECK (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[]));
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_analytics_recommendations TO authenticated;
+
 COMMIT;
