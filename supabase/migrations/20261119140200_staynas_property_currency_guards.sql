@@ -131,7 +131,7 @@ BEGIN
   END IF;
   IF TG_TABLE_NAME = 'staynas_promotion_redemptions' AND NEW.booking_id IS NULL THEN
     SELECT upper(p.currency) INTO v_property_currency
-    FROM public.staynas_properties p WHERE p.id = NEW.property_id;
+    FROM public.staynas_properties p WHERE p.id = NULLIF(to_jsonb(NEW)->>'property_id','')::uuid;
     IF v_property_currency IS NULL OR NEW.currency IS DISTINCT FROM v_property_currency THEN
       RAISE EXCEPTION 'Promotion redemption currency must match its property operating currency';
     END IF;
@@ -143,7 +143,7 @@ BEGIN
       RAISE EXCEPTION 'Transaction currency must match its booking transaction currency';
     END IF;
     IF TG_TABLE_NAME = 'staynas_promotion_redemptions'
-       AND NEW.property_id IS DISTINCT FROM v_booking_property_id THEN
+       AND NULLIF(to_jsonb(NEW)->>'property_id','')::uuid IS DISTINCT FROM v_booking_property_id THEN
       RAISE EXCEPTION 'Promotion redemption booking must belong to the same property';
     END IF;
   END IF;
