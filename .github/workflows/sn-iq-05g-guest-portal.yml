@@ -58,7 +58,7 @@ jobs:
       - name: Apply Guest Portal credential lifecycle migration
         env:
           PGPASSWORD: postgres
-        run: psql -h localhost -U postgres -d staynas_gpa_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261112130000_sn_gpa_01_credential_lifecycle.sql
+        run: psql -h localhost -U postgres -d staynas_gpa_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261113054323_sn_gpa_01_credential_lifecycle.sql
       - name: Verify credential lifecycle, authorization and tenant isolation
         env:
           PGPASSWORD: postgres
