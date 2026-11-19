@@ -182,8 +182,9 @@ export const generateGuestBriefing = createServerFn({ method: "POST" })
 
     // Persist recommendations + alerts (best-effort)
     if (data.persist) {
+      const sb: any = context.supabase;
       if (parsed.prep?.length) {
-        await context.supabase.from("ai_guest_recommendations").insert(
+        await sb.from("ai_guest_recommendations").insert(
           parsed.prep.map((p) => ({
             booking_id: ctx.booking.id,
             property_id: ctx.propertyId,
@@ -201,7 +202,7 @@ export const generateGuestBriefing = createServerFn({ method: "POST" })
         );
       }
       if (alerts.length) {
-        await context.supabase.from("ai_guest_alerts").upsert(
+        await sb.from("ai_guest_alerts").upsert(
           alerts.map((a) => ({
             booking_id: ctx.booking.id, property_id: ctx.propertyId, guest_id: ctx.guest?.id ?? null,
             kind: a.kind, severity: a.severity, title: a.title, detail: a.detail,
