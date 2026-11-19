@@ -1,51 +1,60 @@
 {
-  "name": "Mtoni River Lodge",
-  "short_name": "Mtoni",
-  "description": "A riverfront sanctuary in Arusha, Tanzania.",
-  "start_url": "/",
+  "name": "StayNas — Hospitality Operating System",
+  "short_name": "StayNas",
+  "description": "StayNas connects hospitality reservations, property operations, guest experience and intelligent workflows.",
+  "id": "/",
+  "start_url": "/admin/operations",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0F2620",
-  "theme_color": "#0F2620",
+  "orientation": "any",
+  "background_color": "#F6F2E9",
+  "theme_color": "#0F3D3A",
   "icons": [
-    { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    {
+      "src": "/staynas-pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
   ],
   "shortcuts": [
     {
-      "name": "Book a Room",
-      "short_name": "Book",
-      "description": "Check availability and reserve your stay at Mtoni River Lodge.",
-      "url": "/book",
+      "name": "Operations Dashboard",
+      "short_name": "Dashboard",
+      "description": "Open the StayNas operations workspace.",
+      "url": "/admin/operations",
       "icons": [
-        { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" }
+        {
+          "src": "/staynas-pwa-icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
       ]
     },
     {
-      "name": "Contact Reception",
-      "short_name": "Contact",
-      "description": "Reach our reservations team for assistance.",
-      "url": "/contact",
+      "name": "Reservations",
+      "short_name": "Reservations",
+      "description": "Manage property reservations.",
+      "url": "/admin/reservations",
       "icons": [
-        { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" }
+        {
+          "src": "/staynas-pwa-icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
       ]
     },
     {
-      "name": "Experiences",
-      "short_name": "Experiences",
-      "description": "Explore curated experiences at Mtoni River Lodge.",
-      "url": "/experiences",
+      "name": "Front Desk",
+      "short_name": "Front Desk",
+      "description": "Open the StayNas front desk.",
+      "url": "/admin/front-desk",
       "icons": [
-        { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" }
-      ]
-    },
-    {
-      "name": "Find Us",
-      "short_name": "Directions",
-      "description": "Get directions to Mtoni River Lodge in Arusha.",
-      "url": "/contact#location",
-      "icons": [
-        { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" }
+        {
+          "src": "/staynas-pwa-icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
       ]
     }
   ]
