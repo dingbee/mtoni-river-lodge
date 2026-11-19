@@ -223,17 +223,6 @@ BEGIN
 END
 $test$;
 
--- A new room and booking use the newly configured operating currency; no FX conversion is applied.
-INSERT INTO public.rooms (id, property_id, catalogue_type_id, slug, name, base_price, currency, status) VALUES
-  ('95000000-0000-4000-8000-000000000003', '92000000-0000-4000-8000-000000000001', '94000000-0000-4000-8000-000000000001', 'currency-room-a-usd', 'Currency Room A USD', 100, 'USD', 'active');
-INSERT INTO public.bookings
-  (id, reference, room_id, property_id, check_in, check_out, nights, guest_name, guest_email, subtotal, total, currency, payment_status, guest_id)
-VALUES
-  ('96000000-0000-4000-8000-000000000003', 'CURR-A-002', '95000000-0000-4000-8000-000000000003', '92000000-0000-4000-8000-000000000001', current_date + 35, current_date + 36, 1, 'Currency Guest A2', 'currency-a2@example.test', 100, 100, 'USD', 'paid', '97000000-0000-4000-8000-000000000001');
-INSERT INTO public.payment_events (booking_id, event_type, amount, currency, idempotency_key)
-VALUES ('96000000-0000-4000-8000-000000000003', 'payment_received', 25, 'USD', 'currency-test-payment-a-usd');
-
-
 DO $test$
 BEGIN
   IF (SELECT currency FROM public.bookings WHERE id = '96000000-0000-4000-8000-000000000003') <> 'USD' THEN
@@ -244,6 +233,17 @@ BEGIN
   END IF;
 END
 $test$;
+
+-- A new room and booking use the newly configured operating currency; no FX conversion is applied.
+INSERT INTO public.rooms (id, property_id, catalogue_type_id, slug, name, base_price, currency, status) VALUES
+  ('95000000-0000-4000-8000-000000000003', '92000000-0000-4000-8000-000000000001', '94000000-0000-4000-8000-000000000001', 'currency-room-a-usd', 'Currency Room A USD', 100, 'USD', 'active');
+INSERT INTO public.bookings
+  (id, reference, room_id, property_id, check_in, check_out, nights, guest_name, guest_email, subtotal, total, currency, payment_status, guest_id)
+VALUES
+  ('96000000-0000-4000-8000-000000000003', 'CURR-A-002', '95000000-0000-4000-8000-000000000003', '92000000-0000-4000-8000-000000000001', current_date + 35, current_date + 36, 1, 'Currency Guest A2', 'currency-a2@example.test', 100, 100, 'USD', 'paid', '97000000-0000-4000-8000-000000000001');
+INSERT INTO public.payment_events (booking_id, event_type, amount, currency, idempotency_key)
+VALUES ('96000000-0000-4000-8000-000000000003', 'payment_received', 25, 'USD', 'currency-test-payment-a-usd');
+
 
 -- Active property switching changes the selected currency context for a multi-property owner.
 SELECT set_config('request.jwt.claim.sub', '93000000-0000-4000-8000-000000000002', true);
