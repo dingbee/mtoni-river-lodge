@@ -146,7 +146,7 @@ function Campaigns() {
                   <Trash2 className="h-4 w-4" />
                 </Button>
               )}
-              <Button size="sm" onClick={() => save.mutate(form)} disabled={!property.id || !property.currency || !form.name || save.isPending || (Boolean(selectedId) && Boolean(form.currency) && form.currency !== property.currency)}>
+              <Button size="sm" onClick={() => save.mutate(form)} disabled={!property.id || !property.currency || !form.name || save.isPending || form.currency !== property.currency}>
                 <Save className="h-4 w-4 mr-1" />Save
               </Button>
             </div>
