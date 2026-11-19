@@ -307,6 +307,11 @@ export const recordManualPayment = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => recordManualPaymentInputSchema.parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
+    const { data: booking, error: bookingError } = await context.supabase.from("bookings")
+      .select("id, currency").eq("id", data.bookingId).eq("property_id", propertyId).maybeSingle();
+    if (bookingError || !booking) throw new Error(bookingError?.message ?? "Booking not found in the active property.");
+    if (!booking.currency || !/^[A-Z]{3}$/.test(booking.currency)) throw new Error("The booking has no valid transaction currency; payment is blocked.");
     const rpc = financeRpc(context.supabase);
     const { data: result, error } =
       data.eventType === "refund"
@@ -400,7 +405,12 @@ export const finalizeInvoice = createServerFn({ method: "POST" })
 export const getInvoicePdf = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ bookingId: z.string().uuid() }).parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
+    const { data: booking, error: bookingError } = await context.supabase.from("bookings")
+      .select("id").eq("id", data.bookingId).eq("property_id", propertyId).maybeSingle();
+    if (bookingError || !booking) throw new Error(bookingError?.message ?? "Invoice booking not found in the active property.");
     const { buildInvoiceForBooking } = await import("@/lib/booking-invoice.server");
     const inv = await buildInvoiceForBooking(data.bookingId);
     if (!inv) throw new Error("Invoice unavailable");
