@@ -29,10 +29,10 @@ async function getExecutivePropertyContext(supabase: any, userId: string): Promi
   return { propertyId, currency };
 }
 
-async function logActivity(supabase: any, userId: string | null, tool: string, question: string, response: string) {
+async function logActivity(supabase: any, userId: string | null, tool: string, question: string, response: string, propertyId?: string) {
   try {
     await supabase.from("ai_activity_logs").insert({
-      user_id: userId, question, domains_accessed: ["executive"], tool_called: tool,
+      user_id: userId, property_id: propertyId ?? null, question, domains_accessed: ["executive"], tool_called: tool,
       response, model: MODEL, status: "completed", duration_ms: 0,
     });
   } catch { /* non-fatal */ }
@@ -281,7 +281,7 @@ export const generateExecutiveBriefing = createServerFn({ method: "POST" })
       .single();
     if (error) throw error;
 
-    await logActivity(s, context.userId, "executive.briefing.generate", "Generate morning briefing", summary.slice(0, 500));
+    await logActivity(s, context.userId, "executive.briefing.generate", "Generate morning briefing", summary.slice(0, 500), propertyId);
     return row;
   });
 
@@ -426,7 +426,7 @@ export const decideExecutiveItem = createServerFn({ method: "POST" })
       });
     }
 
-    await logActivity(s, context.userId, "executive.decision", `Decision ${data.action} on ${data.module}#${data.id}`, `Status→${newStatus}`);
+    await logActivity(s, context.userId, "executive.decision", `Decision ${data.action} on ${data.module}#${data.id}`, `Status→${newStatus}`, propertyId);
     return row;
   });
 
@@ -455,8 +455,8 @@ export const getExecutiveKpis = createServerFn({ method: "GET" })
       s.from("rooms").select("total_units").eq("property_id", propertyId).eq("status","active"),
       s.from("bookings").select("total, nights, status, created_at, guest_id, currency").eq("property_id", propertyId).gte("check_in", daysAgo(365)),
       s.from("reviews").select("rating").eq("status","approved").gte("created_at", daysAgo(365)),
-      s.from("ai_activity_logs").select("id").in("status", ["completed"]).gte("created_at", daysAgo(90)),
-      s.from("ai_guest_recommendations").select("id, status").gte("created_at", daysAgo(90)),
+      s.from("ai_activity_logs").select("id").eq("property_id", propertyId).in("status", ["completed"]).gte("created_at", daysAgo(90)),
+      s.from("ai_guest_recommendations").select("id, status").eq("property_id", propertyId).gte("created_at", daysAgo(90)),
     ]);
     const totalUnits = (rooms ?? []).reduce((a: any, r: any) => a + Number(r.total_units ?? 0), 0);
     const nights365 = (bookings ?? []).reduce((a: any, b: any) => a + Number(b.nights ?? 0), 0);
@@ -644,7 +644,7 @@ export const detectStrategicRisks = createServerFn({ method: "POST" })
       await s.from("ai_strategic_risks").insert(toInsert);
     }
 
-    await logActivity(s, context.userId, "executive.risks.detect", "Detect strategic risks", `Detected ${detected.length}, inserted ${toInsert.length}`);
+    await logActivity(s, context.userId, "executive.risks.detect", "Detect strategic risks", `Detected ${detected.length}, inserted ${toInsert.length}`, propertyId);
     return { detected, inserted: toInsert.length };
   });
 
@@ -689,6 +689,7 @@ export const getExecutiveTimeline = createServerFn({ method: "GET" })
     const { data } = await context.supabase
       .from("ai_activity_logs")
       .select("id, user_id, question, tool_called, response, domains_accessed, model, status, created_at")
+      .eq("property_id", await getExecutivePropertyContext(context.supabase, context.userId).then((value) => value.propertyId))
       .order("created_at", { ascending: false })
       .limit(200);
     return data ?? [];
@@ -709,7 +710,7 @@ export const getAiValueSummary = createServerFn({ method: "GET" })
       s.from("ai_pricing_recommendations").select("status, expected_impact, currency").eq("property_id", propertyId).gte("created_at", daysAgo(90)),
       s.from("ai_revenue_opportunities").select("status, estimated_impact, currency").eq("property_id", propertyId).gte("created_at", daysAgo(90)),
       s.from("ai_marketing_recommendations").select("status, impact_score, currency").eq("property_id", propertyId).gte("created_at", daysAgo(90)),
-      s.from("ai_activity_logs").select("id").gte("created_at", daysAgo(90)),
+      s.from("ai_activity_logs").select("id").eq("property_id", propertyId).gte("created_at", daysAgo(90)),
     ]);
     const buckets = [
       { key: "guest", rows: guest ?? [] },
