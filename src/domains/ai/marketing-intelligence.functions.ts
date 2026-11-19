@@ -69,8 +69,8 @@ export const getMarketingIntelligenceOverview = createServerFn({ method: "GET" }
       context.supabase.from("seo_overrides").select("route_path, title, description, og_image, schema_type, index_status"),
       context.supabase.from("cms_pages").select("id, slug, route_path, title, description, status"),
       context.supabase.from("journal_articles").select("id, status, published_at, seo_title, seo_description, cover_image_url"),
-      s.from("campaigns").select("id, status, start_date, end_date, name").eq("property_id", propertyId),
-      s.from("reviews").select("rating, status, review_date, review_text").eq("property_id", propertyId).eq("status", "approved").gte("review_date", daysAgo(365)),
+      s.from("campaigns").select("id, status, start_date, end_date, name"),
+      s.from("reviews").select("rating, status, review_date, review_text").eq("status", "approved").gte("review_date", daysAgo(365)),
       context.supabase.from("brand_tokens").select("id, category"),
       s.from("ai_marketing_recommendations").select("id, kind, status").eq("property_id", propertyId).eq("status", "pending"),
     ]);
@@ -401,9 +401,9 @@ export const generateCampaignRecommendations = createServerFn({ method: "POST" }
     const [{ data: rooms }, { data: forward }, { data: campaigns }, { data: cancelled }, { data: reviews }] = await Promise.all([
       context.supabase.from("rooms").select("total_units").eq("property_id", propertyId).eq("status", "active"),
       context.supabase.from("bookings").select("nights, status, check_in").eq("property_id", propertyId).gte("check_in", from).lte("check_in", to90).in("status", ["confirmed","pending","checked_in"]),
-      context.supabase.from("campaigns").select("id, name, status, start_date, end_date").eq("property_id", propertyId),
+      context.supabase.from("campaigns").select("id, name, status, start_date, end_date"),
       context.supabase.from("bookings").select("id, created_at").eq("property_id", propertyId).eq("status","cancelled").gte("created_at", daysAgo(14)),
-      context.supabase.from("reviews").select("rating").eq("property_id", propertyId).eq("status","approved").gte("review_date", daysAgo(90)),
+      context.supabase.from("reviews").select("rating").eq("status","approved").gte("review_date", daysAgo(90)),
     ]);
 
     const totalUnits = (rooms ?? []).reduce((s: number, r: any) => s + Number(r.total_units ?? 0), 0);
@@ -549,7 +549,6 @@ export const generateReputationInsight = createServerFn({ method: "POST" })
     const { data: reviews } = await context.supabase
       .from("reviews")
       .select("rating, review_date, review_text, source, guest_name, status")
-      .eq("property_id", propertyId)
       .eq("status","approved")
       .gte("review_date", from);
     const rows = (reviews ?? []) as any[];
