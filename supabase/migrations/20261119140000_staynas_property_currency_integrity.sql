@@ -401,4 +401,103 @@ CREATE POLICY "Managers write analytics_recs" ON public.ai_analytics_recommendat
     AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[]));
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_analytics_recommendations TO authenticated;
 
+
+-- Executive and marketing intelligence artifacts are isolated by active property.
+ALTER TABLE public.ai_executive_briefings
+  ADD COLUMN IF NOT EXISTS property_id uuid REFERENCES public.staynas_properties(id) ON DELETE RESTRICT,
+  ADD COLUMN IF NOT EXISTS currency text;
+ALTER TABLE public.ai_marketing_recommendations
+  ADD COLUMN IF NOT EXISTS property_id uuid REFERENCES public.staynas_properties(id) ON DELETE RESTRICT,
+  ADD COLUMN IF NOT EXISTS currency text;
+ALTER TABLE public.ai_marketing_priorities
+  ADD COLUMN IF NOT EXISTS property_id uuid REFERENCES public.staynas_properties(id) ON DELETE RESTRICT,
+  ADD COLUMN IF NOT EXISTS currency text;
+ALTER TABLE public.ai_reputation_insights
+  ADD COLUMN IF NOT EXISTS property_id uuid REFERENCES public.staynas_properties(id) ON DELETE RESTRICT;
+ALTER TABLE public.ai_strategic_risks
+  ADD COLUMN IF NOT EXISTS property_id uuid REFERENCES public.staynas_properties(id) ON DELETE RESTRICT;
+
+DO $executive_constraints$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.ai_executive_briefings'::regclass AND conname = 'ai_executive_briefings_currency_iso3_chk') THEN
+    ALTER TABLE public.ai_executive_briefings ADD CONSTRAINT ai_executive_briefings_currency_iso3_chk CHECK (currency IS NULL OR currency ~ '^[A-Z]{3}$');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.ai_marketing_recommendations'::regclass AND conname = 'ai_marketing_recommendations_currency_iso3_chk') THEN
+    ALTER TABLE public.ai_marketing_recommendations ADD CONSTRAINT ai_marketing_recommendations_currency_iso3_chk CHECK (currency IS NULL OR currency ~ '^[A-Z]{3}$');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.ai_marketing_priorities'::regclass AND conname = 'ai_marketing_priorities_currency_iso3_chk') THEN
+    ALTER TABLE public.ai_marketing_priorities ADD CONSTRAINT ai_marketing_priorities_currency_iso3_chk CHECK (currency IS NULL OR currency ~ '^[A-Z]{3}$');
+  END IF;
+END
+$executive_constraints$;
+
+DROP INDEX IF EXISTS public.ai_executive_briefings_date_idx;
+CREATE UNIQUE INDEX IF NOT EXISTS ai_executive_briefings_property_date_uidx
+  ON public.ai_executive_briefings(property_id, briefing_date);
+CREATE INDEX IF NOT EXISTS ai_marketing_recommendations_property_created_idx
+  ON public.ai_marketing_recommendations(property_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS ai_marketing_priorities_property_created_idx
+  ON public.ai_marketing_priorities(property_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS ai_reputation_insights_property_created_idx
+  ON public.ai_reputation_insights(property_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS ai_strategic_risks_property_created_idx
+  ON public.ai_strategic_risks(property_id, created_at DESC);
+
+ALTER TABLE public.ai_executive_briefings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ai_marketing_recommendations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ai_marketing_priorities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ai_reputation_insights ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ai_strategic_risks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY staynas_property_ai_executive_briefings ON public.ai_executive_briefings
+  FOR ALL TO authenticated
+  USING (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[]))
+  WITH CHECK (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[]));
+
+CREATE POLICY staynas_property_ai_marketing_recommendations ON public.ai_marketing_recommendations
+  FOR ALL TO authenticated
+  USING (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin','marketing']::public.app_role[]))
+  WITH CHECK (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin','marketing']::public.app_role[]));
+
+CREATE POLICY staynas_property_ai_marketing_priorities ON public.ai_marketing_priorities
+  FOR ALL TO authenticated
+  USING (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin','marketing']::public.app_role[]))
+  WITH CHECK (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin','marketing']::public.app_role[]));
+
+CREATE POLICY staynas_property_ai_reputation_insights ON public.ai_reputation_insights
+  FOR ALL TO authenticated
+  USING (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin','marketing']::public.app_role[]))
+  WITH CHECK (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin','marketing']::public.app_role[]));
+
+CREATE POLICY staynas_property_ai_strategic_risks ON public.ai_strategic_risks
+  FOR ALL TO authenticated
+  USING (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin','finance']::public.app_role[]))
+  WITH CHECK (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin','finance']::public.app_role[]));
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_executive_briefings TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_marketing_recommendations TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_marketing_priorities TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_reputation_insights TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_strategic_risks TO authenticated;
+
 COMMIT;
