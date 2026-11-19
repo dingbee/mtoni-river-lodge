@@ -1,0 +1,60 @@
+name: StayNas property currency integrity
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/domains/ai/executive-intelligence.functions.ts"
+      - "src/domains/ai/marketing-intelligence.functions.ts"
+      - "src/domains/marketing/campaigns/**"
+      - "src/routes/_authenticated.admin.marketing.campaigns.tsx"
+      - "src/routes/_authenticated.admin.settings.index.tsx"
+      - "src/lib/payments.functions.ts"
+      - "src/lib/guest-intelligence.functions.ts"
+      - "src/lib/operations.functions.ts"
+      - "supabase/migrations/20261119140000_staynas_property_currency_integrity.sql"
+      - "supabase/tests/staynas_property_currency_integrity.test.sql"
+      - ".github/workflows/staynas-property-currency-integrity.yml"
+  push:
+    branches: [fix/staynas-property-currency-integrity]
+
+permissions:
+  contents: read
+
+jobs:
+  application:
+    name: TypeScript and targeted lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: TypeScript check
+        run: npx tsc --noEmit
+      - name: Lint changed application modules
+        run: >-
+          npx eslint
+          src/domains/ai/executive-intelligence.functions.ts
+          src/domains/ai/marketing-intelligence.functions.ts
+          src/domains/marketing/campaigns/campaigns.functions.ts
+          src/routes/_authenticated.admin.marketing.campaigns.tsx
+          src/routes/_authenticated.admin.settings.index.tsx
+          src/lib/payments.functions.ts
+          src/lib/guest-intelligence.functions.ts
+          src/lib/operations.functions.ts
+
+  database:
+    name: Isolated PostgreSQL migration and contract tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start isolated Supabase stack
+        run: supabase start -x studio,mailpit,edge-runtime,logflare,vector,supavisor
+      - name: Run database migrations and pgTAP contracts
+        run: supabase test db
