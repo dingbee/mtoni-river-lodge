@@ -25,6 +25,13 @@ jobs:
   application:
     name: TypeScript and targeted lint
     runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -32,6 +39,9 @@ jobs:
           bun-version: latest
       - name: Install locked dependencies
         run: bun install --frozen-lockfile
+      # TanStack Start generates the route tree during the production build.
+      - name: Generate routes and verify production build
+        run: bun run build
       - name: TypeScript check
         run: bunx tsc --noEmit
       - name: Lint changed application modules
