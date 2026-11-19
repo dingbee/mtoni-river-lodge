@@ -40,6 +40,26 @@ type LinkTile = {
   status?: string;
 };
 
+function getSupportedCurrencyOptions(): Array<[string, string]> {
+  const intl = Intl as typeof Intl & {
+    supportedValuesOf?: (key: "currency") => string[];
+  };
+  const codes = intl.supportedValuesOf?.("currency") ?? [];
+  const names = new Intl.DisplayNames(["en"], { type: "currency" });
+  return codes
+    .filter((code) => /^[A-Z]{3}$/.test(code))
+    .sort((a, b) => a.localeCompare(b))
+    .map((code) => {
+      let name = code;
+      try {
+        name = names.of(code) ?? code;
+      } catch {
+        // Keep the ISO code visible when the runtime has no localized display name.
+      }
+      return [code, name];
+    });
+}
+
 function SettingsHub() {
   const brandFn = useServerFn(getBrandContext);
   const founderStatusFn = useServerFn(getFounderAdminStatus);
@@ -53,14 +73,7 @@ function SettingsHub() {
     setCurrencySaved(false);
     setCurrencyError("");
   }, [propertyContext.id, propertyContext.currency]);
-  const currencyOptions = [
-    ["TZS", "Tanzanian Shilling"], ["USD", "US Dollar"], ["EUR", "Euro"],
-    ["GBP", "British Pound"], ["KES", "Kenyan Shilling"], ["UGX", "Ugandan Shilling"],
-    ["RWF", "Rwandan Franc"], ["ZAR", "South African Rand"], ["AED", "UAE Dirham"],
-    ["AUD", "Australian Dollar"], ["CAD", "Canadian Dollar"], ["CHF", "Swiss Franc"],
-    ["CNY", "Chinese Yuan"], ["INR", "Indian Rupee"], ["JPY", "Japanese Yen"],
-    ["NAD", "Namibian Dollar"], ["NGN", "Nigerian Naira"], ["SEK", "Swedish Krona"],
-  ];
+  const currencyOptions = getSupportedCurrencyOptions();
   const saveCurrency = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setCurrencySaving(true);
