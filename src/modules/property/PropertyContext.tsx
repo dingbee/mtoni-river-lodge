@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   listStayNasProperties,
   setStayNasActiveProperty,
@@ -59,6 +60,7 @@ function toProperty(row: StayNasPropertyRecord): StayNasProperty {
 }
 
 export function PropertyProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient();
   const listFn = useServerFn(listStayNasProperties);
   const setActiveFn = useServerFn(setStayNasActiveProperty);
   const updateCurrencyFn = useServerFn(updateStayNasPropertyCurrency);
@@ -131,7 +133,8 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
         item.id === result.propertyId ? { ...item, currency: result.currency } : item,
       ),
     }));
-  }, [activePropertyId, updateCurrencyFn]);
+    await queryClient.invalidateQueries();
+  }, [activePropertyId, queryClient, updateCurrencyFn]);
 
   const property = useMemo(
     () => properties.find((p) => p.id === activePropertyId) ?? EMPTY_PROPERTY,
