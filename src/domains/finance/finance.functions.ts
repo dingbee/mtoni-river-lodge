@@ -152,7 +152,7 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
     const mtdRevenueByCurrency = currencyTotals(mtdResult.data ?? []);
     const ytdRevenueByCurrency = currencyTotals(ytdResult.data ?? []);
     const operating = revenueByCurrency.get(currency) ?? { currency, revenue: 0, paid: 0, outstanding: 0, deposits: 0, nightsSold: 0, adr: 0, revpar: 0 };
-    const totalForCurrency = (rows: Array<{ currency: string; total: number }>) => rows.find((row) => row.currency === currency)?.total ?? 0;
+    const totalForCurrency = (rows: Array<{ currency: string; amount: number }>) => rows.find((row) => row.currency === currency)?.amount ?? 0;
 
     return {
       propertyId, currency,
@@ -903,7 +903,7 @@ export const scanFinancialAlerts = createServerFn({ method: "POST" })
       .select("alert_type, booking_id")
       .eq("property_id", propertyId)
       .eq("status", "open");
-    const seen = new Set((existing ?? []).map((r) => `${r.alert_type}:${r.booking_id ?? ""}`));
+    const seen = new Set((existing ?? []).map((r: any) => `${r.alert_type}:${r.booking_id ?? ""}`));
     const fresh = inserts.filter(
       (i) => !seen.has(`${i.alert_type}:${(i.booking_id as string) ?? ""}`),
     );
