@@ -12,13 +12,13 @@ import { usePropertyContext } from "@/modules/property/PropertyContext";
 
 export function PropertySwitcher() {
   const { organisation, properties, property, status, setProperty } = usePropertyContext();
-  const propertyLabel = property.id ? property.name : status === "loading" ? "Loading property…" : "No property available";
+  const propertyLabel = property.id ? property.name : status === "loading" ? "Loading property…" : properties.length ? "Select property" : "No property available";
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          disabled={!property.id}
+          disabled={!properties.length}
           variant="ghost"
           className="h-9 max-w-[260px] justify-start gap-2 px-2.5 text-left"
           aria-label={`Current property: ${propertyLabel}`}
