@@ -47,3 +47,22 @@ export const setStayNasActiveProperty = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { propertyId: data.propertyId };
   });
+
+
+export const updateStayNasPropertyCurrency = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    currency: z.string().trim().regex(/^[A-Za-z]{3}$/).transform((value) => value.toUpperCase()),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: result, error } = await propertyClient(context.supabase).rpc(
+      "staynas_update_property_currency",
+      { _currency: data.currency },
+    );
+    if (error) throw new Error(error.message);
+    const row = Array.isArray(result) ? result[0] : result;
+    if (!row?.property_id || row.currency !== data.currency) {
+      throw new Error("Property currency update could not be verified.");
+    }
+    return { propertyId: row.property_id as string, currency: row.currency as string };
+  });
