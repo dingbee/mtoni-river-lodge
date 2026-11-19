@@ -450,9 +450,9 @@ export const generateAnalyticsRecommendations = createServerFn({ method: "POST" 
 export const listAnalyticsRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const propertyId = await getActivePropertyContext(context.supabase, context.userId).then((value) => value.propertyId);
+    const { propertyId, currency } = await getActivePropertyContext(context.supabase, context.userId);
     const { data, error } = await (context.supabase as any).from("ai_analytics_recommendations")
-      .select("*").eq("property_id", propertyId).order("created_at", { ascending: false }).limit(50);
+      .select("*").eq("property_id", propertyId).eq("currency", currency).order("created_at", { ascending: false }).limit(50);
     if (error) throw new Error(error.message);
     return data ?? [];
   });
@@ -461,11 +461,11 @@ export const setAnalyticsRecommendationStatus = createServerFn({ method: "POST" 
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), status: z.enum(["open", "accepted", "dismissed", "resolved"]) }).parse(d))
   .handler(async ({ data, context }) => {
-    const propertyId = await getActivePropertyContext(context.supabase, context.userId).then((value) => value.propertyId);
+    const { propertyId, currency } = await getActivePropertyContext(context.supabase, context.userId);
     const { error } = await (context.supabase as any)
       .from("ai_analytics_recommendations")
       .update({ status: data.status, reviewed_by: context.userId, reviewed_at: new Date().toISOString() })
-      .eq("id", data.id).eq("property_id", propertyId);
+      .eq("id", data.id).eq("property_id", propertyId).eq("currency", currency);
     if (error) throw error;
     return { ok: true };
   });
