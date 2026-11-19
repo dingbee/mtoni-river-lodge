@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { listCampaigns, saveCampaign, deleteCampaign, type CampaignInput } from "@/domains/marketing/campaigns/campaigns.functions";
+import { usePropertyContext } from "@/modules/property/PropertyContext";
 
 export const Route = createFileRoute("/_authenticated/admin/marketing/campaigns")({
   head: () => ({ meta: [{ title: "Campaigns — Mtoni OS" }, { name: "robots", content: "noindex,nofollow" }] }),
@@ -25,7 +26,7 @@ export const Route = createFileRoute("/_authenticated/admin/marketing/campaigns"
 const STATUSES = ["draft", "scheduled", "running", "paused", "completed", "archived"] as const;
 
 const EMPTY: CampaignInput = {
-  name: "", status: "draft", currency: "USD",
+  name: "", status: "draft", currency: "",
   utm_source: "", utm_medium: "", utm_campaign: "", utm_term: "", utm_content: "",
 };
 
@@ -45,6 +46,7 @@ function buildUtmUrl(landing: string, f: CampaignInput): string {
 }
 
 function Campaigns() {
+  const { property } = usePropertyContext();
   const listFn = useServerFn(listCampaigns);
   const saveFn = useServerFn(saveCampaign);
   const delFn = useServerFn(deleteCampaign);
@@ -56,11 +58,11 @@ function Campaigns() {
   });
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [form, setForm] = useState<CampaignInput>(EMPTY);
+  const [form, setForm] = useState<CampaignInput>({ ...EMPTY, currency: property.currency });
 
   const selectCampaign = (id: string | null) => {
     setSelectedId(id);
-    if (!id) { setForm(EMPTY); return; }
+    if (!id) { setForm({ ...EMPTY, currency: property.currency }); return; }
     const row = (campaigns ?? []).find((c) => c.id === id);
     if (row) setForm({ ...(row as unknown as CampaignInput), id: row.id });
   };
@@ -87,7 +89,14 @@ function Campaigns() {
   const update = <K extends keyof CampaignInput>(k: K, v: CampaignInput[K]) => setForm((p) => ({ ...p, [k]: v }));
   const utmUrl = useMemo(() => buildUtmUrl(form.landing_page ?? "", form), [form]);
 
-  const totalBudget = (campaigns ?? []).reduce((s, c) => s + Number(c.budget ?? 0), 0);
+  const totalBudgetByCurrency = new Map<string, number>();
+  for (const campaign of campaigns ?? []) {
+    if (campaign.budget == null) continue;
+    const code = String(campaign.currency ?? "UNKNOWN").trim().toUpperCase() || "UNKNOWN";
+    totalBudgetByCurrency.set(code, (totalBudgetByCurrency.get(code) ?? 0) + Number(campaign.budget));
+  }
+  const totalBudgetLabel = [...totalBudgetByCurrency.entries()].sort(([a], [b]) => a.localeCompare(b))
+    .map(([code, amount]) => `${code} ${amount.toLocaleString()}`).join(" · ") || "—";
   const runningCount = (campaigns ?? []).filter((c) => c.status === "running" || c.status === "scheduled").length;
 
   return (
@@ -97,7 +106,7 @@ function Campaigns() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard label="Total campaigns" value={String(campaigns?.length ?? 0)} />
         <StatCard label="Active / scheduled" value={String(runningCount)} />
-        <StatCard label="Total budget" value={`$${totalBudget.toLocaleString()}`} />
+        <StatCard label="Total budget by currency" value={totalBudgetLabel} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
@@ -137,7 +146,7 @@ function Campaigns() {
                   <Trash2 className="h-4 w-4" />
                 </Button>
               )}
-              <Button size="sm" onClick={() => save.mutate(form)} disabled={!form.name || save.isPending}>
+              <Button size="sm" onClick={() => save.mutate(form)} disabled={!property.id || !property.currency || !form.name || save.isPending || (Boolean(selectedId) && Boolean(form.currency) && form.currency !== property.currency)}>
                 <Save className="h-4 w-4 mr-1" />Save
               </Button>
             </div>
@@ -201,10 +210,8 @@ function Campaigns() {
                 <div><Label>Budget</Label><Input type="number" step="0.01" value={form.budget ?? ""} onChange={(e) => update("budget", e.target.value ? Number(e.target.value) : null)} /></div>
                 <div>
                   <Label>Currency</Label>
-                  <Select value={form.currency ?? "USD"} onValueChange={(v) => update("currency", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{["USD", "EUR", "TZS", "GBP"].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <div className="h-10 rounded-md border px-3 flex items-center text-sm">{property.currency || "Unavailable"}</div>
+                  {selectedId && form.currency && form.currency !== property.currency && <p className="mt-1 text-xs text-destructive">This legacy campaign is in {form.currency}; its budget cannot be relabelled. Create a new campaign in {property.currency || "the active property currency"}.</p>}
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">Track spend against this budget in the Analytics module (Sprint 6+).</p>
