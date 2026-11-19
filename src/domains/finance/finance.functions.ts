@@ -768,9 +768,11 @@ export const listFinancialAlerts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
     const { data, error } = await context.supabase
       .from("financial_alerts")
       .select("*")
+      .eq("property_id", propertyId)
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw error;
@@ -781,6 +783,7 @@ export const scanFinancialAlerts = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
     const { data: allowed } = await context.supabase.rpc("has_any_role", {
       _user_id: context.userId,
       _roles: ["owner", "manager", "finance"] as never,
@@ -793,6 +796,7 @@ export const scanFinancialAlerts = createServerFn({ method: "POST" })
     const { data: overdue } = await context.supabase
       .from("bookings")
       .select("id, reference, guest_name, balance_amount, currency, check_out, payment_status, status")
+      .eq("property_id", propertyId)
       .neq("status", "cancelled")
       .gt("balance_amount", 0)
       .lt("check_out", today);
@@ -812,6 +816,7 @@ export const scanFinancialAlerts = createServerFn({ method: "POST" })
     const { data: failed } = await context.supabase
       .from("bookings")
       .select("id, reference, guest_name, currency, total")
+      .eq("property_id", propertyId)
       .not("payment_failed_at", "is", null)
       .eq("payment_status", "unpaid")
       .gte("payment_failed_at", `${daysAgo(30)}T00:00:00Z`);
@@ -831,6 +836,7 @@ export const scanFinancialAlerts = createServerFn({ method: "POST" })
     const { data: mismatches } = await context.supabase
       .from("bookings")
       .select("id, reference, guest_name, currency, total, payment_mismatch_at")
+      .eq("property_id", propertyId)
       .not("payment_mismatch_at", "is", null)
       .gte("payment_mismatch_at", `${daysAgo(60)}T00:00:00Z`);
     for (const b of mismatches ?? []) {
@@ -849,6 +855,7 @@ export const scanFinancialAlerts = createServerFn({ method: "POST" })
     const { data: missingInvoice } = await context.supabase
       .from("bookings")
       .select("id, reference, guest_name, currency, total, payment_status")
+      .eq("property_id", propertyId)
       .in("payment_status", ["paid", "deposit_paid"])
       .is("invoice_number", null);
     for (const b of missingInvoice ?? []) {
@@ -861,6 +868,7 @@ export const scanFinancialAlerts = createServerFn({ method: "POST" })
         reference: b.reference,
         amount: b.total,
         currency: b.currency,
+        property_id: propertyId,
       });
     }
 
@@ -868,6 +876,7 @@ export const scanFinancialAlerts = createServerFn({ method: "POST" })
     const { data: existing } = await context.supabase
       .from("financial_alerts")
       .select("alert_type, booking_id")
+      .eq("property_id", propertyId)
       .eq("status", "open");
     const seen = new Set((existing ?? []).map((r) => `${r.alert_type}:${r.booking_id ?? ""}`));
     const fresh = inserts.filter(
@@ -891,6 +900,7 @@ export const resolveFinancialAlert = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
     const { error } = await context.supabase
       .from("financial_alerts")
       .update({
@@ -898,7 +908,8 @@ export const resolveFinancialAlert = createServerFn({ method: "POST" })
         resolved_at: data.status === "resolved" ? new Date().toISOString() : null,
         resolved_by: context.userId,
       })
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .eq("property_id", propertyId);
     if (error) throw error;
     return { ok: true };
   });
@@ -920,15 +931,18 @@ export const getFinancialReport = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
     const from = data.from ?? daysAgo(30);
     const to = data.to ?? todayISO();
-    const { data: rows } = await context.supabase
+    const { data: rows, error } = await context.supabase
       .from("bookings")
       .select(
         "reference, check_in, check_out, nights, total, taxes, currency, source, country, status, payment_status, room_id",
       )
+      .eq("property_id", propertyId)
       .gte("check_in", from)
       .lte("check_in", to);
+    if (error) throw error;
     const active = (rows ?? []).filter((b) => b.status !== "cancelled");
     return {
       kind: data.kind,
