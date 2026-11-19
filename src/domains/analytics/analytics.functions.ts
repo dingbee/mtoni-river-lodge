@@ -30,10 +30,10 @@ export const getAnalyticsHub = createServerFn({ method: "POST" })
       s.from("bookings").select("id, total, currency, status, check_in, check_out, nights, created_at, payment_status").eq("property_id", propertyId).gte("created_at", start30),
       s.from("bookings").select("id, status").eq("property_id", propertyId).eq("check_in", today),
       s.from("rooms").select("id, total_units").eq("property_id", propertyId).eq("status", "active"),
-      s.from("ai_activity_logs").select("id, created_at").gte("created_at", start30),
-      s.from("ops_alerts").select("id, resolved_at").is("resolved_at", null),
+      s.from("ai_activity_logs").select("id, created_at").eq("property_id", propertyId).gte("created_at", start30),
+      s.from("ops_alerts").select("id, resolved_at").eq("property_id", propertyId).is("resolved_at", null),
       s.from("reviews").select("rating").eq("status", "approved").gte("created_at", start30),
-      s.from("campaigns").select("id, status").eq("status", "running"),
+      s.from("campaigns").select("id, status").eq("property_id", propertyId).eq("status", "running"),
     ]);
     const b30 = (bookings30 ?? []) as Row[];
     const active = b30.filter((b) => b.status !== "cancelled");
@@ -176,11 +176,12 @@ export const getMarketingAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const from = daysAgoISO(30);
+    const { propertyId } = await getActivePropertyContext(context.supabase, context.userId);
     const [{ data: campaigns }, { data: journal }, { data: reviews }, { data: seoRecs }] = await Promise.all([
-      context.supabase.from("campaigns").select("id, name, status, created_at").gte("created_at", from),
+      context.supabase.from("campaigns").select("id, name, status, created_at").eq("property_id", propertyId).gte("created_at", from),
       context.supabase.from("journal_articles").select("id, title, slug, status, published_at").eq("status", "published").order("published_at", { ascending: false }).limit(10),
       context.supabase.from("reviews").select("id, rating, source, created_at").eq("status", "approved").gte("created_at", from),
-      context.supabase.from("ai_marketing_recommendations").select("id, status").gte("created_at", from),
+      context.supabase.from("ai_marketing_recommendations").select("id, status").eq("property_id", propertyId).gte("created_at", from),
     ]);
     return {
       campaigns: (campaigns ?? []).length,
@@ -221,14 +222,14 @@ export const getAiAnalytics = createServerFn({ method: "POST" })
     const s: any = context.supabase;
     const { propertyId } = await getActivePropertyContext(s, context.userId);
     const [logs, feedback, escalations, concierge, copilot, guestRecs, revRecs, mktRecs] = await Promise.all([
-      s.from("ai_activity_logs").select("id, module, latency_ms, success, created_at").gte("created_at", from),
+      s.from("ai_activity_logs").select("id, module, latency_ms, success, created_at").eq("property_id", propertyId).gte("created_at", from),
       s.from("ai_feedback").select("id, rating").gte("created_at", from),
-      s.from("ai_escalations").select("id, status").gte("created_at", from),
-      s.from("ai_concierge_sessions").select("id, created_at").gte("created_at", from),
-      s.from("ai_copilot_sessions").select("id, created_at").gte("created_at", from),
+      s.from("ai_escalations").select("id, status").eq("property_id", propertyId).gte("created_at", from),
+      s.from("ai_concierge_sessions").select("id, created_at").eq("property_id", propertyId).gte("created_at", from),
+      s.from("ai_copilot_sessions").select("id, created_at").eq("property_id", propertyId).gte("created_at", from),
       s.from("ai_guest_recommendations").select("id, status").eq("property_id", propertyId).gte("created_at", from),
       s.from("ai_pricing_recommendations").select("id, status").eq("property_id", propertyId).gte("created_at", from),
-      s.from("ai_marketing_recommendations").select("id, status").gte("created_at", from),
+      s.from("ai_marketing_recommendations").select("id, status").eq("property_id", propertyId).gte("created_at", from),
     ]);
     const l = (logs.data ?? []) as Row[];
     const byModule = new Map<string, { count: number; latency: number; success: number }>();
@@ -269,8 +270,8 @@ export const getExecutiveAnalytics = createServerFn({ method: "POST" })
     const { propertyId, currency } = await getActivePropertyContext(s, context.userId);
     const from = daysAgoISO(30);
     const [{ data: risks }, { data: recs }, { data: bookings }, { data: previousBookings }, { data: reviews }, { data: alerts }] = await Promise.all([
-      s.from("ai_strategic_risks").select("id, severity, status"),
-      s.from("ai_analytics_recommendations").select("id, status, impact, title, confidence").order("created_at", { ascending: false }).limit(10),
+      s.from("ai_strategic_risks").select("id, severity, status").eq("property_id", propertyId),
+      s.from("ai_analytics_recommendations").select("id, status, impact, title, confidence, currency").eq("property_id", propertyId).order("created_at", { ascending: false }).limit(10),
       s.from("bookings").select("id, total, currency, status").eq("property_id", propertyId).gte("created_at", from),
       s.from("bookings").select("id, total, currency, status").eq("property_id", propertyId).gte("created_at", daysAgoISO(60)).lt("created_at", from),
       s.from("reviews").select("rating").eq("status", "approved").gte("created_at", from),
@@ -405,9 +406,9 @@ export const computeTrends = createServerFn({ method: "POST" })
 export const listTrends = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const propertyId = await getActivePropertyContext(context.supabase, context.userId).then((value) => value.propertyId);
+    const { propertyId, currency } = await getActivePropertyContext(context.supabase, context.userId);
     const { data, error } = await (context.supabase as any).from("ai_trend_snapshots").select("*")
-      .eq("property_id", propertyId).order("captured_at", { ascending: false }).limit(200);
+      .eq("property_id", propertyId).eq("currency", currency).order("captured_at", { ascending: false }).limit(200);
     if (error) throw new Error(error.message);
     return data ?? [];
   });
