@@ -271,7 +271,7 @@ export const getExecutiveAnalytics = createServerFn({ method: "POST" })
     const from = daysAgoISO(30);
     const [{ data: risks }, { data: recs }, { data: bookings }, { data: previousBookings }, { data: reviews }, { data: alerts }] = await Promise.all([
       s.from("ai_strategic_risks").select("id, severity, status").eq("property_id", propertyId),
-      s.from("ai_analytics_recommendations").select("id, status, impact, title, confidence, currency").eq("property_id", propertyId).order("created_at", { ascending: false }).limit(10),
+      s.from("ai_analytics_recommendations").select("id, status, impact, title, confidence, currency").eq("property_id", propertyId).eq("currency", currency).order("created_at", { ascending: false }).limit(10),
       s.from("bookings").select("id, total, currency, status").eq("property_id", propertyId).gte("created_at", from),
       s.from("bookings").select("id, total, currency, status").eq("property_id", propertyId).gte("created_at", daysAgoISO(60)).lt("created_at", from),
       s.from("reviews").select("rating").eq("status", "approved").gte("created_at", from),
