@@ -15,7 +15,7 @@ on:
       - "src/lib/payments.functions.ts"
       - "src/lib/guest-intelligence.functions.ts"
       - "src/lib/operations.functions.ts"
-      - "supabase/migrations/20261119140000_staynas_property_currency_integrity.sql"
+      - "supabase/migrations/20261119*_staynas_*currency*.sql"
       - "supabase/tests/staynas_property_currency_integrity.test.sql"
       - ".github/workflows/staynas-property-currency-integrity.yml"
   push:
