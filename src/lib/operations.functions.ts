@@ -405,7 +405,10 @@ export const listOpsAlerts = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
-    let q = sb.from("ops_alerts").select("*, booking:bookings(id, reference, guest_name, guest_id)").order("created_at", { ascending: false }).limit(200);
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
+    let q = sb.from("ops_alerts").select("*, booking:bookings(id, reference, guest_name, guest_id)")
+      .eq("property_id", propertyId).order("created_at", { ascending: false }).limit(200);
     if (!data.includeResolved) q = q.is("resolved_at", null);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
@@ -419,9 +422,11 @@ export const resolveOpsAlert = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const { error } = await sb.from("ops_alerts")
       .update({ resolved_at: new Date().toISOString(), resolved_by: context.userId })
-      .eq("id", data.id);
+      .eq("id", data.id).eq("property_id", propertyId);
     if (error) throw new Error(error.message);
     await logOpsEvent(sb, context.userId, context.claims, {
       type: "ops.alert_resolved", entityType: "ops_alert", entityId: data.id,
