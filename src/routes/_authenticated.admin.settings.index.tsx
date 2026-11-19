@@ -248,7 +248,7 @@ function SettingsHub() {
             <div className="text-[10px] uppercase tracking-widest text-[color:var(--os-ink-3)]">Operating currency</div>
             <div className="mt-1 text-sm text-[color:var(--os-ink)]">Base pricing currency · {propertyContext.currency || "Not loaded"}</div>
             <p className="mt-0.5 text-xs text-[color:var(--os-ink-3)]">
-              Applies to future property operations and pricing defaults. Existing bookings, invoices and payments keep their recorded transaction currency.
+              Applies to future property operations. Existing bookings, invoices and payments keep their recorded transaction currency. Room rates and extras are not converted; update their prices in the new currency before accepting new bookings.
             </p>
             <form onSubmit={saveCurrency} className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
               <label className="min-w-0 flex-1 text-xs font-medium text-[color:var(--os-ink-2)]">
