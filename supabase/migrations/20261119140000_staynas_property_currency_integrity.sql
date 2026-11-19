@@ -508,6 +508,21 @@ GRANT SELECT, INSERT ON public.ai_reputation_insights TO authenticated;
 GRANT SELECT ON public.ai_strategic_risks TO authenticated;
 
 
+-- AI activity evidence is property-scoped. Existing logs remain unassigned rather than
+-- being attributed to a property without evidence.
+ALTER TABLE public.ai_activity_logs
+  ADD COLUMN IF NOT EXISTS property_id uuid REFERENCES public.staynas_properties(id) ON DELETE RESTRICT;
+CREATE INDEX IF NOT EXISTS ai_activity_logs_property_created_idx
+  ON public.ai_activity_logs(property_id, created_at DESC);
+ALTER TABLE public.ai_activity_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS staynas_property_read_ai_activity_logs ON public.ai_activity_logs;
+CREATE POLICY staynas_property_read_ai_activity_logs ON public.ai_activity_logs
+  FOR SELECT TO authenticated
+  USING (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[]));
+
+
 -- Executive KPI snapshots are property- and currency-specific. Legacy snapshots remain
 -- unassigned and are intentionally not exposed as belonging to a property.
 ALTER TABLE public.ai_executive_kpi_snapshots
