@@ -247,7 +247,7 @@ function CommandCentrePage() {
                     <span className="w-6 text-xs text-muted-foreground">{i + 1}.</span>
                     <Link to="/admin/guests/crm/$id" params={{ id: g.id }} className="truncate hover:underline">{g.full_name}</Link>
                   </span>
-                  <span className="tabular-nums text-muted-foreground">${g.lifetime_spend.toLocaleString()}</span>
+                  <span className="tabular-nums text-muted-foreground">{g.lifetime_spend == null ? (Object.keys(g.lifetime_spend_by_currency ?? {}).length > 1 ? "Multiple currencies" : "—") : g.lifetime_spend_currency ? `${g.lifetime_spend_currency} ${Number(g.lifetime_spend).toLocaleString()}` : "Currency unavailable"}</span>
                 </li>
               ))}
             </ol>
