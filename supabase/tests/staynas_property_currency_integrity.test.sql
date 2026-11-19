@@ -1,6 +1,6 @@
 -- StayNas property operating currency, transaction immutability and property isolation contracts.
 BEGIN;
-SELECT plan(6);
+SELECT plan(7);
 
 INSERT INTO public.staynas_organisations (id, slug, name) VALUES
   ('91000000-0000-4000-8000-000000000001', 'currency-org-a', 'Currency Organisation A'),
