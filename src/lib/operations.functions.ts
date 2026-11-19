@@ -256,6 +256,11 @@ export const checkInBooking = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
+    const { data: propertyId, error: propertyError } = await context.supabase.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
+    const { data: booking, error: bookingError } = await context.supabase.from("bookings").select("id")
+      .eq("id", data.bookingId).eq("property_id", propertyId).maybeSingle();
+    if (bookingError || !booking) throw new Error(bookingError?.message ?? "Reservation not found in the active property.");
     const { data: result, error } = await context.supabase.rpc("staynas_transition_booking", {
       _booking_id: data.bookingId,
       _target_status: "checked_in",
@@ -303,6 +308,11 @@ export const checkOutBooking = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
+    const { data: propertyId, error: propertyError } = await context.supabase.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
+    const { data: booking, error: bookingError } = await context.supabase.from("bookings").select("id")
+      .eq("id", data.bookingId).eq("property_id", propertyId).maybeSingle();
+    if (bookingError || !booking) throw new Error(bookingError?.message ?? "Reservation not found in the active property.");
     const { data: result, error } = await context.supabase.rpc("staynas_transition_booking", {
       _booking_id: data.bookingId,
       _target_status: "completed",
