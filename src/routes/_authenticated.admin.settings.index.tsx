@@ -63,7 +63,7 @@ function getSupportedCurrencyOptions(): Array<[string, string]> {
 function SettingsHub() {
   const brandFn = useServerFn(getBrandContext);
   const founderStatusFn = useServerFn(getFounderAdminStatus);
-  const { organisation, property: propertyContext, updateCurrency } = usePropertyContext();
+  const { organisation, property: propertyContext, status: propertyStatus, error: propertyError, updateCurrency } = usePropertyContext();
   const [selectedCurrency, setSelectedCurrency] = useState(propertyContext.currency);
   const [currencySaving, setCurrencySaving] = useState(false);
   const [currencyError, setCurrencyError] = useState("");
@@ -80,6 +80,7 @@ function SettingsHub() {
     setCurrencyError("");
     setCurrencySaved(false);
     try {
+      if (!propertyContext.id) throw new Error("An active property is required before changing its currency.");
       await updateCurrency(selectedCurrency);
       setCurrencySaved(true);
     } catch (error) {
@@ -218,13 +219,13 @@ function SettingsHub() {
         <div className="grid gap-3 sm:grid-cols-2">
           <PropertyFact
             label="Owner"
-            value={organisation.name}
-            hint="Current StayNas property owner for this project"
+            value={organisation.name || (propertyStatus === "loading" ? "Loading…" : "Unavailable")}
+            hint={propertyError ?? "Current StayNas property owner for this project"}
           />
           <PropertyFact
             label="Property"
-            value={propertyContext.name}
-            hint={`Property code: ${propertyContext.code}`}
+            value={propertyContext.name || (propertyStatus === "loading" ? "Loading…" : "Unavailable")}
+            hint={propertyContext.code ? `Property code: ${propertyContext.code}` : propertyError ?? "No active property context."}
           />
           <PropertyFact
             label="Brand tokens"
@@ -247,7 +248,7 @@ function SettingsHub() {
                 <select
                   value={selectedCurrency}
                   onChange={(event) => { setSelectedCurrency(event.target.value); setCurrencySaved(false); }}
-                  disabled={currencySaving || !propertyContext.currency}
+                  disabled={currencySaving || !propertyContext.id || !propertyContext.currency}
                   className="mt-1 min-h-11 w-full rounded-md border border-[color:var(--os-hairline)] bg-[color:var(--os-surface)] px-3 text-sm text-[color:var(--os-ink)]"
                 >
                   {currencyOptions.map(([code, name]) => <option key={code} value={code}>{code} — {name}</option>)}
@@ -258,12 +259,13 @@ function SettingsHub() {
               </label>
               <button
                 type="submit"
-                disabled={currencySaving || !selectedCurrency || selectedCurrency === propertyContext.currency}
+                disabled={currencySaving || !propertyContext.id || !selectedCurrency || selectedCurrency === propertyContext.currency}
                 className="min-h-11 rounded-md bg-[color:var(--os-ink)] px-4 text-sm font-medium text-[color:var(--os-surface)] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {currencySaving ? "Saving…" : "Save currency"}
               </button>
             </form>
+            {propertyError && <p role="alert" className="mt-2 text-xs text-destructive">{propertyError}</p>}
             {currencyError && <p role="alert" className="mt-2 text-xs text-destructive">{currencyError}</p>}
             {currencySaved && <p role="status" className="mt-2 text-xs text-[color:var(--os-success)]">Property currency updated and recorded in the settings audit.</p>}
             <p className="mt-2 text-[11px] text-[color:var(--os-ink-3)]">Only property owners, managers and administrators can change this setting.</p>
