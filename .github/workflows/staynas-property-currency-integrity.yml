@@ -27,16 +27,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 22
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
+          bun-version: latest
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
       - name: TypeScript check
-        run: npx tsc --noEmit
+        run: bunx tsc --noEmit
       - name: Lint changed application modules
         run: >-
-          npx eslint
+          bunx eslint
           src/domains/ai/executive-intelligence.functions.ts
           src/domains/ai/marketing-intelligence.functions.ts
           src/domains/marketing/campaigns/campaigns.functions.ts
