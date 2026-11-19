@@ -177,6 +177,8 @@ export const getDashboardIntelligence = createServerFn({ method: "GET" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const today = new Date();
     const in7 = new Date(today);
     in7.setDate(in7.getDate() + 7);
@@ -193,6 +195,7 @@ export const getDashboardIntelligence = createServerFn({ method: "GET" })
       sb
         .from("bookings")
         .select("id, reference, guest_name, guest_id, check_in, guest:guests(status, full_name)")
+        .eq("property_id", propertyId)
         .eq("check_in", iso(today))
         .neq("status", "cancelled"),
       sb.from("guests").select("id, full_name, birthday").not("birthday", "is", null).eq("is_deleted", false),
@@ -200,7 +203,7 @@ export const getDashboardIntelligence = createServerFn({ method: "GET" })
       sb.from("guest_country_stats").select("*").order("guest_count", { ascending: false }).limit(10),
       sb
         .from("guest_directory")
-        .select("id, full_name, country, total_stays, lifetime_spend, status")
+        .select("id, full_name, country, total_stays, lifetime_spend, lifetime_spend_currency, lifetime_spend_by_currency, status")
         .order("lifetime_spend", { ascending: false, nullsFirst: false })
         .limit(20),
       sb
@@ -233,7 +236,12 @@ export const getDashboardIntelligence = createServerFn({ method: "GET" })
       birthdays: (birthdays ?? []).filter((g: any) => inNextWeek(g.birthday)),
       anniversaries: (anniversaries ?? []).filter((g: any) => inNextWeek(g.anniversary)),
       topCountries: countries ?? [],
-      topLifetime: (topLifetime ?? []).map((r: any) => ({ ...r, lifetime_spend: Number(r.lifetime_spend ?? 0) })),
+      topLifetime: (topLifetime ?? []).map((r: any) => ({
+        ...r,
+        lifetime_spend: r.lifetime_spend == null ? null : Number(r.lifetime_spend),
+        lifetime_spend_currency: r.lifetime_spend_currency ?? null,
+        lifetime_spend_by_currency: r.lifetime_spend_by_currency ?? {},
+      })),
       acquisitionTrend,
     };
   });
@@ -258,7 +266,9 @@ export const generateGuestSummary = createServerFn({ method: "POST" })
       parts.push(
         `${metrics.stays} stay${metrics.stays > 1 ? "s" : ""}, averaging ${metrics.avg_nights ?? 0} night${
           Number(metrics.avg_nights) === 1 ? "" : "s"
-        } and $${Number(metrics.avg_spend ?? 0).toLocaleString()} per booking.`,
+        } and ${metrics.avg_spend == null
+          ? Object.keys(metrics.avg_spend_by_currency ?? {}).length > 1 ? "multiple currencies" : "currency unavailable"
+          : metrics.avg_spend_currency ? `${metrics.avg_spend_currency} ${Number(metrics.avg_spend).toLocaleString()}` : "currency unavailable"} per booking.`,
       );
     } else {
       parts.push("No completed stays yet.");
