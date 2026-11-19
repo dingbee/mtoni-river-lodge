@@ -1,6 +1,6 @@
 -- StayNas property operating currency, transaction immutability and property isolation contracts.
 BEGIN;
-SELECT plan(12);
+SELECT plan(13);
 
 INSERT INTO public.staynas_organisations (id, slug, name) VALUES
   ('91000000-0000-4000-8000-000000000001', 'currency-org-a', 'Currency Organisation A'),
@@ -244,6 +244,34 @@ VALUES
 INSERT INTO public.payment_events (booking_id, event_type, amount, currency, idempotency_key)
 VALUES ('96000000-0000-4000-8000-000000000003', 'payment_received', 25, 'USD', 'currency-test-payment-a-usd');
 
+
+-- A historical booking keeps its transaction currency for downstream redemption records,
+-- even after the property's future operating currency changes.
+INSERT INTO public.staynas_property_promotions
+  (id, property_id, code, name, discount_type, discount_value, currency, status)
+VALUES
+  ('98000000-0000-4000-8000-000000000001', '92000000-0000-4000-8000-000000000001',
+   'CURR-HISTORIC', 'Historic Currency Promotion', 'fixed', 10, 'TZS', 'active');
+INSERT INTO public.staynas_promotion_redemptions
+  (property_id, promotion_id, booking_id, guest_key, discount_amount, currency)
+VALUES
+  ('92000000-0000-4000-8000-000000000001', '98000000-0000-4000-8000-000000000001',
+   '96000000-0000-4000-8000-000000000001', 'currency-guest', 10, 'TZS');
+DO $redemption_currency$
+BEGIN
+  BEGIN
+    INSERT INTO public.staynas_promotion_redemptions
+      (property_id, promotion_id, booking_id, guest_key, discount_amount, currency)
+    VALUES
+      ('92000000-0000-4000-8000-000000000001', '98000000-0000-4000-8000-000000000001',
+       '96000000-0000-4000-8000-000000000003', 'currency-guest-2', 10, 'TZS');
+    RAISE EXCEPTION 'Redemption with currency different from its booking unexpectedly succeeded';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM = 'Redemption with currency different from its booking unexpectedly succeeded' THEN RAISE; END IF;
+  END;
+END
+$redemption_currency$;
+SELECT pass('Promotion redemptions retain historical booking currency and reject mismatches');
 
 -- Active property switching changes the selected currency context for a multi-property owner.
 SELECT set_config('request.jwt.claim.sub', '93000000-0000-4000-8000-000000000002', true);
