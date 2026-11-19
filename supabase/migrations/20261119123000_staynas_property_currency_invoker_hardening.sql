@@ -9,7 +9,6 @@ AS $function$
 DECLARE
   v_uid uuid := auth.uid();
   v_property_id uuid;
-  v_previous text;
   v_currency text := upper(trim(_currency));
   v_updated_at timestamptz;
 BEGIN
@@ -23,22 +22,19 @@ BEGIN
      OR NOT public.has_any_role(v_uid, ARRAY['owner','manager','admin']::public.app_role[]) THEN
     RAISE EXCEPTION 'Property owner or manager access is required to change operating currency';
   END IF;
-  SELECT p.currency INTO v_previous
-  FROM public.staynas_properties p
-  WHERE p.id = v_property_id AND p.status IN ('active','setup')
-  FOR UPDATE;
-  IF NOT FOUND THEN RAISE EXCEPTION 'Active property configuration was not found'; END IF;
-  IF v_previous IS DISTINCT FROM v_currency THEN
-    UPDATE public.staynas_properties AS p
-    SET currency = v_currency
-    WHERE p.id = v_property_id
-    RETURNING p.updated_at INTO v_updated_at;
-    INSERT INTO public.staynas_property_settings_audit(
-      property_id, setting_key, previous_value, new_value, changed_by
-    ) VALUES (v_property_id, 'currency', v_previous, v_currency, v_uid);
-  ELSE
+  -- The row update takes the lock atomically. The AFTER trigger records the
+  -- old/new currency, so the invoker needs UPDATE privilege on currency only.
+  UPDATE public.staynas_properties AS p
+  SET currency = v_currency
+  WHERE p.id = v_property_id
+    AND p.status IN ('active','setup')
+    AND p.currency IS DISTINCT FROM v_currency
+  RETURNING p.updated_at INTO v_updated_at;
+  IF NOT FOUND THEN
     SELECT p.updated_at INTO v_updated_at
-    FROM public.staynas_properties p WHERE p.id = v_property_id;
+    FROM public.staynas_properties p
+    WHERE p.id = v_property_id AND p.status IN ('active','setup');
+    IF NOT FOUND THEN RAISE EXCEPTION 'Active property configuration was not found'; END IF;
   END IF;
   RETURN QUERY SELECT v_property_id, v_currency, v_updated_at;
 END;
