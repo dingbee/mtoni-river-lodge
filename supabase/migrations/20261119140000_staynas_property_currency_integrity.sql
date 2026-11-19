@@ -500,4 +500,44 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_marketing_priorities TO authen
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_reputation_insights TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_strategic_risks TO authenticated;
 
+
+-- Campaign budgets are property operating spend. Legacy unassigned campaigns remain
+-- readable with their stored currency; editing them assigns them only when currency matches.
+ALTER TABLE public.campaigns
+  ADD COLUMN IF NOT EXISTS property_id uuid REFERENCES public.staynas_properties(id) ON DELETE RESTRICT;
+DO $campaign_constraints$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.campaigns'::regclass AND conname = 'campaigns_currency_iso3_chk') THEN
+    ALTER TABLE public.campaigns ADD CONSTRAINT campaigns_currency_iso3_chk CHECK (currency IS NULL OR currency ~ '^[A-Z]{3}$');
+  END IF;
+END
+$campaign_constraints$;
+CREATE INDEX IF NOT EXISTS campaigns_property_updated_idx ON public.campaigns(property_id, updated_at DESC);
+ALTER TABLE public.campaigns ENABLE ROW LEVEL SECURITY;
+CREATE POLICY staynas_campaigns_read_property_or_legacy ON public.campaigns
+  FOR SELECT TO authenticated
+  USING (property_id IS NULL OR (
+    property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+  ));
+CREATE POLICY staynas_campaigns_create_property ON public.campaigns
+  FOR INSERT TO authenticated
+  WITH CHECK (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin','marketing']::public.app_role[]));
+CREATE POLICY staynas_campaigns_update_property ON public.campaigns
+  FOR UPDATE TO authenticated
+  USING (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin','marketing']::public.app_role[]))
+  WITH CHECK (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin','marketing']::public.app_role[]));
+CREATE POLICY staynas_campaigns_delete_property ON public.campaigns
+  FOR DELETE TO authenticated
+  USING (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin','marketing']::public.app_role[]));
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.campaigns TO authenticated;
+
 COMMIT;
