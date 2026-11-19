@@ -111,6 +111,8 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
     try {
       await setActiveFn({ data: { propertyId } });
       setActivePropertyId(propertyId);
+      setError(null);
+      setStatus("ready");
     } catch {
       // Do not switch the UI if the server rejects property access.
     }
