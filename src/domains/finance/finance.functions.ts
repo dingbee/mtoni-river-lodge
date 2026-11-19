@@ -74,7 +74,7 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => filtersSchema.parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
-    const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
+    const { propertyId, currency } = await getActiveFinancePropertyContext(context.supabase, context.userId);
     const from = data.from ?? daysAgo(30);
     const to = data.to ?? todayISO();
 
@@ -148,12 +148,24 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
     const refundsByCurrency = sumCurrency((refundsResult.data ?? []).map((r) => ({
       currency: r.currency, amount: Math.abs(Number(r.amount ?? 0)),
     })));
+    const todayRevenueByCurrency = currencyTotals(todayResult.data ?? []);
+    const mtdRevenueByCurrency = currencyTotals(mtdResult.data ?? []);
+    const ytdRevenueByCurrency = currencyTotals(ytdResult.data ?? []);
+    const operating = revenueByCurrency.get(currency) ?? { currency, revenue: 0, paid: 0, outstanding: 0, deposits: 0, nightsSold: 0, adr: 0, revpar: 0 };
+    const totalForCurrency = (rows: Array<{ currency: string; total: number }>) => rows.find((row) => row.currency === currency)?.total ?? 0;
 
     return {
+      propertyId, currency,
+      todayRevenue: totalForCurrency(todayRevenueByCurrency),
+      mtdRevenue: totalForCurrency(mtdRevenueByCurrency),
+      ytdRevenue: totalForCurrency(ytdRevenueByCurrency),
+      adr: operating.adr,
+      revpar: operating.revpar,
+      outstanding: operating.outstanding,
       range: { from, to },
-      todayRevenueByCurrency: currencyTotals(todayResult.data ?? []),
-      mtdRevenueByCurrency: currencyTotals(mtdResult.data ?? []),
-      ytdRevenueByCurrency: currencyTotals(ytdResult.data ?? []),
+      todayRevenueByCurrency,
+      mtdRevenueByCurrency,
+      ytdRevenueByCurrency,
       currencyBreakdown: Array.from(new Set([
         ...revenueByCurrency.keys(),
         ...(todayResult.data ?? []).map((r) => r.currency || "UNKNOWN"),
