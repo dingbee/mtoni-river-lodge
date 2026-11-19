@@ -75,11 +75,7 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
       .then(async (rows) => {
         if (cancelled) return;
         const mapped = rows.map(toProperty);
-        const serverActive = mapped.find((p) => rows.find((r) => r.id === p.id)?.is_active);
-        const active = serverActive ?? mapped[0] ?? null;
-        if (active && !serverActive) {
-          await setActiveFn({ data: { propertyId: active.id } });
-        }
+        const active = mapped.find((p) => rows.find((r) => r.id === p.id)?.is_active) ?? null;
         if (cancelled) return;
         setProperties(mapped);
         setActivePropertyId(active?.id ?? "");
@@ -88,6 +84,11 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
           name: rows[0]?.organisation_name ?? "",
           properties: mapped,
         });
+        if (!active) {
+          setError("No active property is selected. Select an authorised property to continue.");
+          setStatus("error");
+          return;
+        }
         setError(null);
         setStatus("ready");
       })
