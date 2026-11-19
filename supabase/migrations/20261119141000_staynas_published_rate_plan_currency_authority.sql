@@ -389,7 +389,6 @@ EXCEPTION
   WHEN OTHERS THEN
     RETURN jsonb_build_object('ok',false,'error_code','INVALID_RATE_CONFIGURATION','message','Published pricing resolution failed closed');
 END;
-$function$
-
+$function$;
 
 COMMIT;
