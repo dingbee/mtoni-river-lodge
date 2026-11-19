@@ -61,7 +61,7 @@ function RevenueDashboard() {
         title="Revenue Dashboard"
         description="Live financial performance for Mtoni River Lodge."
         actions={
-          <div className="flex gap-2">
+          <div className="staynas-finance-actions flex flex-wrap gap-2">
             <Link to="/admin/finance/rate-plans" className="text-sm text-primary hover:underline">Rate Plans</Link>
             <Link to="/admin/finance/rate-overrides" className="text-sm text-primary hover:underline">Rate Overrides</Link>
             <Link to="/admin/finance/pricing-intelligence" className="text-sm text-primary hover:underline">Pricing Intelligence</Link>
