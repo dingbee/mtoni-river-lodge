@@ -56,12 +56,12 @@ function RevenueDashboard() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="staynas-finance-dashboard space-y-5 font-sans text-sm">
       <PageHeader
-        title="Revenue Dashboard"
-        description="Live financial performance for Mtoni River Lodge."
+        title="Revenue dashboard"
+        description="Property financial performance across each transaction currency."
         actions={
-          <div className="staynas-finance-actions flex flex-wrap gap-2">
+          <div className="staynas-finance-actions flex flex-wrap gap-2 text-xs">
             <Link to="/admin/finance/rate-plans" className="text-sm text-primary hover:underline">Rate Plans</Link>
             <Link to="/admin/finance/rate-overrides" className="text-sm text-primary hover:underline">Rate Overrides</Link>
             <Link to="/admin/finance/pricing-intelligence" className="text-sm text-primary hover:underline">Pricing Intelligence</Link>
@@ -77,16 +77,16 @@ function RevenueDashboard() {
 
       {/* Health — score and monetary signals remain separated by currency. */}
       {health && (
-        <SectionCard title="Revenue Health by Currency">
+        <SectionCard title="Revenue health by currency" className="[&>header>div>h2]:font-sans [&>header>div>h2]:text-lg">
           <div className="space-y-3">
             {health.healthByCurrency.map((item) => (
-              <div key={item.currency} className="flex flex-wrap items-center gap-4 border-b border-border/60 pb-3 last:border-0">
+              <div key={item.currency} className="flex flex-wrap items-center gap-3 border-b border-border/60 pb-3 last:border-0">
                 <Badge variant={item.status === "healthy" ? "default" : item.status === "attention" ? "secondary" : "destructive"}>{item.currency}</Badge>
                 <div>
                   <p className="text-sm font-medium capitalize">{item.status}</p>
                   <p className="text-xs text-muted-foreground">Score {item.score} / 100</p>
                 </div>
-                <div className="ml-auto grid grid-cols-2 gap-x-6 gap-y-1 text-xs sm:grid-cols-4">
+                <div className="ml-auto grid w-full grid-cols-2 gap-x-4 gap-y-2 text-xs leading-relaxed sm:w-auto sm:grid-cols-4">
                   <div>Occupancy: <span className="font-medium">{pct(item.signals.occupancy30d)}</span></div>
                   <div>Outstanding: <span className="font-medium">{money(item.signals.outstanding, item.currency)}</span></div>
                   <div>Revenue 30d: <span className="font-medium">{money(item.signals.revenue30d, item.currency)}</span></div>
@@ -117,7 +117,7 @@ function RevenueDashboard() {
         <LoadingState />
       ) : (
         <>
-          <SectionCard title="Financial Position by Currency" >
+          <SectionCard title="Financial position by currency" className="[&>header>div>h2]:font-sans [&>header>div>h2]:text-lg">
             <div className="space-y-4">
               {data.currencyBreakdown.map((item) => {
                 const refunds = data.refundsByCurrency.find((r) => r.currency === item.currency)?.amount ?? 0;
@@ -130,8 +130,8 @@ function RevenueDashboard() {
                       <Badge variant="secondary">{item.currency}</Badge>
                       <span className="text-xs text-muted-foreground">{item.nightsSold} nights sold</span>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                      <StatCard label="Revenue" value={money(item.revenue, item.currency)} icon={DollarSign} />
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                      <StatCard compact label="Revenue" value={money(item.revenue, item.currency)} icon={DollarSign} />
                       <StatCard label="Paid" value={money(item.paid, item.currency)} icon={Wallet} />
                       <StatCard label="Outstanding" value={money(item.outstanding, item.currency)} icon={AlertCircle} />
                       <StatCard label="Deposits received" value={money(item.deposits, item.currency)} icon={Wallet} />
@@ -149,14 +149,14 @@ function RevenueDashboard() {
             </div>
           </SectionCard>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <SectionCard title="Revenue by Room">
-              <div className="space-y-2">
+          <div className="grid gap-3 lg:grid-cols-2">
+            <SectionCard title="revenue by room" className="[&>header>div>h2]:font-sans [&>header>div>h2]:text-lg">
+              <div className="space-y-3 text-sm leading-6">
                 {data.revenueByRoom.length === 0 && (
                   <p className="text-sm text-muted-foreground">No revenue in this range.</p>
                 )}
                 {data.revenueByRoom.map((r) => (
-                  <div key={`${r.currency}-${r.room_id}`} className="flex items-center justify-between text-sm">
+                  <div key={`${r.currency}-${r.room_id}`} className="flex items-center justify-between gap-3 border-b border-border/50 pb-2 text-sm leading-5 last:border-0">
                     <span>{r.name}</span>
                     <span className="font-medium">{money(r.total, r.currency)}</span>
                   </div>
@@ -164,10 +164,10 @@ function RevenueDashboard() {
               </div>
             </SectionCard>
 
-            <SectionCard title="Revenue by Source">
+            <SectionCard title="revenue by source" className="[&>header>div>h2]:font-sans [&>header>div>h2]:text-lg">
               <div className="space-y-2">
                 {data.revenueBySource.map((r) => (
-                  <div key={`${r.currency}-${r.source}`} className="flex items-center justify-between text-sm">
+                  <div key={`${r.currency}-${r.source}`} className="flex items-center justify-between gap-3 border-b border-border/50 pb-2 text-sm leading-5 last:border-0">
                     <span className="capitalize">{r.source}</span>
                     <span className="font-medium">{money(r.total, r.currency)}</span>
                   </div>
@@ -175,7 +175,7 @@ function RevenueDashboard() {
               </div>
             </SectionCard>
 
-            <SectionCard title="Top Guest Nationalities">
+            <SectionCard title="top guest nationalities" className="[&>header>div>h2]:font-sans [&>header>div>h2]:text-lg">
               <div className="space-y-2">
                 {data.revenueByCountry.map((r) => (
                   <div key={`${r.currency}-${r.country}`} className="flex items-center justify-between text-sm">
@@ -186,7 +186,7 @@ function RevenueDashboard() {
               </div>
             </SectionCard>
 
-            <SectionCard title="Revenue Trend by Month">
+            <SectionCard title="revenue trend by month" className="[&>header>div>h2]:font-sans [&>header>div>h2]:text-lg">
               <div className="space-y-2">
                 {data.revenueTrend.map((r) => (
                   <div key={`${r.currency}-${r.month}`} className="flex items-center justify-between text-sm">
