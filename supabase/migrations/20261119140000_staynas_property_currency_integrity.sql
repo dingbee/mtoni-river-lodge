@@ -25,7 +25,7 @@ ALTER TABLE public.campaigns ADD COLUMN IF NOT EXISTS property_id uuid REFERENCE
 DO $currency_checks$
 DECLARE t text;
 BEGIN
-  FOREACH t IN ARRAY ARRAY['ai_revenue_forecasts','ai_revenue_opportunities','ai_revenue_alerts','ai_pricing_recommendations','ai_guest_recommendations','analytics_reports','ai_trend_snapshots','ai_analytics_recommendations','ai_executive_briefings','ai_marketing_recommendations','ai_marketing_priorities','ai_executive_kpi_snapshots','campaigns']
+  FOREACH t IN ARRAY ARRAY['ai_revenue_forecasts','ai_revenue_opportunities','ai_revenue_alerts','ai_pricing_recommendations','financial_alerts','ai_guest_recommendations','analytics_reports','ai_trend_snapshots','ai_analytics_recommendations','ai_executive_briefings','ai_marketing_recommendations','ai_marketing_priorities','ai_executive_kpi_snapshots','campaigns']
   LOOP
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = format('public.%I',t)::regclass AND conname = t || '_currency_iso3_chk') THEN
       EXECUTE format('ALTER TABLE public.%I ADD CONSTRAINT %I CHECK (currency IS NULL OR currency ~ %L)',t,t || '_currency_iso3_chk','^[A-Z]{3}$');
