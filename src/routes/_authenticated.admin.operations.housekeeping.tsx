@@ -248,7 +248,7 @@ function HousekeepingPage() {
         </div>
       )}
 
-      <div className="flex flex-col gap-3 rounded-xl border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="staynas-ops-toolbar flex flex-col gap-3 rounded-xl border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="text-sm font-semibold">Housekeeping operations</div>
           <div className="text-xs text-muted-foreground">
@@ -288,7 +288,7 @@ function HousekeepingPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="staynas-housekeeping-metrics grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {[
           ["Active", dashboard.data?.active_tasks ?? 0],
           ["Unassigned", dashboard.data?.unassigned_tasks ?? 0],
