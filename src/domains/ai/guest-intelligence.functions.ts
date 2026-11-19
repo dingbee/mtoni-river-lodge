@@ -349,6 +349,7 @@ export const actionRecommendation = createServerFn({ method: "POST" })
     if (error) throw error;
     await context.supabase.from("ai_activity_logs").insert({
       user_id: context.userId,
+      property_id: propertyId,
       question: `Recommendation ${data.id} ${data.action}`,
       domains_accessed: ["guests"],
       tool_called: "guest.recommendation.action",
