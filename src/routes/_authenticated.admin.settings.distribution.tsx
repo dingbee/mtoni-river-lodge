@@ -1,8 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Network, ShieldCheck, PlugZap, ArrowLeft } from "lucide-react";
+import { Network, ShieldCheck, PlugZap } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
 import { Button } from "@/components/ui/button";
@@ -163,16 +163,9 @@ function DistributionConnectionsPage() {
 
   return (
     <div className="space-y-6">
-      <Link
-        to="/admin/settings"
-        className="inline-flex min-h-10 items-center gap-2 rounded-md border px-3 text-sm text-muted-foreground transition hover:bg-muted"
-      >
-        <ArrowLeft className="size-4" aria-hidden />
-        Back to Settings
-      </Link>
       <PageHeader
-        title="Platform Settings · Distribution"
-        description="Manage platform-level provider availability and sandbox boundaries, then configure authorised property connections separately."
+        title="Distribution Connections"
+        description="Connect a property to a supported channel manager. Provider access, credentials and capabilities are controlled independently."
       />
 
       <SectionCard
