@@ -22,6 +22,7 @@ type PropertyDatabase = Omit<Database, "public"> & {
     Functions: Database["public"]["Functions"] & {
       staynas_list_properties: { Args: Record<string, never>; Returns: StayNasPropertyRecord[] };
       staynas_set_active_property: { Args: { _property_id: string }; Returns: { user_id: string; property_id: string; updated_at: string } };
+      staynas_update_property_currency: { Args: { _currency: string }; Returns: Array<{ property_id: string; currency: string; updated_at: string }> };
     };
   };
 };
@@ -55,7 +56,7 @@ export const updateStayNasPropertyCurrency = createServerFn({ method: "POST" })
     currency: z.string().trim().regex(/^[A-Za-z]{3}$/).transform((value) => value.toUpperCase()),
   }).parse(d))
   .handler(async ({ data, context }) => {
-    const { data: result, error } = await (propertyClient(context.supabase) as any).rpc(
+    const { data: result, error } = await propertyClient(context.supabase).rpc(
       "staynas_update_property_currency",
       { _currency: data.currency },
     );
