@@ -114,12 +114,13 @@ BEGIN
   NEW.currency := upper(btrim(COALESCE(NEW.currency, '')));
   -- Payment provider events are audit evidence. Missing provider currency remains
   -- NULL; finalized folio/redemption transactions must always carry a valid code.
-  IF TG_TABLE_NAME = 'payment_events'
-     AND NEW.currency = ''
-     AND (COALESCE(NEW.event_type,'') LIKE 'ipn:%'
-       OR COALESCE(NEW.event_type,'') LIKE 'status_check:%'
-       OR COALESCE(NEW.event_type,'') = 'security:payment_mismatch') THEN
-    RETURN NEW;
+  IF TG_TABLE_NAME = 'payment_events' THEN
+    IF NEW.currency = ''
+       AND (COALESCE(NEW.event_type,'') LIKE 'ipn:%'
+         OR COALESCE(NEW.event_type,'') LIKE 'status_check:%'
+         OR COALESCE(NEW.event_type,'') = 'security:payment_mismatch') THEN
+      RETURN NEW;
+    END IF;
   END IF;
   IF NEW.currency !~ '^[A-Z]{3}$' THEN
     RAISE EXCEPTION 'New financial transaction currency must be a valid three-letter ISO 4217 code';
