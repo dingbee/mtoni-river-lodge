@@ -324,20 +324,26 @@ export const getOpsCalendar = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const [roomsRes, bookingsRes, invRes] = await Promise.all([
-      sb.from("rooms").select("id, slug, name, total_units").order("sort_order"),
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
+    const [roomsRes, bookingsRes] = await Promise.all([
+      sb.from("rooms").select("id, slug, name, total_units").eq("property_id", propertyId).order("sort_order"),
       sb.from("bookings")
         .select("id, reference, guest_name, guest_type, check_in, check_out, status, room_id")
+        .eq("property_id", propertyId)
         .in("status", ["pending", "confirmed", "checked_in", "completed"])
         .lte("check_in", data.to)
         .gte("check_out", data.from)
         .order("check_in"),
-      sb.from("room_inventory")
-        .select("room_id, date, available_units, is_blocked, price_override")
-        .gte("date", data.from).lt("date", data.to),
     ]);
-    const failed = [roomsRes, bookingsRes, invRes].find((result) => result.error);
+    const failed = [roomsRes, bookingsRes].find((result) => result.error);
     if (failed?.error) throw new Error(`Calendar data load failed: ${failed.error.message}`);
+    const roomIds = (roomsRes.data ?? []).map((room: any) => room.id);
+    const invRes = roomIds.length
+      ? await sb.from("room_inventory").select("room_id, date, available_units, is_blocked, price_override")
+          .in("room_id", roomIds).gte("date", data.from).lt("date", data.to)
+      : { data: [], error: null };
+    if (invRes.error) throw new Error(`Calendar inventory load failed: ${invRes.error.message}`);
     return {
       rooms: roomsRes.data ?? [],
       bookings: bookingsRes.data ?? [],
@@ -354,35 +360,40 @@ export const refreshOpsAlerts = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const today = new Date().toISOString().slice(0, 10);
     const inserts: any[] = [];
 
     const { data: late } = await sb.from("bookings")
       .select("id, reference, guest_name, check_in, room_id")
+      .eq("property_id", propertyId)
       .lt("check_in", today).eq("status", "confirmed").limit(100);
     for (const b of late ?? []) {
       inserts.push({ kind: "late_arrival", severity: "warn", booking_id: b.id, room_id: b.room_id,
-        message: `${b.guest_name} (${b.reference}) was expected on ${b.check_in} but has not checked in.` });
+        message: `${b.guest_name} (${b.reference}) was expected on ${b.check_in} but has not checked in.`, property_id: propertyId });
     }
 
     const { data: overdue } = await sb.from("bookings")
       .select("id, reference, guest_name, check_out, room_id")
+      .eq("property_id", propertyId)
       .lt("check_out", today).eq("status", "checked_in").limit(100);
     for (const b of overdue ?? []) {
       inserts.push({ kind: "overdue_departure", severity: "warn", booking_id: b.id, room_id: b.room_id,
-        message: `${b.guest_name} (${b.reference}) was due to check out on ${b.check_out}.` });
+        message: `${b.guest_name} (${b.reference}) was due to check out on ${b.check_out}.`, property_id: propertyId });
     }
 
     const { data: unpaid } = await sb.from("bookings")
       .select("id, reference, guest_name, balance_amount, currency, room_id")
+      .eq("property_id", propertyId)
       .gt("balance_amount", 0).lte("check_in", today).not("status", "in", "(cancelled,completed)").limit(100);
     for (const b of unpaid ?? []) {
       inserts.push({ kind: "payment_issue", severity: "warn", booking_id: b.id, room_id: b.room_id,
-        message: `${b.guest_name} (${b.reference}) has an outstanding balance of ${b.currency} ${b.balance_amount}.` });
+        message: `${b.guest_name} (${b.reference}) has an outstanding balance of ${b.currency} ${b.balance_amount}.`, property_id: propertyId });
     }
 
     // Wipe unresolved auto-generated alerts and re-seed. Small volume, keeps it simple.
-    await sb.from("ops_alerts").delete().is("resolved_at", null);
+    await sb.from("ops_alerts").delete().eq("property_id", propertyId).is("resolved_at", null);
     if (inserts.length > 0) await sb.from("ops_alerts").insert(inserts);
     return { count: inserts.length };
   });
