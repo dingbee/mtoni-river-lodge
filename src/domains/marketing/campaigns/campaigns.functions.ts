@@ -27,7 +27,7 @@ export const listCampaigns = createServerFn({ method: "GET" })
     const { data: propertyId, error: propertyError } = await context.supabase.rpc("staynas_active_property_id", { _uid: context.userId });
     if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const { data, error } = await (context.supabase as any).from("campaigns")
-      .select("*").or(`property_id.eq.${propertyId},property_id.is.null`)
+      .select("*").eq("property_id", propertyId)
       .order("updated_at", { ascending: false });
     if (error) throw error;
     return data ?? [];
