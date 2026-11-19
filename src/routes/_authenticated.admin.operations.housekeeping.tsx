@@ -471,19 +471,25 @@ function HousekeepingPage() {
       )}
 
       {selectedInspection && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
-          <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border bg-card p-5 shadow-xl sm:max-w-xl sm:rounded-2xl">
-            <div className="flex items-start justify-between gap-4">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 px-0 pb-[calc(4.75rem+env(safe-area-inset-bottom))] pt-3 sm:items-center sm:p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="housekeeping-inspection-title"
+            className="flex max-h-[calc(100dvh-7rem-env(safe-area-inset-bottom))] w-full flex-col overflow-hidden rounded-t-2xl border bg-card shadow-2xl sm:max-h-[min(88dvh,760px)] sm:max-w-xl sm:rounded-2xl"
+          >
+            <div className="flex shrink-0 items-start justify-between gap-4 border-b px-4 py-4 sm:px-5">
+
               <div>
-                <div className="text-xl font-semibold">Inspect {selectedInspection.unit_label}</div>
+                <div id="housekeeping-inspection-title" className="text-lg font-semibold sm:text-xl">Inspect {selectedInspection.unit_label}</div>
                 <div className="text-sm text-muted-foreground">{selectedInspection.room_name} · {selectedInspection.guest_name ?? "No current guest"}</div>
               </div>
-              <button className="rounded-lg border p-2" onClick={() => setInspectionId(null)} aria-label="Close inspection"><XCircle className="h-5 w-5" /></button>
+              <button className="rounded-lg border p-2" onClick={() => setInspectionId(null)} aria-label="Close inspection"><XCircle className="!h-5 !w-5 !min-h-0 !min-w-0 shrink-0 accent-primary" /></button>
             </div>
 
-            <div className="mt-5 space-y-2">
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-4 py-3 sm:px-5">
               {CHECKLIST.map(([key, label]) => (
-                <label key={key} className="flex cursor-pointer items-center gap-3 rounded-lg border p-3">
+                <label key={key} className="flex min-h-0 cursor-pointer items-center gap-3 rounded-xl border px-3 py-3 transition-colors hover:bg-muted/40 sm:px-4">
                   <input
                     type="checkbox"
                     checked={inspectionChecks[key]}
@@ -494,7 +500,7 @@ function HousekeepingPage() {
                     }}
                     className="h-5 w-5"
                   />
-                  <span className="text-sm">{label}</span>
+                  <span className="min-w-0 flex-1 text-sm leading-snug">{label}</span>
                 </label>
               ))}
             </div>
@@ -506,11 +512,11 @@ function HousekeepingPage() {
                 setInspectionNotes(next);
                 if (inspectionId) saveHousekeepingInspectionDraft({ inspectionId, checks: inspectionChecks, notes: next, savedAt: Date.now() });
               }}
-              className="mt-4 min-h-24 w-full rounded-lg border bg-background p-3 text-sm"
+              className="mx-4 mt-3 min-h-20 w-[calc(100%-2rem)] shrink-0 rounded-lg border bg-background p-3 text-sm sm:mx-5 sm:w-[calc(100%-2.5rem)]"
               placeholder="Inspection notes, defects, or re-clean instructions…"
             />
 
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <div className="grid shrink-0 gap-2 border-t bg-card px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:grid-cols-2 sm:px-5">
               <button
                 className="inline-flex items-center justify-center gap-2 rounded-lg border border-destructive/30 px-4 py-3 text-sm font-medium text-destructive"
                 onClick={() => run(async () => {
@@ -551,7 +557,7 @@ function HousekeepingPage() {
               </button>
             </div>
 
-            {!allPassed && <div className="mt-2 text-xs text-muted-foreground">All checklist items must pass before the room can be marked ready.</div>}
+            {!allPassed && <div className="shrink-0 px-4 pb-3 text-xs text-muted-foreground sm:px-5">All checklist items must pass before the room can be marked ready.</div>}
           </div>
         </div>
       )}
