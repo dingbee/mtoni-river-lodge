@@ -216,8 +216,8 @@ function StaffUsersPage() {
             }
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="staynas-staff-table overflow-x-auto">
+            <table className="staynas-staff-table__table w-full text-sm">
               <thead className="text-xs uppercase text-muted-foreground">
                 <tr className="text-left">
                   <th className="py-2 pr-3">User</th>
