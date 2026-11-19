@@ -1,6 +1,6 @@
 -- StayNas property operating currency, transaction immutability and property isolation contracts.
 BEGIN;
-SELECT plan(4);
+SELECT plan(6);
 
 INSERT INTO public.staynas_organisations (id, slug, name) VALUES
   ('91000000-0000-4000-8000-000000000001', 'currency-org-a', 'Currency Organisation A'),
@@ -43,10 +43,15 @@ INSERT INTO public.rooms (id, property_id, catalogue_type_id, slug, name, base_p
 
 -- Both properties accept only their own operating currency at booking creation.
 INSERT INTO public.bookings
-  (id, reference, room_id, property_id, check_in, check_out, nights, guest_name, guest_email, subtotal, total, currency)
+  (id, reference, room_id, property_id, check_in, check_out, nights, guest_name, guest_email, subtotal, total, currency, payment_status)
 VALUES
-  ('96000000-0000-4000-8000-000000000001', 'CURR-A-001', '95000000-0000-4000-8000-000000000001', '92000000-0000-4000-8000-000000000001', current_date + 30, current_date + 31, 1, 'Currency Guest A', 'currency-a@example.test', 1000, 1000, 'TZS'),
-  ('96000000-0000-4000-8000-000000000002', 'CURR-B-001', '95000000-0000-4000-8000-000000000002', '92000000-0000-4000-8000-000000000002', current_date + 30, current_date + 31, 1, 'Currency Guest B', 'currency-b@example.test', 2000, 2000, 'KES');
+  ('96000000-0000-4000-8000-000000000001', 'CURR-A-001', '95000000-0000-4000-8000-000000000001', '92000000-0000-4000-8000-000000000001', current_date + 30, current_date + 31, 1, 'Currency Guest A', 'currency-a@example.test', 1000, 1000, 'TZS', 'paid'),
+  ('96000000-0000-4000-8000-000000000002', 'CURR-B-001', '95000000-0000-4000-8000-000000000002', '92000000-0000-4000-8000-000000000002', current_date + 30, current_date + 31, 1, 'Currency Guest B', 'currency-b@example.test', 2000, 2000, 'KES', 'paid');
+
+INSERT INTO public.guests (id, full_name) VALUES
+  ('97000000-0000-4000-8000-000000000001', 'Currency Test Guest');
+UPDATE public.bookings SET guest_id = '97000000-0000-4000-8000-000000000001'
+WHERE id IN ('96000000-0000-4000-8000-000000000001','96000000-0000-4000-8000-000000000002');
 
 DO $test$
 BEGIN
@@ -110,9 +115,9 @@ $test$;
 INSERT INTO public.rooms (id, property_id, catalogue_type_id, slug, name, base_price, currency, status) VALUES
   ('95000000-0000-4000-8000-000000000003', '92000000-0000-4000-8000-000000000001', '94000000-0000-4000-8000-000000000001', 'currency-room-a-usd', 'Currency Room A USD', 100, 'USD', 'active');
 INSERT INTO public.bookings
-  (id, reference, room_id, property_id, check_in, check_out, nights, guest_name, guest_email, subtotal, total, currency)
+  (id, reference, room_id, property_id, check_in, check_out, nights, guest_name, guest_email, subtotal, total, currency, payment_status, guest_id)
 VALUES
-  ('96000000-0000-4000-8000-000000000003', 'CURR-A-002', '95000000-0000-4000-8000-000000000003', '92000000-0000-4000-8000-000000000001', current_date + 35, current_date + 36, 1, 'Currency Guest A2', 'currency-a2@example.test', 100, 100, 'USD');
+  ('96000000-0000-4000-8000-000000000003', 'CURR-A-002', '95000000-0000-4000-8000-000000000003', '92000000-0000-4000-8000-000000000001', current_date + 35, current_date + 36, 1, 'Currency Guest A2', 'currency-a2@example.test', 100, 100, 'USD', 'paid', '97000000-0000-4000-8000-000000000001');
 
 DO $test$
 BEGIN
@@ -131,8 +136,29 @@ SELECT set_config('request.jwt.claim.role', 'authenticated', true);
 SET LOCAL ROLE authenticated;
 SELECT public.staynas_set_active_property('92000000-0000-4000-8000-000000000001');
 SELECT is((SELECT currency FROM public.staynas_properties WHERE id = public.staynas_active_property_id(auth.uid())), 'USD', 'Property A context resolves USD');
+SELECT is((
+  SELECT lifetime_spend IS NULL
+    AND lifetime_spend_currency IS NULL
+    AND lifetime_spend_by_currency ? 'TZS'
+    AND lifetime_spend_by_currency ? 'USD'
+  FROM public.guest_directory WHERE id = '97000000-0000-4000-8000-000000000001'
+), true, 'Guest lifetime spend remains separated by transaction currency within Property A');
+SELECT is((
+  SELECT avg_spend IS NULL
+    AND avg_spend_currency IS NULL
+    AND avg_spend_by_currency ? 'TZS'
+    AND avg_spend_by_currency ? 'USD'
+  FROM public.guest_metrics WHERE guest_id = '97000000-0000-4000-8000-000000000001'
+), true, 'Guest average spend remains separated by transaction currency within Property A');
 SELECT public.staynas_set_active_property('92000000-0000-4000-8000-000000000002');
 SELECT is((SELECT currency FROM public.staynas_properties WHERE id = public.staynas_active_property_id(auth.uid())), 'KES', 'Property B context resolves KES');
+SELECT is((
+  SELECT lifetime_spend_currency = 'KES'
+    AND lifetime_spend = 2000
+    AND lifetime_spend_by_currency ? 'KES'
+    AND NOT (lifetime_spend_by_currency ? 'TZS')
+  FROM public.guest_directory WHERE id = '97000000-0000-4000-8000-000000000001'
+), true, 'Guest spend is isolated to Property B and retains KES currency');
 RESET ROLE;
 
 -- A reception-only user cannot change property currency.
