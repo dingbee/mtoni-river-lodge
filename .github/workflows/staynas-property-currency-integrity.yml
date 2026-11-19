@@ -66,5 +66,5 @@ jobs:
           version: latest
       - name: Start isolated Supabase stack
         run: supabase start -x studio,mailpit,edge-runtime,logflare,vector,supavisor
-      - name: Run database migrations and pgTAP contracts
-        run: supabase test db
+      - name: Run isolated property-currency pgTAP contracts
+        run: supabase test db supabase/tests/staynas_property_currency_integrity.test.sql
