@@ -95,6 +95,8 @@ export const getGuestSummary = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const [
       { data: guest, error: gErr },
       { data: dir },
@@ -111,6 +113,7 @@ export const getGuestSummary = createServerFn({ method: "POST" })
           "id, reference, check_in, check_out, nights, adults, children, status, payment_status, total, currency, deposit_amount, balance_amount, paid_amount, room_id, created_at",
         )
         .eq("guest_id", data.id)
+        .eq("property_id", propertyId)
         .order("check_in", { ascending: false })
         .limit(100),
       sb.from("guest_tag_assignments").select("tag_id, assigned_at").eq("guest_id", data.id),
@@ -184,33 +187,20 @@ export const getGuestTimeline = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const [{ data: bookings }, { data: pay }, { data: emails }, { data: wa }, { data: comms }, { data: notes }] =
-      await Promise.all([
-        sb
-          .from("bookings")
-          .select("id, reference, status, created_at, confirmed_at, cancelled_at, check_in, check_out")
-          .eq("guest_id", data.id),
-        sb.from("payment_events").select("*").in(
-          "booking_id",
-          (
-            (await sb.from("bookings").select("id").eq("guest_id", data.id)).data ?? []
-          ).map((b: any) => b.id),
-        ),
-        sb.from("email_events").select("*").in(
-          "booking_id",
-          (
-            (await sb.from("bookings").select("id").eq("guest_id", data.id)).data ?? []
-          ).map((b: any) => b.id),
-        ),
-        sb.from("whatsapp_alerts").select("*").in(
-          "booking_id",
-          (
-            (await sb.from("bookings").select("id").eq("guest_id", data.id)).data ?? []
-          ).map((b: any) => b.id),
-        ),
-        sb.from("guest_communications").select("*").eq("guest_id", data.id),
-        sb.from("guest_notes").select("*").eq("guest_id", data.id).eq("is_deleted", false),
-      ]);
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
+    const { data: bookings, error: bookingsError } = await sb.from("bookings")
+      .select("id, reference, status, created_at, confirmed_at, cancelled_at, check_in, check_out")
+      .eq("guest_id", data.id).eq("property_id", propertyId);
+    if (bookingsError) throw new Error(bookingsError.message);
+    const bookingIds = (bookings ?? []).map((booking: any) => booking.id);
+    const [{ data: pay }, { data: emails }, { data: wa }, { data: comms }, { data: notes }] = await Promise.all([
+      bookingIds.length ? sb.from("payment_events").select("*").in("booking_id", bookingIds) : Promise.resolve({ data: [] }),
+      bookingIds.length ? sb.from("email_events").select("*").in("booking_id", bookingIds) : Promise.resolve({ data: [] }),
+      bookingIds.length ? sb.from("whatsapp_alerts").select("*").in("booking_id", bookingIds) : Promise.resolve({ data: [] }),
+      sb.from("guest_communications").select("*").eq("guest_id", data.id),
+      sb.from("guest_notes").select("*").eq("guest_id", data.id).eq("is_deleted", false),
+    ]);
 
     type Entry = { at: string; type: string; title: string; description?: string; meta?: any };
     const entries: Entry[] = [];
