@@ -275,7 +275,7 @@ export const generateExecutiveBriefing = createServerFn({ method: "POST" })
           },
           generated_by: context.userId,
         },
-        { onConflict: "property_id,briefing_date" },
+        { onConflict: "property_id,currency,briefing_date" },
       )
       .select("*")
       .single();
@@ -302,10 +302,10 @@ export const getLatestBriefing = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
-    const propertyId = await getExecutivePropertyContext(context.supabase, context.userId).then((value) => value.propertyId);
+    const { propertyId, currency } = await getExecutivePropertyContext(context.supabase, context.userId);
     const { data } = await (context.supabase as any)
       .from("ai_executive_briefings")
-      .select("*").eq("property_id", propertyId)
+      .select("*").eq("property_id", propertyId).eq("currency", currency)
       .order("briefing_date", { ascending: false })
       .limit(1)
       .maybeSingle();
