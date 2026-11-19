@@ -74,12 +74,14 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => filtersSchema.parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
     const from = data.from ?? daysAgo(30);
     const to = data.to ?? todayISO();
 
     let q = context.supabase
       .from("bookings")
       .select("id, reference, room_id, check_in, check_out, nights, adults, children, total, paid_amount, deposit_amount, balance_amount, currency, source, country, payment_method, payment_status, status, created_at")
+      .eq("property_id", propertyId)
       .gte("check_in", from)
       .lte("check_in", to);
     if (data.roomId) q = q.eq("room_id", data.roomId);
@@ -90,15 +92,18 @@ export const getRevenueDashboard = createServerFn({ method: "POST" })
     if (error) throw error;
     const active = (bookings ?? []).filter((b) => b.status !== "cancelled");
 
-    const [todayResult, mtdResult, ytdResult, roomsResult, refundsResult] = await Promise.all([
-      context.supabase.from("bookings").select("total, currency, status").eq("check_in", todayISO()),
-      context.supabase.from("bookings").select("total, currency, status").gte("check_in", firstOfMonth()).lte("check_in", todayISO()),
-      context.supabase.from("bookings").select("total, currency, status").gte("check_in", firstOfYear()).lte("check_in", todayISO()),
-      context.supabase.from("rooms").select("id, slug, name, total_units"),
-      context.supabase.from("payment_events").select("amount, currency, created_at, event_type")
-        .in("event_type", ["refund", "refund_issued"])
-        .gte("created_at", `${from}T00:00:00Z`).lte("created_at", `${to}T23:59:59Z`),
+    const [todayResult, mtdResult, ytdResult, roomsResult] = await Promise.all([
+      context.supabase.from("bookings").select("total, currency, status").eq("property_id", propertyId).eq("check_in", todayISO()),
+      context.supabase.from("bookings").select("total, currency, status").eq("property_id", propertyId).gte("check_in", firstOfMonth()).lte("check_in", todayISO()),
+      context.supabase.from("bookings").select("total, currency, status").eq("property_id", propertyId).gte("check_in", firstOfYear()).lte("check_in", todayISO()),
+      context.supabase.from("rooms").select("id, slug, name, total_units").eq("property_id", propertyId),
     ]);
+    const bookingIds = (bookings ?? []).map((booking) => booking.id);
+    const refundsResult = bookingIds.length
+      ? await context.supabase.from("payment_events").select("amount, currency, created_at, event_type")
+          .in("booking_id", bookingIds).in("event_type", ["refund", "refund_issued"])
+          .gte("created_at", `${from}T00:00:00Z`).lte("created_at", `${to}T23:59:59Z`)
+      : { data: [] as Array<{ amount: number | string | null; currency: string | null; created_at: string; event_type: string }>, error: null };
     for (const result of [todayResult, mtdResult, ytdResult, roomsResult, refundsResult]) {
       if (result.error) throw result.error;
     }
@@ -171,16 +176,17 @@ export const getRevenueHealth = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
     const from = daysAgo(30);
     const to = daysAgo(-30);
     const [pastResult, futureResult, roomsResult] = await Promise.all([
       context.supabase.from("bookings")
         .select("total, nights, status, balance_amount, created_at, check_in, payment_status, currency")
-        .gte("check_in", from).lte("check_in", todayISO()),
+        .eq("property_id", propertyId).gte("check_in", from).lte("check_in", todayISO()),
       context.supabase.from("bookings")
         .select("total, nights, status, check_in, created_at, currency")
-        .gt("check_in", todayISO()).lte("check_in", to),
-      context.supabase.from("rooms").select("id, total_units"),
+        .eq("property_id", propertyId).gt("check_in", todayISO()).lte("check_in", to),
+      context.supabase.from("rooms").select("id, total_units").eq("property_id", propertyId),
     ]);
     for (const result of [pastResult, futureResult, roomsResult]) if (result.error) throw result.error;
     const totalUnits = (roomsResult.data ?? []).reduce((a, r) => a + Number(r.total_units ?? 1), 0) || 1;
@@ -231,11 +237,13 @@ export const listPayments = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
     let q = context.supabase
       .from("bookings")
       .select(
         "id, reference, guest_name, guest_email, check_in, check_out, total, deposit_amount, balance_amount, paid_amount, currency, payment_status, payment_method, payment_completed_at, payment_failed_at, pesapal_order_tracking_id, status, invoice_number, created_at",
       )
+      .eq("property_id", propertyId)
       .order("created_at", { ascending: false })
       .limit(data.limit);
     if (data.status) q = q.eq("payment_status", data.status as never);
@@ -253,6 +261,7 @@ export const getPaymentTimeline = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ bookingId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
     const [bookingResult, eventsResult] = await Promise.all([
       context.supabase
         .from("bookings")
@@ -260,6 +269,7 @@ export const getPaymentTimeline = createServerFn({ method: "POST" })
           "id, property_id, reference, guest_name, guest_email, total, deposit_amount, balance_amount, paid_amount, currency, payment_status, payment_method, payment_completed_at, payment_failed_at, payment_initiated_at, payment_mismatch_at, pesapal_order_tracking_id, pesapal_merchant_reference",
         )
         .eq("id", data.bookingId)
+        .eq("property_id", propertyId)
         .maybeSingle(),
       context.supabase
         .from("payment_events")
@@ -342,11 +352,13 @@ export const listInvoices = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
     let q = context.supabase
       .from("bookings")
       .select(
         "id, reference, invoice_number, guest_name, guest_email, check_in, check_out, total, currency, payment_status, status, created_at",
       )
+      .eq("property_id", propertyId)
       .order("created_at", { ascending: false })
       .limit(200);
     if (data.status === "issued") q = q.not("invoice_number", "is", null);
@@ -362,10 +374,12 @@ export const finalizeInvoice = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ bookingId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
     const { data: b } = await context.supabase
       .from("bookings")
       .select("id, reference, invoice_number")
       .eq("id", data.bookingId)
+      .eq("property_id", propertyId)
       .maybeSingle();
     if (!b) throw new Error("Booking not found");
     if (b.invoice_number) return { ok: true, invoice_number: b.invoice_number };
@@ -377,7 +391,8 @@ export const finalizeInvoice = createServerFn({ method: "POST" })
     const { error } = await context.supabase
       .from("bookings")
       .update({ invoice_number })
-      .eq("id", data.bookingId);
+      .eq("id", data.bookingId)
+      .eq("property_id", propertyId);
     if (error) throw error;
     return { ok: true, invoice_number };
   });
@@ -402,11 +417,13 @@ export const getRevenueAnalytics = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => filtersSchema.parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
     const from = data.from ?? firstOfYear();
     const to = data.to ?? todayISO();
     const { data: rows, error } = await context.supabase
       .from("bookings")
       .select("id, guest_id, guest_email, room_id, total, nights, status, source, country, check_in, cancelled_at, currency")
+      .eq("property_id", propertyId)
       .gte("check_in", from).lte("check_in", to);
     if (error) throw error;
     const active = (rows ?? []).filter((b) => b.status !== "cancelled");
@@ -473,6 +490,7 @@ export const getReconciliation = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => filtersSchema.parse(d))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
+    const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
     const from = data.from ?? daysAgo(30);
     const to = data.to ?? todayISO();
     // Paginate every result set. Supabase's default row cap must not silently
@@ -484,6 +502,7 @@ export const getReconciliation = createServerFn({ method: "POST" })
         .select(
           "id, reference, total, deposit_amount, balance_amount, paid_amount, currency, payment_status, payment_method, pesapal_order_tracking_id, payment_mismatch_at, created_at",
         )
+        .eq("property_id", propertyId)
         .gte("created_at", `${from}T00:00:00Z`)
         .lte("created_at", `${to}T23:59:59Z`)
         .order("created_at", { ascending: true })
