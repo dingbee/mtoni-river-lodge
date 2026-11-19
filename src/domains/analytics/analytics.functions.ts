@@ -399,20 +399,29 @@ export const computeTrends = createServerFn({ method: "POST" })
 export const listTrends = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data } = await context.supabase.from("ai_trend_snapshots").select("*").order("captured_at", { ascending: false }).limit(200);
+    const propertyId = await getActivePropertyContext(context.supabase, context.userId).then((value) => value.propertyId);
+    const { data, error } = await (context.supabase as any).from("ai_trend_snapshots").select("*")
+      .eq("property_id", propertyId).order("captured_at", { ascending: false }).limit(200);
+    if (error) throw new Error(error.message);
     return data ?? [];
   });
 
 export const generateAnalyticsRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: trends } = await context.supabase.from("ai_trend_snapshots").select("*").order("captured_at", { ascending: false }).limit(60);
+    const { propertyId, currency } = await getActivePropertyContext(context.supabase, context.userId);
+    const sb: any = context.supabase;
+    const { data: trends, error: trendsError } = await sb.from("ai_trend_snapshots").select("*")
+      .eq("property_id", propertyId).eq("currency", currency).order("captured_at", { ascending: false }).limit(60);
+    if (trendsError) throw new Error(trendsError.message);
     const created: any[] = [];
     for (const t of (trends ?? []) as Row[]) {
       const delta = Number(t.delta_pct ?? 0);
       if (Math.abs(delta) < 10) continue;
       const direction = delta > 0 ? "increased" : "decreased";
       const rec = {
+        property_id: propertyId,
+        currency,
         domain: t.domain,
         title: `${String(t.metric).replace(/_/g, " ")} ${direction} ${Math.round(Math.abs(delta))}% (${t.window_days}d)`,
         reasoning: `Trend snapshot shows ${t.metric} moved from ${t.previous_value ?? 0} to ${t.current_value ?? 0} in the last ${t.window_days} days.`,
@@ -424,7 +433,8 @@ export const generateAnalyticsRecommendations = createServerFn({ method: "POST" 
           : `Investigate why ${t.metric} is declining and prioritise recovery actions.`,
         status: "open",
       };
-      const { data: inserted } = await context.supabase.from("ai_analytics_recommendations").insert(rec).select().single();
+      const { data: inserted, error } = await sb.from("ai_analytics_recommendations").insert(rec).select().single();
+      if (error) throw new Error(error.message);
       if (inserted) created.push(inserted);
     }
     return { created: created.length, recommendations: created };
@@ -433,7 +443,10 @@ export const generateAnalyticsRecommendations = createServerFn({ method: "POST" 
 export const listAnalyticsRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data } = await context.supabase.from("ai_analytics_recommendations").select("*").order("created_at", { ascending: false }).limit(50);
+    const propertyId = await getActivePropertyContext(context.supabase, context.userId).then((value) => value.propertyId);
+    const { data, error } = await (context.supabase as any).from("ai_analytics_recommendations")
+      .select("*").eq("property_id", propertyId).order("created_at", { ascending: false }).limit(50);
+    if (error) throw new Error(error.message);
     return data ?? [];
   });
 
@@ -441,10 +454,11 @@ export const setAnalyticsRecommendationStatus = createServerFn({ method: "POST" 
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), status: z.enum(["open", "accepted", "dismissed", "resolved"]) }).parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const propertyId = await getActivePropertyContext(context.supabase, context.userId).then((value) => value.propertyId);
+    const { error } = await (context.supabase as any)
       .from("ai_analytics_recommendations")
       .update({ status: data.status, reviewed_by: context.userId, reviewed_at: new Date().toISOString() })
-      .eq("id", data.id);
+      .eq("id", data.id).eq("property_id", propertyId);
     if (error) throw error;
     return { ok: true };
   });
