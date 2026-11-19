@@ -133,9 +133,12 @@ SELECT rp.property_id, rp.id, 2, rp.version, rp.code, rp.name, 'TZS',
 FROM public.staynas_rate_plans rp
 WHERE rp.id = '60000000-0000-4000-8000-000000000005';
 
--- A published rate plan in property currency remains authoritative even if the legacy room
--- base-price currency is stale; the legacy fallback itself still fails closed on mismatch.
+-- Simulate a pre-existing legacy row whose stored room currency predates the property
+-- currency guard. This bypass is confined to the transactional test fixture; application
+-- writes remain guarded and the row is restored before the test transaction rolls back.
+ALTER TABLE public.rooms DISABLE TRIGGER trg_staynas_guard_room_price_currency;
 UPDATE public.rooms SET currency = 'KES' WHERE id = '40000000-0000-4000-8000-000000000001';
+ALTER TABLE public.rooms ENABLE TRIGGER trg_staynas_guard_room_price_currency;
 SELECT is((
   SELECT (q->>'ok') = 'true' AND q->>'currency' = 'TZS'
   FROM (SELECT public.resolve_staynas_published_room_pricing(
@@ -145,7 +148,9 @@ SELECT is((
     '60000000-0000-4000-8000-000000000005'
   ) AS q) pricing
 ), true, 'Published rate plan currency governs booking when legacy room currency is stale');
+ALTER TABLE public.rooms DISABLE TRIGGER trg_staynas_guard_room_price_currency;
 UPDATE public.rooms SET currency = 'TZS' WHERE id = '40000000-0000-4000-8000-000000000001';
+ALTER TABLE public.rooms ENABLE TRIGGER trg_staynas_guard_room_price_currency;
 
 DO $test$
 BEGIN
