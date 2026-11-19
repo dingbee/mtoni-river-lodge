@@ -58,7 +58,9 @@ export const initiatePayment = createServerFn({ method: "POST" })
     const order = await submitPesapalOrder({
       merchantReference: merchantRef,
       amount: deposit,
-      currency: booking.currency || "USD",
+      currency: booking.currency && /^[A-Z]{3}$/.test(booking.currency)
+        ? booking.currency
+        : (() => { throw new Error("Booking transaction currency is missing or invalid; payment initiation is blocked."); })(),
       description: `Mtoni River Lodge deposit – ${booking.reference}`,
       callbackUrl,
       notificationId,
