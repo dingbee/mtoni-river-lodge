@@ -484,7 +484,7 @@ function HousekeepingPage() {
                 <div id="housekeeping-inspection-title" className="text-lg font-semibold sm:text-xl">Inspect {selectedInspection.unit_label}</div>
                 <div className="text-sm text-muted-foreground">{selectedInspection.room_name} · {selectedInspection.guest_name ?? "No current guest"}</div>
               </div>
-              <button className="rounded-lg border p-2" onClick={() => setInspectionId(null)} aria-label="Close inspection"><XCircle className="!h-5 !w-5 !min-h-0 !min-w-0 shrink-0 accent-primary" /></button>
+              <button className="rounded-lg border p-2" onClick={() => setInspectionId(null)} aria-label="Close inspection"><XCircle className="h-5 w-5" /></button>
             </div>
 
             <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-4 py-3 sm:px-5">
@@ -498,7 +498,7 @@ function HousekeepingPage() {
                       setInspectionChecks(next);
                       if (inspectionId) saveHousekeepingInspectionDraft({ inspectionId, checks: next, notes: inspectionNotes, savedAt: Date.now() });
                     }}
-                    className="h-5 w-5"
+                    className="!h-5 !w-5 !min-h-0 !min-w-0 shrink-0 accent-primary"
                   />
                   <span className="min-w-0 flex-1 text-sm leading-snug">{label}</span>
                 </label>
