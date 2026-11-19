@@ -20,6 +20,7 @@ export function StatCard({
   trend,
   tone = "green",
   className,
+  compact = false,
 }: {
   label: string;
   value: ReactNode;
@@ -28,11 +29,12 @@ export function StatCard({
   trend?: { value: string; positive?: boolean };
   tone?: Tone;
   className?: string;
+  compact?: boolean;
 }) {
   return (
     <div
       className={cn(
-        "os-card os-fade-in relative min-w-0 overflow-hidden p-4 sm:p-5 hover:-translate-y-[1px]",
+        cn("os-card os-fade-in relative min-w-0 overflow-hidden hover:-translate-y-[1px]", compact ? "p-3" : "p-4 sm:p-5"),
         className,
       )}
     >
@@ -56,10 +58,10 @@ export function StatCard({
           </span>
         )}
       </div>
-      <p className="mt-4 break-words font-display text-[2.4rem] font-normal leading-tight tracking-tight text-[color:var(--os-ink)] tabular-nums sm:mt-5">
+      <p className=cn("break-words font-sans font-semibold leading-tight tracking-tight text-[color:var(--os-ink)] tabular-nums", compact ? "mt-2 text-xl sm:text-2xl" : "mt-4 text-[2.4rem] sm:mt-5")>
         {value}
       </p>
-      <div className="mt-4 flex items-center justify-between gap-2">
+      <div className={cn("flex items-center justify-between gap-2", compact ? "mt-2" : "mt-4")}>
         {hint && <p className="text-xs text-[color:var(--os-ink-3)]">{hint}</p>}
         {trend && (
           <span
