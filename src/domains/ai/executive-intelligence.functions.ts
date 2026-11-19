@@ -177,7 +177,8 @@ export const generateExecutiveBriefing = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
-    const s = context.supabase;
+    const s: any = context.supabase;
+    const { propertyId, currency } = await getExecutivePropertyContext(s, context.userId);
     const [
       { data: arrivals },
       { data: departures },
@@ -194,20 +195,20 @@ export const generateExecutiveBriefing = createServerFn({ method: "POST" })
       { data: reputation },
       { data: risks },
     ] = await Promise.all([
-      s.from("bookings").select("id, reference, guest_name, guest_type, room_id, adults, children, special_requests").eq("check_in", today()).in("status", ["confirmed","checked_in"]),
-      s.from("bookings").select("id, reference, guest_name, balance_due").eq("check_out", today()).in("status", ["confirmed","checked_in","completed"]),
-      s.from("ops_tasks").select("id, title, priority").is("completed_at", null).order("priority", { ascending: true }).limit(20),
-      s.from("ops_alerts").select("id, message, severity").is("resolved_at", null).order("created_at", { ascending: false }).limit(20),
-      s.from("ai_guest_recommendations").select("id, title, reasoning, confidence, impact_score, kind").eq("status","pending").order("impact_score",{ ascending: false, nullsFirst: false }).limit(10),
-      s.from("ai_guest_alerts").select("id, title, severity, reasoning").eq("status","open").order("severity",{ ascending: false }).limit(10),
-      s.from("ai_pricing_recommendations").select("id, title, reasoning, confidence, impact_score, action").eq("status","pending").order("impact_score",{ ascending: false, nullsFirst: false }).limit(10),
-      s.from("ai_revenue_opportunities").select("id, title, reasoning, confidence, impact_score, kind").eq("status","pending").order("impact_score",{ ascending: false, nullsFirst: false }).limit(10),
-      s.from("ai_revenue_alerts").select("id, title, severity, reasoning").eq("status","open").order("severity",{ ascending: false }).limit(10),
-      s.from("ai_revenue_forecasts").select("horizon_days, expected_occupancy, expected_revenue, currency").order("created_at",{ ascending: false }).limit(3),
-      s.from("ai_marketing_recommendations").select("id, title, reasoning, confidence, impact_score, kind").eq("status","pending").order("impact_score",{ ascending: false, nullsFirst: false }).limit(10),
-      s.from("ai_marketing_priorities").select("id, title, reasoning, priority_score").order("priority_score",{ ascending: false, nullsFirst: false }).limit(5),
-      s.from("ai_reputation_insights").select("id, summary, avg_rating, review_count").order("created_at",{ ascending: false }).limit(1),
-      s.from("ai_strategic_risks").select("id, title, severity, reasoning").eq("status","open").order("severity",{ ascending: false }).limit(10),
+      s.from("bookings").select("id, reference, guest_name, guest_type, room_id, adults, children, special_requests").eq("property_id", propertyId).eq("check_in", today()).in("status", ["confirmed","checked_in"]),
+      s.from("bookings").select("id, reference, guest_name, balance_due, currency").eq("property_id", propertyId).eq("check_out", today()).in("status", ["confirmed","checked_in","completed"]),
+      s.from("ops_tasks").select("id, title, priority").eq("property_id", propertyId).is("completed_at", null).order("priority", { ascending: true }).limit(20),
+      s.from("ops_alerts").select("id, message, severity").eq("property_id", propertyId).is("resolved_at", null).order("created_at", { ascending: false }).limit(20),
+      s.from("ai_guest_recommendations").select("id, title, reasoning, confidence, impact_score, kind, currency").eq("property_id", propertyId).eq("status","pending").order("impact_score",{ ascending: false, nullsFirst: false }).limit(10),
+      s.from("ai_guest_alerts").select("id, title, severity, reasoning").eq("property_id", propertyId).eq("status","open").order("severity",{ ascending: false }).limit(10),
+      s.from("ai_pricing_recommendations").select("id, title, reasoning, confidence, impact_score, action, currency").eq("property_id", propertyId).eq("status","pending").order("impact_score",{ ascending: false, nullsFirst: false }).limit(10),
+      s.from("ai_revenue_opportunities").select("id, title, reasoning, confidence, impact_score, kind, currency").eq("property_id", propertyId).eq("status","pending").order("impact_score",{ ascending: false, nullsFirst: false }).limit(10),
+      s.from("ai_revenue_alerts").select("id, title, severity, reasoning, currency").eq("property_id", propertyId).eq("status","open").order("severity",{ ascending: false }).limit(10),
+      s.from("ai_revenue_forecasts").select("horizon_days, expected_occupancy, expected_revenue, currency").eq("property_id", propertyId).eq("currency", currency).order("created_at",{ ascending: false }).limit(3),
+      s.from("ai_marketing_recommendations").select("id, title, reasoning, confidence, impact_score, kind, currency").eq("property_id", propertyId).eq("status","pending").order("impact_score",{ ascending: false, nullsFirst: false }).limit(10),
+      s.from("ai_marketing_priorities").select("id, title, reasoning, priority_score, currency").eq("property_id", propertyId).order("priority_score",{ ascending: false, nullsFirst: false }).limit(5),
+      s.from("ai_reputation_insights").select("id, summary, avg_rating, review_count").eq("property_id", propertyId).order("created_at",{ ascending: false }).limit(1),
+      s.from("ai_strategic_risks").select("id, title, severity, reasoning").eq("property_id", propertyId).eq("status","open").order("severity",{ ascending: false }).limit(10),
     ]);
 
     // Merge & rank top recommendations across domains
@@ -257,6 +258,8 @@ export const generateExecutiveBriefing = createServerFn({ method: "POST" })
       .from("ai_executive_briefings")
       .upsert(
         {
+          property_id: propertyId,
+          currency,
           briefing_date: today(),
           summary,
           sections,
@@ -272,7 +275,7 @@ export const generateExecutiveBriefing = createServerFn({ method: "POST" })
           },
           generated_by: context.userId,
         },
-        { onConflict: "briefing_date" },
+        { onConflict: "property_id,briefing_date" },
       )
       .select("*")
       .single();
@@ -299,9 +302,10 @@ export const getLatestBriefing = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
-    const { data } = await context.supabase
+    const propertyId = await getExecutivePropertyContext(context.supabase, context.userId).then((value) => value.propertyId);
+    const { data } = await (context.supabase as any)
       .from("ai_executive_briefings")
-      .select("*")
+      .select("*").eq("property_id", propertyId)
       .order("briefing_date", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -323,7 +327,8 @@ export const getExecutiveDecisions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
-    const s = context.supabase;
+    const s: any = context.supabase;
+    const propertyId = await getExecutivePropertyContext(s, context.userId).then((value) => value.propertyId);
     const [
       { data: guest },
       { data: pricing },
@@ -331,10 +336,10 @@ export const getExecutiveDecisions = createServerFn({ method: "GET" })
       { data: marketing },
       { data: approvals },
     ] = await Promise.all([
-      s.from("ai_guest_recommendations").select("id, title, reasoning, confidence, impact_score, kind, status, created_at, booking_id").eq("status","pending"),
-      s.from("ai_pricing_recommendations").select("id, title, reasoning, confidence, impact_score, action, status, created_at").eq("status","pending"),
-      s.from("ai_revenue_opportunities").select("id, title, reasoning, confidence, impact_score, kind, status, created_at").eq("status","pending"),
-      s.from("ai_marketing_recommendations").select("id, title, reasoning, confidence, impact_score, kind, status, created_at").eq("status","pending"),
+      s.from("ai_guest_recommendations").select("id, title, reasoning, confidence, impact_score, kind, status, created_at, booking_id").eq("property_id", propertyId).eq("status","pending"),
+      s.from("ai_pricing_recommendations").select("id, title, reasoning, confidence, impact_score, action, status, created_at").eq("property_id", propertyId).eq("status","pending"),
+      s.from("ai_revenue_opportunities").select("id, title, reasoning, confidence, impact_score, kind, status, created_at").eq("property_id", propertyId).eq("status","pending"),
+      s.from("ai_marketing_recommendations").select("id, title, reasoning, confidence, impact_score, kind, status, created_at").eq("property_id", propertyId).eq("status","pending"),
       s.from("approval_requests").select("id, title, description, status, created_at").eq("status","pending"),
     ]);
 
