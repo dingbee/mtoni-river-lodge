@@ -166,7 +166,7 @@ COMMIT;
  THEN
     RAISE EXCEPTION 'New financial transaction currency must be a valid three-letter ISO 4217 code';
   END IF;
-  IF TG_TABLE_NAME = 'staynas_promotion_redemptions' THEN
+  IF TG_TABLE_NAME = 'staynas_promotion_redemptions' AND NEW.booking_id IS NULL THEN
     SELECT upper(p.currency) INTO v_property_currency
     FROM public.staynas_properties p WHERE p.id = NEW.property_id;
     IF v_property_currency IS NULL OR NEW.currency IS DISTINCT FROM v_property_currency THEN
