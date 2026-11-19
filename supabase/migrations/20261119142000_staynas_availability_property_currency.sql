@@ -117,7 +117,6 @@ BEGIN
       ELSE (q.quote->>'total')::numeric
     END;
 END;
-$function$
-
+$function$;
 
 COMMIT;
