@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Palette,
@@ -42,7 +43,38 @@ type LinkTile = {
 function SettingsHub() {
   const brandFn = useServerFn(getBrandContext);
   const founderStatusFn = useServerFn(getFounderAdminStatus);
-  const { organisation, property: propertyContext } = usePropertyContext();
+  const { organisation, property: propertyContext, updateCurrency } = usePropertyContext();
+  const [selectedCurrency, setSelectedCurrency] = useState(propertyContext.currency);
+  const [currencySaving, setCurrencySaving] = useState(false);
+  const [currencyError, setCurrencyError] = useState("");
+  const [currencySaved, setCurrencySaved] = useState(false);
+  useEffect(() => {
+    setSelectedCurrency(propertyContext.currency);
+    setCurrencySaved(false);
+    setCurrencyError("");
+  }, [propertyContext.id, propertyContext.currency]);
+  const currencyOptions = [
+    ["TZS", "Tanzanian Shilling"], ["USD", "US Dollar"], ["EUR", "Euro"],
+    ["GBP", "British Pound"], ["KES", "Kenyan Shilling"], ["UGX", "Ugandan Shilling"],
+    ["RWF", "Rwandan Franc"], ["ZAR", "South African Rand"], ["AED", "UAE Dirham"],
+    ["AUD", "Australian Dollar"], ["CAD", "Canadian Dollar"], ["CHF", "Swiss Franc"],
+    ["CNY", "Chinese Yuan"], ["INR", "Indian Rupee"], ["JPY", "Japanese Yen"],
+    ["NAD", "Namibian Dollar"], ["NGN", "Nigerian Naira"], ["SEK", "Swedish Krona"],
+  ];
+  const saveCurrency = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setCurrencySaving(true);
+    setCurrencyError("");
+    setCurrencySaved(false);
+    try {
+      await updateCurrency(selectedCurrency);
+      setCurrencySaved(true);
+    } catch (error) {
+      setCurrencyError(error instanceof Error ? error.message : "Currency could not be saved.");
+    } finally {
+      setCurrencySaving(false);
+    }
+  };
   const brand = useQuery({ queryKey: ["settings.brand-summary"], queryFn: () => brandFn() });
   const founderStatus = useQuery({
     queryKey: ["settings.founder-admin-status"],
@@ -190,11 +222,39 @@ function SettingsHub() {
             }
             hint="Voice, tone and guest-promise tokens"
           />
-          <PropertyFact
-            label="Currency"
-            value={propertyContext.currency}
-            hint="Base pricing currency for the booking engine"
-          />
+          <div className="rounded-md border border-[color:var(--os-hairline)] bg-[color:var(--os-surface-2)] p-3 sm:col-span-2">
+            <div className="text-[10px] uppercase tracking-widest text-[color:var(--os-ink-3)]">Operating currency</div>
+            <div className="mt-1 text-sm text-[color:var(--os-ink)]">Base pricing currency · {propertyContext.currency || "Not loaded"}</div>
+            <p className="mt-0.5 text-xs text-[color:var(--os-ink-3)]">
+              Applies to future property operations and pricing defaults. Existing bookings, invoices and payments keep their recorded transaction currency.
+            </p>
+            <form onSubmit={saveCurrency} className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
+              <label className="min-w-0 flex-1 text-xs font-medium text-[color:var(--os-ink-2)]">
+                Property currency
+                <select
+                  value={selectedCurrency}
+                  onChange={(event) => { setSelectedCurrency(event.target.value); setCurrencySaved(false); }}
+                  disabled={currencySaving || !propertyContext.currency}
+                  className="mt-1 min-h-11 w-full rounded-md border border-[color:var(--os-hairline)] bg-[color:var(--os-surface)] px-3 text-sm text-[color:var(--os-ink)]"
+                >
+                  {currencyOptions.map(([code, name]) => <option key={code} value={code}>{code} — {name}</option>)}
+                  {selectedCurrency && !currencyOptions.some(([code]) => code === selectedCurrency) && (
+                    <option value={selectedCurrency}>{selectedCurrency} — Current configured currency</option>
+                  )}
+                </select>
+              </label>
+              <button
+                type="submit"
+                disabled={currencySaving || !selectedCurrency || selectedCurrency === propertyContext.currency}
+                className="min-h-11 rounded-md bg-[color:var(--os-ink)] px-4 text-sm font-medium text-[color:var(--os-surface)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {currencySaving ? "Saving…" : "Save currency"}
+              </button>
+            </form>
+            {currencyError && <p role="alert" className="mt-2 text-xs text-destructive">{currencyError}</p>}
+            {currencySaved && <p role="status" className="mt-2 text-xs text-[color:var(--os-success)]">Property currency updated and recorded in the settings audit.</p>}
+            <p className="mt-2 text-[11px] text-[color:var(--os-ink-3)]">Only property owners, managers and administrators can change this setting.</p>
+          </div>
         </div>
       </SectionCard>
 
