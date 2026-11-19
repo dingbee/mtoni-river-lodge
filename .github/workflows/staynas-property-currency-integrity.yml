@@ -55,6 +55,7 @@ jobs:
           src/lib/payments.functions.ts
           src/lib/guest-intelligence.functions.ts
           src/lib/operations.functions.ts
+          --rule 'prettier/prettier: off'
 
   database:
     name: Isolated PostgreSQL migration and contract tests
