@@ -399,7 +399,7 @@ CREATE POLICY "Managers write analytics_recs" ON public.ai_analytics_recommendat
   WITH CHECK (property_id = public.staynas_active_property_id(auth.uid())
     AND public.staynas_user_has_property_access(auth.uid(), property_id)
     AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[]));
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.ai_analytics_recommendations TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.ai_analytics_recommendations TO authenticated;
 
 
 -- Executive and marketing intelligence artifacts are isolated by active property.
