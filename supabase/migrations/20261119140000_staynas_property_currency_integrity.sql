@@ -508,6 +508,198 @@ GRANT SELECT, INSERT ON public.ai_reputation_insights TO authenticated;
 GRANT SELECT ON public.ai_strategic_risks TO authenticated;
 
 
+-- Executive KPI snapshots are property- and currency-specific. Legacy snapshots remain
+-- unassigned and are intentionally not exposed as belonging to a property.
+ALTER TABLE public.ai_executive_kpi_snapshots
+  ADD COLUMN IF NOT EXISTS property_id uuid REFERENCES public.staynas_properties(id) ON DELETE RESTRICT,
+  ADD COLUMN IF NOT EXISTS currency text;
+DO $kpi_constraints$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.ai_executive_kpi_snapshots'::regclass AND conname = 'ai_executive_kpi_snapshots_currency_iso3_chk') THEN
+    ALTER TABLE public.ai_executive_kpi_snapshots ADD CONSTRAINT ai_executive_kpi_snapshots_currency_iso3_chk CHECK (currency IS NULL OR currency ~ '^[A-Z]{3}ALTER TABLE public.campaigns
+  ADD COLUMN IF NOT EXISTS property_id uuid REFERENCES public.staynas_properties(id) ON DELETE RESTRICT;
+DO $campaign_constraints$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.campaigns'::regclass AND conname = 'campaigns_currency_iso3_chk') THEN
+    ALTER TABLE public.campaigns ADD CONSTRAINT campaigns_currency_iso3_chk CHECK (currency IS NULL OR currency ~ '^[A-Z]{3}$');
+  END IF;
+END
+$campaign_constraints$;
+CREATE INDEX IF NOT EXISTS campaigns_property_updated_idx ON public.campaigns(property_id, updated_at DESC);
+ALTER TABLE public.campaigns ENABLE ROW LEVEL SECURITY;
+CREATE POLICY staynas_campaigns_read_property_or_legacy ON public.campaigns
+  FOR SELECT TO authenticated
+  USING (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id));
+CREATE POLICY staynas_campaigns_create_property ON public.campaigns
+  FOR INSERT TO authenticated
+  WITH CHECK (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin','marketing']::public.app_role[]));
+CREATE POLICY staynas_campaigns_update_property ON public.campaigns
+  FOR UPDATE TO authenticated
+  USING (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin','marketing']::public.app_role[]))
+  WITH CHECK (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin','marketing']::public.app_role[]));
+CREATE POLICY staynas_campaigns_delete_property ON public.campaigns
+  FOR DELETE TO authenticated
+  USING (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin','marketing']::public.app_role[]));
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.campaigns TO authenticated;
+
+
+-- Database-enforced transaction currency inheritance and historical immutability.
+CREATE OR REPLACE FUNCTION public.staynas_guard_booking_transaction_currency()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $function$
+DECLARE
+  v_property_currency text;
+BEGIN
+  IF TG_OP = 'UPDATE' AND (
+    OLD.currency IS DISTINCT FROM NEW.currency
+    OR OLD.property_id IS DISTINCT FROM NEW.property_id
+  ) THEN
+    RAISE EXCEPTION 'Booking property and transaction currency are immutable';
+  END IF;
+  IF TG_OP = 'INSERT' THEN
+    NEW.currency := upper(btrim(COALESCE(NEW.currency, '')));
+    SELECT upper(p.currency) INTO v_property_currency
+    FROM public.staynas_properties p
+    WHERE p.id = NEW.property_id AND p.status IN ('active','setup');
+    IF v_property_currency IS NULL
+       OR v_property_currency !~ '^[A-Z]{3}$'
+       OR upper(COALESCE(NEW.currency,'')) IS DISTINCT FROM v_property_currency THEN
+      RAISE EXCEPTION 'New booking currency must match the authoritative property operating currency';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.staynas_guard_child_transaction_currency()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $function$
+DECLARE
+  v_booking_currency text;
+BEGIN
+  IF TG_OP = 'UPDATE' THEN
+    IF OLD.currency IS DISTINCT FROM NEW.currency
+       OR OLD.booking_id IS DISTINCT FROM NEW.booking_id THEN
+      RAISE EXCEPTION 'Historical transaction currency and booking association are immutable';
+    END IF;
+    -- Preserve legacy payment events with an unknown currency. Metadata/status
+    -- updates remain possible, but their historical currency is never guessed.
+    IF NEW.currency IS NULL OR btrim(NEW.currency) = '' THEN
+      RETURN NEW;
+    END IF;
+  ELSE
+    NEW.currency := upper(btrim(COALESCE(NEW.currency, '')));
+  END IF;
+  IF NEW.currency IS NULL OR upper(NEW.currency) !~ '^[A-Z]{3}
+  RETURN NEW;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS trg_staynas_guard_booking_transaction_currency ON public.bookings;
+CREATE TRIGGER trg_staynas_guard_booking_transaction_currency
+  BEFORE INSERT OR UPDATE ON public.bookings
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_booking_transaction_currency();
+
+DROP TRIGGER IF EXISTS trg_staynas_guard_payment_event_currency ON public.payment_events;
+CREATE TRIGGER trg_staynas_guard_payment_event_currency
+  BEFORE INSERT OR UPDATE ON public.payment_events
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+
+DROP TRIGGER IF EXISTS trg_staynas_guard_folio_posting_currency ON public.pms_folio_postings;
+CREATE TRIGGER trg_staynas_guard_folio_posting_currency
+  BEFORE INSERT OR UPDATE ON public.pms_folio_postings
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+
+DROP TRIGGER IF EXISTS trg_staynas_guard_folio_adjustment_currency ON public.pms_folio_adjustments;
+CREATE TRIGGER trg_staynas_guard_folio_adjustment_currency
+  BEFORE INSERT OR UPDATE ON public.pms_folio_adjustments
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+
+DROP TRIGGER IF EXISTS trg_staynas_guard_promotion_redemption_currency ON public.staynas_promotion_redemptions;
+CREATE TRIGGER trg_staynas_guard_promotion_redemption_currency
+  BEFORE INSERT OR UPDATE ON public.staynas_promotion_redemptions
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+
+REVOKE ALL ON FUNCTION public.staynas_guard_booking_transaction_currency() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.staynas_guard_child_transaction_currency() FROM PUBLIC, anon, authenticated;
+
+COMMIT;
+ THEN
+    RAISE EXCEPTION 'New transaction currency must be a valid three-letter ISO 4217 code';
+  END IF;
+  IF NEW.booking_id IS NOT NULL THEN
+    SELECT upper(b.currency) INTO v_booking_currency
+    FROM public.bookings b WHERE b.id = NEW.booking_id;
+    IF v_booking_currency IS NULL OR upper(NEW.currency) IS DISTINCT FROM v_booking_currency THEN
+      RAISE EXCEPTION 'Transaction currency must match its booking transaction currency';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS trg_staynas_guard_booking_transaction_currency ON public.bookings;
+CREATE TRIGGER trg_staynas_guard_booking_transaction_currency
+  BEFORE INSERT OR UPDATE ON public.bookings
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_booking_transaction_currency();
+
+DROP TRIGGER IF EXISTS trg_staynas_guard_payment_event_currency ON public.payment_events;
+CREATE TRIGGER trg_staynas_guard_payment_event_currency
+  BEFORE INSERT OR UPDATE ON public.payment_events
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+
+DROP TRIGGER IF EXISTS trg_staynas_guard_folio_posting_currency ON public.pms_folio_postings;
+CREATE TRIGGER trg_staynas_guard_folio_posting_currency
+  BEFORE INSERT OR UPDATE ON public.pms_folio_postings
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+
+DROP TRIGGER IF EXISTS trg_staynas_guard_folio_adjustment_currency ON public.pms_folio_adjustments;
+CREATE TRIGGER trg_staynas_guard_folio_adjustment_currency
+  BEFORE INSERT OR UPDATE ON public.pms_folio_adjustments
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+
+DROP TRIGGER IF EXISTS trg_staynas_guard_promotion_redemption_currency ON public.staynas_promotion_redemptions;
+CREATE TRIGGER trg_staynas_guard_promotion_redemption_currency
+  BEFORE INSERT OR UPDATE ON public.staynas_promotion_redemptions
+  FOR EACH ROW EXECUTE FUNCTION public.staynas_guard_child_transaction_currency();
+
+REVOKE ALL ON FUNCTION public.staynas_guard_booking_transaction_currency() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.staynas_guard_child_transaction_currency() FROM PUBLIC, anon, authenticated;
+
+COMMIT;
+);
+  END IF;
+END
+$kpi_constraints$;
+DROP INDEX IF EXISTS public.ai_executive_kpi_snapshots_key;
+CREATE UNIQUE INDEX IF NOT EXISTS ai_executive_kpi_snapshots_property_period_uidx
+  ON public.ai_executive_kpi_snapshots(property_id, currency, period, period_start);
+ALTER TABLE public.ai_executive_kpi_snapshots ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS staynas_property_ai_executive_kpi_snapshots ON public.ai_executive_kpi_snapshots;
+CREATE POLICY staynas_property_ai_executive_kpi_snapshots ON public.ai_executive_kpi_snapshots
+  FOR ALL TO authenticated
+  USING (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[]))
+  WITH CHECK (property_id = public.staynas_active_property_id(auth.uid())
+    AND public.staynas_user_has_property_access(auth.uid(), property_id)
+    AND public.has_any_role(auth.uid(), ARRAY['owner','manager','admin']::public.app_role[]));
+GRANT SELECT, INSERT, UPDATE ON public.ai_executive_kpi_snapshots TO authenticated;
+
+
 -- Campaign budgets are property operating spend. Legacy unassigned campaigns remain
 -- readable with their stored currency; editing them assigns them only when currency matches.
 ALTER TABLE public.campaigns
