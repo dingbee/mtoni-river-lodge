@@ -20,6 +20,15 @@ function daysAgo(n: number) { const d = new Date(); d.setUTCDate(d.getUTCDate() 
 function firstOfMonth() { const d = new Date(); return iso(new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1))); }
 function clamp(v: number, min = 0, max = 1) { return Math.max(min, Math.min(max, v)); }
 
+async function getExecutivePropertyContext(supabase: any, userId: string): Promise<{ propertyId: string; currency: string }> {
+  const { data: propertyId, error: activeError } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
+  if (activeError || !propertyId) throw new Error(activeError?.message ?? "No active property selected");
+  const { data: property, error } = await supabase.from("staynas_properties").select("currency").eq("id", propertyId).single();
+  const currency = String(property?.currency ?? "").trim().toUpperCase();
+  if (error || !/^[A-Z]{3}$/.test(currency)) throw new Error("The active property must have an explicit operating currency before executive intelligence can run.");
+  return { propertyId, currency };
+}
+
 async function logActivity(supabase: any, userId: string | null, tool: string, question: string, response: string) {
   try {
     await supabase.from("ai_activity_logs").insert({
@@ -37,7 +46,8 @@ export const getExecutiveOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
-    const s = context.supabase;
+    const s: any = context.supabase;
+    const { propertyId, currency } = await getExecutivePropertyContext(s, context.userId);
     const [
       { data: rooms },
       { data: arrivalsToday },
@@ -59,23 +69,23 @@ export const getExecutiveOverview = createServerFn({ method: "GET" })
       { data: reviews },
       { data: approvals },
     ] = await Promise.all([
-      s.from("rooms").select("total_units").eq("status", "active"),
-      s.from("bookings").select("id, guest_name, guest_type, check_in").eq("check_in", today()).in("status", ["confirmed","checked_in"]),
-      s.from("bookings").select("id, guest_name, check_out").eq("check_out", today()).in("status", ["confirmed","checked_in","completed"]),
-      s.from("bookings").select("id, nights").lte("check_in", today()).gt("check_out", today()).in("status", ["confirmed","checked_in"]),
-      s.from("bookings").select("total, nights, currency").gte("check_in", firstOfMonth()).in("status", ["confirmed","checked_in","completed"]),
-      s.from("bookings").select("total, nights").gte("check_in", today()).lte("check_in", daysFromNow(30)).in("status", ["confirmed","pending","checked_in"]),
-      s.from("bookings").select("balance_due, currency").gt("balance_due", 0).in("status", ["confirmed","checked_in","completed"]),
-      s.from("ops_tasks").select("id, priority").is("completed_at", null),
-      s.from("ops_alerts").select("id, severity").is("resolved_at", null),
-      s.from("room_states").select("state"),
-      s.from("ai_guest_recommendations").select("id").eq("status", "pending"),
-      s.from("ai_pricing_recommendations").select("id").eq("status", "pending"),
-      s.from("ai_revenue_opportunities").select("id").eq("status", "pending"),
-      s.from("ai_marketing_recommendations").select("id").eq("status", "pending"),
-      s.from("ai_revenue_alerts").select("id, severity").eq("status", "open"),
-      s.from("ai_guest_alerts").select("id, severity").eq("status", "open"),
-      s.from("ai_strategic_risks").select("id, severity").eq("status", "open"),
+      s.from("rooms").select("total_units").eq("property_id", propertyId).eq("status", "active"),
+      s.from("bookings").select("id, guest_name, guest_type, check_in").eq("property_id", propertyId).eq("check_in", today()).in("status", ["confirmed","checked_in"]),
+      s.from("bookings").select("id, guest_name, check_out").eq("property_id", propertyId).eq("check_out", today()).in("status", ["confirmed","checked_in","completed"]),
+      s.from("bookings").select("id, nights").eq("property_id", propertyId).lte("check_in", today()).gt("check_out", today()).in("status", ["confirmed","checked_in"]),
+      s.from("bookings").select("total, nights, currency").eq("property_id", propertyId).gte("check_in", firstOfMonth()).in("status", ["confirmed","checked_in","completed"]),
+      s.from("bookings").select("total, nights, currency").eq("property_id", propertyId).gte("check_in", today()).lte("check_in", daysFromNow(30)).in("status", ["confirmed","pending","checked_in"]),
+      s.from("bookings").select("balance_due, currency").eq("property_id", propertyId).gt("balance_due", 0).in("status", ["confirmed","checked_in","completed"]),
+      s.from("ops_tasks").select("id, priority").eq("property_id", propertyId).is("completed_at", null),
+      s.from("ops_alerts").select("id, severity").eq("property_id", propertyId).is("resolved_at", null),
+      s.from("room_states").select("state").eq("property_id", propertyId),
+      s.from("ai_guest_recommendations").select("id").eq("property_id", propertyId).eq("status", "pending"),
+      s.from("ai_pricing_recommendations").select("id").eq("property_id", propertyId).eq("status", "pending"),
+      s.from("ai_revenue_opportunities").select("id").eq("property_id", propertyId).eq("status", "pending"),
+      s.from("ai_marketing_recommendations").select("id").eq("property_id", propertyId).eq("status", "pending"),
+      s.from("ai_revenue_alerts").select("id, severity").eq("property_id", propertyId).eq("status", "open"),
+      s.from("ai_guest_alerts").select("id, severity").eq("property_id", propertyId).eq("status", "open"),
+      s.from("ai_strategic_risks").select("id, severity").eq("property_id", propertyId).eq("status", "open"),
       s.from("reviews").select("rating").eq("status", "approved").gte("created_at", daysAgo(180)),
       s.from("approval_requests").select("id").eq("status", "pending"),
     ]);
@@ -84,15 +94,14 @@ export const getExecutiveOverview = createServerFn({ method: "GET" })
     const occupiedTonight = inHouse?.length ?? 0;
     const occupancyToday = totalUnits > 0 ? occupiedTonight / totalUnits : 0;
 
-    const mtdRevenue = (mtd ?? []).reduce((s: any, b: any) => s + Number(b.total ?? 0), 0);
+    const mtdRevenue = (mtd ?? []).filter((b: any) => String(b.currency ?? "").trim().toUpperCase() === currency).reduce((s: any, b: any) => s + Number(b.total ?? 0), 0);
     const mtdNights = (mtd ?? []).reduce((s: any, b: any) => s + Number(b.nights ?? 0), 0);
     const revenueToday = 0; // deterministic proxy — real revenue lives in finance module
-    const currency = (mtd?.[0] as any)?.currency ?? "USD";
-    const forwardRevenue = (forward30 ?? []).reduce((s: any, b: any) => s + Number(b.total ?? 0), 0);
+    const forwardRevenue = (forward30 ?? []).filter((b: any) => String(b.currency ?? "").trim().toUpperCase() === currency).reduce((s: any, b: any) => s + Number(b.total ?? 0), 0);
     const forwardNights = (forward30 ?? []).reduce((s: any, b: any) => s + Number(b.nights ?? 0), 0);
     const expectedOccupancy30 = totalUnits > 0 ? forwardNights / (totalUnits * 30) : 0;
 
-    const outstandingTotal = (outstanding ?? []).reduce((s: any, b: any) => s + Number(b.balance_due ?? 0), 0);
+    const outstandingTotal = (outstanding ?? []).filter((b: any) => String(b.currency ?? "").trim().toUpperCase() === currency).reduce((s: any, b: any) => s + Number(b.balance_due ?? 0), 0);
 
     const vipToday = (arrivalsToday ?? []).filter((b: any) => b.guest_type === "vip" || b.guest_type === "climber").length;
 
@@ -134,6 +143,7 @@ export const getExecutiveOverview = createServerFn({ method: "GET" })
     );
 
     return {
+      propertyId,
       currency,
       totalUnits,
       occupancyToday,
