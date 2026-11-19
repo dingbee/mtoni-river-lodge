@@ -68,6 +68,7 @@ DECLARE
   t text;
   roles text[];
   role_sql text;
+  existing_policy text;
 BEGIN
   FOR t, roles IN
     SELECT * FROM (VALUES
@@ -93,7 +94,13 @@ BEGIN
   LOOP
     role_sql := (SELECT string_agg(quote_literal(r),',') FROM unnest(roles) AS r);
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY',t);
-    EXECUTE format('DROP POLICY IF EXISTS staynas_property_scope ON public.%I',t);
+    -- PostgreSQL combines permissive policies with OR. Remove every legacy
+    -- policy before installing the single active-property boundary.
+    FOR existing_policy IN
+      SELECT polname FROM pg_policy WHERE polrelid = format('public.%I',t)::regclass
+    LOOP
+      EXECUTE format('DROP POLICY %I ON public.%I',existing_policy,t);
+    END LOOP;
     EXECUTE format(
       'CREATE POLICY staynas_property_scope ON public.%I FOR ALL TO authenticated USING (property_id = public.staynas_active_property_id(auth.uid()) AND public.staynas_user_has_property_access(auth.uid(),property_id) AND public.has_any_role(auth.uid(),ARRAY[%s]::public.app_role[])) WITH CHECK (property_id = public.staynas_active_property_id(auth.uid()) AND public.staynas_user_has_property_access(auth.uid(),property_id) AND public.has_any_role(auth.uid(),ARRAY[%s]::public.app_role[]))',
       t,role_sql,role_sql
