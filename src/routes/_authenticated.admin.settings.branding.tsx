@@ -27,6 +27,8 @@ const defaults = (propertyId: string): PropertyBranding => ({
   backgroundColor: "#f5f4ef", textColor: "#202820",
   tagline: "", description: "", heroImageUrl: "",
   galleryImageUrls: [], showStayNasAttribution: true,
+  socialLinks: { instagram: "", facebook: "", tiktok: "", youtube: "", x: "", whatsapp: "" },
+  footerPromotion: { enabled: false, title: "", description: "", imageUrl: "", ctaLabel: "Explore offer", ctaUrl: "" },
 });
 
 function PropertyBrandingPage() {
@@ -91,6 +93,32 @@ function PropertyBrandingPage() {
             <Field label="Or add external gallery image URLs (one per line)">
               <Textarea rows={3} value={form.galleryImageUrls.join("\n")} onChange={e => update("galleryImageUrls", e.target.value.split("\n").map(v => v.trim()).filter(Boolean).slice(0,12))} placeholder="https://…/image-1.webp" />
             </Field>
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Social links" description="Add the property's official social profiles. Empty links are hidden from guests.">
+          <div className="grid gap-4 sm:grid-cols-2">
+            {(["instagram", "facebook", "tiktok", "youtube", "x", "whatsapp"] as const).map((network) => (
+              <Field key={network} label={network === "x" ? "X" : network[0].toUpperCase() + network.slice(1)}>
+                <Input type="url" value={form.socialLinks[network]} onChange={e => update("socialLinks", { ...form.socialLinks, [network]: e.target.value })} placeholder={network === "whatsapp" ? "https://wa.me/255..." : `https://${network === "x" ? "x" : network}.com/your-property`} />
+              </Field>
+            ))}
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Guest promotional banner" description="Optional property promotion displayed above the guest booking footer.">
+          <div className="flex items-center justify-between gap-4">
+            <div><p className="text-sm font-medium">Show promotional banner</p><p className="text-xs text-muted-foreground">Guests can see this offer at the bottom of the booking page.</p></div>
+            <Switch checked={form.footerPromotion.enabled} onCheckedChange={v => update("footerPromotion", { ...form.footerPromotion, enabled: v })} />
+          </div>
+          <div className="mt-4 grid gap-4">
+            <Field label="Promotion title"><Input value={form.footerPromotion.title} onChange={e => update("footerPromotion", { ...form.footerPromotion, title: e.target.value })} maxLength={120} placeholder="Stay longer, save more" /></Field>
+            <Field label="Description"><Textarea rows={2} value={form.footerPromotion.description} onChange={e => update("footerPromotion", { ...form.footerPromotion, description: e.target.value })} maxLength={400} placeholder="Describe the offer for guests…" /></Field>
+            <AssetField label="Promotion image" value={form.footerPromotion.imageUrl} propertyId={property.id} assetKey="footer-promotion" onUploaded={v => update("footerPromotion", { ...form.footerPromotion, imageUrl: v })} />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="CTA label"><Input value={form.footerPromotion.ctaLabel} onChange={e => update("footerPromotion", { ...form.footerPromotion, ctaLabel: e.target.value })} maxLength={40} placeholder="Explore offer" /></Field>
+              <Field label="CTA URL"><Input type="url" value={form.footerPromotion.ctaUrl} onChange={e => update("footerPromotion", { ...form.footerPromotion, ctaUrl: e.target.value })} placeholder="https://…" /></Field>
+            </div>
           </div>
         </SectionCard>
 
