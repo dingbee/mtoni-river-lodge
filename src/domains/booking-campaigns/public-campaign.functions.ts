@@ -8,13 +8,17 @@ type CampaignTable<Row> = { Row: Row; Insert: Partial<Row>; Update: Partial<Row>
 type PublicCampaignDatabase = Omit<Database, "public"> & {
   public: Omit<Database["public"], "Tables"> & {
     Tables: Database["public"]["Tables"] & {
-      staynas_property_branding: CampaignTable<{ logo_url: string | null; primary_color: string | null; secondary_color: string | null; background_color: string | null; text_color: string | null; tagline: string | null; description: string | null; hero_image_url: string | null }>;
+      staynas_property_branding: CampaignTable<{ property_id: string; logo_url: string | null; primary_color: string | null; secondary_color: string | null; background_color: string | null; text_color: string | null; tagline: string | null; description: string | null; hero_image_url: string | null }>;
       booking_campaigns: CampaignTable<{ id: string; organisation_id: string; property_id: string; slug: string; name: string; status: string; starts_at: string | null; ends_at: string | null }>;
       campaign_page_content: CampaignTable<{ version: number; content: Json; campaign_id: string; property_id: string; status: string }>;
-      campaign_room_selections: CampaignTable<{ room_id: string; sort_order: number; display_config: Json }>;
-      campaign_offers: CampaignTable<{ id: string; offer_code: string; title: string; description: string | null; rate_plan_publication_id: string | null; sort_order: number; active: boolean }>;
-      staynas_rate_plan_publications: CampaignTable<{ id: string; rate_plan_id: string; publication_number: number; rate_plan_version: number; code: string; name: string; currency: string; effective_from: string | null; effective_to: string | null; snapshot_hash: string | null; room_type_assignments: Array<{ room_type_id: string }> }>;
-      staynas_rate_plans: CampaignTable<{ id: string; active: boolean; publication_status: string; currency: string }>;
+      campaign_room_selections: CampaignTable<{ campaign_id: string; property_id: string; room_id: string; sort_order: number; display_config: Json }>;
+      campaign_offers: CampaignTable<{ id: string; campaign_id: string; property_id: string; offer_code: string; title: string; description: string | null; rate_plan_publication_id: string | null; sort_order: number; active: boolean }>;
+      staynas_rate_plan_publications: CampaignTable<{ id: string; property_id: string; rate_plan_id: string; publication_number: number; rate_plan_version: number; code: string; name: string; currency: string; effective_from: string | null; effective_to: string | null; snapshot_hash: string | null; room_type_assignments: Array<{ room_type_id: string }> }>;
+      staynas_rate_plans: CampaignTable<{ id: string; property_id: string; active: boolean; publication_status: string; currency: string }>;
+    };
+    Functions: Database["public"]["Functions"] & {
+      staynas_upsert_booking_attribution: { Args: { _property_id: string; _organisation_id: string; _session_key: string; _campaign_id?: string | null; _campaign_offer_id?: string | null; _touch: Json; _touch_at: string; _is_external_acquisition: boolean }; Returns: { attribution_id: string } };
+      staynas_record_booking_analytics_event: { Args: { _property_id: string; _organisation_id: string; _event_type: string; _event_key: string; _event_source: string; _attribution_id?: string | null; _campaign_id?: string | null; _session_key?: string | null; _traffic_source?: string | null; _traffic_medium?: string | null; _utm_campaign?: string | null; _utm_content?: string | null; _utm_term?: string | null; _referrer?: string | null; _landing_page?: string | null; _metadata?: Json }; Returns: Json };
     };
   };
 };
@@ -98,7 +102,7 @@ export const getPublicBookingCampaign = createServerFn({ method: "GET" })
       throw new Error("Campaign content, selected rooms or offer configuration is incomplete.");
     }
     const roomIds = selections.map((item) => item.room_id);
-    const publicationIds = offers.map((item) => item.rate_plan_publication_id).filter(Boolean);
+    const publicationIds = offers.map((item) => item.rate_plan_publication_id).filter((id): id is string => typeof id === "string");
     const [{ data: rooms, error: roomsError }, { data: publications, error: publicationsError }] = await Promise.all([
       sb.from("rooms").select("id,slug,name,short_description,bed_label,bathroom_label,amenities,max_occupancy,status,catalogue_type_id").eq("property_id", property.id).eq("status", "active").in("id", roomIds),
       sb.from("staynas_rate_plan_publications").select("id,rate_plan_id,publication_number,rate_plan_version,code,name,currency,effective_from,effective_to,snapshot_hash,room_type_assignments").eq("property_id", property.id).in("id", publicationIds),
@@ -126,13 +130,13 @@ export const getPublicBookingCampaign = createServerFn({ method: "GET" })
     }
     const validOffers = offers.flatMap((offer) => {
       const publication = offer.rate_plan_publication_id ? publicationById.get(offer.rate_plan_publication_id) : undefined;
-      const today = campaignLocalDate(property.timezone);
+      const today = campaignLocalDate(property.timezone ?? "UTC");
       const assignedRoomTypeIds = new Set<string>((publication?.room_type_assignments ?? []).map((item) => item.room_type_id));
       if (!publication || !latestPublicationIds.has(publication.id)
         || publication.currency !== property.currency || !validPlans.has(publication.rate_plan_id)
         || (publication.effective_from && publication.effective_from > today)
         || (publication.effective_to && publication.effective_to < today)
-        || (rooms ?? []).some((room) => !assignedRoomTypeIds.has(room.catalogue_type_id))) return [];
+        || (rooms ?? []).some((room) => !room.catalogue_type_id || !assignedRoomTypeIds.has(room.catalogue_type_id))) return [];
       return [{
         ...offer, ratePlanId: publication.rate_plan_id, publicationId: publication.id,
         publicationNumber: publication.publication_number, ratePlanVersion: publication.rate_plan_version,
