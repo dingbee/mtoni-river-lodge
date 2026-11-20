@@ -16,6 +16,8 @@ on:
       - "src/lib/guest-intelligence.functions.ts"
       - "src/lib/operations.functions.ts"
       - "src/lib/platform-room-configuration.server.ts"
+      - "src/domains/finance/rate-plans.functions.ts"
+      - "src/routes/_authenticated.admin.finance.rate-plans.tsx"
       - "supabase/migrations/20261119*_staynas_*currency*.sql"
       - "supabase/tests/staynas_property_currency_integrity.test.sql"
       - "supabase/tests/spe04_published_pricing_resolver.test.sql"
@@ -58,6 +60,8 @@ jobs:
           src/modules/property/property.functions.ts
           src/routes/_authenticated.admin.settings.index.tsx
           src/lib/platform-room-configuration.server.ts
+          src/domains/finance/rate-plans.functions.ts
+          src/routes/_authenticated.admin.finance.rate-plans.tsx
           --rule 'prettier/prettier: off'
 
   database:
