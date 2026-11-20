@@ -38,7 +38,7 @@ export const getPublicDemoProperty = createServerFn({ method: "GET" })
 
     const { data: brandingRow, error: brandingError } = await (supabaseAdmin as any)
       .from("staynas_property_branding")
-      .select("logo_url, logo_dark_url, favicon_url, primary_color, secondary_color, background_color, text_color, tagline, description, hero_image_url, gallery_image_urls, show_staynas_attribution")
+      .select("logo_url, logo_dark_url, favicon_url, primary_color, secondary_color, background_color, text_color, tagline, description, hero_image_url, gallery_image_urls, social_links, show_staynas_attribution")
       .eq("property_id", property.id)
       .maybeSingle();
     if (brandingError) {
@@ -81,6 +81,22 @@ export const getPublicDemoProperty = createServerFn({ method: "GET" })
         heroImageUrl: branding.hero_image_url ?? "",
         galleryImageUrls: Array.isArray(branding.gallery_image_urls) ? branding.gallery_image_urls : [],
         showStayNasAttribution: branding.show_staynas_attribution ?? true,
+        socialLinks: {
+          instagram: branding.social_links?.instagram ?? "",
+          facebook: branding.social_links?.facebook ?? "",
+          tiktok: branding.social_links?.tiktok ?? "",
+          youtube: branding.social_links?.youtube ?? "",
+          x: branding.social_links?.x ?? "",
+          whatsapp: branding.social_links?.whatsapp ?? "",
+        },
+        footerPromotion: {
+          enabled: branding.social_links?.footerPromotion?.enabled ?? false,
+          title: branding.social_links?.footerPromotion?.title ?? "",
+          description: branding.social_links?.footerPromotion?.description ?? "",
+          imageUrl: branding.social_links?.footerPromotion?.imageUrl ?? "",
+          ctaLabel: branding.social_links?.footerPromotion?.ctaLabel ?? "Explore offer",
+          ctaUrl: branding.social_links?.footerPromotion?.ctaUrl ?? "",
+        },
       },
       rooms: (rooms ?? []).map((room: any) => ({
         ...room,
