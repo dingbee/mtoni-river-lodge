@@ -85,8 +85,8 @@ function RatePlans() {
     if (!currency && data?.property?.currency) setCurrency(String(data.property.currency).toUpperCase());
   }, [data?.property?.currency, currency]);
 
-  const reset=()=>{setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(null);setCode("");setName("");setDescription("");setCategory("standard_flexible");setBasis("per_room");setMealPlan("room_only");setRefundable(true);setCurrency(String(data?.property?.currency??"USD").toUpperCase());setFrom("");setTo("");setParent("");setRatePlanDataText("{}");setInheritancePreview(null);};
-  const startEdit=(p:Plan)=>{setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(p);setCode(p.code);setName(p.name);setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setCurrency(p.currency);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));setInheritancePreview(null);};
+  const reset=()=>{setDailyDate("");setDailyRoomType("");setDailyRate("");setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(null);setCode("");setName("");setDescription("");setCategory("standard_flexible");setBasis("per_room");setMealPlan("room_only");setRefundable(true);setCurrency(String(data?.property?.currency??"USD").toUpperCase());setFrom("");setTo("");setParent("");setRatePlanDataText("{}");setInheritancePreview(null);};
+  const startEdit=(p:Plan)=>{setDailyDate("");setDailyRoomType("");setDailyRate("");setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(p);setCode(p.code);setName(p.name);setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setCurrency(p.currency);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));setInheritancePreview(null);};
   const save=useMutation({
     mutationFn:()=>saveFn({data:{...(editing?{id:editing.id}:{}),code,name,description:description||null,category,pricing_basis:basis as "per_room"|"per_person"|"occupancy_based",meal_plan:mealPlan as "room_only"|"bed_breakfast"|"half_board"|"full_board"|"all_inclusive"|"custom",currency,refundable,effective_from:from||null,effective_to:to||null,parent_rate_plan_id:parent||null,active:editing?.active??true,cancellation_policy:editing?.cancellation_policy??{},booking_conditions:editing?.booking_conditions??{},rate_plan_data:JSON.parse(ratePlanDataText||"{}")}}),
     onSuccess:()=>{toast.success("Rate plan saved");reset();qc.invalidateQueries({queryKey:["staynas.rate-plans"]});},
@@ -112,7 +112,7 @@ function RatePlans() {
   };
   const inheritanceMutation=useMutation({mutationFn:(id:string)=>resolveInheritanceFn({data:{id}}),onSuccess:(value)=>setInheritancePreview(value && typeof value === "object" ? value as Record<string,unknown> : {result:value}),onError:(e:unknown)=>toast.error((e as Error).message)});
   const roomTypeMutation=useMutation({mutationFn:(v:{rate_plan_id:string;room_type_id:string;active:boolean})=>setRoomTypeFn({data:v}),onSuccess:()=>{qc.invalidateQueries({queryKey:["staynas.rate-plan-room-types"]});toast.success("Room-type assignment updated");},onError:(e:unknown)=>toast.error((e as Error).message)});
-  const duplicate=(p:Plan)=>{setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(null);setCode(p.code+"-COPY");setName(p.name+" copy");setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setCurrency(p.currency);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));window.scrollTo({top:0,behavior:"smooth"});};
+  const duplicate=(p:Plan)=>{setDailyDate("");setDailyRoomType("");setDailyRate("");setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(null);setCode(p.code+"-COPY");setName(p.name+" copy");setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setCurrency(p.currency);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));window.scrollTo({top:0,behavior:"smooth"});};
   const readSeasonalRates=():Record<string,Record<string,unknown>>=>{
     try {
       const parsed=JSON.parse(ratePlanDataText||"{}") as {seasonal_rates?:Record<string,Record<string,unknown>>};
@@ -124,6 +124,21 @@ function RatePlans() {
       a.rate_plan_id===editing.id&&a.room_type_id===rt.id&&a.active,
     ),
   );
+  const assignedRoomTypeKey=assignedPlanRoomTypes.map((rt:{id:string})=>rt.id).sort().join("|");
+  useEffect(() => {
+    if (!editing || !assignedRoomTypeKey) {
+      if (dailyDate || dailyRoomType || dailyRate) {
+        setDailyDate("");
+        setDailyRoomType("");
+        setDailyRate("");
+      }
+      return;
+    }
+    if (dailyRoomType && !assignedPlanRoomTypes.some((rt:{id:string})=>rt.id===dailyRoomType)) {
+      setDailyRoomType("");
+      setDailyRate("");
+    }
+  }, [editing?.id, assignedRoomTypeKey, dailyDate, dailyRoomType, dailyRate]);
   const readBaseRates=():Record<string,{nightly_rate:number;currency:string}>=>{
     try {
       const parsed=JSON.parse(ratePlanDataText||"{}") as {base_rates?:Record<string,{nightly_rate?:number;currency?:string}|null>};
