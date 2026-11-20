@@ -54,12 +54,17 @@ export async function resolvePublicDirectBookingChannel(
 
   const { data: property, error: propertyError } = await (sb as any)
     .from("staynas_properties")
-    .select("id, organisation_id, status")
+    .select("id, organisation_id, status, currency")
     .eq("id", domain.property_id)
     .maybeSingle();
   if (propertyError) throw new Error("Public booking property lookup failed");
   if (!property || property.status !== "active") {
     throw new Error("The property is not accepting public bookings");
+  }
+  // The property currency is authoritative; a channel published in another currency
+  // would quote and persist amounts the property does not sell in.
+  if (String(property.currency ?? "").toUpperCase() !== channel.transaction_currency) {
+    throw new Error(`The direct-booking channel sells in ${channel.transaction_currency} but the property operates in ${property.currency}; align the channel currency before accepting bookings`);
   }
 
   return {

@@ -22,6 +22,10 @@ type PropertyDatabase = Omit<Database, "public"> & {
     Functions: Database["public"]["Functions"] & {
       staynas_list_properties: { Args: Record<string, never>; Returns: StayNasPropertyRecord[] };
       staynas_set_active_property: { Args: { _property_id: string }; Returns: { user_id: string; property_id: string; updated_at: string } };
+      staynas_update_property_currency: {
+        Args: { _currency: string };
+        Returns: Array<{ property_id: string; currency: string; updated_at: string }>;
+      };
     };
   };
 };

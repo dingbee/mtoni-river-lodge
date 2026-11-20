@@ -10,6 +10,7 @@
  * what Booking, PMS, Guest and Revenue already store, then layers the
  * Intelligence Core's curated memory on top.
  */
+import { resolveActivePropertyCurrency, type ActivePropertyCurrency } from "@/lib/property-currency.server";
 import { assertIntelRead } from "../core/access.server";
 import type {
   BusinessContext,
@@ -86,14 +87,17 @@ async function buildOccupancy(supabase: Sb, windowDays: number): Promise<Occupan
   };
 }
 
-async function buildRevenue(supabase: Sb, windowDays: number): Promise<RevenueContext> {
+async function buildRevenue(supabase: Sb, windowDays: number, scope: ActivePropertyCurrency): Promise<RevenueContext> {
   const now = Date.now();
   const recentFrom = iso(new Date(now - 30 * DAY));
   const baseFrom = iso(new Date(now - 120 * DAY));
 
+  // ADR is computed only from nights sold by the active property in its own currency.
   const { data: nights } = await supabase
     .from("booking_nights")
-    .select("date, nightly_rate")
+    .select("date, nightly_rate, booking:bookings!inner(property_id, currency)")
+    .eq("booking.property_id", scope.propertyId)
+    .eq("booking.currency", scope.currency)
     .gte("date", baseFrom)
     .lte("date", iso(new Date(now)))
     .limit(20000);
@@ -136,7 +140,7 @@ async function buildRevenue(supabase: Sb, windowDays: number): Promise<RevenueCo
     booking_pace,
     revenue_window: windowDays,
     risk,
-    currency: "USD",
+    currency: scope.currency,
     confidence: clampConfidence(rows.length / 10),
   };
 }
@@ -299,9 +303,10 @@ export async function getBusinessContext(
 ): Promise<BusinessContext> {
   await assertIntelRead(supabase, userId);
   const windowDays = input.windowDays ?? 14;
+  const scope = await resolveActivePropertyCurrency(supabase, userId);
   const [occupancy, revenue, guest, seasonal, memory] = await Promise.all([
     buildOccupancy(supabase, windowDays),
-    buildRevenue(supabase, windowDays),
+    buildRevenue(supabase, windowDays, scope),
     buildGuest(supabase, windowDays),
     buildSeasonal(supabase),
     buildMemory(supabase),

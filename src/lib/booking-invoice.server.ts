@@ -1,3 +1,4 @@
+import { currencyMinorUnits } from "@/lib/money";
 // Generates a branded PDF invoice for a confirmed booking.
 // Pure-JS via pdf-lib so it runs in the Cloudflare Worker runtime.
 
@@ -34,8 +35,10 @@ const MUTED = rgb(0.45, 0.45, 0.45);
 const TEXT = rgb(0.17, 0.17, 0.17);
 const LINE = rgb(0.88, 0.88, 0.88);
 
+// Invoices print the ISO code with the currency's own minor units (TZS/USD 2, JPY 0, KWD 3).
 function fmtMoney(n: number, currency: string): string {
-  return `${currency} ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const digits = currencyMinorUnits(currency);
+  return `${currency} ${n.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
 }
 
 export async function buildInvoicePdf(data: InvoiceData): Promise<Uint8Array> {

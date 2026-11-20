@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { formatMoney } from "@/lib/money";
+import { partitionByCurrency, resolveActivePropertyCurrency, sumAmounts } from "@/lib/property-currency.server";
 
 function daysAgoISO(n: number) { const d = new Date(); d.setUTCDate(d.getUTCDate() - n); return d.toISOString().slice(0, 10); }
 function todayISO() { return new Date().toISOString().slice(0, 10); }
@@ -12,12 +14,13 @@ export const getAnalyticsHub = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const s = context.supabase;
+    const scope = await resolveActivePropertyCurrency(s, context.userId);
     const today = todayISO();
     const start30 = daysAgoISO(30);
     const [{ data: bookings30 }, { data: todayBookings }, { data: rooms }, { data: aiLogs }, { data: opsAlerts }, { data: reviews }, { data: campaigns }] = await Promise.all([
-      s.from("bookings").select("id, total, status, check_in, check_out, nights, created_at, payment_status").gte("created_at", start30),
-      s.from("bookings").select("id, status").eq("check_in", today),
-      s.from("rooms").select("id, total_units").eq("status", "active"),
+      s.from("bookings").select("id, total, currency, status, check_in, check_out, nights, created_at, payment_status").eq("property_id", scope.propertyId).gte("created_at", start30),
+      s.from("bookings").select("id, status").eq("property_id", scope.propertyId).eq("check_in", today),
+      s.from("rooms").select("id, total_units").eq("property_id", scope.propertyId).eq("status", "active"),
       s.from("ai_activity_logs").select("id, created_at").gte("created_at", start30),
       s.from("ops_alerts").select("id, resolved_at").is("resolved_at", null),
       s.from("reviews").select("rating").eq("status", "approved").gte("created_at", start30),
@@ -26,9 +29,13 @@ export const getAnalyticsHub = createServerFn({ method: "POST" })
     const b30 = (bookings30 ?? []) as Row[];
     const active = b30.filter((b) => b.status !== "cancelled");
     const totalUnits = (rooms ?? []).reduce((n: number, r: any) => n + (r.total_units ?? 1), 0) || 1;
+    // Money metrics are computed only from reservations in the property currency;
+    // reservations in any other currency are reported separately, never merged.
+    const { inCurrency, otherCurrencies } = partitionByCurrency(active, scope.currency, (b) => b.total);
     const roomNights = active.reduce((n, b) => n + (b.nights ?? 0), 0);
-    const revenue = active.reduce((n, b) => n + Number(b.total ?? 0), 0);
-    const adr = roomNights ? revenue / roomNights : 0;
+    const pricedNights = inCurrency.reduce((n, b) => n + (b.nights ?? 0), 0);
+    const revenue = sumAmounts(inCurrency, scope.currency, (b) => b.total);
+    const adr = pricedNights ? revenue / pricedNights : 0;
     const revpar = totalUnits ? revenue / (totalUnits * 30) : 0;
     const occupancy = Math.min(1, roomNights / (totalUnits * 30));
     const cancelRate = b30.length ? b30.filter((b) => b.status === "cancelled").length / b30.length : 0;
@@ -36,7 +43,7 @@ export const getAnalyticsHub = createServerFn({ method: "POST" })
     return {
       today: {
         arrivalsCount: (todayBookings ?? []).length,
-        occupancy, adr, revpar, revenue,
+        occupancy, adr, revpar, revenue, currency: scope.currency, otherCurrencies,
         bookings30d: b30.length, cancelRate, avgRating,
         aiInteractions30d: (aiLogs ?? []).length,
         openAlerts: (opsAlerts ?? []).length,
@@ -107,24 +114,25 @@ export const getRevenueAnalytics = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => rangeSchema.parse(d ?? {}))
   .handler(async ({ data, context }) => {
     const from = daysAgoISO(data.days);
+    const scope = await resolveActivePropertyCurrency(context.supabase, context.userId);
     const { data: rows } = await context.supabase
       .from("bookings")
-      .select("id, total, paid_amount, balance_amount, check_in, nights, status, payment_status")
+      .select("id, total, currency, paid_amount, balance_amount, check_in, nights, status, payment_status")
+      .eq("property_id", scope.propertyId)
       .gte("check_in", from);
-    const b = ((rows ?? []) as Row[]).filter((r) => r.status !== "cancelled");
-    const revByDay = new Map<string, number>();
-    let revenue = 0, paid = 0, outstanding = 0, roomNights = 0;
-    for (const r of b) {
-      const day = String(r.check_in);
-      revByDay.set(day, (revByDay.get(day) ?? 0) + Number(r.total ?? 0));
-      revenue += Number(r.total ?? 0);
-      paid += Number(r.paid_amount ?? 0);
-      outstanding += Number(r.balance_amount ?? 0);
-      roomNights += r.nights ?? 0;
-    }
-    const { data: rooms } = await context.supabase.from("rooms").select("id, total_units").eq("status", "active");
+    const active = ((rows ?? []) as Row[]).filter((r) => r.status !== "cancelled");
+    const { inCurrency: b, otherCurrencies } = partitionByCurrency(active, scope.currency, (r) => r.total);
+    const byDayRows = new Map<string, Row[]>();
+    for (const r of b) byDayRows.set(String(r.check_in), [...(byDayRows.get(String(r.check_in)) ?? []), r]);
+    const revByDay = new Map([...byDayRows].map(([day, dayRows]) => [day, sumAmounts(dayRows, scope.currency, (r) => r.total)]));
+    const revenue = sumAmounts(b, scope.currency, (r) => r.total);
+    const paid = sumAmounts(b, scope.currency, (r) => r.paid_amount ?? 0);
+    const outstanding = sumAmounts(b, scope.currency, (r) => r.balance_amount ?? 0);
+    const roomNights = b.reduce((n, r) => n + (r.nights ?? 0), 0);
+    const { data: rooms } = await context.supabase.from("rooms").select("id, total_units").eq("property_id", scope.propertyId).eq("status", "active");
     const totalUnits = (rooms ?? []).reduce((n: number, r: any) => n + (r.total_units ?? 1), 0) || 1;
     return {
+      currency: scope.currency, otherCurrencies,
       revenue, paid, outstanding,
       paymentCompletion: revenue ? paid / revenue : 0,
       adr: roomNights ? revenue / roomNights : 0,
@@ -226,16 +234,18 @@ export const getExecutiveAnalytics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const s = context.supabase;
+    const scope = await resolveActivePropertyCurrency(s, context.userId);
     const from = daysAgoISO(30);
     const [{ data: risks }, { data: recs }, { data: bookings }, { data: reviews }, { data: alerts }] = await Promise.all([
       s.from("ai_strategic_risks").select("id, severity, status"),
       s.from("ai_analytics_recommendations").select("id, status, impact, title, confidence").order("created_at", { ascending: false }).limit(10),
-      s.from("bookings").select("id, total, status").gte("created_at", from),
+      s.from("bookings").select("id, total, currency, status").eq("property_id", scope.propertyId).gte("created_at", from),
       s.from("reviews").select("rating").eq("status", "approved").gte("created_at", from),
       s.from("ops_alerts").select("id, resolved_at").is("resolved_at", null),
     ]);
-    const b = ((bookings ?? []) as Row[]).filter((r) => r.status !== "cancelled");
-    const rev = b.reduce((n, r) => n + Number(r.total ?? 0), 0);
+    const all = ((bookings ?? []) as Row[]).filter((r) => r.status !== "cancelled");
+    const { inCurrency: b, otherCurrencies } = partitionByCurrency(all, scope.currency, (r) => r.total);
+    const rev = sumAmounts(b, scope.currency, (r) => r.total);
     const rating = (reviews ?? []).length ? (reviews ?? []).reduce((n: number, r: any) => n + Number(r.rating ?? 0), 0) / (reviews ?? []).length : 0;
     const openRisks = (risks ?? []).filter((r: any) => r.status !== "resolved").length;
     const financialHealth = Math.min(100, Math.round(rev / 500));
@@ -247,7 +257,8 @@ export const getExecutiveAnalytics = createServerFn({ method: "POST" })
       health: { financialHealth, marketingHealth, operationalHealth, guestSatisfaction, aiHealth },
       risks: risks ?? [],
       topOpportunities: recs ?? [],
-      weeklySummary: `${b.length} bookings · $${Math.round(rev).toLocaleString()} revenue · ${(reviews ?? []).length} new reviews · ${openRisks} open risks.`,
+      currency: scope.currency, otherCurrencies,
+      weeklySummary: `${all.length} bookings · ${formatMoney(rev, scope.currency)} revenue${otherCurrencies.length ? ` (+ ${otherCurrencies.map((o) => formatMoney(o.amount, o.currency)).join(", ")} in other currencies)` : ""} · ${(reviews ?? []).length} new reviews · ${openRisks} open risks.`,
     };
   });
 
@@ -261,11 +272,15 @@ export const generateAnalyticsReport = createServerFn({ method: "POST" })
     const days = dayMap[data.kind];
     const start = daysAgoISO(days);
     const end = todayISO();
-    const { data: bookings } = await context.supabase.from("bookings").select("id, total, status, nights").gte("created_at", start);
+    const scope = await resolveActivePropertyCurrency(context.supabase, context.userId);
+    const { data: bookings } = await context.supabase.from("bookings").select("id, total, currency, status, nights").eq("property_id", scope.propertyId).gte("created_at", start);
     const active = ((bookings ?? []) as Row[]).filter((b) => b.status !== "cancelled");
-    const revenue = active.reduce((n, b) => n + Number(b.total ?? 0), 0);
+    const { inCurrency, otherCurrencies } = partitionByCurrency(active, scope.currency, (b) => b.total);
+    const revenue = sumAmounts(inCurrency, scope.currency, (b) => b.total);
     const payload = {
       period: data.kind,
+      currency: scope.currency,
+      otherCurrencies,
       totals: {
         bookings: active.length,
         cancelled: (bookings ?? []).length - active.length,
@@ -279,7 +294,7 @@ export const generateAnalyticsReport = createServerFn({ method: "POST" })
         kind: data.kind, period: data.kind,
         period_start: start, period_end: end,
         title: `${data.kind[0].toUpperCase() + data.kind.slice(1)} report — ${end}`,
-        summary: `${active.length} bookings, $${Math.round(revenue).toLocaleString()} revenue over last ${days} days.`,
+        summary: `${active.length} bookings, ${formatMoney(revenue, scope.currency)} revenue over last ${days} days.${otherCurrencies.length ? ` Also ${otherCurrencies.map((o) => formatMoney(o.amount, o.currency)).join(", ")} in other currencies (not converted).` : ""}`,
         payload, status: "draft",
       })
       .select().single();
@@ -297,11 +312,12 @@ export const listAnalyticsReports = createServerFn({ method: "POST" })
     return data ?? [];
   });
 
-async function bookingsSum(supabase: any, days: number) {
-  const { data } = await supabase.from("bookings").select("total, status, nights, created_at").gte("created_at", daysAgoISO(days));
+async function bookingsSum(supabase: any, days: number, scope: { propertyId: string; currency: string }) {
+  const { data } = await supabase.from("bookings").select("total, currency, status, nights, created_at").eq("property_id", scope.propertyId).gte("created_at", daysAgoISO(days));
   const active = ((data ?? []) as Row[]).filter((b) => b.status !== "cancelled");
+  const { inCurrency } = partitionByCurrency(active, scope.currency, (r) => r.total);
   return {
-    revenue: active.reduce((n, r) => n + Number(r.total ?? 0), 0),
+    revenue: sumAmounts(inCurrency, scope.currency, (r) => r.total),
     bookings: active.length,
     nights: active.reduce((n, r) => n + (r.nights ?? 0), 0),
   };
@@ -312,9 +328,10 @@ export const computeTrends = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const windows = [7, 30, 90, 365];
     const out: any[] = [];
+    const scope = await resolveActivePropertyCurrency(context.supabase, context.userId);
     for (const w of windows) {
-      const cur = await bookingsSum(context.supabase, w);
-      const prev = await bookingsSum(context.supabase, w * 2);
+      const cur = await bookingsSum(context.supabase, w, scope);
+      const prev = await bookingsSum(context.supabase, w * 2, scope);
       const prevOnly = {
         revenue: prev.revenue - cur.revenue,
         bookings: prev.bookings - cur.bookings,
@@ -326,7 +343,7 @@ export const computeTrends = createServerFn({ method: "POST" })
           domain: "bookings", metric, window_days: w,
           current_value: cv, previous_value: pv, delta_pct: delta,
           direction: delta > 1 ? "up" : delta < -1 ? "down" : "flat",
-          evidence: { window: w },
+          evidence: { window: w, ...(metric === "revenue" ? { currency: scope.currency, property_id: scope.propertyId } : {}) },
         };
         out.push(rec);
         await context.supabase.from("ai_trend_snapshots").insert(rec);

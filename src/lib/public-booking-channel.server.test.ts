@@ -61,6 +61,7 @@ const validFixture: Fixture = {
     id: "22222222-2222-4222-8222-222222222222",
     organisation_id: "44444444-4444-4444-8444-444444444444",
     status: "active",
+    currency: "USD",
   },
 };
 
@@ -145,14 +146,22 @@ describe("Tenant-neutral payment-pending booking contract", () => {
     expect(route).toContain("/^[a-zA-Z0-9_-]{24,120}$/");
   });
 
-  it("keeps rate-plan transaction currency independent of property operating currency", () => {
+  it("prices rate plans only in the authoritative property currency", () => {
     const ratePlanFunctions = readFileSync(new URL("../domains/finance/rate-plans.functions.ts", import.meta.url), "utf8");
     const ratePlanPage = readFileSync(new URL("../routes/_authenticated.admin.finance.rate-plans.tsx", import.meta.url), "utf8");
-    expect(ratePlanFunctions).toContain("let ratePlanCurrency = String(data.currency ?? property.currency).toUpperCase()");
+    // Database guards and the quote service require plan currency == property currency;
+    // the application must not offer an override it cannot honour.
+    expect(ratePlanFunctions).toContain("const ratePlanCurrency = String(property.currency).toUpperCase()");
     expect(ratePlanFunctions).toContain("validateSeasonalRateCurrency(effectiveSeasonalRates, ratePlanCurrency)");
     expect(ratePlanFunctions).toContain("currency: ratePlanCurrency");
-    expect(ratePlanPage).toContain("Guest transaction currency");
-    expect(ratePlanPage).not.toContain("Currency is inherited from the active property and cannot be overridden");
+    expect(ratePlanPage).not.toContain("Guest transaction currency");
+    expect(ratePlanPage).toContain("Rates are priced in the property currency");
+  });
+
+  it("rejects a published channel whose currency differs from the property currency", async () => {
+    const { client } = fakeSupabase({ ...validFixture, property: { ...validFixture.property, currency: "TZS" } });
+    await expect(resolvePublicDirectBookingChannel(client as unknown as SupabaseClient, "cdma-uat.example.test"))
+      .rejects.toThrow("sells in USD but the property operates in TZS");
   });
 
   it("does not cache TanStack server-function responses in the service worker", () => {

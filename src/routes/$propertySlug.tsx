@@ -13,6 +13,7 @@ import {
   getPublicDemoProperty,
   searchPublicDemoAvailability,
 } from "@/lib/public-booking.functions";
+import { formatMoney } from "@/lib/money";
 
 export const Route = createFileRoute("/$propertySlug")({
   loader: async ({ params }) => {
@@ -59,7 +60,7 @@ type PublicBookingQuote = {
 
 type RatePlanOption = { rate_plan_id: string; name: string; description: string | null; meal_plan: string | null; refundable: boolean; currency: string; total: number; average_nightly_rate: number; minimum_stay: number; nightly_breakdown: Array<{ date: string; nightly_rate: number; currency: string; source_label: string; pricing_basis: string; source_rate: number }>; publication_id: string; publication_number: number; rate_plan_version: number; snapshot_hash: string };
 type AvailableRoom = {
-  room_id: string; slug: string; name: string; base_price: number; currency: string;
+  room_id: string; slug: string; name: string; base_price: number | null; currency: string;
   max_occupancy: number; nightly_total: number | null; nights: number; min_available: number;
   is_available: boolean; fits_guests: boolean; rate_plan_options?: RatePlanOption[];
   pricing_quote?: { ok?: boolean; error_code?: string; total?: number };
@@ -74,8 +75,9 @@ const addDays = (days: number) => {
   date.setDate(date.getDate() + days);
   return isoDate(date);
 };
-const money = (value: number, currency: string) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
+// Every amount is rendered with the ISO currency it was priced in, at that
+// currency's minor-unit precision.
+const money = (value: number | string | null | undefined, currency: string | null | undefined) => formatMoney(value, currency);
 const prettyDate = (value: string) => value
   ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" })
       .format(new Date(`${value}T00:00:00Z`))
@@ -285,14 +287,14 @@ function PublicPropertyBookingPage() {
               <div className="p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0"><h3 className="text-[17px] font-semibold tracking-[-0.035em] text-[#253229]">{room.name}</h3><p className="mt-1 line-clamp-2 text-xs leading-5 text-[#7a857d]">{room.short_description || room.hero_line || room.description?.[0] || "A comfortable space for your stay."}</p></div>
-                  <div className="shrink-0 text-right"><p className="text-[17px] font-semibold tracking-tight text-[#253229]">{hasSearched && live && needsPlanChoice && !selectedPlanForRoom ? "Choose a plan" : hasSearched && live && selectedPlanForRoom ? money(Number(selectedPlanForRoom.total), selectedPlanForRoom.currency) : String(room.currency ?? "").toUpperCase() === currency && Number(room.base_price) > 0 ? money(Number(room.base_price), currency) : "Rates being updated"}</p><p className="text-[10px] text-[#899188]">{hasSearched && live && selectedPlanForRoom ? "accommodation subtotal" : hasSearched && live && needsPlanChoice ? "to view pricing" : "per night · indicative"}</p></div>
+                  <div className="shrink-0 text-right"><p className="text-[17px] font-semibold tracking-tight text-[#253229]">{hasSearched && live && needsPlanChoice && !selectedPlanForRoom ? "Choose a plan" : hasSearched && live && selectedPlanForRoom ? money(Number(selectedPlanForRoom.total), selectedPlanForRoom.currency) : room.base_price !== null && room.base_price !== undefined && Number(room.base_price) > 0 ? money(room.base_price, currency) : "Select dates"}</p><p className="text-[10px] text-[#899188]">{hasSearched && live && selectedPlanForRoom ? "accommodation subtotal" : hasSearched && live && needsPlanChoice ? "to view pricing" : room.base_price !== null && room.base_price !== undefined && Number(room.base_price) > 0 ? "per night · indicative" : "to see live rates"}</p></div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-x-3 gap-y-2 border-t border-[#f0f0eb] pt-3 text-[10px] text-[#758078]">
                   <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5"/>{room.max_occupancy} guests max</span>
                   {room.bed_label && <span className="inline-flex items-center gap-1"><BedDouble className="h-3.5 w-3.5"/>{room.bed_label}</span>}{room.size_label && <span>{room.size_label}</span>}{room.view_label && <span>{room.view_label}</span>}
                 </div>
                 {live ? <div className="mt-4 border-t border-[#f0f0eb] pt-3">
-                  <div className="flex items-center justify-between gap-2"><span className="text-[10px] font-medium text-[#4d7059]">{live.min_available} available</span><span className="text-xs font-semibold text-[#26382d]">{needsPlanChoice && planOptions.length === 0 ? "Rates unavailable" : needsPlanChoice && planOptions.length > 1 && !selectedPlanForRoom ? "Choose a rate plan" : money(Number(selectedPlanForRoom?.total ?? live.nightly_total ?? 0), selectedPlanForRoom?.currency ?? live.currency)} <span className="font-normal text-[#899188]">accommodation subtotal</span></span></div>
+                  <div className="flex items-center justify-between gap-2"><span className="text-[10px] font-medium text-[#4d7059]">{live.min_available} available</span><span className="text-xs font-semibold text-[#26382d]">{needsPlanChoice && planOptions.length === 0 ? "Rates unavailable" : needsPlanChoice && planOptions.length > 1 && !selectedPlanForRoom ? "Choose a rate plan" : money(selectedPlanForRoom?.total ?? live.nightly_total, selectedPlanForRoom?.currency ?? live.currency)} <span className="font-normal text-[#899188]">accommodation subtotal</span></span></div>
                   {planOptions.length > 1 && <div className="mt-3"><label className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[#718078]">Choose a rate plan</label><select value={selectedRatePlans[room.slug] ?? ""} onChange={(event) => { const nextPlanId = event.target.value; setSelectedRatePlans((current) => ({ ...current, [room.slug]: nextPlanId })); if (isSelected) setSelectedRatePlanId(nextPlanId); }} className="mt-1.5 h-10 w-full rounded-lg border border-[#e5e6df] bg-[#fcfcfa] px-3 text-xs text-[#253229]"><option value="">Select a rate plan</option>{planOptions.map((plan) => <option key={plan.rate_plan_id} value={plan.rate_plan_id}>{plan.name} — {money(Number(plan.total), plan.currency)}</option>)}</select>{selectedPlanForRoom && <p className="mt-1.5 text-[10px] text-[#7b877e]">{selectedPlanForRoom.description || selectedPlanForRoom.meal_plan || "Published rate plan"} · {selectedPlanForRoom.refundable ? "Refundable" : "Non-refundable"}</p>}</div>}
                   {planOptions.length === 1 && selectedPlanForRoom && <p className="mt-2 text-[10px] text-[#7b877e]">{selectedPlanForRoom.name} · {selectedPlanForRoom.meal_plan || "No meal plan"} · {selectedPlanForRoom.refundable ? "Refundable" : "Non-refundable"}</p>}
                   <button type="button" disabled={needsPlanChoice && planOptions.length === 0 || planOptions.length > 1 && !selectedRatePlans[room.slug]} onClick={() => { setSelectedRoom(live); setSelectedRatePlanId(selectedRatePlans[room.slug] ?? ""); setConfirmation(null); window.setTimeout(() => document.getElementById("guest-details")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80); }} className={`mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${isSelected ? "bg-[#e5eee6] text-[#31523b]" : "bg-[var(--direct-primary)] text-white hover:opacity-90"}`}>{isSelected ? "Room selected" : "Choose this room"}<ArrowRight className="h-3.5 w-3.5"/></button>
@@ -343,7 +345,7 @@ function PublicPropertyBookingPage() {
 
       {!confirmation && <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#e6e4dc] bg-[#fafaf7]/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-lg sm:hidden">
         <div className="mx-auto flex max-w-lg items-center gap-3">
-          <div className="min-w-0 flex-1"><p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[#7d897f]">{selectedRoom ? "Selected room" : "Your stay"}</p><p className="truncate text-xs font-semibold text-[#29372e]">{selectedRoom ? money(selectedTotal, selectedRoom.currency) + " · " + selectedRoom.name : `${nights} nights · ${guests} guests`}</p></div>
+          <div className="min-w-0 flex-1"><p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[#7d897f]">{selectedRoom ? "Selected room" : "Your stay"}</p><p className="truncate text-xs font-semibold text-[#29372e]">{selectedRoom ? money(selectedTotal, selectedPlan?.currency ?? selectedRoom.currency) + " · " + selectedRoom.name : `${nights} nights · ${guests} guests`}</p></div>
           <button type="button" onClick={() => selectedRoom ? document.getElementById("guest-details")?.scrollIntoView({ behavior: "smooth", block: "start" }) : runAvailability()} disabled={availabilityMutation.isPending || (selectedRoom === null && nights < 1)} className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--direct-primary)] px-5 text-xs font-semibold text-white disabled:opacity-50">{selectedRoom ? "Continue" : availabilityMutation.isPending ? "Checking…" : "Find a room"}<ArrowRight className="h-3.5 w-3.5"/></button>
         </div>
       </div>}

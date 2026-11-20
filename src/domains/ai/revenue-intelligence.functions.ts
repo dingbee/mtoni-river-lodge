@@ -1,3 +1,4 @@
+import { resolveActivePropertyCurrency } from "@/lib/property-currency.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
@@ -34,19 +35,21 @@ export const getRevenueIntelligenceOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
+    // Revenue KPIs are computed for the active property in its own currency only.
+    const scope = await resolveActivePropertyCurrency(context.supabase, context.userId);
     const [{ data: rooms }, { data: mtd }, { data: forward }, { data: past30 }, { data: prev30 }, { data: outstanding }, { data: cancelled30 }, { data: openAlerts }] = await Promise.all([
-      context.supabase.from("rooms").select("total_units").eq("status", "active"),
-      context.supabase.from("bookings").select("total, currency, status, check_in, check_out, nights").gte("check_in", firstOfMonth()).in("status", ["confirmed","checked_in","completed"]),
-      context.supabase.from("bookings").select("total, currency, status, check_in, check_out, nights").gte("check_in", today()).lte("check_in", daysFromNow(30)).in("status", ["confirmed","pending","checked_in"]),
-      context.supabase.from("bookings").select("total, created_at").gte("created_at", daysAgo(30)).in("status", ["confirmed","checked_in","completed"]),
-      context.supabase.from("bookings").select("total, created_at").gte("created_at", daysAgo(60)).lt("created_at", daysAgo(30)).in("status", ["confirmed","checked_in","completed"]),
-      context.supabase.from("bookings").select("balance_due, currency").gt("balance_due", 0).in("status", ["confirmed","checked_in","completed"]),
-      context.supabase.from("bookings").select("id, created_at").eq("status", "cancelled").gte("created_at", daysAgo(30)),
+      context.supabase.from("rooms").select("total_units").eq("property_id", scope.propertyId).eq("status", "active"),
+      context.supabase.from("bookings").select("total, currency, status, check_in, check_out, nights").eq("property_id", scope.propertyId).eq("currency", scope.currency).gte("check_in", firstOfMonth()).in("status", ["confirmed","checked_in","completed"]),
+      context.supabase.from("bookings").select("total, currency, status, check_in, check_out, nights").eq("property_id", scope.propertyId).eq("currency", scope.currency).gte("check_in", today()).lte("check_in", daysFromNow(30)).in("status", ["confirmed","pending","checked_in"]),
+      context.supabase.from("bookings").select("total, created_at").eq("property_id", scope.propertyId).eq("currency", scope.currency).gte("created_at", daysAgo(30)).in("status", ["confirmed","checked_in","completed"]),
+      context.supabase.from("bookings").select("total, created_at").eq("property_id", scope.propertyId).eq("currency", scope.currency).gte("created_at", daysAgo(60)).lt("created_at", daysAgo(30)).in("status", ["confirmed","checked_in","completed"]),
+      context.supabase.from("bookings").select("balance_due, currency").eq("property_id", scope.propertyId).eq("currency", scope.currency).gt("balance_due", 0).in("status", ["confirmed","checked_in","completed"]),
+      context.supabase.from("bookings").select("id, created_at").eq("property_id", scope.propertyId).eq("status", "cancelled").gte("created_at", daysAgo(30)),
       context.supabase.from("ai_revenue_alerts").select("id").eq("status","open"),
     ]);
 
     const totalUnits = (rooms ?? []).reduce((s: any, r: any) => s + Number(r.total_units ?? 0), 0);
-    const currency = (mtd?.[0] as any)?.currency ?? "USD";
+    const currency = scope.currency;
     const mtdRevenue = (mtd ?? []).reduce((s: any, b: any) => s + Number(b.total ?? 0), 0);
     const mtdNights = (mtd ?? []).reduce((s: any, b: any) => s + Number(b.nights ?? 0), 0);
     const forwardRevenue = (forward ?? []).reduce((s: any, b: any) => s + Number(b.total ?? 0), 0);

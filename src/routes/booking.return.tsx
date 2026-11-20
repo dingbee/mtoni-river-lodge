@@ -1,3 +1,4 @@
+import { formatMoney } from "@/lib/money";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -86,7 +87,7 @@ function BookingReturn() {
   }, [status, ref]);
 
   const fmt = (n: number, c: string) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: c, maximumFractionDigits: 0 }).format(n);
+    formatMoney(n, c);
 
   return (
     <div className="bg-ivory text-charcoal">

@@ -1,3 +1,4 @@
+import { formatMoney } from "@/lib/money";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -97,12 +98,7 @@ function AdminBookings() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const fmt = (n: number, c: string) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: c,
-      maximumFractionDigits: 0,
-    }).format(n);
+  const fmt = (n: number, c: string) => formatMoney(n, c);
 
   return (
     <div className="space-y-6">

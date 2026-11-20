@@ -1,3 +1,5 @@
+import { formatMoney } from "@/lib/money";
+import { usePropertyContext } from "@/modules/property/PropertyContext";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -36,15 +38,13 @@ export const Route = createFileRoute("/_authenticated/admin/")({
   component: CommandCentrePage,
 });
 
-function money(n: number, currency = "USD") {
-  try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(n || 0);
-  } catch {
-    return `$${Math.round(n || 0).toLocaleString()}`;
-  }
+// Amounts are always labelled with their own ISO currency; there is no default currency.
+function money(n: number, currency: string) {
+  return formatMoney(n || 0, currency);
 }
 
 function CommandCentrePage() {
+  const { property: activeProperty } = usePropertyContext();
   const opsFn = useServerFn(getOpsDashboard);
   const opsQ = useQuery({ queryKey: ["os-ops"], queryFn: () => opsFn(), staleTime: 60_000, refetchInterval: 120_000 });
   const revFn = useServerFn(getRevenueDashboard);
@@ -69,11 +69,18 @@ function CommandCentrePage() {
   const occupied: number = today.occupied_rooms ?? 0;
   const available: number = Math.max(0, totalRooms - occupied);
   const occupancyPct: number = ops.occupancyPct ?? 0;
-  const outstanding: number = Number(today.outstanding_total ?? rev.outstanding ?? 0);
-  const revenueMtd: number = Number(rev.mtdRevenue ?? 0);
-  const revenueToday: number = Number(rev.todayRevenue ?? 0);
-  const adr: number = Number(rev.adr ?? 0);
-  const revpar: number = Number(rev.revpar ?? 0);
+  // The dashboard returns per-currency totals; headline KPIs show the active
+  // property's currency only (other currencies are never summed into it).
+  const reportingCurrency: string = activeProperty.currency;
+  const forCurrency = (rows: Array<{ currency: string; amount: number }> | undefined) =>
+    Number((rows ?? []).find((r) => r.currency === reportingCurrency)?.amount ?? 0);
+  const breakdown = ((rev.currencyBreakdown ?? []) as Array<{ currency: string; outstanding: number; adr: number; revpar: number }>)
+    .find((r) => r.currency === reportingCurrency);
+  const outstanding: number = Number(breakdown?.outstanding ?? 0);
+  const revenueMtd: number = forCurrency(rev.mtdRevenueByCurrency);
+  const revenueToday: number = forCurrency(rev.todayRevenueByCurrency);
+  const adr: number = Number(breakdown?.adr ?? 0);
+  const revpar: number = Number(breakdown?.revpar ?? 0);
   const dirty: number = today.dirty_rooms ?? 0;
   const maintenance: number = today.maintenance_rooms ?? 0;
 
@@ -124,10 +131,10 @@ function CommandCentrePage() {
 
       {/* Revenue + performance row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard tone="green" label="Revenue MTD" value={revQ.isLoading ? "—" : money(revenueMtd)} hint={kpiHint(`Today ${money(revenueToday)}`)} icon={DollarSign} />
-        <StatCard tone="gold"  label="ADR" value={revQ.isLoading ? "—" : money(adr)} hint={kpiHint("Average daily rate")} icon={TrendingUp} />
-        <StatCard tone="green" label="RevPAR" value={revQ.isLoading ? "—" : money(revpar)} hint={kpiHint("Rev per available room")} icon={LineChart} />
-        <StatCard tone="gold"  label="Outstanding" value={revQ.isLoading ? "—" : money(outstanding)} hint={kpiHint("Pending balances")} icon={Wallet} />
+        <StatCard tone="green" label="Revenue MTD" value={revQ.isLoading ? "—" : money(revenueMtd, reportingCurrency)} hint={kpiHint(`Today ${money(revenueToday, reportingCurrency)}`)} icon={DollarSign} />
+        <StatCard tone="gold"  label="ADR" value={revQ.isLoading ? "—" : money(adr, reportingCurrency)} hint={kpiHint("Average daily rate")} icon={TrendingUp} />
+        <StatCard tone="green" label="RevPAR" value={revQ.isLoading ? "—" : money(revpar, reportingCurrency)} hint={kpiHint("Rev per available room")} icon={LineChart} />
+        <StatCard tone="gold"  label="Outstanding" value={revQ.isLoading ? "—" : money(outstanding, reportingCurrency)} hint={kpiHint("Pending balances")} icon={Wallet} />
       </div>
 
       {/* Operational widgets row */}
