@@ -5,7 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowRight, BedDouble, CalendarDays, Check, CheckCircle2, ChevronDown,
-  Globe2, Minus, Plus, ShieldCheck, Users,
+  Globe2, Minus, Plus, ShieldCheck, Users, X, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import {
   createPublicDemoBooking,
@@ -107,6 +107,30 @@ function PublicPropertyBookingPage() {
   const [bookingQuote, setBookingQuote] = useState<PublicBookingQuote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState("");
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const [gallery, setGallery] = useState<{ title: string; images: string[]; index: number } | null>(null);
+  const roomCategories = useMemo(() => {
+    const grouped = new Map<string, { id: string; name: string; description: string; rooms: any[] }>();
+    for (const room of propertyData?.rooms ?? []) {
+      const id = String(room.category?.id ?? room.category?.name ?? "accommodation");
+      const name = String(room.category?.name ?? "Accommodation");
+      const current = grouped.get(id) ?? { id, name, description: String(room.category?.description ?? room.short_description ?? "Explore this room collection."), rooms: [] };
+      current.rooms.push(room);
+      grouped.set(id, current);
+    }
+    return [...grouped.values()];
+  }, [propertyData?.rooms]);
+  const propertyAmenities = useMemo(() => {
+    const values = (propertyData?.rooms ?? []).flatMap((room: any) => [
+      ...(Array.isArray(room.amenities) ? room.amenities : []),
+      ...(Array.isArray(room.category?.features) ? room.category.features : []),
+    ]);
+    return [...new Set(values.map((value: unknown) => String(value).trim()).filter(Boolean))].slice(0, 12);
+  }, [propertyData?.rooms]);
+  const openGallery = (title: string, sourceRooms: any[]) => {
+    const images = [...new Set(sourceRooms.flatMap((room) => [room.image_url, ...(Array.isArray(room.gallery_urls) ? room.gallery_urls : [])]).filter((url): url is string => typeof url === "string" && url.startsWith("https://")))];
+    if (images.length) setGallery({ title, images, index: 0 });
+  };
 
   const nights = useMemo(() => {
     if (!checkIn || !checkOut) return 0;
@@ -260,6 +284,30 @@ function PublicPropertyBookingPage() {
           <div className="mt-3 flex items-center justify-between border-t border-[#efefe9] px-1 pt-3 text-[11px] text-[#7b877e]"><span>{prettyDate(checkIn)} — {prettyDate(checkOut)}</span><span className="font-semibold text-[#3f5146]">{nights} {nights === 1 ? "night" : "nights"}</span></div>
           {availabilityMutation.isError && <p role="alert" className="mt-3 text-xs text-red-700">{(availabilityMutation.error as Error).message}</p>}
         </section>
+
+        <section aria-label="Room categories" className="mx-auto max-w-6xl px-1 pb-2 pt-8 sm:pt-10">
+          <div className="mb-4 flex items-end justify-between gap-3">
+            <div><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#7a8a7e]">Stay your way</p><h2 className="mt-1 text-xl font-medium tracking-[-0.04em] text-[#202820] sm:text-2xl">Explore room categories</h2></div>
+            {roomCategories.length > 3 && <button type="button" onClick={() => setShowAllCategories(value => !value)} className="shrink-0 rounded-full border border-[#d9ded7] px-4 py-2 text-[11px] font-semibold text-[#3e5847] transition hover:bg-white">{showAllCategories ? "Show fewer" : "See other rooms"}</button>}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {(showAllCategories ? roomCategories : roomCategories.slice(0, 3)).map((category) => {
+              const firstRoom = category.rooms[0];
+              const cover = firstRoom?.image_url || firstRoom?.gallery_urls?.[0] || "";
+              const imageCount = new Set(category.rooms.flatMap((room: any) => [room.image_url, ...(room.gallery_urls ?? [])]).filter(Boolean)).size;
+              return <article key={category.id} className="group overflow-hidden rounded-2xl border border-[#e8e7df] bg-white">
+                <div className="relative aspect-[16/9] overflow-hidden bg-[#e9e9e1]">
+                  {cover ? <img src={cover} alt={category.name} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"/> : <div className="flex h-full items-center justify-center text-xs text-[#879187]">Room photography coming soon</div>}
+                  <span className="absolute bottom-3 left-3 rounded-full bg-white/90 px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[#34483a]">{category.rooms.length} {category.rooms.length === 1 ? "room type" : "room types"}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 p-3.5">
+                  <div className="min-w-0"><h3 className="truncate text-sm font-semibold text-[#29372e]">{category.name}</h3><p className="mt-1 line-clamp-1 text-[10px] text-[#7b877e]">{category.description || "Thoughtful spaces for your stay"}</p></div>
+                  <button type="button" onClick={() => openGallery(category.name, category.rooms)} disabled={!imageCount} className="shrink-0 rounded-full border border-[#dfe3dc] px-3 py-2 text-[10px] font-semibold text-[#3e5847] disabled:opacity-40">View photos {imageCount ? "(" + imageCount + ")" : ""}</button>
+                </div>
+              </article>;
+            })}
+          </div>
+        </section>
       </section>
 
       <section className="mx-auto max-w-7xl px-4 pb-10 pt-10 sm:px-8 sm:pb-16 sm:pt-14">
@@ -278,7 +326,7 @@ function PublicPropertyBookingPage() {
             const notReturned = hasSearched && !live;
             return <article key={room.id} className={`group overflow-hidden rounded-[1.4rem] border bg-white transition duration-200 ${isSelected ? "border-[#68816f] ring-2 ring-[#dce7dd]" : "border-[#e8e7df] hover:-translate-y-0.5 hover:shadow-[0_14px_35px_rgba(33,43,36,0.08)]"}`}>
               <div className="relative aspect-[16/10] overflow-hidden bg-[#e9e9e1]">
-                {(room.image_url || room.gallery_urls?.[0]) ? <img src={room.image_url || room.gallery_urls?.[0]} alt={`${room.name} at ${property.name}`} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]"/> : <div className="flex h-full w-full items-center justify-center bg-[#e9e9e1] text-xs text-[#7a857d]">Room image not provided</div>}
+                {(room.image_url || room.gallery_urls?.[0]) ? <><img src={room.image_url || room.gallery_urls?.[0]} alt={`${room.name} at ${property.name}`} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]"/><button type="button" onClick={() => openGallery(room.name, [room])} className="absolute bottom-3 right-3 rounded-full border border-white/50 bg-white/90 px-3 py-1.5 text-[10px] font-semibold text-[#34483a] shadow-sm">View photos</button></> : <div className="flex h-full w-full items-center justify-center bg-[#e9e9e1] text-xs text-[#7a857d]">Room image not provided</div>}
                 <span className="absolute left-3 top-3 rounded-full border border-white/40 bg-white/90 px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#35483b] backdrop-blur-sm">{room.category?.name || property.name}</span>
                 {isSelected && <span className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#244331] text-white"><Check className="h-4 w-4"/></span>}
               </div>
@@ -339,7 +387,36 @@ function PublicPropertyBookingPage() {
         </section>}
       </section>
 
-      <footer className="border-t border-[#e7e5dd] bg-[#eeeee7] px-5 py-7 text-center">{branding.logoUrl ? <img src={branding.logoUrl} alt={property.name} className="mx-auto h-8 max-w-32 object-contain"/> : <p className="text-sm font-semibold tracking-tight text-[#314338]">{property.name}</p>}{branding.showStayNasAttribution && <p className="mt-2 text-[10px] text-[#879188]">Property-owned reservations · Powered by StayNas</p>}</footer>
+      {propertyAmenities.length > 0 && <section className="mx-auto max-w-7xl px-5 pb-12 sm:px-8 sm:pb-16">
+        <div className="rounded-[1.5rem] border border-[#e8e7df] bg-white p-5 sm:p-8">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#7a8a7e]">The little details</p><h2 className="mt-1 text-2xl font-medium tracking-[-0.045em] text-[#202820]">Amenities & comforts</h2>
+          <div className="mt-5 flex flex-wrap gap-2">{propertyAmenities.map((amenity) => <span key={amenity} className="rounded-full border border-[#e8e9e2] bg-[#fafaf7] px-3.5 py-2 text-xs text-[#536258]">{amenity}</span>)}</div>
+        </div>
+      </section>}
+      {branding.footerPromotion?.enabled && branding.footerPromotion?.title && <section className="mx-auto max-w-7xl px-5 pb-8 sm:px-8">
+        <div className="grid overflow-hidden rounded-[1.5rem] bg-[#34402d] text-white sm:grid-cols-2">
+          {branding.footerPromotion.imageUrl && <img src={branding.footerPromotion.imageUrl} alt={branding.footerPromotion.title} loading="lazy" className="h-full min-h-48 w-full object-cover"/>}
+          <div className="flex flex-col items-start justify-center p-6 sm:p-9"><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/65">A little something extra</p><h2 className="mt-2 text-2xl font-medium tracking-[-0.04em] sm:text-3xl">{branding.footerPromotion.title}</h2>{branding.footerPromotion.description && <p className="mt-3 max-w-lg text-sm leading-6 text-white/75">{branding.footerPromotion.description}</p>}{branding.footerPromotion.ctaUrl?.startsWith("https://") && <a href={branding.footerPromotion.ctaUrl} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/40 px-4 py-2.5 text-xs font-semibold hover:bg-white/10">{branding.footerPromotion.ctaLabel || "Explore offer"}<ArrowRight className="h-3.5 w-3.5"/></a>}</div>
+        </div>
+      </section>}
+      <footer className="border-t border-[#e7e5dd] bg-[#eeeee7] px-5 py-8 text-center">
+        {branding.logoUrl ? <img src={branding.logoUrl} alt={property.name} className="mx-auto h-8 max-w-32 object-contain"/> : <p className="text-sm font-semibold tracking-tight text-[#314338]">{property.name}</p>}
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px] text-[#58665c]">
+          {Object.entries(branding.socialLinks ?? {}).filter(([key, value]) => ["instagram","facebook","tiktok","youtube","x","whatsapp"].includes(key) && typeof value === "string" && value.startsWith("https://")).map(([key, value]) => <a key={key} href={value as string} target="_blank" rel="noreferrer" className="font-medium capitalize transition hover:text-[#1e352a]">{key === "x" ? "X" : key === "whatsapp" ? "WhatsApp" : key}</a>)}
+        </div>
+        {branding.showStayNasAttribution && <p className="mt-3 text-[10px] text-[#879188]">Property-owned reservations · Powered by StayNas</p>}
+      </footer>
+
+      {gallery && <div role="dialog" aria-modal="true" aria-label={gallery.title + " photo gallery"} className="fixed inset-0 z-50 flex items-center justify-center bg-[#101713]/95 p-3 sm:p-8" onClick={() => setGallery(null)}>
+        <div className="relative flex h-full max-h-[900px] w-full max-w-6xl flex-col" onClick={event => event.stopPropagation()}>
+          <div className="flex items-center justify-between gap-4 py-3 text-white"><div><p className="text-sm font-semibold">{gallery.title}</p><p className="text-[10px] text-white/60">{gallery.index + 1} of {gallery.images.length}</p></div><button type="button" onClick={() => setGallery(null)} aria-label="Close gallery" className="rounded-full border border-white/30 p-2 text-white"><X className="h-5 w-5"/></button></div>
+          <div className="relative flex min-h-0 flex-1 items-center justify-center">
+            <img src={gallery.images[gallery.index]} alt={gallery.title + " photo " + (gallery.index + 1)} className="max-h-full max-w-full rounded-lg object-contain"/>
+            {gallery.images.length > 1 && <><button type="button" aria-label="Previous photo" onClick={() => setGallery(current => current ? { ...current, index: (current.index - 1 + current.images.length) % current.images.length } : current)} className="absolute left-2 rounded-full bg-black/50 p-3 text-white"><ChevronLeft className="h-6 w-6"/></button><button type="button" aria-label="Next photo" onClick={() => setGallery(current => current ? { ...current, index: (current.index + 1) % current.images.length } : current)} className="absolute right-2 rounded-full bg-black/50 p-3 text-white"><ChevronRight className="h-6 w-6"/></button></>}
+          </div>
+          {gallery.images.length > 1 && <div className="flex gap-2 overflow-x-auto py-3">{gallery.images.map((url, index) => <button type="button" key={url} onClick={() => setGallery(current => current ? { ...current, index } : current)} className={"h-14 w-20 shrink-0 overflow-hidden rounded-md border-2 " + (index === gallery.index ? "border-white" : "border-transparent opacity-60")}><img src={url} alt={"Thumbnail " + (index + 1)} className="h-full w-full object-cover"/></button>)}</div>}
+        </div>
+      </div>}
 
       {!confirmation && <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#e6e4dc] bg-[#fafaf7]/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-lg sm:hidden">
         <div className="mx-auto flex max-w-lg items-center gap-3">
