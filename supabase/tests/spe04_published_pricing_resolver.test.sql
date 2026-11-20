@@ -1,6 +1,6 @@
 -- SPE-04.03 database contract tests. Run with Supabase pgTAP test runner.
 BEGIN;
-SELECT plan(21);
+SELECT plan(22);
 
 SELECT has_function(
   'public',
@@ -155,6 +155,18 @@ SELECT ok(
     AND pg_get_functiondef('public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamptz)'::regprocedure)
     LIKE '%Eligible rate plan and latest publication could not be resolved consistently%',
   'Plan selection and quote evidence are pinned to the same latest eligible publication candidate'
+);
+
+SELECT ok(
+  position('IF v_plan_count=0 THEN' in pg_get_functiondef(
+    'public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamptz)'::regprocedure
+  )) > position('IF upper(COALESCE(v_room.currency' in pg_get_functiondef(
+    'public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamptz)'::regprocedure
+  ))
+  AND position('Published plan currency does not match property currency' in pg_get_functiondef(
+    'public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamptz)'::regprocedure
+  )) > 0,
+  'Legacy room currency is checked only for legacy fallback; published rate plans use their own validated transaction currency'
 );
 
 SELECT * FROM finish();
