@@ -16,6 +16,22 @@ const brandingSchema = z.object({
   heroImageUrl: z.string().url().max(2048).or(z.literal("")),
   galleryImageUrls: z.array(z.string().url().max(2048)).max(12),
   showStayNasAttribution: z.boolean(),
+  socialLinks: z.object({
+    instagram: z.string().url().max(2048).or(z.literal("")),
+    facebook: z.string().url().max(2048).or(z.literal("")),
+    tiktok: z.string().url().max(2048).or(z.literal("")),
+    youtube: z.string().url().max(2048).or(z.literal("")),
+    x: z.string().url().max(2048).or(z.literal("")),
+    whatsapp: z.string().url().max(2048).or(z.literal("")),
+  }),
+  footerPromotion: z.object({
+    enabled: z.boolean(),
+    title: z.string().max(120),
+    description: z.string().max(400),
+    imageUrl: z.string().url().max(2048).or(z.literal("")),
+    ctaLabel: z.string().max(40),
+    ctaUrl: z.string().url().max(2048).or(z.literal("")),
+  }),
 });
 
 export type PropertyBranding = z.infer<typeof brandingSchema>;
@@ -45,6 +61,22 @@ export const getPropertyBranding = createServerFn({ method: "GET" })
       description: b.description ?? "", heroImageUrl: b.hero_image_url ?? "",
       galleryImageUrls: Array.isArray(b.gallery_image_urls) ? b.gallery_image_urls : [],
       showStayNasAttribution: b.show_staynas_attribution ?? true,
+      socialLinks: {
+        instagram: b.social_links?.instagram ?? "",
+        facebook: b.social_links?.facebook ?? "",
+        tiktok: b.social_links?.tiktok ?? "",
+        youtube: b.social_links?.youtube ?? "",
+        x: b.social_links?.x ?? "",
+        whatsapp: b.social_links?.whatsapp ?? "",
+      },
+      footerPromotion: {
+        enabled: b.social_links?.footerPromotion?.enabled ?? false,
+        title: b.social_links?.footerPromotion?.title ?? "",
+        description: b.social_links?.footerPromotion?.description ?? "",
+        imageUrl: b.social_links?.footerPromotion?.imageUrl ?? "",
+        ctaLabel: b.social_links?.footerPromotion?.ctaLabel ?? "Explore offer",
+        ctaUrl: b.social_links?.footerPromotion?.ctaUrl ?? "",
+      },
     } satisfies PropertyBranding;
   });
 
@@ -68,6 +100,7 @@ export const savePropertyBranding = createServerFn({ method: "POST" })
         hero_image_url: data.heroImageUrl || null,
         gallery_image_urls: data.galleryImageUrls,
         show_staynas_attribution: data.showStayNasAttribution,
+        social_links: { ...data.socialLinks, footerPromotion: data.footerPromotion },
         updated_by: context.userId,
         updated_at: new Date().toISOString(),
       }, { onConflict: "property_id" });
