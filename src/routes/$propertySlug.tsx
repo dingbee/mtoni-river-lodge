@@ -14,6 +14,7 @@ import {
   searchPublicDemoAvailability,
 } from "@/lib/public-booking.functions";
 import { formatMoney } from "@/lib/money";
+import { searchedNightlyRate } from "@/lib/public-availability";
 
 export const Route = createFileRoute("/$propertySlug")({
   loader: async ({ params }) => {
@@ -277,6 +278,9 @@ function PublicPropertyBookingPage() {
             const planOptions: RatePlanOption[] = live?.rate_plan_options ?? [];
             const selectedPlanForRoom = planOptions.find((plan) => plan.rate_plan_id === (selectedRatePlans[room.slug] ?? "")) ?? (planOptions.length === 1 ? planOptions[0] : undefined);
             const needsPlanChoice = live?.pricing_quote?.error_code === "RATE_PLAN_REQUIRED";
+            // After a search, the card shows the live rate for the searched dates (in the
+            // quote currency), never the stored indicative "from" price.
+            const livePerNight = live && !needsPlanChoice ? searchedNightlyRate(live) : null;
             const notReturned = hasSearched && !live;
             return <article key={room.id} className={`group overflow-hidden rounded-[1.4rem] border bg-white transition duration-200 ${isSelected ? "border-[#68816f] ring-2 ring-[#dce7dd]" : "border-[#e8e7df] hover:-translate-y-0.5 hover:shadow-[0_14px_35px_rgba(33,43,36,0.08)]"}`}>
               <div className="relative aspect-[16/10] overflow-hidden bg-[#e9e9e1]">
@@ -287,7 +291,7 @@ function PublicPropertyBookingPage() {
               <div className="p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0"><h3 className="text-[17px] font-semibold tracking-[-0.035em] text-[#253229]">{room.name}</h3><p className="mt-1 line-clamp-2 text-xs leading-5 text-[#7a857d]">{room.short_description || room.hero_line || room.description?.[0] || "A comfortable space for your stay."}</p></div>
-                  <div className="shrink-0 text-right"><p className="text-[17px] font-semibold tracking-tight text-[#253229]">{hasSearched && live && needsPlanChoice && !selectedPlanForRoom ? "Choose a plan" : hasSearched && live && selectedPlanForRoom ? money(Number(selectedPlanForRoom.total), selectedPlanForRoom.currency) : room.base_price !== null && room.base_price !== undefined && Number(room.base_price) > 0 ? money(room.base_price, currency) : "Select dates"}</p><p className="text-[10px] text-[#899188]">{hasSearched && live && selectedPlanForRoom ? "accommodation subtotal" : hasSearched && live && needsPlanChoice ? "to view pricing" : room.base_price !== null && room.base_price !== undefined && Number(room.base_price) > 0 ? "per night · indicative" : "to see live rates"}</p></div>
+                  <div className="shrink-0 text-right"><p className="text-[17px] font-semibold tracking-tight text-[#253229]">{hasSearched && live && needsPlanChoice && !selectedPlanForRoom ? "Choose a plan" : hasSearched && live && selectedPlanForRoom ? money(Number(selectedPlanForRoom.total), selectedPlanForRoom.currency) : hasSearched && livePerNight ? `${livePerNight.uniform ? "" : "from "}${money(livePerNight.amount, livePerNight.currency)}` : room.base_price !== null && room.base_price !== undefined && Number(room.base_price) > 0 ? money(room.base_price, currency) : "Select dates"}</p><p className="text-[10px] text-[#899188]">{hasSearched && live && selectedPlanForRoom ? "accommodation subtotal" : hasSearched && live && needsPlanChoice ? "to view pricing" : hasSearched && livePerNight ? "per night · your dates" : room.base_price !== null && room.base_price !== undefined && Number(room.base_price) > 0 ? "per night · indicative" : "to see live rates"}</p></div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-x-3 gap-y-2 border-t border-[#f0f0eb] pt-3 text-[10px] text-[#758078]">
                   <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5"/>{room.max_occupancy} guests max</span>

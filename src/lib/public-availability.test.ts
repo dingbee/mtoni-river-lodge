@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapPublicAvailability, toPublicCatalogRoom } from "./public-availability";
+import { mapPublicAvailability, searchedNightlyRate, toPublicCatalogRoom } from "./public-availability";
 
 const nolmark = { name: "Nolmark CDMA", currency: "TZS" };
 
@@ -64,5 +64,27 @@ describe("guest catalogue room rates", () => {
     expect(toPublicCatalogRoom({ base_price: "80.00", currency: "USD", extra_guest_fee: "10" }, nolmark))
       .toMatchObject({ base_price: null, currency: "TZS", extra_guest_fee: null });
     expect(toPublicCatalogRoom({ base_price: "0.00", currency: "TZS" }, nolmark).base_price).toBeNull();
+  });
+});
+
+describe("searched per-night rate on the room card", () => {
+  const deluxe = (nightly: Array<{ nightly_rate: number }>) => ({
+    currency: "TZS",
+    pricing_quote: { currency: "TZS", total: 940000, nightly },
+  });
+
+  it("shows the exact TZS 235,000 rate for a 4-night Deluxe search, not the stored indicative price", () => {
+    expect(searchedNightlyRate(deluxe(Array(4).fill({ nightly_rate: 235000 }))))
+      .toEqual({ amount: 235000, currency: "TZS", uniform: true });
+  });
+
+  it("uses the lowest exact night as a 'from' price when nightly rates differ", () => {
+    expect(searchedNightlyRate(deluxe([{ nightly_rate: 235000 }, { nightly_rate: 260000 }])))
+      .toEqual({ amount: 235000, currency: "TZS", uniform: false });
+  });
+
+  it("returns nothing when there is no priced quote", () => {
+    expect(searchedNightlyRate({ currency: "TZS", pricing_quote: { ok: false, error_code: "RATE_PLAN_REQUIRED" } })).toBeNull();
+    expect(searchedNightlyRate({ currency: "TZS", pricing_quote: { currency: "TZS", nightly: [] } })).toBeNull();
   });
 });
