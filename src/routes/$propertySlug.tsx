@@ -125,7 +125,8 @@ function PublicPropertyBookingPage() {
       ...(Array.isArray(room.amenities) ? room.amenities : []),
       ...(Array.isArray(room.category?.features) ? room.category.features : []),
     ]);
-    return [...new Set(values.map((value: unknown) => String(value).trim()).filter(Boolean))].slice(0, 12);
+    const normalized: string[] = values.map((value: unknown) => String(value).trim()).filter((value: string) => value.length > 0);
+    return [...new Set<string>(normalized)].slice(0, 12);
   }, [propertyData?.rooms]);
   const openGallery = (title: string, sourceRooms: any[]) => {
     const images = [...new Set(sourceRooms.flatMap((room) => [room.image_url, ...(Array.isArray(room.gallery_urls) ? room.gallery_urls : [])]).filter((url): url is string => typeof url === "string" && url.startsWith("https://")))];
