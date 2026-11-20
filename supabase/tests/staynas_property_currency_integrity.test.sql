@@ -1,6 +1,6 @@
 -- StayNas property operating currency, transaction immutability and property isolation contracts.
 BEGIN;
-SELECT plan(15);
+SELECT plan(16);
 
 INSERT INTO public.staynas_organisations (id, slug, name) VALUES
   ('91000000-0000-4000-8000-000000000001', 'currency-org-a', 'Currency Organisation A'),
@@ -248,6 +248,20 @@ SET guest_id = '97000000-0000-4000-8000-000000000001'
 WHERE id = '96000000-0000-4000-8000-000000000003';
 INSERT INTO public.payment_events (booking_id, event_type, amount, currency, idempotency_key)
 VALUES ('96000000-0000-4000-8000-000000000003', 'payment_received', 25, 'USD', 'currency-test-payment-a-usd');
+
+-- A legacy room row can retain its old price currency. New bookings are validated
+-- against the property transaction currency and same-property room ownership,
+-- not the legacy room.base_price currency.
+INSERT INTO public.bookings
+  (id, reference, room_id, property_id, check_in, check_out, nights, guest_name, guest_email, subtotal, total, currency, payment_status)
+VALUES
+  ('96000000-0000-4000-8000-000000000004', 'CURR-A-003', '95000000-0000-4000-8000-000000000001',
+   '92000000-0000-4000-8000-000000000001', current_date + 36, current_date + 37, 1,
+   'Currency Guest Legacy Room', 'currency-legacy-room@example.test', 1500, 1500, 'USD', 'unpaid');
+SELECT ok(
+  EXISTS (SELECT 1 FROM public.bookings WHERE id='96000000-0000-4000-8000-000000000004' AND currency='USD'),
+  'Legacy room price currency does not block a booking whose authoritative property transaction currency is valid'
+);
 
 
 -- A historical booking keeps its transaction currency for downstream redemption records,
