@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapPublicAvailability, searchedNightlyRate, toPublicCatalogRoom } from "./public-availability";
+import { mapPublicAvailability, plausibleGuestEmail, quoteRatePlanId, searchedNightlyRate, toPublicCatalogRoom } from "./public-availability";
 
 const nolmark = { name: "Nolmark CDMA", currency: "TZS" };
 
@@ -86,5 +86,37 @@ describe("searched per-night rate on the room card", () => {
   it("returns nothing when there is no priced quote", () => {
     expect(searchedNightlyRate({ currency: "TZS", pricing_quote: { ok: false, error_code: "RATE_PLAN_REQUIRED" } })).toBeNull();
     expect(searchedNightlyRate({ currency: "TZS", pricing_quote: { currency: "TZS", nightly: [] } })).toBeNull();
+  });
+});
+
+describe("guest email gate for the final quote", () => {
+  it("accepts real addresses (previously every address was rejected, blocking booking)", () => {
+    expect(plausibleGuestEmail("test1nolmark@gmail.com")).toBe("test1nolmark@gmail.com");
+    expect(plausibleGuestEmail("  bob@example.com ")).toBe("bob@example.com");
+    expect(plausibleGuestEmail("a.b+tag@mail.co.tz")).toBe("a.b+tag@mail.co.tz");
+  });
+
+  it("rejects incomplete addresses", () => {
+    for (const value of ["", "bob", "bob@", "bob@example", "bob @example.com", "@example.com"]) {
+      expect(plausibleGuestEmail(value)).toBe("");
+    }
+  });
+});
+
+describe("rate plan used for the final quote", () => {
+  // Production shape for Deluxe (single eligible plan): no choice list, plan in evidence.
+  const deluxe = { rate_plan_options: [], pricing_quote: { currency: "TZS", pricing_evidence: { rate_plan_id: "f815cd7e-c6d8-46d1-a6c9-12e39459c519" } } };
+
+  it("uses the priced plan for single-plan rooms (previously empty, so no quote and no booking)", () => {
+    expect(quoteRatePlanId(deluxe, "")).toBe("f815cd7e-c6d8-46d1-a6c9-12e39459c519");
+  });
+
+  it("prefers the guest's explicit choice, then a single offered plan", () => {
+    expect(quoteRatePlanId(deluxe, "chosen")).toBe("chosen");
+    expect(quoteRatePlanId({ rate_plan_options: [{ rate_plan_id: "only" }] }, "")).toBe("only");
+  });
+
+  it("requires a choice when several plans are offered", () => {
+    expect(quoteRatePlanId({ rate_plan_options: [{ rate_plan_id: "a" }, { rate_plan_id: "b" }], pricing_quote: { pricing_evidence: { rate_plan_id: "a" } } }, "")).toBe("");
   });
 });

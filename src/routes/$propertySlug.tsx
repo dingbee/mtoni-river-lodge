@@ -14,7 +14,7 @@ import {
   searchPublicDemoAvailability,
 } from "@/lib/public-booking.functions";
 import { formatMoney } from "@/lib/money";
-import { searchedNightlyRate } from "@/lib/public-availability";
+import { plausibleGuestEmail, quoteRatePlanId, searchedNightlyRate } from "@/lib/public-availability";
 
 export const Route = createFileRoute("/$propertySlug")({
   loader: async ({ params }) => {
@@ -149,8 +149,12 @@ function PublicPropertyBookingPage() {
     },
   });
 
-  const resolvedRatePlanId = selectedRatePlanId || (selectedRoom?.rate_plan_options?.length === 1 ? selectedRoom.rate_plan_options[0].rate_plan_id : "");
-  const validGuestEmail = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(guestEmail.trim()) ? guestEmail.trim() : "";
+  // Single-plan rooms carry their plan in the availability price evidence, not in the
+  // choice list; without it the final quote (and so booking) was never requested.
+  const resolvedRatePlanId = selectedRoom ? quoteRatePlanId(selectedRoom, selectedRatePlanId) : "";
+  // The previous inline pattern was double-escaped ("\\s", "\\.") and rejected every
+  // real address, so no quote was ever requested and booking could not be submitted.
+  const validGuestEmail = plausibleGuestEmail(guestEmail);
 
   useEffect(() => {
     if (!selectedRoom || !resolvedRatePlanId || !validGuestEmail || nights < 1) {

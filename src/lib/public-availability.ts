@@ -83,3 +83,25 @@ export function searchedNightlyRate(room: any): { amount: number; currency: stri
   const lowest = Math.min(...rates);
   return { amount: lowest, currency: room.currency, uniform: rates.every((rate: number) => rate === lowest) };
 }
+
+/**
+ * Guest email gate for requesting the final server quote. The server re-validates
+ * the address (zod .email()); this only decides when the browser may ask for a quote.
+ */
+export function plausibleGuestEmail(value: string): string {
+  const email = value.trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "";
+}
+
+/**
+ * Rate plan the final quote must be requested for: the guest's explicit choice, the
+ * only offered plan, or — when exactly one plan is eligible and no choice is shown —
+ * the plan the availability quote was priced with. The server re-validates it.
+ */
+export function quoteRatePlanId(room: any, selectedRatePlanId: string): string {
+  if (selectedRatePlanId) return selectedRatePlanId;
+  const options = Array.isArray(room?.rate_plan_options) ? room.rate_plan_options : [];
+  if (options.length === 1) return String(options[0].rate_plan_id ?? "");
+  if (options.length > 1) return "";
+  return String(room?.pricing_quote?.pricing_evidence?.rate_plan_id ?? "");
+}
