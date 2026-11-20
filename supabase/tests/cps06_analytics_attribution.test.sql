@@ -237,9 +237,9 @@ BEGIN
   INSERT INTO public.staynas_reservation_quotes(id,property_id,room_id,request,quote_snapshot,quote_hash,expires_at)
   VALUES
     (v_quote_a,'93000000-0000-4000-8000-000000000001','95000000-0000-4000-8000-000000000001',
-     '{"source":"cps06-e2e"}','{"total":100,"currency":"TZS"}','cps06-e2e-quote-alpha',now()+interval '1 day'),
+     '{"source":"cps06-e2e"}','{"total":100,"currency":"TZS"}',md5('{"total":100,"currency":"TZS"}'::jsonb::text),now()+interval '1 day'),
     (v_quote_b,'93000000-0000-4000-8000-000000000001','95000000-0000-4000-8000-000000000001',
-     '{"source":"cps06-e2e"}','{"total":200,"currency":"TZS"}','cps06-e2e-quote-beta',now()+interval '1 day');
+     '{"source":"cps06-e2e"}','{"total":200,"currency":"TZS"}',md5('{"total":200,"currency":"TZS"}'::jsonb::text),now()+interval '1 day');
 
   IF NOT public.staynas_attach_quote_attribution(v_quote_a,'93000000-0000-4000-8000-000000000001',v_attribution_a)
      OR NOT public.staynas_attach_quote_attribution(v_quote_b,'93000000-0000-4000-8000-000000000001',v_attribution_b) THEN
