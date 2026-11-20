@@ -241,6 +241,11 @@ INSERT INTO public.bookings
   (id, reference, room_id, property_id, check_in, check_out, nights, guest_name, guest_email, subtotal, total, currency, payment_status, guest_id)
 VALUES
   ('96000000-0000-4000-8000-000000000003', 'CURR-A-002', '95000000-0000-4000-8000-000000000003', '92000000-0000-4000-8000-000000000001', current_date + 35, current_date + 36, 1, 'Currency Guest A2', 'currency-a2@example.test', 100, 100, 'USD', 'paid', '97000000-0000-4000-8000-000000000001');
+-- Booking creation may normalize guest linkage; explicitly attach this fixture booking
+-- after creation, matching the established guest-association setup above.
+UPDATE public.bookings
+SET guest_id = '97000000-0000-4000-8000-000000000001'
+WHERE id = '96000000-0000-4000-8000-000000000003';
 INSERT INTO public.payment_events (booking_id, event_type, amount, currency, idempotency_key)
 VALUES ('96000000-0000-4000-8000-000000000003', 'payment_received', 25, 'USD', 'currency-test-payment-a-usd');
 
