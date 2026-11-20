@@ -158,15 +158,24 @@ SELECT ok(
 );
 
 SELECT ok(
-  position('IF v_plan_count=0 THEN' in pg_get_functiondef(
+  pg_get_functiondef(
     'public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamptz)'::regprocedure
-  )) > position('IF upper(COALESCE(v_room.currency' in pg_get_functiondef(
+  ) ~ 'IF v_plan_count[[:space:]]*=[[:space:]]*0 THEN'
+  AND position('IF upper(COALESCE(v_room.currency' in pg_get_functiondef(
+    'public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamptz)'::regprocedure
+  )) > position('IF v_plan_count' in pg_get_functiondef(
     'public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamptz)'::regprocedure
   ))
+  AND position('IF upper(v_plan.currency)' in pg_get_functiondef(
+    'public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamptz)'::regprocedure
+  )) > 0
+  AND position('IF upper(v_publication.currency)' in pg_get_functiondef(
+    'public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamptz)'::regprocedure
+  )) > 0
   AND position('Published plan currency does not match property currency' in pg_get_functiondef(
     'public.resolve_staynas_published_room_pricing(uuid,uuid,date,date,integer,integer,integer,uuid,timestamptz)'::regprocedure
   )) > 0,
-  'Legacy room currency is checked only for legacy fallback; published rate plans use their own validated transaction currency'
+  'Legacy room currency is checked only for legacy fallback; published plan and publication currencies must match property currency'
 );
 
 SELECT * FROM finish();
