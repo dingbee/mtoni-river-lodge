@@ -791,7 +791,7 @@ export const listFinancialAlerts = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "finance");
     const propertyId = await getActiveFinancePropertyId(context.supabase, context.userId);
-    const { data, error } = await (context.supabase as any)
+    const { data, error } = await context.supabase
       .from("financial_alerts")
       .select("*")
       .eq("property_id", propertyId)
@@ -812,7 +812,7 @@ export const scanFinancialAlerts = createServerFn({ method: "POST" })
     });
     if (!allowed) throw new Error("Forbidden");
 
-    const inserts: Array<Record<string, unknown>> = [];
+    const inserts: Database["public"]["Tables"]["financial_alerts"]["Insert"][] = [];
     const today = todayISO();
 
     const { data: overdue } = await context.supabase
@@ -903,7 +903,7 @@ export const scanFinancialAlerts = createServerFn({ method: "POST" })
       .select("alert_type, booking_id")
       .eq("property_id", propertyId)
       .eq("status", "open");
-    const seen = new Set((existing ?? []).map((r: any) => `${r.alert_type}:${r.booking_id ?? ""}`));
+    const seen = new Set((existing ?? []).map((r) => `${r.alert_type}:${r.booking_id ?? ""}`));
     const fresh = inserts.filter(
       (i) => !seen.has(`${i.alert_type}:${(i.booking_id as string) ?? ""}`),
     );
