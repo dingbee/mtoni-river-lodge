@@ -1,6 +1,6 @@
 -- StayNas property operating currency, transaction immutability and property isolation contracts.
 BEGIN;
-SELECT plan(18);
+SELECT plan(15);
 
 INSERT INTO public.staynas_organisations (id, slug, name) VALUES
   ('91000000-0000-4000-8000-000000000001', 'currency-org-a', 'Currency Organisation A'),
@@ -292,6 +292,7 @@ SELECT set_config('request.jwt.claim.sub', '93000000-0000-4000-8000-000000000002
 SELECT set_config('request.jwt.claim.role', 'authenticated', true);
 SET LOCAL ROLE authenticated;
 SELECT public.staynas_set_active_property('92000000-0000-4000-8000-000000000001');
+SELECT is(public.staynas_guest_is_accessible(auth.uid(), '97000000-0000-4000-8000-000000000001'), true, 'Multi-property owner can access a guest with a Property A booking');
 SELECT id, lifetime_spend, lifetime_spend_currency, lifetime_spend_by_currency FROM public.guest_directory WHERE id = '97000000-0000-4000-8000-000000000001';
 SELECT guest_id, avg_spend, avg_spend_currency, avg_spend_by_currency FROM public.guest_metrics WHERE guest_id = '97000000-0000-4000-8000-000000000001';
 SELECT is((SELECT currency FROM public.staynas_properties WHERE id = public.staynas_active_property_id(auth.uid())), 'USD', 'Property A context resolves USD');
