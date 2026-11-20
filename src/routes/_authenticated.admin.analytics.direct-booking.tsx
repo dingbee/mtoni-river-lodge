@@ -48,7 +48,12 @@ function Page() {
   if (isLoading) return <LoadingState />;
   if (error || !data) return <div className="space-y-4"><PageHeader title="Performance & Attribution" description="Direct booking and campaign conversion evidence." /><p className="rounded-md border p-4 text-sm text-destructive">{error instanceof Error ? error.message : "Analytics could not be loaded."}</p></div>;
 
-  const report = data.report as Report;
+  const analytics = data as unknown as {
+    report: Report;
+    period: { from: string; to: string; range: string };
+    property: { id: string; name: string; currency: string; timezone: string };
+  };
+  const report = analytics.report;
   const funnel = report.funnel ?? {};
   const currencies = report.currencies ?? [];
   const campaigns = report.campaigns ?? [];
@@ -58,8 +63,8 @@ function Page() {
   const exportCsv = () => {
     const rows: Array<Array<string | number | null | undefined>> = [
       ["section", "metric", "value", "currency", "detail"],
-      ["period", "from", data.period.from, "", data.property.timezone],
-      ["period", "to", data.period.to, "", data.property.name],
+      ["period", "from", analytics.period.from, "", analytics.property.timezone],
+      ["period", "to", analytics.period.to, "", analytics.property.name],
       ...Object.entries(funnel).map(([key, value]) => ["funnel", key, value as number]),
       ...Object.entries(permanent).map(([key, value]) => ["permanent_page", key, value as number]),
       ...currencies.flatMap((item) => [
@@ -101,7 +106,7 @@ function Page() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "staynas-booking-analytics-" + data.period.from + "-to-" + data.period.to + ".csv";
+    anchor.download = "staynas-booking-analytics-" + analytics.period.from + "-to-" + analytics.period.to + ".csv";
     anchor.click();
     URL.revokeObjectURL(url);
   };
@@ -117,7 +122,7 @@ function Page() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Performance & Attribution" description={`${data.property.name} · ${data.period.from} to ${data.period.to} · Reporting timezone: ${data.property.timezone}`} />
+      <PageHeader title="Performance & Attribution" description={`${analytics.property.name} · ${analytics.period.from} to ${analytics.period.to} · Reporting timezone: ${analytics.property.timezone}`} />
       <div className="flex flex-wrap items-end gap-2">
         {(["today", "yesterday", "7d", "30d", "90d"] as Range[]).map((item) => (
           <button key={item} type="button" onClick={() => setRange(item)} aria-pressed={range === item}

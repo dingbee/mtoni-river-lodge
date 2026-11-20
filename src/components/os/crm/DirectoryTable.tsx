@@ -11,11 +11,21 @@ export type GuestRow = {
   status: string;
   total_stays: number;
   total_nights: number;
-  lifetime_spend: number;
+  lifetime_spend: number | null;
+  lifetime_spend_currency?: string | null;
+  lifetime_spend_by_currency?: Record<string, number> | null;
   first_stay: string | null;
   last_stay: string | null;
   communication_preference: string;
 };
+
+function formatLifetimeSpend(guest: GuestRow) {
+  if (guest.lifetime_spend == null) {
+    return Object.keys(guest.lifetime_spend_by_currency ?? {}).length > 1 ? "Multiple currencies" : "—";
+  }
+  if (!guest.lifetime_spend_currency) return "Currency unavailable";
+  return `${guest.lifetime_spend_currency} ${guest.lifetime_spend.toLocaleString()}`;
+}
 
 function fmtDate(d?: string | null) {
   if (!d) return "—";
@@ -71,7 +81,7 @@ export function DirectoryTable({ rows }: { rows: GuestRow[] }) {
               </div>
               <div>
                 <p className="text-[11px] text-muted-foreground">Lifetime spend</p>
-                <p className="text-sm font-medium tabular-nums">{guest.lifetime_spend > 0 ? `$${guest.lifetime_spend.toLocaleString()}` : "—"}</p>
+                <p className="text-sm font-medium tabular-nums">{guest.lifetime_spend !== null && guest.lifetime_spend > 0 ? formatLifetimeSpend(guest) : guest.lifetime_spend === null ? formatLifetimeSpend(guest) : "—"}</p>
               </div>
             </div>
           </article>
@@ -104,7 +114,7 @@ export function DirectoryTable({ rows }: { rows: GuestRow[] }) {
                 <TableCell><GuestStatusChip status={r.status} /></TableCell>
                 <TableCell className="text-right tabular-nums">{r.total_stays}</TableCell>
                 <TableCell className="text-right tabular-nums">{r.total_nights}</TableCell>
-                <TableCell className="text-right tabular-nums">{r.lifetime_spend > 0 ? `$${r.lifetime_spend.toLocaleString()}` : "—"}</TableCell>
+                <TableCell className="text-right tabular-nums">{r.lifetime_spend !== null && r.lifetime_spend > 0 ? formatLifetimeSpend(r) : r.lifetime_spend === null ? formatLifetimeSpend(r) : "—"}</TableCell>
                 <TableCell className="whitespace-nowrap text-sm">{fmtDate(r.last_stay)}</TableCell>
               </TableRow>
             ))}

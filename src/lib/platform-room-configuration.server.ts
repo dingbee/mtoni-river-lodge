@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Supabase RPC payloads are dynamically typed at this server boundary. */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -139,21 +140,32 @@ export const savePlatformRoomType = createServerFn({ method: "POST" })
 
     const { data: existing, error: existingError } = data.id
       ? await sb.from("rooms")
-          .select("currency,configuration_source")
+          .select("currency,base_price,extra_guest_fee,configuration_source")
           .eq("id", data.id)
           .eq("property_id", propertyId)
           .single()
       : { data: null, error: null };
     if (existingError) throw new Error(existingError.message);
-    
 
     const { data: property, error: propertyError } = await sb.from("staynas_properties")
       .select("currency")
       .eq("id", propertyId)
       .single();
     if (propertyError) throw new Error(propertyError.message);
-    const currency = existing?.currency ?? property.currency;
-    if (!currency) throw new Error("Configure the property currency before creating room types");
+    const propertyCurrency = String(property.currency ?? "").trim().toUpperCase();
+    if (!/^[A-Z]{3}$/.test(propertyCurrency)) {
+      throw new Error("Configure a valid property operating currency before saving room prices");
+    }
+    // Preserve legacy currency on descriptive-only edits. When either monetary
+    // field changes, the entered values are new prices and must use the current
+    // property operating currency; never silently relabel unchanged historical amounts.
+    const monetaryValuesChanged = Boolean(existing) && (
+      Number(existing.base_price) !== data.basePrice ||
+      Number(existing.extra_guest_fee) !== data.extraGuestFee
+    );
+    const currency = existing
+      ? (monetaryValuesChanged ? propertyCurrency : String(existing.currency ?? propertyCurrency).toUpperCase())
+      : propertyCurrency;
 
     const { data: roomId, error } = await sb.rpc("save_platform_room_type_configuration", {
       _property_id: propertyId,

@@ -1,7 +1,7 @@
 -- CPS-04 executable database contracts: tenant scope, immutable rate publications,
 -- property currency, room assignments, RLS, uniqueness and publication versioning.
 BEGIN;
-SELECT plan(1);
+SELECT plan(3);
 
 INSERT INTO public.staynas_organisations (id, slug, name) VALUES
   ('10000000-0000-4000-8000-000000000001', 'org-a', 'Organisation A'),
@@ -38,9 +38,9 @@ INSERT INTO public.staynas_room_catalogue_types (id, slug, name, status) VALUES
   ('50000000-0000-4000-8000-000000000001', 'cps04-catalogue-a', 'CPS04 Catalogue A', 'active'),
   ('50000000-0000-4000-8000-000000000002', 'cps04-catalogue-b', 'CPS04 Catalogue B', 'active');
 
-INSERT INTO public.rooms (id, property_id, catalogue_type_id, slug, name, base_price, currency, status) VALUES
-  ('40000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', '50000000-0000-4000-8000-000000000001', 'cps04-room-a', 'CPS04 Room A', 120000, 'TZS', 'active'),
-  ('40000000-0000-4000-8000-000000000002', '20000000-0000-4000-8000-000000000002', '50000000-0000-4000-8000-000000000002', 'cps04-room-b', 'CPS04 Room B', 45000, 'KES', 'active');
+INSERT INTO public.rooms (id, property_id, catalogue_type_id, slug, name, base_price, currency, capacity_adults, capacity_children, max_occupancy, status) VALUES
+  ('40000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', '50000000-0000-4000-8000-000000000001', 'cps04-room-a', 'CPS04 Room A', 120000, 'TZS', 2, 0, 2, 'active'),
+  ('40000000-0000-4000-8000-000000000002', '20000000-0000-4000-8000-000000000002', '50000000-0000-4000-8000-000000000002', 'cps04-room-b', 'CPS04 Room B', 45000, 'KES', 2, 0, 2, 'active');
 
 -- Rate plans must be created as drafts, assigned to real room types, then published.
 INSERT INTO public.staynas_rate_plans
@@ -48,14 +48,16 @@ INSERT INTO public.staynas_rate_plans
   ('60000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 'CPS04-A1', 'CPS04 A Standard', 'TZS', 'draft', true),
   ('60000000-0000-4000-8000-000000000002', '20000000-0000-4000-8000-000000000002', 'CPS04-B1', 'CPS04 B Standard', 'KES', 'draft', true),
   ('60000000-0000-4000-8000-000000000003', '20000000-0000-4000-8000-000000000001', 'CPS04-A2', 'CPS04 A Currency Fixture', 'TZS', 'draft', true),
-  ('60000000-0000-4000-8000-000000000004', '20000000-0000-4000-8000-000000000001', 'CPS04-A3', 'CPS04 A Assignment Fixture', 'TZS', 'draft', true);
+  ('60000000-0000-4000-8000-000000000004', '20000000-0000-4000-8000-000000000001', 'CPS04-A3', 'CPS04 A Assignment Fixture', 'TZS', 'draft', true),
+  ('60000000-0000-4000-8000-000000000005', '20000000-0000-4000-8000-000000000001', 'CPS04-A4', 'CPS04 A Published Currency Authority', 'TZS', 'draft', true);
 
 INSERT INTO public.staynas_rate_plan_room_types
   (property_id, rate_plan_id, room_type_id, active, display_order) VALUES
   ('20000000-0000-4000-8000-000000000001', '60000000-0000-4000-8000-000000000001', '50000000-0000-4000-8000-000000000001', true, 1),
   ('20000000-0000-4000-8000-000000000002', '60000000-0000-4000-8000-000000000002', '50000000-0000-4000-8000-000000000002', true, 1),
   ('20000000-0000-4000-8000-000000000001', '60000000-0000-4000-8000-000000000003', '50000000-0000-4000-8000-000000000001', true, 1),
-  ('20000000-0000-4000-8000-000000000001', '60000000-0000-4000-8000-000000000004', '50000000-0000-4000-8000-000000000001', true, 1);
+  ('20000000-0000-4000-8000-000000000001', '60000000-0000-4000-8000-000000000004', '50000000-0000-4000-8000-000000000001', true, 1),
+  ('20000000-0000-4000-8000-000000000001', '60000000-0000-4000-8000-000000000005', '50000000-0000-4000-8000-000000000001', true, 1);
 
 SELECT set_config('request.jwt.claim.sub', '30000000-0000-4000-8000-000000000001', true);
 SELECT set_config('request.jwt.claim.role', 'authenticated', true);
@@ -70,7 +72,8 @@ UPDATE public.staynas_rate_plans SET publication_status = 'published' WHERE id =
 UPDATE public.staynas_rate_plans SET publication_status = 'published'
 WHERE id IN (
   '60000000-0000-4000-8000-000000000003',
-  '60000000-0000-4000-8000-000000000004'
+  '60000000-0000-4000-8000-000000000004',
+  '60000000-0000-4000-8000-000000000005'
 );
 
 SELECT set_config('request.jwt.claim.sub', '30000000-0000-4000-8000-000000000002', true);
@@ -106,6 +109,48 @@ SELECT rp.property_id, rp.id, 2, rp.version, rp.code, rp.name, 'TZS',
        md5('cps04-room-assignment-mismatch')
 FROM public.staynas_rate_plans rp
 WHERE rp.id = '60000000-0000-4000-8000-000000000004';
+
+-- A separate published plan carries an explicit, valid property-currency price snapshot.
+INSERT INTO public.staynas_rate_plan_publications
+  (property_id, rate_plan_id, publication_number, rate_plan_version, code, name, currency,
+   published_by, published_at, resolved_data, inheritance_trace, lineage, own_policy,
+   room_type_assignments, snapshot_hash)
+SELECT rp.property_id, rp.id, 2, rp.version, rp.code, rp.name, 'TZS',
+       '30000000-0000-4000-8000-000000000001', now(),
+       jsonb_build_object(
+         'base_rates', jsonb_build_object(
+           '50000000-0000-4000-8000-000000000001',
+           jsonb_build_object('nightly_rate', 120000, 'currency', 'TZS')
+         ),
+         'daily_rates', '{}'::jsonb,
+         'seasonal_rates', '{}'::jsonb,
+         'restrictions', '{}'::jsonb,
+         'occupancy_rules', '{}'::jsonb
+       ),
+       '[]'::jsonb, '[]'::jsonb, '{}'::jsonb,
+       jsonb_build_array(jsonb_build_object('room_type_id', '50000000-0000-4000-8000-000000000001')),
+       md5('cps04-published-rate-plan-currency-authority')
+FROM public.staynas_rate_plans rp
+WHERE rp.id = '60000000-0000-4000-8000-000000000005';
+
+-- Simulate a pre-existing legacy row whose stored room currency predates the property
+-- currency guard. This bypass is confined to the transactional test fixture; application
+-- writes remain guarded and the row is restored before the test transaction rolls back.
+ALTER TABLE public.rooms DISABLE TRIGGER trg_staynas_guard_room_price_currency;
+UPDATE public.rooms SET currency = 'KES' WHERE id = '40000000-0000-4000-8000-000000000001';
+ALTER TABLE public.rooms ENABLE TRIGGER trg_staynas_guard_room_price_currency;
+SELECT is((
+  SELECT (q->>'ok') = 'true' AND q->>'currency' = 'TZS'
+  FROM (SELECT public.resolve_staynas_published_room_pricing(
+    '20000000-0000-4000-8000-000000000001',
+    '40000000-0000-4000-8000-000000000001',
+    current_date + 40, current_date + 41, 2, 0, 0,
+    '60000000-0000-4000-8000-000000000005'
+  ) AS q) pricing
+), true, 'Published rate plan currency governs booking when legacy room currency is stale');
+ALTER TABLE public.rooms DISABLE TRIGGER trg_staynas_guard_room_price_currency;
+UPDATE public.rooms SET currency = 'TZS' WHERE id = '40000000-0000-4000-8000-000000000001';
+ALTER TABLE public.rooms ENABLE TRIGGER trg_staynas_guard_room_price_currency;
 
 DO $test$
 BEGIN
@@ -272,6 +317,21 @@ BEGIN
   END IF;
 END
 $test$;
+
+-- With no published plan, the legacy room base price must still match property currency.
+SELECT set_config('request.jwt.claim.sub', '30000000-0000-4000-8000-000000000002', true);
+SELECT set_config('request.jwt.claim.role', 'authenticated', true);
+UPDATE public.staynas_rate_plans SET publication_status = 'suspended'
+WHERE id = '60000000-0000-4000-8000-000000000002';
+SELECT * FROM public.staynas_update_property_currency('TZS');
+SELECT is((
+  SELECT q->>'error_code' = 'CURRENCY_MISMATCH'
+  FROM (SELECT public.resolve_staynas_published_room_pricing(
+    '20000000-0000-4000-8000-000000000002',
+    '40000000-0000-4000-8000-000000000002',
+    current_date + 40, current_date + 41, 2, 0, 0, NULL
+  ) AS q) pricing
+), true, 'Legacy room base-price fallback rejects currency mismatch');
 
 SELECT pass('CPS-04 database invariants, lifecycle and tenant-isolation assertions passed');
 SELECT * FROM finish();

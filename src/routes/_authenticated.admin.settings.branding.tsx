@@ -35,7 +35,7 @@ function PropertyBrandingPage() {
   const saveFn = useServerFn(savePropertyBranding);
   const qc = useQueryClient();
   const queryKey = ["property-branding", property.id];
-  const query = useQuery({ queryKey, queryFn: () => getFn({ data: { propertyId: property.id } }) });
+  const query = useQuery({ queryKey, enabled: Boolean(property.id), queryFn: () => getFn({ data: { propertyId: property.id } }) });
   const [form, setForm] = useState<PropertyBranding>(defaults(property.id));
   useEffect(() => {
     if (query.data) setForm(query.data);
@@ -51,6 +51,7 @@ function PropertyBrandingPage() {
     setForm((current) => ({ ...current, [key]: value }));
   const addGallery = (url: string) => update("galleryImageUrls", [...form.galleryImageUrls, url].slice(0, 12));
 
+  if (!property.id) return <div className="rounded-lg border p-6 text-sm text-muted-foreground" role="alert">Property branding is unavailable because no active property context has been loaded.</div>;
   if (query.isLoading) return <LoadingState />;
 
   return <div className="space-y-6">

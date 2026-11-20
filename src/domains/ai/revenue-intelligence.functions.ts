@@ -26,6 +26,16 @@ async function getActiveRevenuePropertyId(supabase: any, userId: string): Promis
   return data as string;
 }
 
+async function getActiveRevenuePropertyContext(supabase: any, userId: string): Promise<{ propertyId: string; currency: string }> {
+  const propertyId = await getActiveRevenuePropertyId(supabase, userId);
+  const { data: property, error } = await supabase.from("staynas_properties").select("currency").eq("id", propertyId).single();
+  const currency = String(property?.currency ?? "").trim().toUpperCase();
+  if (error || !/^[A-Z]{3}$/.test(currency)) {
+    throw new Error("The active property must have an explicit operating currency before revenue intelligence can run.");
+  }
+  return { propertyId, currency };
+}
+
 // ---------------------------------------------------------------------------
 // Overview — dashboard KPIs
 // ---------------------------------------------------------------------------
@@ -34,44 +44,41 @@ export const getRevenueIntelligenceOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
+    const { propertyId, currency } = await getActiveRevenuePropertyContext(context.supabase, context.userId);
+    const sb: any = context.supabase;
     const [{ data: rooms }, { data: mtd }, { data: forward }, { data: past30 }, { data: prev30 }, { data: outstanding }, { data: cancelled30 }, { data: openAlerts }] = await Promise.all([
-      context.supabase.from("rooms").select("total_units").eq("status", "active"),
-      context.supabase.from("bookings").select("total, currency, status, check_in, check_out, nights").gte("check_in", firstOfMonth()).in("status", ["confirmed","checked_in","completed"]),
-      context.supabase.from("bookings").select("total, currency, status, check_in, check_out, nights").gte("check_in", today()).lte("check_in", daysFromNow(30)).in("status", ["confirmed","pending","checked_in"]),
-      context.supabase.from("bookings").select("total, created_at").gte("created_at", daysAgo(30)).in("status", ["confirmed","checked_in","completed"]),
-      context.supabase.from("bookings").select("total, created_at").gte("created_at", daysAgo(60)).lt("created_at", daysAgo(30)).in("status", ["confirmed","checked_in","completed"]),
-      context.supabase.from("bookings").select("balance_due, currency").gt("balance_due", 0).in("status", ["confirmed","checked_in","completed"]),
-      context.supabase.from("bookings").select("id, created_at").eq("status", "cancelled").gte("created_at", daysAgo(30)),
-      context.supabase.from("ai_revenue_alerts").select("id").eq("status","open"),
+      sb.from("rooms").select("total_units").eq("property_id", propertyId).eq("status", "active"),
+      sb.from("bookings").select("total, currency, status, check_in, check_out, nights").eq("property_id", propertyId).eq("currency", currency).gte("check_in", firstOfMonth()).in("status", ["confirmed","checked_in","completed"]),
+      sb.from("bookings").select("total, currency, status, check_in, check_out, nights").eq("property_id", propertyId).eq("currency", currency).gte("check_in", today()).lte("check_in", daysFromNow(30)).in("status", ["confirmed","pending","checked_in"]),
+      sb.from("bookings").select("total, currency, created_at").eq("property_id", propertyId).eq("currency", currency).gte("created_at", daysAgo(30)).in("status", ["confirmed","checked_in","completed"]),
+      sb.from("bookings").select("total, currency, created_at").eq("property_id", propertyId).eq("currency", currency).gte("created_at", daysAgo(60)).lt("created_at", daysAgo(30)).in("status", ["confirmed","checked_in","completed"]),
+      sb.from("bookings").select("balance_due, currency").eq("property_id", propertyId).eq("currency", currency).gt("balance_due", 0).in("status", ["confirmed","checked_in","completed"]),
+      sb.from("bookings").select("id, created_at").eq("property_id", propertyId).eq("status", "cancelled").gte("created_at", daysAgo(30)),
+      sb.from("ai_revenue_alerts").select("id").eq("property_id", propertyId).eq("status","open"),
     ]);
 
     const totalUnits = (rooms ?? []).reduce((s: any, r: any) => s + Number(r.total_units ?? 0), 0);
-    const currency = (mtd?.[0] as any)?.currency ?? "USD";
     const mtdRevenue = (mtd ?? []).reduce((s: any, b: any) => s + Number(b.total ?? 0), 0);
     const mtdNights = (mtd ?? []).reduce((s: any, b: any) => s + Number(b.nights ?? 0), 0);
     const forwardRevenue = (forward ?? []).reduce((s: any, b: any) => s + Number(b.total ?? 0), 0);
     const forwardNights = (forward ?? []).reduce((s: any, b: any) => s + Number(b.nights ?? 0), 0);
-
     const now = new Date();
     const daysElapsed = Math.max(1, now.getUTCDate());
     const capacityMTD = totalUnits * daysElapsed;
     const occupancy = capacityMTD > 0 ? mtdNights / capacityMTD : 0;
     const adr = mtdNights > 0 ? mtdRevenue / mtdNights : 0;
     const revpar = capacityMTD > 0 ? mtdRevenue / capacityMTD : 0;
-
     const past30Total = (past30 ?? []).reduce((s: any, b: any) => s + Number(b.total ?? 0), 0);
     const prev30Total = (prev30 ?? []).reduce((s: any, b: any) => s + Number(b.total ?? 0), 0);
     const paceDelta = prev30Total > 0 ? (past30Total - prev30Total) / prev30Total : 0;
-
     const outstandingTotal = (outstanding ?? []).reduce((s: any, b: any) => s + Number(b.balance_due ?? 0), 0);
     const cancellationCount = cancelled30?.length ?? 0;
-
     const forwardCapacity = totalUnits * 30;
     const expectedOccupancy = forwardCapacity > 0 ? forwardNights / forwardCapacity : 0;
     const atRisk = (forward ?? []).filter((b: any) => b.status === "pending").reduce((s: any, b: any) => s + Number(b.total ?? 0), 0);
 
     return {
-      currency,
+      propertyId, currency,
       mtdRevenue, forwardRevenue,
       occupancy, adr, revpar,
       paceDelta, past30Total, prev30Total,
@@ -106,18 +113,22 @@ export const generateRevenueForecast = createServerFn({ method: "POST" })
   }))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
+    const { propertyId, currency } = await getActiveRevenuePropertyContext(context.supabase, context.userId);
+    const sb: any = context.supabase;
     const horizon = data.horizon;
     const from = today();
     const to = daysFromNow(horizon);
 
     const [{ data: rooms }, { data: forward }, { data: history }] = await Promise.all([
-      context.supabase.from("rooms").select("total_units").eq("status", "active"),
-      context.supabase.from("bookings")
+      sb.from("rooms").select("total_units").eq("property_id", propertyId).eq("status", "active"),
+      sb.from("bookings")
         .select("total, nights, check_in, check_out, status, currency")
+        .eq("property_id", propertyId).eq("currency", currency)
         .gte("check_in", from).lte("check_in", to)
         .in("status", ["confirmed","pending","checked_in"]),
-      context.supabase.from("bookings")
-        .select("total, nights, check_in, status")
+      sb.from("bookings")
+        .select("total, nights, check_in, status, currency")
+        .eq("property_id", propertyId).eq("currency", currency)
         .gte("check_in", daysAgo(365))
         .lt("check_in", from)
         .in("status", ["confirmed","checked_in","completed"]),
@@ -160,7 +171,8 @@ export const generateRevenueForecast = createServerFn({ method: "POST" })
     let id: string | null = null;
     if (data.persist) {
       const start = Date.now();
-      const { data: row } = await context.supabase.from("ai_revenue_forecasts").insert({
+      const { data: row, error: forecastError } = await sb.from("ai_revenue_forecasts").insert({
+        property_id: propertyId, currency,
         horizon_days: horizon, from_date: from, to_date: to,
         expected_revenue: expectedRevenue,
         expected_occupancy: expectedOccupancy,
@@ -175,9 +187,11 @@ export const generateRevenueForecast = createServerFn({ method: "POST" })
         model: MODEL,
         generated_by: context.userId,
       }).select("id").maybeSingle();
+      if (forecastError) throw new Error(forecastError.message);
       id = row?.id ?? null;
-      await context.supabase.from("ai_activity_logs").insert({
+      await sb.from("ai_activity_logs").insert({
         user_id: context.userId,
+        property_id: propertyId,
         question: `Revenue forecast (${horizon}d)`,
         domains_accessed: ["finance","reservations"],
         tool_called: "revenue.forecast",
@@ -188,7 +202,7 @@ export const generateRevenueForecast = createServerFn({ method: "POST" })
     }
 
     return {
-      id, horizon, from, to,
+      id, propertyId, currency, horizon, from, to,
       expectedRevenue, expectedOccupancy, confidence,
       confirmedRevenue, pendingRevenue, projectedNew,
       assumptions, evidence,
@@ -199,9 +213,11 @@ export const listRevenueForecasts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
-    const { data } = await context.supabase
-      .from("ai_revenue_forecasts")
-      .select("*").order("created_at", { ascending: false }).limit(50);
+    const propertyId = await getActiveRevenuePropertyId(context.supabase, context.userId);
+    const sb: any = context.supabase;
+    const { data, error } = await sb.from("ai_revenue_forecasts")
+      .select("*").eq("property_id", propertyId).order("created_at", { ascending: false }).limit(50);
+    if (error) throw new Error(error.message);
     return data ?? [];
   });
 
@@ -222,16 +238,17 @@ export const generatePricingRecommendations = createServerFn({ method: "POST" })
   .inputValidator((input: { persist?: boolean } | undefined) => ({ persist: input?.persist ?? true }))
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
-    const propertyId = await getActiveRevenuePropertyId(context.supabase, context.userId);
+    const { propertyId, currency } = await getActiveRevenuePropertyContext(context.supabase, context.userId);
+    const sb: any = context.supabase;
     const from = today();
     const to = daysFromNow(30);
     const [{ data: rooms }, { data: forward }, { data: cancelled }] = await Promise.all([
-      context.supabase.from("rooms").select("id, name, base_price, total_units, currency").eq("property_id", propertyId).eq("status","active"),
-      context.supabase.from("bookings").select("room_id, nights, status, total, check_in").eq("property_id", propertyId).gte("check_in", from).lte("check_in", to).in("status", ["confirmed","pending","checked_in"]),
-      context.supabase.from("bookings").select("id, room_id, created_at").eq("property_id", propertyId).eq("status","cancelled").gte("created_at", daysAgo(14)),
+      sb.from("rooms").select("id, name, base_price, total_units, currency").eq("property_id", propertyId).eq("currency", currency).eq("status","active"),
+      sb.from("bookings").select("room_id, nights, status, total, currency, check_in").eq("property_id", propertyId).eq("currency", currency).gte("check_in", from).lte("check_in", to).in("status", ["confirmed","pending","checked_in"]),
+      sb.from("bookings").select("id, room_id, created_at").eq("property_id", propertyId).eq("status","cancelled").gte("created_at", daysAgo(14)),
     ]);
 
-    const recs: Array<{ room_id: string | null; room_name: string; action: string; current_rate: number; suggested_rate: number; delta_pct: number; reasoning: string; expected_impact: number; confidence: number; evidence: any[] }> = [];
+    const recs: Array<{ room_id: string | null; room_name: string; currency: string; action: string; current_rate: number; suggested_rate: number; delta_pct: number; reasoning: string; expected_impact: number; confidence: number; evidence: any[] }> = [];
 
     for (const r of (rooms ?? []) as any[]) {
       const roomForward = (forward ?? []).filter((b: any) => b.room_id === r.id && b.status !== "pending");
@@ -267,6 +284,7 @@ export const generatePricingRecommendations = createServerFn({ method: "POST" })
       recs.push({
         room_id: r.id,
         room_name: r.name,
+        currency,
         action,
         current_rate: base,
         suggested_rate: Math.max(0, Math.round(base * (1 + deltaPct))),
@@ -283,9 +301,10 @@ export const generatePricingRecommendations = createServerFn({ method: "POST" })
     }
 
     if (data.persist && recs.length) {
-      await context.supabase.from("ai_pricing_recommendations").insert(
+      await sb.from("ai_pricing_recommendations").insert(
         recs.map((r: any) => ({
           property_id: propertyId,
+          currency,
           room_id: r.room_id,
           window_from: from, window_to: to,
           action: r.action,
@@ -301,6 +320,7 @@ export const generatePricingRecommendations = createServerFn({ method: "POST" })
       );
       await context.supabase.from("ai_activity_logs").insert({
         user_id: context.userId,
+        property_id: propertyId,
         question: "Pricing advisor run",
         domains_accessed: ["finance","reservations"],
         tool_called: "revenue.pricing",
@@ -316,8 +336,9 @@ export const listPricingRecommendations = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
     const propertyId = await getActiveRevenuePropertyId(context.supabase, context.userId);
-    const { data } = await context.supabase.from("ai_pricing_recommendations")
+    const { data, error } = await (context.supabase as any).from("ai_pricing_recommendations")
       .select("*, rooms(name)").eq("property_id", propertyId).order("created_at", { ascending: false }).limit(100);
+    if (error) throw new Error(error.message);
     return data ?? [];
   });
 
@@ -353,6 +374,7 @@ export const actionPricingRecommendation = createServerFn({ method: "POST" })
     }).eq("id", data.id).eq("property_id", propertyId);
     await context.supabase.from("ai_activity_logs").insert({
       user_id: context.userId,
+        property_id: propertyId,
       question: `Pricing recommendation ${data.id} ${data.action}`,
       domains_accessed: ["finance"],
       tool_called: "revenue.pricing.action",
@@ -370,10 +392,14 @@ export const getBookingPatterns = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
-    const { data: rows } = await context.supabase.from("bookings")
-      .select("id, room_id, source, status, nights, total, check_in, created_at, country")
+    const { propertyId, currency } = await getActiveRevenuePropertyContext(context.supabase, context.userId);
+    const { data: rows, error } = await (context.supabase as any).from("bookings")
+      .select("id, room_id, source, status, nights, total, currency, check_in, created_at, country")
+      .eq("property_id", propertyId)
       .gte("created_at", daysAgo(365));
+    if (error) throw new Error(error.message);
     const all = (rows ?? []) as any[];
+    const monetaryRows = all.filter((booking) => String(booking.currency ?? "").toUpperCase() === currency);
 
     const leadTimes = all.map((b: any) => Math.max(0, diffDays(b.created_at?.slice(0,10) ?? b.check_in, b.check_in)));
     const avgLead = leadTimes.length ? Math.round(leadTimes.reduce((s,v)=>s+v,0) / leadTimes.length) : 0;
@@ -384,6 +410,10 @@ export const getBookingPatterns = createServerFn({ method: "GET" })
       const k = b.source ?? "unknown";
       bySource[k] = bySource[k] ?? { count: 0, revenue: 0 };
       bySource[k].count += 1;
+    }
+    for (const b of monetaryRows) {
+      const k = b.source ?? "unknown";
+      bySource[k] = bySource[k] ?? { count: 0, revenue: 0 };
       if (b.status !== "cancelled") bySource[k].revenue += Number(b.total ?? 0);
     }
 
@@ -394,7 +424,7 @@ export const getBookingPatterns = createServerFn({ method: "GET" })
     const cancellationRate = all.length ? cancelled / all.length : 0;
 
     const byMonth: Record<string, number> = {};
-    for (const b of all) {
+    for (const b of monetaryRows) {
       const m = String(b.check_in).slice(0,7);
       if (b.status !== "cancelled") byMonth[m] = (byMonth[m] ?? 0) + Number(b.total ?? 0);
     }
@@ -402,6 +432,7 @@ export const getBookingPatterns = createServerFn({ method: "GET" })
     const low  = Object.entries(byMonth).sort((a,b) => a[1]-b[1])[0];
 
     return {
+      propertyId, currency, excludedOtherCurrencyBookings: all.length - monetaryRows.length,
       sampleSize: all.length,
       avgLeadDays: avgLead,
       avgStayNights: avgStay,
@@ -422,21 +453,32 @@ export const scanRevenueOpportunities = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
-    const [{ data: outstanding }, { data: upcoming }, { data: extras }] = await Promise.all([
-      context.supabase.from("bookings").select("id, reference, guest_name, balance_due, currency, check_in, check_out").gt("balance_due", 0).in("status", ["confirmed","checked_in","completed"]).order("balance_due", { ascending: false }).limit(20),
-      context.supabase.from("bookings").select("id, reference, guest_name, nights, adults, children, check_in, room_id").gte("check_in", today()).lte("check_in", daysFromNow(14)).in("status", ["confirmed","checked_in"]),
-      context.supabase.from("booking_extras").select("booking_id"),
+    const { propertyId, currency } = await getActiveRevenuePropertyContext(context.supabase, context.userId);
+    const sb: any = context.supabase;
+    const [{ data: outstanding, error: outstandingError }, { data: upcoming, error: upcomingError }] = await Promise.all([
+      sb.from("bookings").select("id, reference, guest_name, balance_due, currency, check_in, check_out")
+        .eq("property_id", propertyId).eq("currency", currency).gt("balance_due", 0)
+        .in("status", ["confirmed","checked_in","completed"]).order("balance_due", { ascending: false }).limit(20),
+      sb.from("bookings").select("id, reference, guest_name, nights, adults, children, check_in, room_id, currency")
+        .eq("property_id", propertyId).gte("check_in", today()).lte("check_in", daysFromNow(14)).in("status", ["confirmed","checked_in"]),
     ]);
+    if (outstandingError || upcomingError) throw new Error(outstandingError?.message ?? upcomingError?.message);
+    const upcomingIds = (upcoming ?? []).map((booking: any) => booking.id);
+    const { data: extras, error: extrasError } = upcomingIds.length
+      ? await sb.from("booking_extras").select("booking_id").in("booking_id", upcomingIds)
+      : { data: [] as any[], error: null };
+    if (extrasError) throw new Error(extrasError.message);
 
-    const opps: Array<{ kind: string; title: string; detail: string; estimated_impact: number; confidence: number; evidence: any[]; recommended_action: string }> = [];
+    const opps: Array<{ kind: string; title: string; detail: string; estimated_impact: number; currency: string; confidence: number; evidence: any[]; recommended_action: string }> = [];
 
     const outstandingTotal = (outstanding ?? []).reduce((s: any, b: any) => s + Number(b.balance_due ?? 0), 0);
     if (outstandingTotal > 0) {
       opps.push({
         kind: "revenue_leakage",
         title: "Collect outstanding balances",
-        detail: `${outstanding?.length ?? 0} bookings owe a combined ${Math.round(outstandingTotal).toLocaleString()} across confirmed and checked-out stays.`,
+        detail: `${outstanding?.length ?? 0} bookings owe ${currency} ${Math.round(outstandingTotal).toLocaleString()} across confirmed and checked-out stays.`,
         estimated_impact: outstandingTotal,
+        currency,
         confidence: 0.9,
         evidence: [{ source: "bookings.balance_due", count: outstanding?.length ?? 0, total: outstandingTotal }],
         recommended_action: "Trigger a payment reminder workflow for guests with unpaid balances.",
@@ -451,6 +493,7 @@ export const scanRevenueOpportunities = createServerFn({ method: "POST" })
         title: "Upsell experiences to upcoming arrivals",
         detail: `${noExtras.length} of the next 14-day arrivals have no add-ons booked (transfers, dining, tours).`,
         estimated_impact: noExtras.length * 60,
+        currency,
         confidence: 0.6,
         evidence: [{ source: "booking_extras", missing_count: noExtras.length }],
         recommended_action: "Send a pre-arrival experience menu via WhatsApp/email.",
@@ -464,6 +507,7 @@ export const scanRevenueOpportunities = createServerFn({ method: "POST" })
         title: "Cross-sell to long-stay guests",
         detail: `${longStays.length} arriving guests are booked for 5+ nights — high propensity for tours or spa treatments.`,
         estimated_impact: longStays.length * 120,
+        currency,
         confidence: 0.55,
         evidence: [{ source: "bookings.nights>=5", count: longStays.length }],
         recommended_action: "Offer a bundled multi-day tour package on arrival.",
@@ -472,8 +516,9 @@ export const scanRevenueOpportunities = createServerFn({ method: "POST" })
 
     // Persist as open opportunities
     if (opps.length) {
-      await context.supabase.from("ai_revenue_opportunities").insert(
+      await sb.from("ai_revenue_opportunities").insert(
         opps.map((o: any) => ({
+          property_id: propertyId, currency,
           kind: o.kind, title: o.title, detail: o.detail,
           estimated_impact: o.estimated_impact,
           confidence: o.confidence,
@@ -482,8 +527,9 @@ export const scanRevenueOpportunities = createServerFn({ method: "POST" })
           model: MODEL,
         })),
       );
-      await context.supabase.from("ai_activity_logs").insert({
+      await sb.from("ai_activity_logs").insert({
         user_id: context.userId,
+        property_id: propertyId,
         question: "Revenue opportunity scan",
         domains_accessed: ["finance","reservations","marketing"],
         tool_called: "revenue.opportunities",
@@ -491,15 +537,17 @@ export const scanRevenueOpportunities = createServerFn({ method: "POST" })
         model: MODEL, status: "completed", duration_ms: 0,
       });
     }
-    return { opportunities: opps };
+    return { propertyId, currency, opportunities: opps };
   });
 
 export const listRevenueOpportunities = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
-    const { data } = await context.supabase.from("ai_revenue_opportunities")
-      .select("*").eq("status","open").order("created_at",{ ascending: false }).limit(50);
+    const propertyId = await getActiveRevenuePropertyId(context.supabase, context.userId);
+    const { data, error } = await (context.supabase as any).from("ai_revenue_opportunities")
+      .select("*").eq("property_id", propertyId).eq("status","open").order("created_at",{ ascending: false }).limit(50);
+    if (error) throw new Error(error.message);
     return data ?? [];
   });
 
@@ -511,12 +559,15 @@ export const actionRevenueOpportunity = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
+    const propertyId = await getActiveRevenuePropertyId(context.supabase, context.userId);
+    const sb: any = context.supabase;
     const status = data.action === "accept" ? "accepted" : data.action === "dismiss" ? "dismissed" : "converted";
     let taskId: string | null = null;
     if (data.action === "convert") {
-      const { data: opp } = await context.supabase.from("ai_revenue_opportunities").select("*").eq("id", data.id).maybeSingle();
+      const { data: opp } = await sb.from("ai_revenue_opportunities").select("*").eq("id", data.id).eq("property_id", propertyId).maybeSingle();
       if (opp) {
-        const { data: task } = await context.supabase.from("ops_tasks").insert({
+        const { data: task } = await sb.from("ops_tasks").insert({
+          property_id: propertyId,
           task_type: "revenue_opportunity",
           title: opp.title,
           description: opp.recommended_action ?? opp.detail,
@@ -525,10 +576,11 @@ export const actionRevenueOpportunity = createServerFn({ method: "POST" })
         taskId = task?.id ?? null;
       }
     }
-    await context.supabase.from("ai_revenue_opportunities").update({
+    const { error } = await sb.from("ai_revenue_opportunities").update({
       status, actioned_by: context.userId, actioned_at: new Date().toISOString(),
       action_task_id: taskId ?? undefined,
-    }).eq("id", data.id);
+    }).eq("id", data.id).eq("property_id", propertyId);
+    if (error) throw new Error(error.message);
     return { ok: true, status, taskId };
   });
 
@@ -538,12 +590,14 @@ export const scanRevenueAlerts = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
+    const { propertyId, currency } = await getActiveRevenuePropertyContext(context.supabase, context.userId);
+    const sb: any = context.supabase;
     const [{ data: rooms }, { data: forward }, { data: cancelled }, { data: outstanding }, { data: surge }] = await Promise.all([
-      context.supabase.from("rooms").select("total_units").eq("status","active"),
-      context.supabase.from("bookings").select("nights, status, check_in").gte("check_in", today()).lte("check_in", daysFromNow(30)).in("status", ["confirmed","checked_in"]),
-      context.supabase.from("bookings").select("id, created_at").eq("status","cancelled").gte("created_at", daysAgo(14)),
-      context.supabase.from("bookings").select("balance_due").gt("balance_due", 0).in("status", ["confirmed","checked_in","completed"]),
-      context.supabase.from("bookings").select("id, created_at").gte("created_at", daysAgo(3)),
+      sb.from("rooms").select("total_units").eq("property_id", propertyId).eq("status","active"),
+      sb.from("bookings").select("nights, status, check_in").eq("property_id", propertyId).gte("check_in", today()).lte("check_in", daysFromNow(30)).in("status", ["confirmed","checked_in"]),
+      sb.from("bookings").select("id, created_at").eq("property_id", propertyId).eq("status","cancelled").gte("created_at", daysAgo(14)),
+      sb.from("bookings").select("balance_due, currency").eq("property_id", propertyId).eq("currency", currency).gt("balance_due", 0).in("status", ["confirmed","checked_in","completed"]),
+      sb.from("bookings").select("id, created_at").eq("property_id", propertyId).gte("created_at", daysAgo(3)),
     ]);
 
     const totalUnits = (rooms ?? []).reduce((s: any, r: any) => s + Number(r.total_units ?? 0), 0);
@@ -556,20 +610,22 @@ export const scanRevenueAlerts = createServerFn({ method: "POST" })
     if (occ < 0.4) alerts.push({ kind: "occupancy_low", severity: "warning", title: "Forward occupancy below target", detail: `30-day forward occupancy ${Math.round(occ*100)}% is below the 40% target.`, metric: { occupancy: occ } });
     if ((cancelled?.length ?? 0) >= 5) alerts.push({ kind: "cancellation_spike", severity: "warning", title: "High cancellation rate", detail: `${cancelled?.length} cancellations in the last 14 days.`, metric: { count: cancelled?.length } });
     const outstandingTotal = (outstanding ?? []).reduce((s: any, b: any) => s + Number(b.balance_due ?? 0), 0);
-    if (outstandingTotal > 2000) alerts.push({ kind: "large_unpaid_balances", severity: "warning", title: "Large unpaid balances", detail: `${Math.round(outstandingTotal).toLocaleString()} outstanding across ${outstanding?.length} bookings.`, metric: { total: outstandingTotal } });
+    if (outstandingTotal > 2000) alerts.push({ kind: "large_unpaid_balances", severity: "warning", title: "Large unpaid balances", detail: `${currency} ${Math.round(outstandingTotal).toLocaleString()} outstanding across ${outstanding?.length} bookings.`, metric: { total: outstandingTotal, currency } });
     if ((surge?.length ?? 0) >= 10) alerts.push({ kind: "booking_surge", severity: "info", title: "Booking surge", detail: `${surge?.length} bookings received in the last 3 days.`, metric: { count: surge?.length } });
     if (totalUnits > 0 && soldNights > totalUnits * 30) alerts.push({ kind: "overbooking_risk", severity: "critical", title: "Potential overbooking", detail: "Forward night demand exceeds available room-nights.", metric: { soldNights, capacity } });
 
     if (alerts.length) {
-      await context.supabase.from("ai_revenue_alerts").insert(
+      await sb.from("ai_revenue_alerts").insert(
         alerts.map((a: any) => ({
+          property_id: propertyId, currency,
           kind: a.kind, severity: a.severity, title: a.title, detail: a.detail,
           metric: a.metric as never,
           evidence: [{ source: "revenue.scan", at: new Date().toISOString() }] as never,
         })),
       );
-      await context.supabase.from("ai_activity_logs").insert({
+      await sb.from("ai_activity_logs").insert({
         user_id: context.userId,
+        property_id: propertyId,
         question: "Revenue alert scan",
         domains_accessed: ["finance","reservations"],
         tool_called: "revenue.alerts",
@@ -577,15 +633,17 @@ export const scanRevenueAlerts = createServerFn({ method: "POST" })
         model: MODEL, status: "completed", duration_ms: 0,
       });
     }
-    return { alerts };
+    return { propertyId, currency, alerts };
   });
 
 export const listRevenueAlerts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
-    const { data } = await context.supabase.from("ai_revenue_alerts")
-      .select("*").eq("status","open").order("created_at", { ascending: false }).limit(100);
+    const propertyId = await getActiveRevenuePropertyId(context.supabase, context.userId);
+    const { data, error } = await (context.supabase as any).from("ai_revenue_alerts")
+      .select("*").eq("property_id", propertyId).eq("status","open").order("created_at", { ascending: false }).limit(100);
+    if (error) throw new Error(error.message);
     return data ?? [];
   });
 
@@ -597,18 +655,22 @@ export const actionRevenueAlert = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.revenue");
+    const propertyId = await getActiveRevenuePropertyId(context.supabase, context.userId);
+    const sb: any = context.supabase;
     if (data.action === "assign") {
-      await context.supabase.from("ai_revenue_alerts").update({
+      const { error } = await sb.from("ai_revenue_alerts").update({
         assigned_to: data.assigneeId ?? context.userId,
-      }).eq("id", data.id);
+      }).eq("id", data.id).eq("property_id", propertyId);
+      if (error) throw new Error(error.message);
       return { ok: true, status: "assigned" };
     }
     const status = data.action === "dismiss" ? "dismissed" : "converted";
     let taskId: string | null = null;
     if (data.action === "convert") {
-      const { data: alert } = await context.supabase.from("ai_revenue_alerts").select("*").eq("id", data.id).maybeSingle();
+      const { data: alert } = await sb.from("ai_revenue_alerts").select("*").eq("id", data.id).eq("property_id", propertyId).maybeSingle();
       if (alert) {
-        const { data: task } = await context.supabase.from("ops_tasks").insert({
+        const { data: task } = await sb.from("ops_tasks").insert({
+          property_id: propertyId,
           task_type: "revenue_alert",
           title: alert.title,
           description: alert.detail,
@@ -617,9 +679,10 @@ export const actionRevenueAlert = createServerFn({ method: "POST" })
         taskId = task?.id ?? null;
       }
     }
-    await context.supabase.from("ai_revenue_alerts").update({
+    const { error } = await sb.from("ai_revenue_alerts").update({
       status, actioned_by: context.userId, actioned_at: new Date().toISOString(),
       action_task_id: taskId ?? undefined,
-    }).eq("id", data.id);
+    }).eq("id", data.id).eq("property_id", propertyId);
+    if (error) throw new Error(error.message);
     return { ok: true, status, taskId };
   });

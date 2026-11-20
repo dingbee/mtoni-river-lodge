@@ -53,7 +53,7 @@ function ReservationWorkspace() {
             <div className="flex justify-between"><dt className="text-muted-foreground">Country</dt><dd>{b.country ?? "—"}</dd></div>
             {b.guest && (<>
               <div className="flex justify-between"><dt className="text-muted-foreground">Total stays</dt><dd>{b.guest.total_stays ?? 0}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted-foreground">Lifetime spend</dt><dd className="tabular-nums">${Number(b.guest.lifetime_spend ?? 0).toFixed(0)}</dd></div>
+              <div className="flex justify-between"><dt className="text-muted-foreground">Lifetime spend</dt><dd className="tabular-nums">{b.guest.lifetime_spend == null ? (Object.keys(b.guest.lifetime_spend_by_currency ?? {}).length > 1 ? "Multiple currencies" : "—") : b.guest.lifetime_spend_currency ? `${b.guest.lifetime_spend_currency} ${Number(b.guest.lifetime_spend).toFixed(0)}` : "Currency unavailable"}</dd></div>
             </>)}
           </dl>
           {b.guest?.ai_summary && <p className="mt-3 rounded bg-muted/40 p-2 text-xs">{b.guest.ai_summary}</p>}

@@ -1,0 +1,102 @@
+name: StayNas property currency integrity
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/domains/ai/executive-intelligence.functions.ts"
+      - "src/domains/ai/marketing-intelligence.functions.ts"
+      - "src/domains/marketing/campaigns/**"
+      - "src/routes/_authenticated.admin.marketing.campaigns.tsx"
+      - "src/routes/_authenticated.admin.settings.index.tsx"
+      - "src/modules/property/**"
+      - "src/components/os/PropertySwitcher.tsx"
+      - "src/components/os/crm/DirectoryTable.tsx"
+      - "src/lib/payments.functions.ts"
+      - "src/lib/guest-intelligence.functions.ts"
+      - "src/lib/operations.functions.ts"
+      - "src/lib/platform-room-configuration.server.ts"
+      - "src/domains/finance/rate-plans.functions.ts"
+      - "src/routes/_authenticated.admin.finance.rate-plans.tsx"
+      - "supabase/migrations/20261119*_staynas_*currency*.sql"
+      - "supabase/tests/staynas_property_currency_integrity.test.sql"
+      - "supabase/tests/spe04_published_pricing_resolver.test.sql"
+      - ".github/workflows/staynas-property-currency-integrity.yml"
+  push:
+    branches: [fix/staynas-property-currency-integrity]
+
+permissions:
+  contents: read
+
+jobs:
+  application:
+    name: TypeScript and targeted lint
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-placeholder
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PROJECT_ID: ci-placeholder
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.5
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      # TanStack Start generates the route tree during the production build.
+      - name: Generate routes and verify production build
+        run: bun run build
+      - name: TypeScript check
+        run: bunx tsc --noEmit
+      - name: Lint changed application modules
+        run: >-
+          bunx eslint
+          src/components/os/PropertySwitcher.tsx
+          src/components/os/crm/DirectoryTable.tsx
+          src/modules/property/PropertyContext.tsx
+          src/modules/property/property.functions.ts
+          src/routes/_authenticated.admin.settings.index.tsx
+          src/lib/platform-room-configuration.server.ts
+          src/domains/finance/rate-plans.functions.ts
+          src/routes/_authenticated.admin.finance.rate-plans.tsx
+          --rule 'prettier/prettier: off'
+
+  database:
+    name: Isolated PostgreSQL migration and contract tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 3.1.0
+      - name: Isolate Supabase project and ports from concurrent verification jobs
+        run: |
+          sed -i "s/^project_id = .*/project_id = \"staynasci${GITHUB_RUN_ID}\"/" supabase/config.toml
+          cat >> supabase/config.toml <<'EOF'
+          [api]
+          port = 56421
+          [db]
+          port = 56422
+          shadow_port = 56420
+          [studio]
+          port = 56423
+          [local_smtp]
+          enabled = true
+          port = 56424
+          smtp_port = 56425
+          pop3_port = 56426
+          [analytics]
+          port = 56427
+          [db.pooler]
+          port = 56429
+          EOF
+      - name: Start isolated Supabase stack
+        run: supabase start -x studio,mailpit,edge-runtime,logflare,vector,supavisor
+      - name: Run isolated property-currency pgTAP contracts
+        run: >-
+          supabase test db
+          supabase/tests/staynas_property_currency_integrity.test.sql
+          supabase/tests/spe04_published_pricing_resolver.test.sql

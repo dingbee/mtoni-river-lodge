@@ -19,6 +19,15 @@ function daysAgo(n: number) {
   return d.toISOString().slice(0, 10);
 }
 function clamp(v: number, min = 0, max = 1) { return Math.max(min, Math.min(max, v)); }
+
+async function getMarketingPropertyContext(supabase: any, userId: string): Promise<{ propertyId: string; currency: string }> {
+  const { data: propertyId, error: activeError } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
+  if (activeError || !propertyId) throw new Error(activeError?.message ?? "No active property selected");
+  const { data: property, error } = await supabase.from("staynas_properties").select("currency").eq("id", propertyId).single();
+  const currency = String(property?.currency ?? "").trim().toUpperCase();
+  if (error || !/^[A-Z]{3}$/.test(currency)) throw new Error("The active property must have an explicit operating currency before marketing intelligence can run.");
+  return { propertyId, currency };
+}
 function today() { return new Date().toISOString().slice(0, 10); }
 function weekStart(d = new Date()) {
   const day = d.getUTCDay(); // 0=Sun
@@ -27,8 +36,10 @@ function weekStart(d = new Date()) {
   return w.toISOString().slice(0, 10);
 }
 async function logActivity(supabase: any, userId: string, tool: string, question: string, response: string, domains: string[]) {
+  const { propertyId } = await getMarketingPropertyContext(supabase, userId);
   await supabase.from("ai_activity_logs").insert({
     user_id: userId,
+    property_id: propertyId,
     question,
     domains_accessed: domains,
     tool_called: tool,
@@ -46,6 +57,8 @@ async function logActivity(supabase: any, userId: string, tool: string, question
 export const getMarketingIntelligenceOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    const { propertyId, currency } = await getMarketingPropertyContext(context.supabase, context.userId);
+    const s: any = context.supabase;
     const [
       { data: seo },
       { data: pages },
@@ -58,10 +71,10 @@ export const getMarketingIntelligenceOverview = createServerFn({ method: "GET" }
       context.supabase.from("seo_overrides").select("route_path, title, description, og_image, schema_type, index_status"),
       context.supabase.from("cms_pages").select("id, slug, route_path, title, description, status"),
       context.supabase.from("journal_articles").select("id, status, published_at, seo_title, seo_description, cover_image_url"),
-      context.supabase.from("campaigns").select("id, status, start_date, end_date, name"),
-      context.supabase.from("reviews").select("rating, status, review_date, review_text").eq("status", "approved").gte("review_date", daysAgo(365)),
+      s.from("campaigns").select("id, status, start_date, end_date, name"),
+      s.from("reviews").select("rating, status, review_date, review_text").eq("status", "approved").gte("review_date", daysAgo(365)),
       context.supabase.from("brand_tokens").select("id, category"),
-      context.supabase.from("ai_marketing_recommendations").select("id, kind, status").eq("status", "pending"),
+      s.from("ai_marketing_recommendations").select("id, kind, status").eq("property_id", propertyId).eq("status", "pending"),
     ]);
 
     const publishedArticles = (articles ?? []).filter((a: any) => a.status === "published");
@@ -89,6 +102,7 @@ export const getMarketingIntelligenceOverview = createServerFn({ method: "GET" }
     const activeCampaigns = (campaigns ?? []).filter((c: any) => c.status === "running" || c.status === "scheduled").length;
 
     return {
+      propertyId, currency,
       seoHealth,
       seoRoutes: seoRows.length,
       seoMissingMeta: missingMeta,
@@ -131,6 +145,7 @@ export const generateSeoRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { persist?: boolean } | undefined) => ({ persist: input?.persist ?? true }))
   .handler(async ({ data, context }) => {
+    const { propertyId, currency } = await getMarketingPropertyContext(context.supabase, context.userId);
     const [{ data: seo }, { data: pages }] = await Promise.all([
       context.supabase.from("seo_overrides").select("*"),
       context.supabase.from("cms_pages").select("id, route_path, slug, title, description, status"),
@@ -246,9 +261,11 @@ export const generateSeoRecommendations = createServerFn({ method: "POST" })
     }
 
     if (data.persist && recs.length) {
-      await context.supabase.from("ai_marketing_recommendations").insert(
+      await (context.supabase as any).from("ai_marketing_recommendations").insert(
         recs.map((r: any) => ({
           ...r,
+          property_id: propertyId,
+          currency,
           suggested_payload: r.suggested_payload as never,
           evidence: r.evidence as never,
           model: MODEL,
@@ -258,7 +275,7 @@ export const generateSeoRecommendations = createServerFn({ method: "POST" })
       await logActivity(context.supabase, context.userId, "marketing.seo.analyze",
         `SEO analysis run`, `Generated ${recs.length} SEO recommendation(s).`, ["marketing"]);
     }
-    return { recommendations: recs };
+    return { propertyId, currency, recommendations: recs };
   });
 
 // ---------------------------------------------------------------------------
@@ -277,9 +294,10 @@ export const generateContentRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { persist?: boolean } | undefined) => ({ persist: input?.persist ?? true }))
   .handler(async ({ data, context }) => {
+    const { propertyId, currency } = await getMarketingPropertyContext(context.supabase, context.userId);
     const [{ data: articles }, { data: forward }] = await Promise.all([
       context.supabase.from("journal_articles").select("id, title, slug, status, published_at, seo_title, seo_description, cover_image_url"),
-      context.supabase.from("bookings").select("check_in, total, status").gte("check_in", today()).lte("check_in", daysAgo(-90)).in("status", ["confirmed","pending","checked_in"]),
+      context.supabase.from("bookings").select("check_in, total, status, currency").eq("property_id", propertyId).gte("check_in", today()).lte("check_in", daysAgo(-90)).in("status", ["confirmed","pending","checked_in"]),
     ]);
     const published = (articles ?? []).filter((a: any) => a.status === "published");
     const sorted = [...published].sort((a: any, b: any) => (b.published_at ?? "").localeCompare(a.published_at ?? ""));
@@ -352,13 +370,13 @@ export const generateContentRecommendations = createServerFn({ method: "POST" })
     }
 
     if (data.persist && recs.length) {
-      await context.supabase.from("ai_marketing_recommendations").insert(
-        recs.map((r: any) => ({ ...r, suggested_payload: r.suggested_payload as never, evidence: r.evidence as never, model: MODEL, generated_by: context.userId })),
+      await (context.supabase as any).from("ai_marketing_recommendations").insert(
+        recs.map((r: any) => ({ ...r, property_id: propertyId, currency, suggested_payload: r.suggested_payload as never, evidence: r.evidence as never, model: MODEL, generated_by: context.userId })),
       );
       await logActivity(context.supabase, context.userId, "marketing.content.analyze",
         `Content analysis run`, `Generated ${recs.length} content recommendation(s).`, ["marketing"]);
     }
-    return { recommendations: recs };
+    return { propertyId, currency, recommendations: recs };
   });
 
 // ---------------------------------------------------------------------------
@@ -379,13 +397,14 @@ export const generateCampaignRecommendations = createServerFn({ method: "POST" }
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { persist?: boolean } | undefined) => ({ persist: input?.persist ?? true }))
   .handler(async ({ data, context }) => {
+    const { propertyId, currency } = await getMarketingPropertyContext(context.supabase, context.userId);
     const from = today();
     const to90 = daysAgo(-90);
     const [{ data: rooms }, { data: forward }, { data: campaigns }, { data: cancelled }, { data: reviews }] = await Promise.all([
-      context.supabase.from("rooms").select("total_units").eq("status", "active"),
-      context.supabase.from("bookings").select("nights, status, check_in").gte("check_in", from).lte("check_in", to90).in("status", ["confirmed","pending","checked_in"]),
+      context.supabase.from("rooms").select("total_units").eq("property_id", propertyId).eq("status", "active"),
+      context.supabase.from("bookings").select("nights, status, check_in").eq("property_id", propertyId).gte("check_in", from).lte("check_in", to90).in("status", ["confirmed","pending","checked_in"]),
       context.supabase.from("campaigns").select("id, name, status, start_date, end_date"),
-      context.supabase.from("bookings").select("id, created_at").eq("status","cancelled").gte("created_at", daysAgo(14)),
+      context.supabase.from("bookings").select("id, created_at").eq("property_id", propertyId).eq("status","cancelled").gte("created_at", daysAgo(14)),
       context.supabase.from("reviews").select("rating").eq("status","approved").gte("review_date", daysAgo(90)),
     ]);
 
@@ -487,13 +506,13 @@ export const generateCampaignRecommendations = createServerFn({ method: "POST" }
     }
 
     if (data.persist && recs.length) {
-      await context.supabase.from("ai_marketing_recommendations").insert(
-        recs.map((r: any) => ({ ...r, suggested_payload: r.suggested_payload as never, evidence: r.evidence as never, model: MODEL, generated_by: context.userId })),
+      await (context.supabase as any).from("ai_marketing_recommendations").insert(
+        recs.map((r: any) => ({ ...r, property_id: propertyId, currency, suggested_payload: r.suggested_payload as never, evidence: r.evidence as never, model: MODEL, generated_by: context.userId })),
       );
       await logActivity(context.supabase, context.userId, "marketing.campaign.analyze",
         `Campaign analysis run`, `Generated ${recs.length} campaign recommendation(s).`, ["marketing"]);
     }
-    return { recommendations: recs };
+    return { propertyId, currency, recommendations: recs };
   });
 
 // ---------------------------------------------------------------------------
@@ -527,6 +546,7 @@ export const generateReputationInsight = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { persist?: boolean } | undefined) => ({ persist: input?.persist ?? true }))
   .handler(async ({ data, context }) => {
+    const { propertyId } = await getMarketingPropertyContext(context.supabase, context.userId);
     const from = daysAgo(180);
     const { data: reviews } = await context.supabase
       .from("reviews")
@@ -589,7 +609,8 @@ export const generateReputationInsight = createServerFn({ method: "POST" })
 
     let id: string | null = null;
     if (data.persist) {
-      const { data: row } = await context.supabase.from("ai_reputation_insights").insert({
+      const { data: row } = await (context.supabase as any).from("ai_reputation_insights").insert({
+        property_id: propertyId,
         scope: "overall",
         period_from: from,
         period_to: today(),
@@ -726,12 +747,14 @@ export const generateWeeklyPriorities = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { persist?: boolean } | undefined) => ({ persist: input?.persist ?? true }))
   .handler(async ({ data, context }) => {
+    const { propertyId, currency } = await getMarketingPropertyContext(context.supabase, context.userId);
+    const s: any = context.supabase;
     const [{ data: pending }, { data: reputation }] = await Promise.all([
-      context.supabase.from("ai_marketing_recommendations")
+      s.from("ai_marketing_recommendations")
         .select("id, kind, action, title, reasoning, expected_impact, impact_score, confidence, evidence")
-        .eq("status", "pending"),
-      context.supabase.from("ai_reputation_insights")
-        .select("summary, recommendations, sentiment_score, confidence").order("created_at", { ascending: false }).limit(1),
+        .eq("property_id", propertyId).eq("status", "pending"),
+      s.from("ai_reputation_insights")
+        .select("summary, recommendations, sentiment_score, confidence").eq("property_id", propertyId).order("created_at", { ascending: false }).limit(1),
     ]);
 
     const ranked = ((pending ?? []) as any[])
@@ -776,7 +799,9 @@ export const generateWeeklyPriorities = createServerFn({ method: "POST" })
 
     let id: string | null = null;
     if (data.persist) {
-      const { data: row } = await context.supabase.from("ai_marketing_priorities").insert({
+      const { data: row } = await s.from("ai_marketing_priorities").insert({
+        property_id: propertyId,
+        currency,
         week_start: weekStart(),
         priorities: ranked as never,
         summary,
@@ -789,7 +814,7 @@ export const generateWeeklyPriorities = createServerFn({ method: "POST" })
       await logActivity(context.supabase, context.userId, "marketing.priorities.generate",
         "Weekly priorities generated", summary, ["marketing"]);
     }
-    return { id, priorities: ranked, summary, evidence };
+    return { id, propertyId, currency, priorities: ranked, summary, evidence };
   });
 
 // ---------------------------------------------------------------------------
@@ -800,7 +825,8 @@ export const listMarketingRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { kind?: "seo" | "content" | "campaign"; status?: string } | undefined) => input ?? {})
   .handler(async ({ data, context }) => {
-    let q = context.supabase.from("ai_marketing_recommendations").select("*").order("created_at", { ascending: false }).limit(200);
+    const propertyId = await getMarketingPropertyContext(context.supabase, context.userId).then((value) => value.propertyId);
+    let q = (context.supabase as any).from("ai_marketing_recommendations").select("*").eq("property_id", propertyId).order("created_at", { ascending: false }).limit(200);
     if (data.kind) q = q.eq("kind", data.kind);
     if (data.status) q = q.eq("status", data.status);
     const { data: rows } = await q;
@@ -815,12 +841,15 @@ export const actionMarketingRecommendation = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data, context }) => {
+    const propertyId = await getMarketingPropertyContext(context.supabase, context.userId).then((value) => value.propertyId);
+    const sb: any = context.supabase;
     const status = data.action === "accept" ? "accepted" : data.action === "dismiss" ? "dismissed" : "converted";
     let taskId: string | null = null;
     if (data.action === "convert") {
-      const { data: rec } = await context.supabase.from("ai_marketing_recommendations").select("*").eq("id", data.id).maybeSingle();
+      const { data: rec } = await sb.from("ai_marketing_recommendations").select("*").eq("id", data.id).eq("property_id", propertyId).maybeSingle();
       if (rec) {
-        const { data: task } = await context.supabase.from("ops_tasks").insert({
+        const { data: task } = await sb.from("ops_tasks").insert({
+          property_id: propertyId,
           task_type: `marketing_${(rec as any).kind}`,
           title: (rec as any).title,
           description: (rec as any).reasoning,
@@ -829,12 +858,12 @@ export const actionMarketingRecommendation = createServerFn({ method: "POST" })
         taskId = task?.id ?? null;
       }
     }
-    await context.supabase.from("ai_marketing_recommendations").update({
+    await sb.from("ai_marketing_recommendations").update({
       status,
       actioned_by: context.userId,
       actioned_at: new Date().toISOString(),
       action_task_id: taskId ?? undefined,
-    }).eq("id", data.id);
+    }).eq("id", data.id).eq("property_id", propertyId);
     await logActivity(context.supabase, context.userId, "marketing.recommendation.action",
       `Recommendation ${data.id} ${data.action}`, `Marked ${status}`, ["marketing"]);
     return { ok: true, status, taskId };
@@ -843,7 +872,8 @@ export const actionMarketingRecommendation = createServerFn({ method: "POST" })
 export const listReputationInsights = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data } = await context.supabase.from("ai_reputation_insights").select("*").order("created_at", { ascending: false }).limit(20);
+    const propertyId = await getMarketingPropertyContext(context.supabase, context.userId).then((value) => value.propertyId);
+    const { data } = await (context.supabase as any).from("ai_reputation_insights").select("*").eq("property_id", propertyId).order("created_at", { ascending: false }).limit(20);
     return data ?? [];
   });
 
@@ -857,6 +887,7 @@ export const listBrandReviews = createServerFn({ method: "GET" })
 export const listMarketingPriorities = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data } = await context.supabase.from("ai_marketing_priorities").select("*").order("created_at", { ascending: false }).limit(12);
+    const propertyId = await getMarketingPropertyContext(context.supabase, context.userId).then((value) => value.propertyId);
+    const { data } = await (context.supabase as any).from("ai_marketing_priorities").select("*").eq("property_id", propertyId).order("created_at", { ascending: false }).limit(12);
     return data ?? [];
   });

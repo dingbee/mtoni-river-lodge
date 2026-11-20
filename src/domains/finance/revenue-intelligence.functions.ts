@@ -23,6 +23,8 @@ export const getRevenueIntelligence = createServerFn({ method: "POST" })
     const from = data.from ?? `${to.slice(0, 4)}-01-01`;
     if (from > to) throw new Error("Revenue range start must not be after its end");
 
+    const { data: propertyId, error: propertyError } = await context.supabase.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "An active property is required for revenue intelligence.");
     const endExclusive = new Date(new Date(`${to}T00:00:00.000Z`).getTime() + 86_400_000).toISOString();
     // Supabase applies a per-request row cap. Read bounded pages so the report
     // cannot silently understate totals when a date range exceeds that cap.
@@ -37,17 +39,23 @@ export const getRevenueIntelligence = createServerFn({ method: "POST" })
         if (page.length < pageSize) return rows;
       }
     }
-    const [bookings, events] = await Promise.all([
-      readAll((start, end) => context.supabase.from("bookings")
-        .select("id, total, currency, status")
-        .gte("check_in", from).lte("check_in", to)
-        .order("id").range(start, end)),
-      readAll((start, end) => context.supabase.from("payment_events")
+    const bookings = await readAll((start, end) => context.supabase.from("bookings")
+      .select("id, total, currency, status")
+      .eq("property_id", propertyId)
+      .gte("check_in", from).lte("check_in", to)
+      .order("id").range(start, end));
+    const bookingIds = bookings.map((booking) => booking.id);
+    const events: Array<{ event_type: string; amount: number | string | null; currency: string | null; created_at: string }> = [];
+    for (let index = 0; index < bookingIds.length; index += 100) {
+      const ids = bookingIds.slice(index, index + 100);
+      const chunk = await readAll((start, end) => context.supabase.from("payment_events")
         .select("event_type, amount, currency, created_at")
+        .in("booking_id", ids)
         .gte("created_at", `${from}T00:00:00.000Z`)
         .lt("created_at", endExclusive)
-        .order("created_at").order("id").range(start, end)),
-    ]);
+        .order("created_at").order("id").range(start, end));
+      events.push(...chunk);
+    }
 
     const booked = new Map<string, number>();
     for (const booking of bookings) {

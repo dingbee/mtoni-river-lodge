@@ -49,38 +49,56 @@ export const getOpsDashboard = createServerFn({ method: "GET" })
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
     const today = new Date().toISOString().slice(0, 10);
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
+    const { data: property, error: currencyError } = await sb.from("staynas_properties").select("currency").eq("id", propertyId).single();
+    const currency = String(property?.currency ?? "").trim().toUpperCase();
+    if (currencyError || !/^[A-Z]{3}$/.test(currency)) throw new Error("The active property must have a valid operating currency before the operations dashboard can display financial balances.");
 
-    const [todayRow, arrivalsRes, departuresRes, inHouseRes, outstandingRes, roomStatesRes] = await Promise.all([
-      sb.from("ops_today").select("*").maybeSingle(),
+    const [bookingsRes, roomStatesRes] = await Promise.all([
       sb.from("bookings")
         .select("id, reference, guest_name, guest_id, check_in, check_out, status, adults, children, total, balance_amount, currency, room_id")
-        .eq("check_in", today).in("status", ["confirmed", "checked_in"]).order("guest_name"),
-      sb.from("bookings")
-        .select("id, reference, guest_name, guest_id, check_in, check_out, status, total, balance_amount, currency, room_id")
-        .eq("check_out", today).in("status", ["checked_in", "completed"]).order("guest_name"),
-      sb.from("bookings")
-        .select("id, reference, guest_name, guest_id, check_in, check_out, status, room_id")
-        .eq("status", "checked_in").order("check_out"),
-      sb.from("ops_outstanding_balances").select("*").limit(50),
-      sb.from("room_states").select("id, room_id, unit_label, state").order("unit_label"),
+        .eq("property_id", propertyId),
+      sb.from("room_states").select("id, room_id, unit_label, state").eq("property_id", propertyId).order("unit_label"),
     ]);
-
+    if (bookingsRes.error || roomStatesRes.error) throw new Error(bookingsRes.error?.message ?? roomStatesRes.error?.message);
+    const bookings = (bookingsRes.data ?? []) as any[];
+    const arrivals = bookings.filter((b) => b.check_in === today && ["confirmed", "checked_in"].includes(b.status)).sort((a,b) => String(a.guest_name ?? "").localeCompare(String(b.guest_name ?? "")));
+    const departures = bookings.filter((b) => b.check_out === today && ["checked_in", "completed"].includes(b.status)).sort((a,b) => String(a.guest_name ?? "").localeCompare(String(b.guest_name ?? "")));
+    const inHouse = bookings.filter((b) => b.status === "checked_in").sort((a,b) => String(a.check_out ?? "").localeCompare(String(b.check_out ?? "")));
+    const outstanding = bookings.filter((b) => Number(b.balance_amount ?? 0) > 0 && b.status !== "cancelled");
+    const outstandingByCurrency = new Map<string, number>();
+    for (const booking of outstanding) {
+      const code = String(booking.currency ?? "UNKNOWN").trim().toUpperCase() || "UNKNOWN";
+      outstandingByCurrency.set(code, (outstandingByCurrency.get(code) ?? 0) + Number(booking.balance_amount ?? 0));
+    }
     const roomStates = (roomStatesRes.data ?? []) as any[];
     const totalRooms = roomStates.length;
     const occupied = roomStates.filter((r) => r.state === "occupied").length;
     const occupancy = totalRooms > 0 ? Math.round((occupied / totalRooms) * 100) : 0;
 
     return {
-      today: todayRow.data ?? {
-        arrivals: 0, departures: 0, in_house: 0, pending_check_in: 0, pending_check_out: 0,
-        dirty_rooms: 0, maintenance_rooms: 0, vacant_rooms: 0, occupied_rooms: 0, outstanding_total: 0,
+      propertyId,
+      currency,
+      today: {
+        arrivals: arrivals.length,
+        departures: departures.length,
+        in_house: inHouse.length,
+        pending_check_in: bookings.filter((b) => b.check_in === today && b.status === "confirmed").length,
+        pending_check_out: departures.filter((b) => b.status === "checked_in").length,
+        dirty_rooms: roomStates.filter((r) => r.state === "vacant_dirty").length,
+        maintenance_rooms: roomStates.filter((r) => ["maintenance", "out_of_service"].includes(r.state)).length,
+        vacant_rooms: roomStates.filter((r) => r.state === "vacant_clean").length,
+        occupied_rooms: occupied,
+        outstanding_total: outstandingByCurrency.get(currency) ?? 0,
+        outstanding_by_currency: Object.fromEntries([...outstandingByCurrency.entries()].sort(([a],[b]) => a.localeCompare(b))),
       },
       occupancyPct: occupancy,
       totalRooms,
-      arrivals: arrivalsRes.data ?? [],
-      departures: departuresRes.data ?? [],
-      inHouse: inHouseRes.data ?? [],
-      outstanding: (outstandingRes.data ?? []).map((r: any) => ({ ...r, balance_amount: Number(r.balance_amount ?? 0), total: Number(r.total ?? 0) })),
+      arrivals,
+      departures,
+      inHouse,
+      outstanding: outstanding.map((r: any) => ({ ...r, balance_amount: Number(r.balance_amount ?? 0), total: Number(r.total ?? 0) })),
     };
   });
 
@@ -175,10 +193,13 @@ export const getReservationWorkspace = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const { data: booking, error } = await sb
       .from("bookings")
       .select("*, room:rooms(id, slug, name, base_price, currency), guest:guests(id, full_name, email, phone_e164, country, status, ai_summary, marketing_consent)")
       .eq("id", data.id)
+      .eq("property_id", propertyId)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!booking) throw new Error("Reservation not found");
@@ -193,7 +214,7 @@ export const getReservationWorkspace = createServerFn({ method: "POST" })
         : Promise.resolve({ data: [] }),
       sb.from("room_states").select("id, unit_label, state").eq("room_id", booking.room_id).order("unit_label"),
       booking.guest_id
-        ? sb.from("guest_directory").select("total_stays, lifetime_spend").eq("id", booking.guest_id).maybeSingle()
+        ? sb.from("guest_directory").select("total_stays, lifetime_spend, lifetime_spend_currency, lifetime_spend_by_currency").eq("id", booking.guest_id).maybeSingle()
         : Promise.resolve({ data: null }),
     ]);
 
@@ -203,7 +224,9 @@ export const getReservationWorkspace = createServerFn({ method: "POST" })
         guest: booking.guest ? {
           ...booking.guest,
           total_stays: Number(guestStatsRes.data?.total_stays ?? 0),
-          lifetime_spend: Number(guestStatsRes.data?.lifetime_spend ?? 0),
+          lifetime_spend: guestStatsRes.data?.lifetime_spend == null ? null : Number(guestStatsRes.data.lifetime_spend),
+          lifetime_spend_currency: guestStatsRes.data?.lifetime_spend_currency ?? null,
+          lifetime_spend_by_currency: guestStatsRes.data?.lifetime_spend_by_currency ?? {},
         } : null,
         total: Number(booking.total ?? 0),
         balance_amount: Number(booking.balance_amount ?? 0),
@@ -233,6 +256,11 @@ export const checkInBooking = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
+    const { data: propertyId, error: propertyError } = await context.supabase.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
+    const { data: booking, error: bookingError } = await context.supabase.from("bookings").select("id")
+      .eq("id", data.bookingId).eq("property_id", propertyId).maybeSingle();
+    if (bookingError || !booking) throw new Error(bookingError?.message ?? "Reservation not found in the active property.");
     const { data: result, error } = await context.supabase.rpc("staynas_transition_booking", {
       _booking_id: data.bookingId,
       _target_status: "checked_in",
@@ -280,6 +308,11 @@ export const checkOutBooking = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
+    const { data: propertyId, error: propertyError } = await context.supabase.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
+    const { data: booking, error: bookingError } = await context.supabase.from("bookings").select("id")
+      .eq("id", data.bookingId).eq("property_id", propertyId).maybeSingle();
+    if (bookingError || !booking) throw new Error(bookingError?.message ?? "Reservation not found in the active property.");
     const { data: result, error } = await context.supabase.rpc("staynas_transition_booking", {
       _booking_id: data.bookingId,
       _target_status: "completed",
@@ -301,20 +334,26 @@ export const getOpsCalendar = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "reservations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const [roomsRes, bookingsRes, invRes] = await Promise.all([
-      sb.from("rooms").select("id, slug, name, total_units").order("sort_order"),
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
+    const [roomsRes, bookingsRes] = await Promise.all([
+      sb.from("rooms").select("id, slug, name, total_units").eq("property_id", propertyId).order("sort_order"),
       sb.from("bookings")
         .select("id, reference, guest_name, guest_type, check_in, check_out, status, room_id")
+        .eq("property_id", propertyId)
         .in("status", ["pending", "confirmed", "checked_in", "completed"])
         .lte("check_in", data.to)
         .gte("check_out", data.from)
         .order("check_in"),
-      sb.from("room_inventory")
-        .select("room_id, date, available_units, is_blocked, price_override")
-        .gte("date", data.from).lt("date", data.to),
     ]);
-    const failed = [roomsRes, bookingsRes, invRes].find((result) => result.error);
+    const failed = [roomsRes, bookingsRes].find((result) => result.error);
     if (failed?.error) throw new Error(`Calendar data load failed: ${failed.error.message}`);
+    const roomIds = (roomsRes.data ?? []).map((room: any) => room.id);
+    const invRes = roomIds.length
+      ? await sb.from("room_inventory").select("room_id, date, available_units, is_blocked, price_override")
+          .in("room_id", roomIds).gte("date", data.from).lt("date", data.to)
+      : { data: [], error: null };
+    if (invRes.error) throw new Error(`Calendar inventory load failed: ${invRes.error.message}`);
     return {
       rooms: roomsRes.data ?? [],
       bookings: bookingsRes.data ?? [],
@@ -331,35 +370,40 @@ export const refreshOpsAlerts = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const today = new Date().toISOString().slice(0, 10);
     const inserts: any[] = [];
 
     const { data: late } = await sb.from("bookings")
       .select("id, reference, guest_name, check_in, room_id")
+      .eq("property_id", propertyId)
       .lt("check_in", today).eq("status", "confirmed").limit(100);
     for (const b of late ?? []) {
       inserts.push({ kind: "late_arrival", severity: "warn", booking_id: b.id, room_id: b.room_id,
-        message: `${b.guest_name} (${b.reference}) was expected on ${b.check_in} but has not checked in.` });
+        message: `${b.guest_name} (${b.reference}) was expected on ${b.check_in} but has not checked in.`, property_id: propertyId });
     }
 
     const { data: overdue } = await sb.from("bookings")
       .select("id, reference, guest_name, check_out, room_id")
+      .eq("property_id", propertyId)
       .lt("check_out", today).eq("status", "checked_in").limit(100);
     for (const b of overdue ?? []) {
       inserts.push({ kind: "overdue_departure", severity: "warn", booking_id: b.id, room_id: b.room_id,
-        message: `${b.guest_name} (${b.reference}) was due to check out on ${b.check_out}.` });
+        message: `${b.guest_name} (${b.reference}) was due to check out on ${b.check_out}.`, property_id: propertyId });
     }
 
     const { data: unpaid } = await sb.from("bookings")
       .select("id, reference, guest_name, balance_amount, currency, room_id")
+      .eq("property_id", propertyId)
       .gt("balance_amount", 0).lte("check_in", today).not("status", "in", "(cancelled,completed)").limit(100);
     for (const b of unpaid ?? []) {
       inserts.push({ kind: "payment_issue", severity: "warn", booking_id: b.id, room_id: b.room_id,
-        message: `${b.guest_name} (${b.reference}) has an outstanding balance of ${b.currency} ${b.balance_amount}.` });
+        message: `${b.guest_name} (${b.reference}) has an outstanding balance of ${b.currency} ${b.balance_amount}.`, property_id: propertyId });
     }
 
     // Wipe unresolved auto-generated alerts and re-seed. Small volume, keeps it simple.
-    await sb.from("ops_alerts").delete().is("resolved_at", null);
+    await sb.from("ops_alerts").delete().eq("property_id", propertyId).is("resolved_at", null);
     if (inserts.length > 0) await sb.from("ops_alerts").insert(inserts);
     return { count: inserts.length };
   });
@@ -371,7 +415,10 @@ export const listOpsAlerts = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
-    let q = sb.from("ops_alerts").select("*, booking:bookings(id, reference, guest_name, guest_id)").order("created_at", { ascending: false }).limit(200);
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
+    let q = sb.from("ops_alerts").select("*, booking:bookings(id, reference, guest_name, guest_id)")
+      .eq("property_id", propertyId).order("created_at", { ascending: false }).limit(200);
     if (!data.includeResolved) q = q.is("resolved_at", null);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
@@ -385,9 +432,11 @@ export const resolveOpsAlert = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "operations");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const { error } = await sb.from("ops_alerts")
       .update({ resolved_at: new Date().toISOString(), resolved_by: context.userId })
-      .eq("id", data.id);
+      .eq("id", data.id).eq("property_id", propertyId);
     if (error) throw new Error(error.message);
     await logOpsEvent(sb, context.userId, context.claims, {
       type: "ops.alert_resolved", entityType: "ops_alert", entityId: data.id,

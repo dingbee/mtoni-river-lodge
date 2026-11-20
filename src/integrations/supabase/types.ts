@@ -73,6 +73,7 @@ export type Database = {
       }
       ai_activity_logs: {
         Row: {
+          property_id: string | null
           created_at: string
           domains_accessed: string[]
           duration_ms: number | null
@@ -89,6 +90,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          property_id?: string | null
           created_at?: string
           domains_accessed?: string[]
           duration_ms?: number | null
@@ -105,6 +107,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          property_id?: string | null
           created_at?: string
           domains_accessed?: string[]
           duration_ms?: number | null
@@ -124,6 +127,8 @@ export type Database = {
       }
       ai_analytics_recommendations: {
         Row: {
+          currency: string | null
+          property_id: string | null
           confidence: number | null
           created_at: string
           domain: string
@@ -139,6 +144,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          currency?: string | null
+          property_id?: string | null
           confidence?: number | null
           created_at?: string
           domain: string
@@ -154,6 +161,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          currency?: string | null
+          property_id?: string | null
           confidence?: number | null
           created_at?: string
           domain?: string
@@ -1283,6 +1292,8 @@ export type Database = {
       }
       ai_executive_briefings: {
         Row: {
+          currency: string | null
+          property_id: string | null
           briefing_date: string
           created_at: string
           evidence: Json
@@ -1295,6 +1306,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          currency?: string | null
+          property_id?: string | null
           briefing_date?: string
           created_at?: string
           evidence?: Json
@@ -1307,6 +1320,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          currency?: string | null
+          property_id?: string | null
           briefing_date?: string
           created_at?: string
           evidence?: Json
@@ -1322,6 +1337,8 @@ export type Database = {
       }
       ai_executive_kpi_snapshots: {
         Row: {
+          currency: string | null
+          property_id: string | null
           created_at: string
           evidence: Json
           id: string
@@ -1331,6 +1348,8 @@ export type Database = {
           period_start: string
         }
         Insert: {
+          currency?: string | null
+          property_id?: string | null
           created_at?: string
           evidence?: Json
           id?: string
@@ -1340,6 +1359,8 @@ export type Database = {
           period_start: string
         }
         Update: {
+          currency?: string | null
+          property_id?: string | null
           created_at?: string
           evidence?: Json
           id?: string
@@ -1390,6 +1411,7 @@ export type Database = {
       }
       ai_guest_alerts: {
         Row: {
+          property_id: string | null
           assigned_to: string | null
           booking_id: string | null
           created_at: string
@@ -1407,6 +1429,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          property_id?: string | null
           assigned_to?: string | null
           booking_id?: string | null
           created_at?: string
@@ -1424,6 +1447,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          property_id?: string | null
           assigned_to?: string | null
           booking_id?: string | null
           created_at?: string
@@ -1765,6 +1789,8 @@ export type Database = {
       }
       ai_guest_recommendations: {
         Row: {
+          currency: string | null
+          property_id: string | null
           action_task_id: string | null
           actioned_at: string | null
           actioned_by: string | null
@@ -1786,6 +1812,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          currency?: string | null
+          property_id?: string | null
           action_task_id?: string | null
           actioned_at?: string | null
           actioned_by?: string | null
@@ -1807,6 +1835,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          currency?: string | null
+          property_id?: string | null
           action_task_id?: string | null
           actioned_at?: string | null
           actioned_by?: string | null
@@ -2141,6 +2171,8 @@ export type Database = {
       }
       ai_marketing_priorities: {
         Row: {
+          currency: string | null
+          property_id: string | null
           confidence: number
           created_at: string
           evidence: Json
@@ -2152,6 +2184,8 @@ export type Database = {
           week_start: string
         }
         Insert: {
+          currency?: string | null
+          property_id?: string | null
           confidence?: number
           created_at?: string
           evidence?: Json
@@ -2163,6 +2197,8 @@ export type Database = {
           week_start: string
         }
         Update: {
+          currency?: string | null
+          property_id?: string | null
           confidence?: number
           created_at?: string
           evidence?: Json
@@ -2177,6 +2213,8 @@ export type Database = {
       }
       ai_marketing_recommendations: {
         Row: {
+          currency: string | null
+          property_id: string | null
           action: string
           action_task_id: string | null
           actioned_at: string | null
@@ -2200,6 +2238,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          currency?: string | null
+          property_id?: string | null
           action: string
           action_task_id?: string | null
           actioned_at?: string | null
@@ -2223,6 +2263,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          currency?: string | null
+          property_id?: string | null
           action?: string
           action_task_id?: string | null
           actioned_at?: string | null
@@ -2770,6 +2812,7 @@ export type Database = {
       }
       ai_pricing_recommendations: {
         Row: {
+          currency: string | null
           action: string
           action_task_id: string | null
           actioned_at: string | null
@@ -2792,6 +2835,7 @@ export type Database = {
           window_to: string
         }
         Insert: {
+          currency?: string | null
           action: string
           action_task_id?: string | null
           actioned_at?: string | null
@@ -2814,6 +2858,7 @@ export type Database = {
           window_to: string
         }
         Update: {
+          currency?: string | null
           action?: string
           action_task_id?: string | null
           actioned_at?: string | null
@@ -3185,6 +3230,7 @@ export type Database = {
       }
       ai_reputation_insights: {
         Row: {
+          property_id: string | null
           complaints: Json
           compliments: Json
           confidence: number
@@ -3204,6 +3250,7 @@ export type Database = {
           themes: Json
         }
         Insert: {
+          property_id?: string | null
           complaints?: Json
           compliments?: Json
           confidence?: number
@@ -3223,6 +3270,7 @@ export type Database = {
           themes?: Json
         }
         Update: {
+          property_id?: string | null
           complaints?: Json
           compliments?: Json
           confidence?: number
@@ -3245,6 +3293,8 @@ export type Database = {
       }
       ai_revenue_alerts: {
         Row: {
+          currency: string | null
+          property_id: string | null
           action_task_id: string | null
           actioned_at: string | null
           actioned_by: string | null
@@ -3261,6 +3311,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          currency?: string | null
+          property_id?: string | null
           action_task_id?: string | null
           actioned_at?: string | null
           actioned_by?: string | null
@@ -3277,6 +3329,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          currency?: string | null
+          property_id?: string | null
           action_task_id?: string | null
           actioned_at?: string | null
           actioned_by?: string | null
@@ -3296,6 +3350,8 @@ export type Database = {
       }
       ai_revenue_forecasts: {
         Row: {
+          currency: string | null
+          property_id: string | null
           assumptions: Json
           breakdown: Json
           confidence: number
@@ -3311,6 +3367,8 @@ export type Database = {
           to_date: string
         }
         Insert: {
+          currency?: string | null
+          property_id?: string | null
           assumptions?: Json
           breakdown?: Json
           confidence?: number
@@ -3326,6 +3384,8 @@ export type Database = {
           to_date: string
         }
         Update: {
+          currency?: string | null
+          property_id?: string | null
           assumptions?: Json
           breakdown?: Json
           confidence?: number
@@ -3344,6 +3404,8 @@ export type Database = {
       }
       ai_revenue_opportunities: {
         Row: {
+          currency: string | null
+          property_id: string | null
           action_task_id: string | null
           actioned_at: string | null
           actioned_by: string | null
@@ -3361,6 +3423,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          currency?: string | null
+          property_id?: string | null
           action_task_id?: string | null
           actioned_at?: string | null
           actioned_by?: string | null
@@ -3378,6 +3442,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          currency?: string | null
+          property_id?: string | null
           action_task_id?: string | null
           actioned_at?: string | null
           actioned_by?: string | null
@@ -3681,6 +3747,7 @@ export type Database = {
       }
       ai_strategic_risks: {
         Row: {
+          property_id: string | null
           created_at: string
           detected_at: string
           domains: string[]
@@ -3696,6 +3763,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          property_id?: string | null
           created_at?: string
           detected_at?: string
           domains?: string[]
@@ -3711,6 +3779,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          property_id?: string | null
           created_at?: string
           detected_at?: string
           domains?: string[]
@@ -3774,6 +3843,8 @@ export type Database = {
       }
       ai_trend_snapshots: {
         Row: {
+          currency: string | null
+          property_id: string | null
           captured_at: string
           created_at: string
           current_value: number | null
@@ -3788,6 +3859,8 @@ export type Database = {
           window_days: number
         }
         Insert: {
+          currency?: string | null
+          property_id?: string | null
           captured_at?: string
           created_at?: string
           current_value?: number | null
@@ -3802,6 +3875,8 @@ export type Database = {
           window_days: number
         }
         Update: {
+          currency?: string | null
+          property_id?: string | null
           captured_at?: string
           created_at?: string
           current_value?: number | null
@@ -3897,6 +3972,8 @@ export type Database = {
       }
       analytics_reports: {
         Row: {
+          currency: string | null
+          property_id: string | null
           created_at: string
           generated_by: string | null
           id: string
@@ -3911,6 +3988,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          currency?: string | null
+          property_id?: string | null
           created_at?: string
           generated_by?: string | null
           id?: string
@@ -3925,6 +4004,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          currency?: string | null
+          property_id?: string | null
           created_at?: string
           generated_by?: string | null
           id?: string
@@ -4743,6 +4824,7 @@ export type Database = {
       }
       campaigns: {
         Row: {
+          property_id: string | null
           associated_content: Json
           audience: string | null
           budget: number | null
@@ -4765,6 +4847,7 @@ export type Database = {
           utm_term: string | null
         }
         Insert: {
+          property_id?: string | null
           associated_content?: Json
           audience?: string | null
           budget?: number | null
@@ -4787,6 +4870,7 @@ export type Database = {
           utm_term?: string | null
         }
         Update: {
+          property_id?: string | null
           associated_content?: Json
           audience?: string | null
           budget?: number | null
@@ -5169,6 +5253,7 @@ export type Database = {
       }
       financial_alerts: {
         Row: {
+          property_id: string | null
           alert_type: string
           amount: number | null
           booking_id: string | null
@@ -5186,6 +5271,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          property_id?: string | null
           alert_type: string
           amount?: number | null
           booking_id?: string | null
@@ -5203,6 +5289,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          property_id?: string | null
           alert_type?: string
           amount?: number | null
           booking_id?: string | null
@@ -7946,6 +8033,7 @@ export type Database = {
       }
       ops_alerts: {
         Row: {
+          property_id: string | null
           booking_id: string | null
           created_at: string
           id: string
@@ -7958,6 +8046,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          property_id?: string | null
           booking_id?: string | null
           created_at?: string
           id?: string
@@ -7970,6 +8059,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          property_id?: string | null
           booking_id?: string | null
           created_at?: string
           id?: string

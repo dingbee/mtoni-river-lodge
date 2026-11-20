@@ -20,10 +20,19 @@ function daysAgo(n: number) { const d = new Date(); d.setUTCDate(d.getUTCDate() 
 function firstOfMonth() { const d = new Date(); return iso(new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1))); }
 function clamp(v: number, min = 0, max = 1) { return Math.max(min, Math.min(max, v)); }
 
-async function logActivity(supabase: any, userId: string | null, tool: string, question: string, response: string) {
+async function getExecutivePropertyContext(supabase: any, userId: string): Promise<{ propertyId: string; currency: string }> {
+  const { data: propertyId, error: activeError } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
+  if (activeError || !propertyId) throw new Error(activeError?.message ?? "No active property selected");
+  const { data: property, error } = await supabase.from("staynas_properties").select("currency").eq("id", propertyId).single();
+  const currency = String(property?.currency ?? "").trim().toUpperCase();
+  if (error || !/^[A-Z]{3}$/.test(currency)) throw new Error("The active property must have an explicit operating currency before executive intelligence can run.");
+  return { propertyId, currency };
+}
+
+async function logActivity(supabase: any, userId: string | null, tool: string, question: string, response: string, propertyId?: string) {
   try {
     await supabase.from("ai_activity_logs").insert({
-      user_id: userId, question, domains_accessed: ["executive"], tool_called: tool,
+      user_id: userId, property_id: propertyId ?? null, question, domains_accessed: ["executive"], tool_called: tool,
       response, model: MODEL, status: "completed", duration_ms: 0,
     });
   } catch { /* non-fatal */ }
@@ -37,7 +46,8 @@ export const getExecutiveOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
-    const s = context.supabase;
+    const s: any = context.supabase;
+    const { propertyId, currency } = await getExecutivePropertyContext(s, context.userId);
     const [
       { data: rooms },
       { data: arrivalsToday },
@@ -59,23 +69,23 @@ export const getExecutiveOverview = createServerFn({ method: "GET" })
       { data: reviews },
       { data: approvals },
     ] = await Promise.all([
-      s.from("rooms").select("total_units").eq("status", "active"),
-      s.from("bookings").select("id, guest_name, guest_type, check_in").eq("check_in", today()).in("status", ["confirmed","checked_in"]),
-      s.from("bookings").select("id, guest_name, check_out").eq("check_out", today()).in("status", ["confirmed","checked_in","completed"]),
-      s.from("bookings").select("id, nights").lte("check_in", today()).gt("check_out", today()).in("status", ["confirmed","checked_in"]),
-      s.from("bookings").select("total, nights, currency").gte("check_in", firstOfMonth()).in("status", ["confirmed","checked_in","completed"]),
-      s.from("bookings").select("total, nights").gte("check_in", today()).lte("check_in", daysFromNow(30)).in("status", ["confirmed","pending","checked_in"]),
-      s.from("bookings").select("balance_due, currency").gt("balance_due", 0).in("status", ["confirmed","checked_in","completed"]),
-      s.from("ops_tasks").select("id, priority").is("completed_at", null),
-      s.from("ops_alerts").select("id, severity").is("resolved_at", null),
-      s.from("room_states").select("state"),
-      s.from("ai_guest_recommendations").select("id").eq("status", "pending"),
-      s.from("ai_pricing_recommendations").select("id").eq("status", "pending"),
-      s.from("ai_revenue_opportunities").select("id").eq("status", "pending"),
-      s.from("ai_marketing_recommendations").select("id").eq("status", "pending"),
-      s.from("ai_revenue_alerts").select("id, severity").eq("status", "open"),
-      s.from("ai_guest_alerts").select("id, severity").eq("status", "open"),
-      s.from("ai_strategic_risks").select("id, severity").eq("status", "open"),
+      s.from("rooms").select("total_units").eq("property_id", propertyId).eq("status", "active"),
+      s.from("bookings").select("id, guest_name, guest_type, check_in").eq("property_id", propertyId).eq("check_in", today()).in("status", ["confirmed","checked_in"]),
+      s.from("bookings").select("id, guest_name, check_out").eq("property_id", propertyId).eq("check_out", today()).in("status", ["confirmed","checked_in","completed"]),
+      s.from("bookings").select("id, nights").eq("property_id", propertyId).lte("check_in", today()).gt("check_out", today()).in("status", ["confirmed","checked_in"]),
+      s.from("bookings").select("total, nights, currency").eq("property_id", propertyId).gte("check_in", firstOfMonth()).in("status", ["confirmed","checked_in","completed"]),
+      s.from("bookings").select("total, nights, currency").eq("property_id", propertyId).gte("check_in", today()).lte("check_in", daysFromNow(30)).in("status", ["confirmed","pending","checked_in"]),
+      s.from("bookings").select("balance_due, currency").eq("property_id", propertyId).gt("balance_due", 0).in("status", ["confirmed","checked_in","completed"]),
+      s.from("ops_tasks").select("id, priority").eq("property_id", propertyId).is("completed_at", null),
+      s.from("ops_alerts").select("id, severity").eq("property_id", propertyId).is("resolved_at", null),
+      s.from("room_states").select("state").eq("property_id", propertyId),
+      s.from("ai_guest_recommendations").select("id").eq("property_id", propertyId).eq("status", "pending"),
+      s.from("ai_pricing_recommendations").select("id").eq("property_id", propertyId).eq("status", "pending"),
+      s.from("ai_revenue_opportunities").select("id").eq("property_id", propertyId).eq("status", "pending"),
+      s.from("ai_marketing_recommendations").select("id").eq("property_id", propertyId).eq("status", "pending"),
+      s.from("ai_revenue_alerts").select("id, severity").eq("property_id", propertyId).eq("status", "open"),
+      s.from("ai_guest_alerts").select("id, severity").eq("property_id", propertyId).eq("status", "open"),
+      s.from("ai_strategic_risks").select("id, severity").eq("property_id", propertyId).eq("status", "open"),
       s.from("reviews").select("rating").eq("status", "approved").gte("created_at", daysAgo(180)),
       s.from("approval_requests").select("id").eq("status", "pending"),
     ]);
@@ -84,15 +94,14 @@ export const getExecutiveOverview = createServerFn({ method: "GET" })
     const occupiedTonight = inHouse?.length ?? 0;
     const occupancyToday = totalUnits > 0 ? occupiedTonight / totalUnits : 0;
 
-    const mtdRevenue = (mtd ?? []).reduce((s: any, b: any) => s + Number(b.total ?? 0), 0);
+    const mtdRevenue = (mtd ?? []).filter((b: any) => String(b.currency ?? "").trim().toUpperCase() === currency).reduce((s: any, b: any) => s + Number(b.total ?? 0), 0);
     const mtdNights = (mtd ?? []).reduce((s: any, b: any) => s + Number(b.nights ?? 0), 0);
     const revenueToday = 0; // deterministic proxy — real revenue lives in finance module
-    const currency = (mtd?.[0] as any)?.currency ?? "USD";
-    const forwardRevenue = (forward30 ?? []).reduce((s: any, b: any) => s + Number(b.total ?? 0), 0);
+    const forwardRevenue = (forward30 ?? []).filter((b: any) => String(b.currency ?? "").trim().toUpperCase() === currency).reduce((s: any, b: any) => s + Number(b.total ?? 0), 0);
     const forwardNights = (forward30 ?? []).reduce((s: any, b: any) => s + Number(b.nights ?? 0), 0);
     const expectedOccupancy30 = totalUnits > 0 ? forwardNights / (totalUnits * 30) : 0;
 
-    const outstandingTotal = (outstanding ?? []).reduce((s: any, b: any) => s + Number(b.balance_due ?? 0), 0);
+    const outstandingTotal = (outstanding ?? []).filter((b: any) => String(b.currency ?? "").trim().toUpperCase() === currency).reduce((s: any, b: any) => s + Number(b.balance_due ?? 0), 0);
 
     const vipToday = (arrivalsToday ?? []).filter((b: any) => b.guest_type === "vip" || b.guest_type === "climber").length;
 
@@ -134,6 +143,7 @@ export const getExecutiveOverview = createServerFn({ method: "GET" })
     );
 
     return {
+      propertyId,
       currency,
       totalUnits,
       occupancyToday,
@@ -167,7 +177,8 @@ export const generateExecutiveBriefing = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
-    const s = context.supabase;
+    const s: any = context.supabase;
+    const { propertyId, currency } = await getExecutivePropertyContext(s, context.userId);
     const [
       { data: arrivals },
       { data: departures },
@@ -184,27 +195,27 @@ export const generateExecutiveBriefing = createServerFn({ method: "POST" })
       { data: reputation },
       { data: risks },
     ] = await Promise.all([
-      s.from("bookings").select("id, reference, guest_name, guest_type, room_id, adults, children, special_requests").eq("check_in", today()).in("status", ["confirmed","checked_in"]),
-      s.from("bookings").select("id, reference, guest_name, balance_due").eq("check_out", today()).in("status", ["confirmed","checked_in","completed"]),
-      s.from("ops_tasks").select("id, title, priority").is("completed_at", null).order("priority", { ascending: true }).limit(20),
-      s.from("ops_alerts").select("id, message, severity").is("resolved_at", null).order("created_at", { ascending: false }).limit(20),
-      s.from("ai_guest_recommendations").select("id, title, reasoning, confidence, impact_score, kind").eq("status","pending").order("impact_score",{ ascending: false, nullsFirst: false }).limit(10),
-      s.from("ai_guest_alerts").select("id, title, severity, reasoning").eq("status","open").order("severity",{ ascending: false }).limit(10),
-      s.from("ai_pricing_recommendations").select("id, title, reasoning, confidence, impact_score, action").eq("status","pending").order("impact_score",{ ascending: false, nullsFirst: false }).limit(10),
-      s.from("ai_revenue_opportunities").select("id, title, reasoning, confidence, impact_score, kind").eq("status","pending").order("impact_score",{ ascending: false, nullsFirst: false }).limit(10),
-      s.from("ai_revenue_alerts").select("id, title, severity, reasoning").eq("status","open").order("severity",{ ascending: false }).limit(10),
-      s.from("ai_revenue_forecasts").select("horizon_days, expected_occupancy, expected_revenue, currency").order("created_at",{ ascending: false }).limit(3),
-      s.from("ai_marketing_recommendations").select("id, title, reasoning, confidence, impact_score, kind").eq("status","pending").order("impact_score",{ ascending: false, nullsFirst: false }).limit(10),
-      s.from("ai_marketing_priorities").select("id, title, reasoning, priority_score").order("priority_score",{ ascending: false, nullsFirst: false }).limit(5),
-      s.from("ai_reputation_insights").select("id, summary, avg_rating, review_count").order("created_at",{ ascending: false }).limit(1),
-      s.from("ai_strategic_risks").select("id, title, severity, reasoning").eq("status","open").order("severity",{ ascending: false }).limit(10),
+      s.from("bookings").select("id, reference, guest_name, guest_type, room_id, adults, children, special_requests").eq("property_id", propertyId).eq("check_in", today()).in("status", ["confirmed","checked_in"]),
+      s.from("bookings").select("id, reference, guest_name, balance_due, currency").eq("property_id", propertyId).eq("check_out", today()).in("status", ["confirmed","checked_in","completed"]),
+      s.from("ops_tasks").select("id, title, priority").eq("property_id", propertyId).is("completed_at", null).order("priority", { ascending: true }).limit(20),
+      s.from("ops_alerts").select("id, message, severity").eq("property_id", propertyId).is("resolved_at", null).order("created_at", { ascending: false }).limit(20),
+      s.from("ai_guest_recommendations").select("id, title, reasoning, confidence, expected_value, category, status, created_at, booking_id, currency").eq("property_id", propertyId).eq("status","pending").order("expected_value",{ ascending: false, nullsFirst: false }).limit(10),
+      s.from("ai_guest_alerts").select("id, title, severity, detail").eq("property_id", propertyId).eq("status","open").order("severity",{ ascending: false }).limit(10),
+      s.from("ai_pricing_recommendations").select("id, reasoning, confidence, expected_impact, delta_pct, action, status, created_at, room_id, current_rate, suggested_rate, currency").eq("property_id", propertyId).eq("status","pending").order("expected_impact",{ ascending: false, nullsFirst: false }).limit(10),
+      s.from("ai_revenue_opportunities").select("id, kind, title, detail, estimated_impact, confidence, recommended_action, status, created_at, currency").eq("property_id", propertyId).eq("status","pending").order("estimated_impact",{ ascending: false, nullsFirst: false }).limit(10),
+      s.from("ai_revenue_alerts").select("id, kind, title, severity, detail, currency").eq("property_id", propertyId).eq("status","open").order("severity",{ ascending: false }).limit(10),
+      s.from("ai_revenue_forecasts").select("horizon_days, expected_occupancy, expected_revenue, currency").eq("property_id", propertyId).eq("currency", currency).order("created_at",{ ascending: false }).limit(3),
+      s.from("ai_marketing_recommendations").select("id, title, reasoning, confidence, impact_score, kind, currency").eq("property_id", propertyId).eq("status","pending").order("impact_score",{ ascending: false, nullsFirst: false }).limit(10),
+      s.from("ai_marketing_priorities").select("id, week_start, priorities, summary, confidence, currency").eq("property_id", propertyId).order("week_start",{ ascending: false }).limit(5),
+      s.from("ai_reputation_insights").select("id, summary, avg_rating, review_count").eq("property_id", propertyId).order("created_at",{ ascending: false }).limit(1),
+      s.from("ai_strategic_risks").select("id, title, severity, reasoning").eq("property_id", propertyId).eq("status","open").order("severity",{ ascending: false }).limit(10),
     ]);
 
     // Merge & rank top recommendations across domains
     const all = [
-      ...(guestRecs ?? []).map((r: any) => ({ ...r, origin: "guest" })),
-      ...(pricing ?? []).map((r: any) => ({ ...r, origin: "revenue.pricing" })),
-      ...(revOps ?? []).map((r: any) => ({ ...r, origin: "revenue.opportunity" })),
+      ...(guestRecs ?? []).map((r: any) => ({ ...r, impact_score: Number(r.expected_value ?? 0), kind: r.category ?? r.kind, origin: "guest" })),
+      ...(pricing ?? []).map((r: any) => ({ ...r, title: `Pricing recommendation: ${r.action}`, impact_score: Number(r.expected_impact ?? 0), kind: "pricing", origin: "revenue.pricing" })),
+      ...(revOps ?? []).map((r: any) => ({ ...r, reasoning: r.detail, impact_score: Number(r.estimated_impact ?? 0), origin: "revenue.opportunity" })),
       ...(marketingRecs ?? []).map((r: any) => ({ ...r, origin: "marketing" })),
     ];
     const ranked = all
@@ -247,6 +258,8 @@ export const generateExecutiveBriefing = createServerFn({ method: "POST" })
       .from("ai_executive_briefings")
       .upsert(
         {
+          property_id: propertyId,
+          currency,
           briefing_date: today(),
           summary,
           sections,
@@ -262,13 +275,13 @@ export const generateExecutiveBriefing = createServerFn({ method: "POST" })
           },
           generated_by: context.userId,
         },
-        { onConflict: "briefing_date" },
+        { onConflict: "property_id,currency,briefing_date" },
       )
       .select("*")
       .single();
     if (error) throw error;
 
-    await logActivity(s, context.userId, "executive.briefing.generate", "Generate morning briefing", summary.slice(0, 500));
+    await logActivity(s, context.userId, "executive.briefing.generate", "Generate morning briefing", summary.slice(0, 500), propertyId);
     return row;
   });
 
@@ -289,9 +302,10 @@ export const getLatestBriefing = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
-    const { data } = await context.supabase
+    const { propertyId, currency } = await getExecutivePropertyContext(context.supabase, context.userId);
+    const { data } = await (context.supabase as any)
       .from("ai_executive_briefings")
-      .select("*")
+      .select("*").eq("property_id", propertyId).eq("currency", currency)
       .order("briefing_date", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -306,6 +320,7 @@ type DecisionRow = {
   id: string; origin: string; module: string; title: string; reasoning: string | null;
   confidence: number | null; impact_score: number | null; kind: string | null;
   action: string | null; status: string; created_at: string; route: string;
+  currency: string | null;
   priority: number;
 };
 
@@ -313,7 +328,8 @@ export const getExecutiveDecisions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
-    const s = context.supabase;
+    const s: any = context.supabase;
+    const propertyId = await getExecutivePropertyContext(s, context.userId).then((value) => value.propertyId);
     const [
       { data: guest },
       { data: pricing },
@@ -321,44 +337,44 @@ export const getExecutiveDecisions = createServerFn({ method: "GET" })
       { data: marketing },
       { data: approvals },
     ] = await Promise.all([
-      s.from("ai_guest_recommendations").select("id, title, reasoning, confidence, impact_score, kind, status, created_at, booking_id").eq("status","pending"),
-      s.from("ai_pricing_recommendations").select("id, title, reasoning, confidence, impact_score, action, status, created_at").eq("status","pending"),
-      s.from("ai_revenue_opportunities").select("id, title, reasoning, confidence, impact_score, kind, status, created_at").eq("status","pending"),
-      s.from("ai_marketing_recommendations").select("id, title, reasoning, confidence, impact_score, kind, status, created_at").eq("status","pending"),
-      s.from("approval_requests").select("id, title, description, status, created_at").eq("status","pending"),
+      s.from("ai_guest_recommendations").select("id, title, reasoning, confidence, expected_value, category, status, created_at, booking_id, currency").eq("property_id", propertyId).eq("status","pending"),
+      s.from("ai_pricing_recommendations").select("id, reasoning, confidence, expected_impact, delta_pct, action, status, created_at, currency").eq("property_id", propertyId).eq("status","pending"),
+      s.from("ai_revenue_opportunities").select("id, title, detail, confidence, estimated_impact, kind, recommended_action, status, created_at, currency").eq("property_id", propertyId).eq("status","pending"),
+      s.from("ai_marketing_recommendations").select("id, title, reasoning, confidence, impact_score, kind, action, target_route, status, created_at, currency").eq("property_id", propertyId).eq("status","pending"),
+      s.from("approval_requests").select("id, subject, details, status, created_at").eq("status","pending"),
     ]);
 
     const rows: DecisionRow[] = [
       ...(guest ?? []).map((r: any): DecisionRow => ({
         id: r.id, origin: "Guest Intelligence", module: "guest",
         title: r.title, reasoning: r.reasoning,
-        confidence: r.confidence, impact_score: r.impact_score,
-        kind: r.kind, action: null, status: r.status, created_at: r.created_at,
+        confidence: r.confidence, impact_score: Number(r.expected_value ?? 0),
+        kind: r.category ?? null, action: null, status: r.status, created_at: r.created_at, currency: r.currency ?? null,
         route: r.booking_id ? `/admin/ai/guests/${r.booking_id}` : "/admin/ai/guests/dashboard",
-        priority: (Number(r.impact_score ?? 0)) * (Number(r.confidence ?? 0.5) || 0.5),
+        priority: Number(r.expected_value ?? 0) * (Number(r.confidence ?? 0.5) || 0.5),
       })),
       ...(pricing ?? []).map((r: any): DecisionRow => ({
         id: r.id, origin: "Revenue · Pricing", module: "revenue.pricing",
-        title: r.title, reasoning: r.reasoning,
-        confidence: r.confidence, impact_score: r.impact_score,
-        kind: null, action: r.action, status: r.status, created_at: r.created_at,
+        title: `Pricing recommendation: ${r.action}`, reasoning: r.reasoning,
+        confidence: r.confidence, impact_score: Number(r.expected_impact ?? 0),
+        kind: null, action: r.action, status: r.status, created_at: r.created_at, currency: r.currency ?? null,
         route: "/admin/ai/revenue/pricing",
-        priority: (Number(r.impact_score ?? 0)) * (Number(r.confidence ?? 0.5) || 0.5),
+        priority: Number(r.expected_impact ?? 0) * (Number(r.confidence ?? 0.5) || 0.5),
       })),
       ...(revOps ?? []).map((r: any): DecisionRow => ({
         id: r.id, origin: "Revenue · Opportunity", module: "revenue.opportunity",
-        title: r.title, reasoning: r.reasoning,
-        confidence: r.confidence, impact_score: r.impact_score,
-        kind: r.kind, action: null, status: r.status, created_at: r.created_at,
+        title: r.title, reasoning: r.detail,
+        confidence: r.confidence, impact_score: Number(r.estimated_impact ?? 0),
+        kind: r.kind, action: r.recommended_action, status: r.status, created_at: r.created_at, currency: r.currency ?? null,
         route: "/admin/ai/revenue/opportunities",
-        priority: (Number(r.impact_score ?? 0)) * (Number(r.confidence ?? 0.5) || 0.5),
+        priority: Number(r.estimated_impact ?? 0) * (Number(r.confidence ?? 0.5) || 0.5),
       })),
       ...(marketing ?? []).map((r: any): DecisionRow => ({
         id: r.id, origin: "Marketing", module: "marketing",
         title: r.title, reasoning: r.reasoning,
         confidence: r.confidence, impact_score: r.impact_score,
-        kind: r.kind, action: null, status: r.status, created_at: r.created_at,
-        route: "/admin/ai/marketing/priorities",
+        kind: r.kind, action: r.action, status: r.status, created_at: r.created_at, currency: r.currency ?? null,
+        route: r.target_route ?? "/admin/ai/marketing/priorities",
         priority: (Number(r.impact_score ?? 0)) * (Number(r.confidence ?? 0.5) || 0.5),
       })),
     ];
@@ -366,7 +382,7 @@ export const getExecutiveDecisions = createServerFn({ method: "GET" })
     rows.sort((a: any, b: any) => b.priority - a.priority);
     return {
       decisions: rows,
-      approvals: approvals ?? [],
+      approvals: (approvals ?? []).map((r: any) => ({ ...r, title: r.subject, description: r.details })),
     };
   });
 
@@ -376,7 +392,8 @@ export const decideExecutiveItem = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string; module: string; action: "accept" | "dismiss" | "assign" | "convert"; note?: string | null }) => d)
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
-    const s = context.supabase;
+    const s: any = context.supabase;
+    const { propertyId } = await getExecutivePropertyContext(s, context.userId);
     const table = {
       "guest": "ai_guest_recommendations",
       "revenue.pricing": "ai_pricing_recommendations",
@@ -392,8 +409,9 @@ export const decideExecutiveItem = createServerFn({ method: "POST" })
       : "assigned";
 
     const { data: row, error } = await (s.from(table as any) as any)
-      .update({ status: newStatus, reviewed_by: context.userId, reviewed_at: new Date().toISOString(), review_note: data.note ?? null })
+      .update({ status: newStatus, actioned_by: context.userId, actioned_at: new Date().toISOString() })
       .eq("id", data.id)
+      .eq("property_id", propertyId)
       .select("*")
       .maybeSingle();
     if (error) throw error;
@@ -405,10 +423,11 @@ export const decideExecutiveItem = createServerFn({ method: "POST" })
         title: (row as any).title ?? "AI recommendation",
         description: (row as any).reasoning ?? "",
         priority: 2,
+        property_id: propertyId,
       });
     }
 
-    await logActivity(s, context.userId, "executive.decision", `Decision ${data.action} on ${data.module}#${data.id}`, `Status→${newStatus}`);
+    await logActivity(s, context.userId, "executive.decision", `Decision ${data.action} on ${data.module}#${data.id}`, `Status→${newStatus}`, propertyId);
     return row;
   });
 
@@ -421,30 +440,33 @@ export const getExecutiveKpis = createServerFn({ method: "GET" })
   .inputValidator((d: { period: "week" | "month" | "quarter" | "year" }) => d)
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
-    const s = context.supabase;
+    const s: any = context.supabase;
+    const { propertyId, currency } = await getExecutivePropertyContext(s, context.userId);
     const { data: snaps } = await s
       .from("ai_executive_kpi_snapshots")
       .select("*")
+      .eq("property_id", propertyId)
+      .eq("currency", currency)
       .eq("period", data.period)
       .order("period_start", { ascending: false })
       .limit(24);
 
     // Live current-period KPI
     const [{ data: rooms }, { data: bookings }, { data: reviews }, { data: adopted }, { data: total }] = await Promise.all([
-      s.from("rooms").select("total_units").eq("status","active"),
-      s.from("bookings").select("total, nights, status, created_at, guest_id").gte("check_in", daysAgo(365)),
+      s.from("rooms").select("total_units").eq("property_id", propertyId).eq("status","active"),
+      s.from("bookings").select("total, nights, status, created_at, guest_id, currency").eq("property_id", propertyId).gte("check_in", daysAgo(365)),
       s.from("reviews").select("rating").eq("status","approved").gte("created_at", daysAgo(365)),
-      s.from("ai_activity_logs").select("id").in("status", ["completed"]).gte("created_at", daysAgo(90)),
-      s.from("ai_guest_recommendations").select("id, status").gte("created_at", daysAgo(90)),
+      s.from("ai_activity_logs").select("id").eq("property_id", propertyId).in("status", ["completed"]).gte("created_at", daysAgo(90)),
+      s.from("ai_guest_recommendations").select("id, status").eq("property_id", propertyId).gte("created_at", daysAgo(90)),
     ]);
     const totalUnits = (rooms ?? []).reduce((a: any, r: any) => a + Number(r.total_units ?? 0), 0);
     const nights365 = (bookings ?? []).reduce((a: any, b: any) => a + Number(b.nights ?? 0), 0);
-    const revenue365 = (bookings ?? [])
-      .filter((b: any) => ["confirmed","checked_in","completed"].includes(b.status))
-      .reduce((a: any, b: any) => a + Number(b.total ?? 0), 0);
+    const currencyBookings = (bookings ?? []).filter((b: any) => String(b.currency ?? "").toUpperCase() === currency && ["confirmed","checked_in","completed"].includes(b.status));
+    const currencyNights365 = currencyBookings.reduce((a: number, b: any) => a + Number(b.nights ?? 0), 0);
+    const revenue365 = currencyBookings.reduce((a: number, b: any) => a + Number(b.total ?? 0), 0);
     const capacity365 = totalUnits * 365;
     const occupancy = capacity365 > 0 ? nights365 / capacity365 : 0;
-    const adr = nights365 > 0 ? revenue365 / nights365 : 0;
+    const adr = currencyNights365 > 0 ? revenue365 / currencyNights365 : 0;
     const revpar = capacity365 > 0 ? revenue365 / capacity365 : 0;
 
     const guestIds = new Set<string>();
@@ -465,7 +487,8 @@ export const getExecutiveKpis = createServerFn({ method: "GET" })
 
     return {
       period: data.period,
-      live: { occupancy, adr, revpar, avgReview, repeat, aiAdoption: adoption, aiRunsLast90: adopted?.length ?? 0 },
+      currency,
+      live: { occupancy, adr, revpar, currency, avgReview, repeat, aiAdoption: adoption, aiRunsLast90: adopted?.length ?? 0 },
       snapshots: snaps ?? [],
     };
   });
@@ -475,7 +498,8 @@ export const captureKpiSnapshot = createServerFn({ method: "POST" })
   .inputValidator((d: { period: "week" | "month" | "quarter" | "year" }) => d)
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
-    const s = context.supabase;
+    const s: any = context.supabase;
+    const { propertyId, currency } = await getExecutivePropertyContext(s, context.userId);
     const now = new Date();
     const start = new Date(now);
     if (data.period === "week") start.setUTCDate(start.getUTCDate() - 7);
@@ -486,20 +510,23 @@ export const captureKpiSnapshot = createServerFn({ method: "POST" })
     const period_end = today();
 
     const [{ data: rooms }, { data: bookings }, { data: reviews }] = await Promise.all([
-      s.from("rooms").select("total_units").eq("status","active"),
-      s.from("bookings").select("total, nights, status, guest_id").gte("check_in", period_start).lte("check_in", period_end),
+      s.from("rooms").select("total_units").eq("property_id", propertyId).eq("status","active"),
+      s.from("bookings").select("total, nights, status, guest_id, currency").eq("property_id", propertyId).gte("check_in", period_start).lte("check_in", period_end),
       s.from("reviews").select("rating").eq("status","approved").gte("created_at", period_start),
     ]);
     const totalUnits = (rooms ?? []).reduce((a: any, r: any) => a + Number(r.total_units ?? 0), 0);
     const days = Math.max(1, Math.round((+new Date(period_end) - +new Date(period_start)) / 86400000));
     const capacity = totalUnits * days;
     const nights = (bookings ?? []).reduce((a: any, b: any) => a + Number(b.nights ?? 0), 0);
-    const revenue = (bookings ?? []).filter((b: any) => ["confirmed","checked_in","completed"].includes(b.status)).reduce((a: any, b: any) => a + Number(b.total ?? 0), 0);
+    const currencyBookings = (bookings ?? []).filter((b: any) => String(b.currency ?? "").toUpperCase() === currency && ["confirmed","checked_in","completed"].includes(b.status));
+    const currencyNights = currencyBookings.reduce((a: number, b: any) => a + Number(b.nights ?? 0), 0);
+    const revenue = currencyBookings.reduce((a: number, b: any) => a + Number(b.total ?? 0), 0);
 
     const kpis = {
       occupancy: capacity > 0 ? nights / capacity : 0,
       revenue,
-      adr: nights > 0 ? revenue / nights : 0,
+      adr: currencyNights > 0 ? revenue / currencyNights : 0,
+      currency,
       revpar: capacity > 0 ? revenue / capacity : 0,
       avgReview: (reviews ?? []).length ? (reviews ?? []).reduce((a: any, r: any) => a + Number(r.rating ?? 0), 0) / (reviews as any[]).length : 0,
       bookings: (bookings ?? []).length,
@@ -507,7 +534,7 @@ export const captureKpiSnapshot = createServerFn({ method: "POST" })
 
     const { data: row, error } = await s
       .from("ai_executive_kpi_snapshots")
-      .upsert({ period: data.period, period_start, period_end, kpis, evidence: { rooms: totalUnits, days, nights } }, { onConflict: "period,period_start" })
+      .upsert({ property_id: propertyId, currency, period: data.period, period_start, period_end, kpis, evidence: { rooms: totalUnits, days, nights } }, { onConflict: "property_id,currency,period,period_start" })
       .select("*").single();
     if (error) throw error;
     return row;
@@ -521,27 +548,28 @@ export const detectStrategicRisks = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
-    const s = context.supabase;
+    const s: any = context.supabase;
+    const { propertyId, currency } = await getExecutivePropertyContext(s, context.userId);
     const [
       { data: past30 }, { data: prev30 }, { data: forward30 }, { data: rooms },
       { data: outstanding }, { data: reviewsRecent }, { data: reviewsOlder },
       { data: campaigns }, { data: openTasks },
     ] = await Promise.all([
-      s.from("bookings").select("total, status, created_at").gte("created_at", daysAgo(30)),
-      s.from("bookings").select("total, status, created_at").gte("created_at", daysAgo(60)).lt("created_at", daysAgo(30)),
-      s.from("bookings").select("nights, status, check_in").gte("check_in", today()).lte("check_in", daysFromNow(30)),
-      s.from("rooms").select("total_units").eq("status","active"),
-      s.from("bookings").select("balance_due").gt("balance_due", 0),
+      s.from("bookings").select("total, currency, status, created_at").eq("property_id", propertyId).gte("created_at", daysAgo(30)),
+      s.from("bookings").select("total, currency, status, created_at").eq("property_id", propertyId).gte("created_at", daysAgo(60)).lt("created_at", daysAgo(30)),
+      s.from("bookings").select("nights, status, check_in").eq("property_id", propertyId).gte("check_in", today()).lte("check_in", daysFromNow(30)),
+      s.from("rooms").select("total_units").eq("property_id", propertyId).eq("status","active"),
+      s.from("bookings").select("balance_due, currency").eq("property_id", propertyId).gt("balance_due", 0),
       s.from("reviews").select("rating").eq("status","approved").gte("created_at", daysAgo(60)),
       s.from("reviews").select("rating").eq("status","approved").gte("created_at", daysAgo(180)).lt("created_at", daysAgo(60)),
-      s.from("campaigns").select("id, status, end_date"),
-      s.from("ops_tasks").select("id").is("completed_at", null),
+      s.from("campaigns").select("id, status, end_date").eq("property_id", propertyId),
+      s.from("ops_tasks").select("id").eq("property_id", propertyId).is("completed_at", null),
     ]);
 
     const detected: Array<{ risk_type: string; severity: string; title: string; reasoning: string; evidence: any; domains: string[] }> = [];
 
-    const rev30 = (past30 ?? []).filter((b: any) => ["confirmed","checked_in","completed"].includes(b.status)).reduce((a: any, b: any) => a + Number(b.total ?? 0), 0);
-    const revPrev = (prev30 ?? []).filter((b: any) => ["confirmed","checked_in","completed"].includes(b.status)).reduce((a: any, b: any) => a + Number(b.total ?? 0), 0);
+    const rev30 = (past30 ?? []).filter((b: any) => String(b.currency ?? "").toUpperCase() === currency && ["confirmed","checked_in","completed"].includes(b.status)).reduce((a: number, b: any) => a + Number(b.total ?? 0), 0);
+    const revPrev = (prev30 ?? []).filter((b: any) => String(b.currency ?? "").toUpperCase() === currency && ["confirmed","checked_in","completed"].includes(b.status)).reduce((a: number, b: any) => a + Number(b.total ?? 0), 0);
     if (revPrev > 0 && rev30 / revPrev < 0.85) {
       const drop = 1 - rev30 / revPrev;
       detected.push({
@@ -578,7 +606,7 @@ export const detectStrategicRisks = createServerFn({ method: "POST" })
       });
     }
 
-    const outstandingTotal = (outstanding ?? []).reduce((a: any, b: any) => a + Number(b.balance_due ?? 0), 0);
+    const outstandingTotal = (outstanding ?? []).filter((b: any) => String(b.currency ?? "").toUpperCase() === currency).reduce((a: number, b: any) => a + Number(b.balance_due ?? 0), 0);
     if (outstandingTotal > 5000) {
       detected.push({
         risk_type: "cash_flow",
@@ -611,14 +639,14 @@ export const detectStrategicRisks = createServerFn({ method: "POST" })
     }
 
     // Upsert: only insert risk_type not already open
-    const { data: existingOpen } = await s.from("ai_strategic_risks").select("risk_type").eq("status","open");
+    const { data: existingOpen } = await s.from("ai_strategic_risks").select("risk_type").eq("property_id", propertyId).eq("status","open");
     const openSet = new Set((existingOpen ?? []).map((r: any) => r.risk_type));
-    const toInsert = detected.filter((r: any) => !openSet.has(r.risk_type));
+    const toInsert = detected.filter((r: any) => !openSet.has(r.risk_type)).map((r: any) => ({ ...r, property_id: propertyId }));
     if (toInsert.length) {
       await s.from("ai_strategic_risks").insert(toInsert);
     }
 
-    await logActivity(s, context.userId, "executive.risks.detect", "Detect strategic risks", `Detected ${detected.length}, inserted ${toInsert.length}`);
+    await logActivity(s, context.userId, "executive.risks.detect", "Detect strategic risks", `Detected ${detected.length}, inserted ${toInsert.length}`, propertyId);
     return { detected, inserted: toInsert.length };
   });
 
@@ -629,6 +657,7 @@ export const listStrategicRisks = createServerFn({ method: "GET" })
     const { data } = await context.supabase
       .from("ai_strategic_risks")
       .select("*")
+      .eq("property_id", await getExecutivePropertyContext(context.supabase, context.userId).then((value) => value.propertyId))
       .order("detected_at", { ascending: false })
       .limit(200);
     return data ?? [];
@@ -639,13 +668,14 @@ export const updateRiskStatus = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string; status: "open" | "acknowledged" | "mitigated" | "dismissed" }) => d)
   .handler(async ({ data, context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
+    const { propertyId } = await getExecutivePropertyContext(context.supabase, context.userId);
     const patch: any = { status: data.status };
     if (data.status === "mitigated" || data.status === "dismissed") {
       patch.resolved_at = new Date().toISOString();
       patch.resolved_by = context.userId;
     }
     const { data: row, error } = await context.supabase
-      .from("ai_strategic_risks").update(patch).eq("id", data.id).select("*").maybeSingle();
+      .from("ai_strategic_risks").update(patch).eq("id", data.id).eq("property_id", propertyId).select("*").maybeSingle();
     if (error) throw error;
     return row;
   });
@@ -661,6 +691,7 @@ export const getExecutiveTimeline = createServerFn({ method: "GET" })
     const { data } = await context.supabase
       .from("ai_activity_logs")
       .select("id, user_id, question, tool_called, response, domains_accessed, model, status, created_at")
+      .eq("property_id", await getExecutivePropertyContext(context.supabase, context.userId).then((value) => value.propertyId))
       .order("created_at", { ascending: false })
       .limit(200);
     return data ?? [];
@@ -674,13 +705,14 @@ export const getAiValueSummary = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
-    const s = context.supabase;
+    const s: any = context.supabase;
+    const { propertyId, currency } = await getExecutivePropertyContext(s, context.userId);
     const [{ data: guest }, { data: pricing }, { data: revOps }, { data: marketing }, { data: activity }] = await Promise.all([
-      s.from("ai_guest_recommendations").select("status, impact_score").gte("created_at", daysAgo(90)),
-      s.from("ai_pricing_recommendations").select("status, impact_score").gte("created_at", daysAgo(90)),
-      s.from("ai_revenue_opportunities").select("status, impact_score").gte("created_at", daysAgo(90)),
-      s.from("ai_marketing_recommendations").select("status, impact_score").gte("created_at", daysAgo(90)),
-      s.from("ai_activity_logs").select("id").gte("created_at", daysAgo(90)),
+      s.from("ai_guest_recommendations").select("status, expected_value, currency").eq("property_id", propertyId).gte("created_at", daysAgo(90)),
+      s.from("ai_pricing_recommendations").select("status, expected_impact, currency").eq("property_id", propertyId).gte("created_at", daysAgo(90)),
+      s.from("ai_revenue_opportunities").select("status, estimated_impact, currency").eq("property_id", propertyId).gte("created_at", daysAgo(90)),
+      s.from("ai_marketing_recommendations").select("status, impact_score, currency").eq("property_id", propertyId).gte("created_at", daysAgo(90)),
+      s.from("ai_activity_logs").select("id").eq("property_id", propertyId).gte("created_at", daysAgo(90)),
     ]);
     const buckets = [
       { key: "guest", rows: guest ?? [] },
@@ -688,20 +720,31 @@ export const getAiValueSummary = createServerFn({ method: "GET" })
       { key: "revenue.opportunity", rows: revOps ?? [] },
       { key: "marketing", rows: marketing ?? [] },
     ];
-    const totals = { generated: 0, accepted: 0, dismissed: 0, converted: 0, valueEstimate: 0 };
-    const perModule: Record<string, { generated: number; accepted: number; dismissed: number; converted: number; value: number }> = {};
+    const totals = { generated: 0, accepted: 0, dismissed: 0, converted: 0 };
+    const perModule: Record<string, { generated: number; accepted: number; dismissed: number; converted: number }> = {};
+    const valueByCurrency = new Map<string, number>();
     for (const b of buckets) {
       const g = b.rows.length;
       const a = b.rows.filter((r: any) => r.status === "accepted").length;
       const dm = b.rows.filter((r: any) => r.status === "dismissed").length;
       const cv = b.rows.filter((r: any) => r.status === "converted").length;
-      const v = b.rows.filter((r: any) => r.status === "accepted" || r.status === "converted").reduce((s: number, r: any) => s + Number(r.impact_score ?? 0), 0);
-      perModule[b.key] = { generated: g, accepted: a, dismissed: dm, converted: cv, value: v };
-      totals.generated += g; totals.accepted += a; totals.dismissed += dm; totals.converted += cv; totals.valueEstimate += v;
+      for (const r of b.rows.filter((item: any) => item.status === "accepted" || item.status === "converted")) {
+        const code = String(r.currency ?? "").trim().toUpperCase();
+        if (/^[A-Z]{3}$/.test(code)) {
+          const amount = Number(r.expected_value ?? r.expected_impact ?? r.estimated_impact ?? r.impact_score ?? 0);
+          valueByCurrency.set(code, (valueByCurrency.get(code) ?? 0) + (Number.isFinite(amount) ? amount : 0));
+        }
+      }
+      perModule[b.key] = { generated: g, accepted: a, dismissed: dm, converted: cv };
+      totals.generated += g; totals.accepted += a; totals.dismissed += dm; totals.converted += cv;
     }
+    const valueEstimateByCurrency = Object.fromEntries([...valueByCurrency.entries()].sort(([a], [b]) => a.localeCompare(b)));
     return {
+      currency,
       totals,
       perModule,
+      valueEstimate: Object.keys(valueEstimateByCurrency).length === 0 ? 0 : Object.keys(valueEstimateByCurrency).length === 1 && Object.hasOwn(valueEstimateByCurrency, currency) ? valueEstimateByCurrency[currency] : null,
+      valueEstimateByCurrency,
       aiRuns: activity?.length ?? 0,
       adoption: totals.generated > 0 ? (totals.accepted + totals.converted) / totals.generated : 0,
     };

@@ -181,6 +181,10 @@ export async function buildInvoiceForBooking(bookingId: string): Promise<{ filen
     .eq("id", bookingId)
     .maybeSingle();
   if (!b) return null;
+  const currency = String(b.currency ?? "").trim().toUpperCase();
+  if (!/^[A-Z]{3}$/.test(currency)) {
+    throw new Error("Invoice generation is blocked because the booking transaction currency is missing or invalid.");
+  }
 
   const { data: room } = await supabaseAdmin.from("rooms").select("name").eq("id", b.room_id).maybeSingle();
   const { data: nightsRows } = await supabaseAdmin
@@ -227,7 +231,7 @@ export async function buildInvoiceForBooking(bookingId: string): Promise<{ filen
     nights: b.nights,
     adults: b.adults,
     children: b.children ?? 0,
-    currency: b.currency,
+    currency,
     lineItems,
     subtotal: Number(b.subtotal) || 0,
     extrasTotal: Number(b.extras_total) || 0,

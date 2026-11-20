@@ -78,7 +78,9 @@ export const listGuests = createServerFn({ method: "POST" })
     return {
       rows: (rows ?? []).map((r: any) => ({
         ...r,
-        lifetime_spend: Number(r.lifetime_spend ?? 0),
+        lifetime_spend: r.lifetime_spend == null ? null : Number(r.lifetime_spend),
+        lifetime_spend_currency: r.lifetime_spend_currency ?? null,
+        lifetime_spend_by_currency: r.lifetime_spend_by_currency ?? {},
       })),
       total: count ?? 0,
       page: data.page,
@@ -93,6 +95,8 @@ export const getGuestSummary = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const [
       { data: guest, error: gErr },
       { data: dir },
@@ -109,6 +113,7 @@ export const getGuestSummary = createServerFn({ method: "POST" })
           "id, reference, check_in, check_out, nights, adults, children, status, payment_status, total, currency, deposit_amount, balance_amount, paid_amount, room_id, created_at",
         )
         .eq("guest_id", data.id)
+        .eq("property_id", propertyId)
         .order("check_in", { ascending: false })
         .limit(100),
       sb.from("guest_tag_assignments").select("tag_id, assigned_at").eq("guest_id", data.id),
@@ -155,7 +160,9 @@ export const getGuestSummary = createServerFn({ method: "POST" })
         ? {
             total_stays: dir.total_stays,
             total_nights: dir.total_nights,
-            lifetime_spend: Number(dir.lifetime_spend ?? 0),
+            lifetime_spend: dir.lifetime_spend == null ? null : Number(dir.lifetime_spend),
+            lifetime_spend_currency: dir.lifetime_spend_currency ?? null,
+            lifetime_spend_by_currency: dir.lifetime_spend_by_currency ?? {},
             first_stay: dir.first_stay,
             last_stay: dir.last_stay,
             cancelled_count: dir.cancelled_count,
@@ -180,33 +187,20 @@ export const getGuestTimeline = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
-    const [{ data: bookings }, { data: pay }, { data: emails }, { data: wa }, { data: comms }, { data: notes }] =
-      await Promise.all([
-        sb
-          .from("bookings")
-          .select("id, reference, status, created_at, confirmed_at, cancelled_at, check_in, check_out")
-          .eq("guest_id", data.id),
-        sb.from("payment_events").select("*").in(
-          "booking_id",
-          (
-            (await sb.from("bookings").select("id").eq("guest_id", data.id)).data ?? []
-          ).map((b: any) => b.id),
-        ),
-        sb.from("email_events").select("*").in(
-          "booking_id",
-          (
-            (await sb.from("bookings").select("id").eq("guest_id", data.id)).data ?? []
-          ).map((b: any) => b.id),
-        ),
-        sb.from("whatsapp_alerts").select("*").in(
-          "booking_id",
-          (
-            (await sb.from("bookings").select("id").eq("guest_id", data.id)).data ?? []
-          ).map((b: any) => b.id),
-        ),
-        sb.from("guest_communications").select("*").eq("guest_id", data.id),
-        sb.from("guest_notes").select("*").eq("guest_id", data.id).eq("is_deleted", false),
-      ]);
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
+    const { data: bookings, error: bookingsError } = await sb.from("bookings")
+      .select("id, reference, status, created_at, confirmed_at, cancelled_at, check_in, check_out")
+      .eq("guest_id", data.id).eq("property_id", propertyId);
+    if (bookingsError) throw new Error(bookingsError.message);
+    const bookingIds = (bookings ?? []).map((booking: any) => booking.id);
+    const [{ data: pay }, { data: emails }, { data: wa }, { data: comms }, { data: notes }] = await Promise.all([
+      bookingIds.length ? sb.from("payment_events").select("*").in("booking_id", bookingIds) : Promise.resolve({ data: [] }),
+      bookingIds.length ? sb.from("email_events").select("*").in("booking_id", bookingIds) : Promise.resolve({ data: [] }),
+      bookingIds.length ? sb.from("whatsapp_alerts").select("*").in("booking_id", bookingIds) : Promise.resolve({ data: [] }),
+      sb.from("guest_communications").select("*").eq("guest_id", data.id),
+      sb.from("guest_notes").select("*").eq("guest_id", data.id).eq("is_deleted", false),
+    ]);
 
     type Entry = { at: string; type: string; title: string; description?: string; meta?: any };
     const entries: Entry[] = [];
@@ -467,29 +461,32 @@ export const getCrmDashboard = createServerFn({ method: "GET" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const today = new Date().toISOString().slice(0, 10);
     const in7 = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
     const [recent, returning, vip, arrivals] = await Promise.all([
       sb
         .from("guest_directory")
-        .select("id, full_name, email, country, status, last_stay, total_stays, lifetime_spend")
+        .select("id, full_name, email, country, status, last_stay, total_stays, lifetime_spend, lifetime_spend_currency, lifetime_spend_by_currency")
         .order("created_at", { ascending: false })
         .limit(5),
       sb
         .from("guest_directory")
-        .select("id, full_name, email, country, status, last_stay, total_stays, lifetime_spend")
+        .select("id, full_name, email, country, status, last_stay, total_stays, lifetime_spend, lifetime_spend_currency, lifetime_spend_by_currency")
         .gte("total_stays", 2)
         .order("last_stay", { ascending: false, nullsFirst: false })
         .limit(5),
       sb
         .from("guest_directory")
-        .select("id, full_name, email, country, status, last_stay, total_stays, lifetime_spend")
+        .select("id, full_name, email, country, status, last_stay, total_stays, lifetime_spend, lifetime_spend_currency, lifetime_spend_by_currency")
         .eq("status", "vip")
         .order("last_stay", { ascending: false, nullsFirst: false })
         .limit(5),
       sb
         .from("bookings")
         .select("id, reference, guest_name, guest_id, check_in, check_out, status")
+        .eq("property_id", propertyId)
         .gte("check_in", today)
         .lte("check_in", in7)
         .in("status", ["confirmed", "pending"])

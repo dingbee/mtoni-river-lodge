@@ -71,16 +71,21 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
     const { data: property, error: propertyError } = await sb.from("staynas_properties")
       .select("currency").eq("id",propertyId).single();
     if (propertyError || !property?.currency) throw new Error("Property operating currency must be configured before managing rate plans.");
-    let ratePlanCurrency = String(data.currency ?? property.currency).toUpperCase();
+    const propertyCurrency = String(property.currency).trim().toUpperCase();
+    let ratePlanCurrency = String(data.currency ?? propertyCurrency).trim().toUpperCase();
     if (data.id) {
       const { data: existing, error: existingError } = await sb.from("staynas_rate_plans")
         .select("publication_status,currency").eq("id",data.id).eq("property_id",propertyId).maybeSingle();
       if (existingError || !existing) throw new Error("Rate plan is not part of the active property.");
-      if (!data.currency) ratePlanCurrency = String(existing.currency ?? property.currency).toUpperCase();
+      if (!data.currency) ratePlanCurrency = String(existing.currency ?? propertyCurrency).toUpperCase();
       if (existing.publication_status === "archived") throw new Error("Archived rate plans are read-only. Duplicate the plan to create a new version.");
       if (existing.publication_status === "published") throw new Error("Suspend the rate plan before editing its commercial terms.");
     }
+    if (!/^[A-Z]{3}$/.test(propertyCurrency)) throw new Error("Property operating currency must be a valid ISO 4217 code.");
     if (!/^[A-Z]{3}$/.test(ratePlanCurrency)) throw new Error("Rate-plan transaction currency must be a valid ISO 4217 code.");
+    if (ratePlanCurrency !== propertyCurrency) {
+      throw new Error(`Rate-plan currency must match this property's operating currency (${propertyCurrency}). Enter new rates in that currency; no FX conversion is performed.`);
+    }
     const baseRates = data.rate_plan_data.base_rates;
     if (baseRates && typeof baseRates === "object" && !Array.isArray(baseRates)) {
       for (const [roomTypeId, rawRate] of Object.entries(baseRates as Record<string, unknown>)) {

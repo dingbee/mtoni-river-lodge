@@ -86,7 +86,16 @@ jobs:
       - name: Start isolated Supabase stack
         run: supabase start --exclude studio,inbucket,storage-api,imgproxy,vector
       - name: Apply complete migration chain to disposable database
-        run: supabase db reset
+        run: |
+          supabase db reset
+          for migration in \
+            supabase/review/20261107100000_staynas_website_demo_requests.sql \
+            supabase/review/20261109130000_cc06_founder_notifications.sql \
+            supabase/review/20261109140000_cc06_commercial_account_contacts.sql \
+            supabase/review/20261109150000_cc06_founder_subscription_creation.sql
+          do
+            psql "postgresql://postgres:postgres@localhost:54322/postgres" -v ON_ERROR_STOP=1 -f "$migration"
+          done
       - name: Run complete database contracts including CPS-06
         run: supabase test db
       - name: Stop isolated Supabase stack

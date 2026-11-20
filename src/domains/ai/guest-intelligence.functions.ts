@@ -23,9 +23,12 @@ export const listUpcomingArrivals = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const from = today();
     const to = daysFromNow(data.days);
+    const { data: propertyId, error: propertyError } = await context.supabase.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const { data: rows, error } = await context.supabase
       .from("bookings")
       .select("id, reference, guest_id, guest_name, guest_email, country, check_in, check_out, nights, adults, children, room_id, status, payment_status, balance_due, total, currency, guest_type, special_requests")
+      .eq("property_id", propertyId)
       .gte("check_in", from)
       .lte("check_in", to)
       .in("status", ["confirmed", "checked_in"])
@@ -34,9 +37,11 @@ export const listUpcomingArrivals = createServerFn({ method: "GET" })
     return rows ?? [];
   });
 
-async function loadBookingContext(supabase: any, bookingId: string) {
+async function loadBookingContext(supabase: any, bookingId: string, userId: string) {
+  const { data: propertyId, error: propertyError } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
+  if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
   const { data: booking, error } = await supabase
-    .from("bookings").select("*").eq("id", bookingId).maybeSingle();
+    .from("bookings").select("*").eq("id", bookingId).eq("property_id", propertyId).maybeSingle();
   if (error) throw error;
   if (!booking) throw new Error("Booking not found.");
   const guestId = booking.guest_id as string | null;
@@ -45,13 +50,14 @@ async function loadBookingContext(supabase: any, bookingId: string) {
     guestId ? supabase.from("guests").select("*").eq("id", guestId).maybeSingle() : Promise.resolve({ data: null }),
     guestId ? supabase.from("guest_preferences").select("category,key,value").eq("guest_id", guestId) : Promise.resolve({ data: [] }),
     guestId ? supabase.from("guest_notes").select("body,created_at").eq("guest_id", guestId).eq("is_deleted", false).order("created_at", { ascending: false }).limit(10) : Promise.resolve({ data: [] }),
-    guestId ? supabase.from("bookings").select("id,reference,check_in,check_out,total,currency,status").eq("guest_id", guestId).neq("id", bookingId).order("check_in", { ascending: false }).limit(20) : Promise.resolve({ data: [] }),
+    guestId ? supabase.from("bookings").select("id,reference,check_in,check_out,total,currency,status").eq("guest_id", guestId).eq("property_id", propertyId).neq("id", bookingId).order("check_in", { ascending: false }).limit(20) : Promise.resolve({ data: [] }),
     booking.room_id ? supabase.from("rooms").select("id,name,slug,short_description").eq("id", booking.room_id).maybeSingle() : Promise.resolve({ data: null }),
     guestId ? supabase.from("guest_tag_assignments").select("guest_tags(name,color)").eq("guest_id", guestId) : Promise.resolve({ data: [] }),
   ]);
 
   return {
     booking,
+    propertyId,
     guest: guestRes.data,
     preferences: prefsRes.data ?? [],
     notes: notesRes.data ?? [],
@@ -65,13 +71,14 @@ async function loadBookingContext(supabase: any, bookingId: string) {
 function computeHealthScore(input: {
   historyCount: number;
   lifetimeSpend: number;
+  currency: string;
   cancellationCount: number;
   vip: boolean;
   hasBalance: boolean;
 }) {
   const dims = [
     { key: "repeat_visits",   weight: 25, value: Math.min(1, input.historyCount / 5),           note: `${input.historyCount} previous stay(s)` },
-    { key: "lifetime_spend",  weight: 25, value: Math.min(1, input.lifetimeSpend / 5000),        note: `Lifetime spend ~${input.lifetimeSpend}` },
+    { key: "lifetime_spend",  weight: 25, value: Math.min(1, input.lifetimeSpend / 5000),        note: `Lifetime spend ${input.currency} ${input.lifetimeSpend}` },
     { key: "vip_status",      weight: 15, value: input.vip ? 1 : 0,                              note: input.vip ? "VIP guest" : "Not VIP" },
     { key: "payment_health",  weight: 20, value: input.hasBalance ? 0.3 : 1,                     note: input.hasBalance ? "Outstanding balance" : "Paid in full" },
     { key: "reliability",     weight: 15, value: Math.max(0, 1 - input.cancellationCount * 0.3), note: `${input.cancellationCount} cancellation(s)` },
@@ -121,12 +128,20 @@ export const generateGuestBriefing = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const start = Date.now();
-    const ctx = await loadBookingContext(context.supabase, data.bookingId);
-    const lifetimeSpend = (ctx.history ?? []).reduce((s: number, r: any) => s + Number(r.total ?? 0), 0);
+    const ctx = await loadBookingContext(context.supabase, data.bookingId, context.userId);
+    const bookingCurrency = String(ctx.booking.currency ?? "").trim().toUpperCase();
+    if (!/^[A-Z]{3}$/.test(bookingCurrency)) throw new Error("Booking transaction currency is missing or invalid; guest intelligence is blocked.");
+    const lifetimeSpendByCurrency = (ctx.history ?? []).reduce((totals: Record<string, number>, row: any) => {
+      const code = String(row.currency ?? "UNKNOWN").trim().toUpperCase() || "UNKNOWN";
+      totals[code] = (totals[code] ?? 0) + Number(row.total ?? 0);
+      return totals;
+    }, {});
+    const lifetimeSpend = lifetimeSpendByCurrency[bookingCurrency] ?? 0;
     const cancellationCount = (ctx.history ?? []).filter((r: any) => r.status === "cancelled").length;
     const health = computeHealthScore({
       historyCount: ctx.history.length,
       lifetimeSpend,
+      currency: bookingCurrency,
       cancellationCount,
       vip: Boolean(ctx.guest?.vip_since),
       hasBalance: Number(ctx.booking.balance_due ?? 0) > 0,
@@ -147,7 +162,10 @@ export const generateGuestBriefing = createServerFn({ method: "POST" })
       preferences: ctx.preferences,
       notes: ctx.notes.map((n: any) => n.body),
       history_count: ctx.history.length,
+      currency: bookingCurrency,
       lifetime_spend: lifetimeSpend,
+      lifetime_spend_currency: bookingCurrency,
+      lifetime_spend_by_currency: lifetimeSpendByCurrency,
       tags: ctx.tags.map((t: any) => t.name),
     };
 
@@ -166,10 +184,13 @@ export const generateGuestBriefing = createServerFn({ method: "POST" })
 
     // Persist recommendations + alerts (best-effort)
     if (data.persist) {
+      const sb: any = context.supabase;
       if (parsed.prep?.length) {
-        await context.supabase.from("ai_guest_recommendations").insert(
+        await sb.from("ai_guest_recommendations").insert(
           parsed.prep.map((p) => ({
             booking_id: ctx.booking.id,
+            property_id: ctx.propertyId,
+            currency: bookingCurrency,
             guest_id: ctx.guest?.id ?? null,
             kind: "prep",
             title: p.title,
@@ -183,9 +204,9 @@ export const generateGuestBriefing = createServerFn({ method: "POST" })
         );
       }
       if (alerts.length) {
-        await context.supabase.from("ai_guest_alerts").upsert(
+        await sb.from("ai_guest_alerts").upsert(
           alerts.map((a) => ({
-            booking_id: ctx.booking.id, guest_id: ctx.guest?.id ?? null,
+            booking_id: ctx.booking.id, property_id: ctx.propertyId, guest_id: ctx.guest?.id ?? null,
             kind: a.kind, severity: a.severity, title: a.title, detail: a.detail,
             evidence: [{ note: "auto-detected" }] as never,
           })),
@@ -194,6 +215,7 @@ export const generateGuestBriefing = createServerFn({ method: "POST" })
       }
       await context.supabase.from("ai_activity_logs").insert({
         user_id: context.userId,
+        property_id: ctx.propertyId,
         question: `Briefing for booking ${ctx.booking.reference}`,
         domains_accessed: ["guests", "reservations"],
         tool_called: "guest.briefing",
@@ -217,7 +239,14 @@ export const generateOpportunities = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const start = Date.now();
-    const ctx = await loadBookingContext(context.supabase, data.bookingId);
+    const ctx = await loadBookingContext(context.supabase, data.bookingId, context.userId);
+    const bookingCurrency = String(ctx.booking.currency ?? "").trim().toUpperCase();
+    if (!/^[A-Z]{3}$/.test(bookingCurrency)) throw new Error("Booking transaction currency is missing or invalid; opportunity generation is blocked.");
+    const lifetimeSpendByCurrency = (ctx.history ?? []).reduce((totals: Record<string, number>, row: any) => {
+      const code = String(row.currency ?? "UNKNOWN").trim().toUpperCase() || "UNKNOWN";
+      totals[code] = (totals[code] ?? 0) + Number(row.total ?? 0);
+      return totals;
+    }, {});
     const facts = {
       stay_length: ctx.booking.nights,
       adults: ctx.booking.adults, children: ctx.booking.children,
@@ -226,29 +255,34 @@ export const generateOpportunities = createServerFn({ method: "POST" })
       guest_type: ctx.booking.guest_type,
       preferences: ctx.preferences,
       history_count: ctx.history.length,
-      lifetime_spend: (ctx.history ?? []).reduce((s: number, r: any) => s + Number(r.total ?? 0), 0),
+      currency: bookingCurrency,
+      lifetime_spend: lifetimeSpendByCurrency[bookingCurrency] ?? 0,
+      lifetime_spend_currency: bookingCurrency,
+      lifetime_spend_by_currency: lifetimeSpendByCurrency,
       special_requests: ctx.booking.special_requests,
     };
     const system = [
       "You are Mtoni AI recommending upsell opportunities for a booking at Mtoni River Lodge (Moshi, Tanzania).",
       "Only recommend from this catalog: airport_transfer, romantic_dinner, picnic, spa_treatment, kilimanjaro_day_hike, maasai_village_tour, coffee_farm_tour, guided_forest_walk.",
       "Return strict JSON:",
-      '{"opportunities": [{"title": string, "category": string, "reasoning": string, "confidence": number, "expected_value_usd": number}]}',
+      `{"opportunities": [{"title": string, "category": string, "reasoning": string, "confidence": number, "expected_value": number}]}`,
+      `Every expected_value amount MUST be denominated in ${bookingCurrency}. Do not convert currencies or default to USD.`,
       "Each opportunity MUST cite facts in reasoning. Confidence 0-1. Do NOT recommend automatic booking.",
     ].join("\n");
     const raw = await chat(system, `Facts: ${JSON.stringify(facts).slice(0, 4000)}`);
-    const parsed = tryJson<{ opportunities: Array<{ title: string; category: string; reasoning: string; confidence: number; expected_value_usd: number }> }>(raw)
+    const parsed = tryJson<{ opportunities: Array<{ title: string; category: string; reasoning: string; confidence: number; expected_value: number }> }>(raw)
       ?? { opportunities: [] };
 
     if (data.persist && parsed.opportunities?.length) {
-      await context.supabase.from("ai_guest_recommendations").insert(
+      const sb: any = context.supabase;
+      await sb.from("ai_guest_recommendations").insert(
         parsed.opportunities.map((o) => ({
-          booking_id: ctx.booking.id, guest_id: ctx.guest?.id ?? null,
+          booking_id: ctx.booking.id, property_id: ctx.propertyId, currency: bookingCurrency, guest_id: ctx.guest?.id ?? null,
           kind: "opportunity",
           title: o.title,
           reasoning: o.reasoning,
           confidence: Math.max(0, Math.min(1, Number(o.confidence ?? 0.5))),
-          expected_value: Number(o.expected_value_usd ?? 0) || null,
+          expected_value: Number(o.expected_value ?? 0) || null,
           category: o.category ?? "experience",
           evidence: [{ domain: "guests", note: "opportunity" }] as never,
           model: MODEL,
@@ -256,6 +290,7 @@ export const generateOpportunities = createServerFn({ method: "POST" })
       );
       await context.supabase.from("ai_activity_logs").insert({
         user_id: context.userId,
+        property_id: ctx.propertyId,
         question: `Opportunities for booking ${ctx.booking.reference}`,
         domains_accessed: ["guests", "marketing"],
         tool_called: "guest.opportunities",
@@ -266,7 +301,7 @@ export const generateOpportunities = createServerFn({ method: "POST" })
       });
     }
 
-    return { opportunities: parsed.opportunities ?? [] };
+    return { currency: bookingCurrency, opportunities: (parsed.opportunities ?? []).map((opportunity) => ({ ...opportunity, currency: bookingCurrency })) };
   });
 
 /** Recommendation actions. */
@@ -274,8 +309,10 @@ export const listRecommendations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { bookingId?: string } | undefined) => ({ bookingId: input?.bookingId ?? null }))
   .handler(async ({ data, context }) => {
-    let q = context.supabase.from("ai_guest_recommendations")
-      .select("*").order("created_at", { ascending: false }).limit(100);
+    const { data: propertyId, error: propertyError } = await context.supabase.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
+    let q = (context.supabase as any).from("ai_guest_recommendations")
+      .select("*").eq("property_id", propertyId).order("created_at", { ascending: false }).limit(100);
     if (data.bookingId) q = q.eq("booking_id", data.bookingId);
     const { data: rows, error } = await q;
     if (error) throw error;
@@ -290,25 +327,29 @@ export const actionRecommendation = createServerFn({ method: "POST" })
     return { id: input.id, action: input.action };
   })
   .handler(async ({ data, context }) => {
+    const { data: propertyId, error: propertyError } = await context.supabase.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
+    const sb: any = context.supabase;
     const status = data.action === "accept" ? "accepted" : data.action === "dismiss" ? "dismissed" : "converted";
     let taskId: string | null = null;
     if (data.action === "convert") {
-      const { data: rec } = await context.supabase.from("ai_guest_recommendations").select("*").eq("id", data.id).maybeSingle();
+      const { data: rec } = await sb.from("ai_guest_recommendations").select("*").eq("id", data.id).eq("property_id", propertyId).maybeSingle();
       if (rec) {
-        const { data: task } = await context.supabase.from("ops_tasks").insert({
-          booking_id: rec.booking_id, task_type: "ai_recommendation",
+        const { data: task } = await sb.from("ops_tasks").insert({
+          property_id: propertyId, booking_id: rec.booking_id, task_type: "ai_recommendation",
           title: rec.title, description: rec.reasoning,
           priority: 2,
         }).select("id").maybeSingle();
         taskId = task?.id ?? null;
       }
     }
-    const { error } = await context.supabase.from("ai_guest_recommendations")
+    const { error } = await sb.from("ai_guest_recommendations")
       .update({ status, actioned_by: context.userId, actioned_at: new Date().toISOString(), action_task_id: taskId ?? undefined })
-      .eq("id", data.id);
+      .eq("id", data.id).eq("property_id", propertyId);
     if (error) throw error;
     await context.supabase.from("ai_activity_logs").insert({
       user_id: context.userId,
+      property_id: propertyId,
       question: `Recommendation ${data.id} ${data.action}`,
       domains_accessed: ["guests"],
       tool_called: "guest.recommendation.action",
@@ -324,8 +365,10 @@ export const actionRecommendation = createServerFn({ method: "POST" })
 export const listGuestAlerts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase.from("ai_guest_alerts")
-      .select("*").eq("status", "open").order("created_at", { ascending: false }).limit(200);
+    const { data: propertyId, error: propertyError } = await context.supabase.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
+    const { data, error } = await (context.supabase as any).from("ai_guest_alerts")
+      .select("*").eq("property_id", propertyId).eq("status", "open").order("created_at", { ascending: false }).limit(200);
     if (error) throw error;
     return data ?? [];
   });
@@ -337,22 +380,25 @@ export const actionGuestAlert = createServerFn({ method: "POST" })
     return { id: input.id, action: input.action };
   })
   .handler(async ({ data, context }) => {
+    const { data: propertyId, error: propertyError } = await context.supabase.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
+    const sb: any = context.supabase;
     if (data.action === "dismiss") {
-      const { error } = await context.supabase.from("ai_guest_alerts")
+      const { error } = await sb.from("ai_guest_alerts")
         .update({ status: "dismissed", dismissed_at: new Date().toISOString(), dismissed_by: context.userId })
-        .eq("id", data.id);
+        .eq("id", data.id).eq("property_id", propertyId);
       if (error) throw error;
       return { ok: true };
     }
-    const { data: alert } = await context.supabase.from("ai_guest_alerts").select("*").eq("id", data.id).maybeSingle();
+    const { data: alert } = await sb.from("ai_guest_alerts").select("*").eq("id", data.id).eq("property_id", propertyId).maybeSingle();
     if (!alert) throw new Error("Alert not found");
-    const { data: task } = await context.supabase.from("ops_tasks").insert({
-      booking_id: alert.booking_id, task_type: "ai_alert",
+    const { data: task } = await sb.from("ops_tasks").insert({
+      property_id: propertyId, booking_id: alert.booking_id, task_type: "ai_alert",
       title: alert.title, description: alert.detail,
       priority: alert.severity === "critical" ? 1 : 2,
     }).select("id").maybeSingle();
-    await context.supabase.from("ai_guest_alerts")
-      .update({ status: "converted", task_id: task?.id ?? null }).eq("id", data.id);
+    await sb.from("ai_guest_alerts")
+      .update({ status: "converted", task_id: task?.id ?? null }).eq("id", data.id).eq("property_id", propertyId);
     return { ok: true, taskId: task?.id };
   });
 
@@ -362,28 +408,31 @@ export const getGuestDashboard = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const t = today();
     const soon = daysFromNow(14);
+    const { data: propertyId, error: propertyError } = await context.supabase.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
+    const sb: any = context.supabase;
     const [arrivalsRes, alertsRes, recsRes] = await Promise.all([
-      context.supabase.from("bookings")
+      sb.from("bookings")
         .select("id, reference, guest_id, guest_name, check_in, check_out, room_id, balance_due, guest_type, special_requests, currency")
-        .gte("check_in", t).lte("check_in", soon)
+        .eq("property_id", propertyId).gte("check_in", t).lte("check_in", soon)
         .in("status", ["confirmed", "checked_in"])
         .order("check_in"),
-      context.supabase.from("ai_guest_alerts").select("*").eq("status", "open").order("created_at", { ascending: false }),
-      context.supabase.from("ai_guest_recommendations").select("*").eq("status", "pending").eq("kind", "opportunity").order("created_at", { ascending: false }).limit(20),
+      sb.from("ai_guest_alerts").select("*").eq("property_id", propertyId).eq("status", "open").order("created_at", { ascending: false }),
+      sb.from("ai_guest_recommendations").select("*").eq("property_id", propertyId).eq("status", "pending").eq("kind", "opportunity").order("created_at", { ascending: false }).limit(20),
     ]);
     const arrivals = arrivalsRes.data ?? [];
     const alerts = alertsRes.data ?? [];
-    const todayArrivals = arrivals.filter((a) => a.check_in === t);
+    const todayArrivals = arrivals.filter((a: any) => a.check_in === t);
     return {
       today: t,
       todayArrivals,
       upcomingArrivals: arrivals,
-      vipArrivals: arrivals.filter((a) => a.guest_type === "vip"),
-      outstandingBalances: arrivals.filter((a) => Number(a.balance_due ?? 0) > 0),
-      specialRequests: arrivals.filter((a) => (a.special_requests ?? "").length > 0),
-      birthdays: alerts.filter((a) => a.kind === "birthday"),
-      anniversaries: alerts.filter((a) => a.kind === "anniversary"),
-      repeatGuests: alerts.filter((a) => a.kind === "repeat_guest"),
+      vipArrivals: arrivals.filter((a: any) => a.guest_type === "vip"),
+      outstandingBalances: arrivals.filter((a: any) => Number(a.balance_due ?? 0) > 0),
+      specialRequests: arrivals.filter((a: any) => (a.special_requests ?? "").length > 0),
+      birthdays: alerts.filter((a: any) => a.kind === "birthday"),
+      anniversaries: alerts.filter((a: any) => a.kind === "anniversary"),
+      repeatGuests: alerts.filter((a: any) => a.kind === "repeat_guest"),
       opportunities: recsRes.data ?? [],
       openAlerts: alerts,
     };

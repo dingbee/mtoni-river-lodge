@@ -36,12 +36,10 @@ export const Route = createFileRoute("/_authenticated/admin/")({
   component: CommandCentrePage,
 });
 
-function money(n: number, currency = "USD") {
-  try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(n || 0);
-  } catch {
-    return `$${Math.round(n || 0).toLocaleString()}`;
-  }
+function money(n: number, currency?: string) {
+  const code = String(currency ?? "").trim().toUpperCase();
+  if (!/^[A-Z]{3}$/.test(code)) return "Currency unavailable";
+  return `${code} ${Number(n ?? 0).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 }
 
 function CommandCentrePage() {
@@ -124,10 +122,10 @@ function CommandCentrePage() {
 
       {/* Revenue + performance row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard tone="green" label="Revenue MTD" value={revQ.isLoading ? "—" : money(revenueMtd)} hint={kpiHint(`Today ${money(revenueToday)}`)} icon={DollarSign} />
-        <StatCard tone="gold"  label="ADR" value={revQ.isLoading ? "—" : money(adr)} hint={kpiHint("Average daily rate")} icon={TrendingUp} />
-        <StatCard tone="green" label="RevPAR" value={revQ.isLoading ? "—" : money(revpar)} hint={kpiHint("Rev per available room")} icon={LineChart} />
-        <StatCard tone="gold"  label="Outstanding" value={revQ.isLoading ? "—" : money(outstanding)} hint={kpiHint("Pending balances")} icon={Wallet} />
+        <StatCard tone="green" label="Revenue MTD" value={revQ.isLoading ? "—" : money(revenueMtd, rev.currency)} hint={kpiHint(`Today ${money(revenueToday, rev.currency)}`)} icon={DollarSign} />
+        <StatCard tone="gold"  label="ADR" value={revQ.isLoading ? "—" : money(adr, rev.currency)} hint={kpiHint("Average daily rate")} icon={TrendingUp} />
+        <StatCard tone="green" label="RevPAR" value={revQ.isLoading ? "—" : money(revpar, rev.currency)} hint={kpiHint("Rev per available room")} icon={LineChart} />
+        <StatCard tone="gold"  label="Outstanding" value={revQ.isLoading ? "—" : money(outstanding, rev.currency)} hint={kpiHint("Pending balances")} icon={Wallet} />
       </div>
 
       {/* Operational widgets row */}
@@ -247,7 +245,7 @@ function CommandCentrePage() {
                     <span className="w-6 text-xs text-muted-foreground">{i + 1}.</span>
                     <Link to="/admin/guests/crm/$id" params={{ id: g.id }} className="truncate hover:underline">{g.full_name}</Link>
                   </span>
-                  <span className="tabular-nums text-muted-foreground">${g.lifetime_spend.toLocaleString()}</span>
+                  <span className="tabular-nums text-muted-foreground">{g.lifetime_spend == null ? (Object.keys(g.lifetime_spend_by_currency ?? {}).length > 1 ? "Multiple currencies" : "—") : g.lifetime_spend_currency ? `${g.lifetime_spend_currency} ${Number(g.lifetime_spend).toLocaleString()}` : "Currency unavailable"}</span>
                 </li>
               ))}
             </ol>

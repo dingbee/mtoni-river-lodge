@@ -619,7 +619,7 @@ begin
       count(*) filter(where event_type in ('booking_page_viewed','campaign_page_viewed')) as views,
       count(distinct session_key) filter(where event_type in ('booking_page_viewed','campaign_page_viewed')) as visitors,
       count(*) filter(where event_type='booking_started') as booking_starts,
-      count(distinct booking_id) filter(where event_type='reservation_created') as reservations,
+      count(distinct e.booking_id) filter(where event_type='reservation_created') as reservations,
       count(distinct e.booking_id) filter(where event_type='payment_completed' and coalesce(pb.net_collected,0)>0) as paid_bookings
     from e
     left join paid_booking_rollup pb on pb.booking_id=e.booking_id and pb.currency=e.currency

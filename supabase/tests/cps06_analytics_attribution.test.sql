@@ -126,9 +126,12 @@ INSERT INTO public.rooms(id,property_id,catalogue_type_id,slug,name,status,base_
    '94000000-0000-4000-8000-000000000001','cps06-e2e-room','CPS-06 E2E Room','active',100,'TZS'),
   ('95000000-0000-4000-8000-000000000002','93000000-0000-4000-8000-000000000002',
    '94000000-0000-4000-8000-000000000002','cps06-e2e-room-two','CPS-06 E2E Room Two','active',100,'TZS');
+-- Published resources must be created under the trusted database principal.
+SET LOCAL ROLE service_role;
 INSERT INTO public.booking_campaigns(id,organisation_id,property_id,slug,name,status) VALUES
   ('96000000-0000-4000-8000-000000000001','92000000-0000-4000-8000-000000000001',
    '93000000-0000-4000-8000-000000000001','cps06-e2e-campaign','CPS-06 E2E Campaign','published');
+RESET ROLE;
 
 SELECT set_config('request.jwt.claims','{"role":"service_role","sub":"91000000-0000-4000-8000-000000000001"}',true);
 SELECT set_config('request.jwt.claim.role','service_role',true);
@@ -234,9 +237,9 @@ BEGIN
   INSERT INTO public.staynas_reservation_quotes(id,property_id,room_id,request,quote_snapshot,quote_hash,expires_at)
   VALUES
     (v_quote_a,'93000000-0000-4000-8000-000000000001','95000000-0000-4000-8000-000000000001',
-     '{"source":"cps06-e2e"}','{"total":100,"currency":"TZS"}','cps06-e2e-quote-alpha',now()+interval '1 day'),
+     '{"source":"cps06-e2e"}','{"total":100,"currency":"TZS"}',md5('{"total":100,"currency":"TZS"}'::jsonb::text),now()+interval '1 day'),
     (v_quote_b,'93000000-0000-4000-8000-000000000001','95000000-0000-4000-8000-000000000001',
-     '{"source":"cps06-e2e"}','{"total":200,"currency":"TZS"}','cps06-e2e-quote-beta',now()+interval '1 day');
+     '{"source":"cps06-e2e"}','{"total":200,"currency":"TZS"}',md5('{"total":200,"currency":"TZS"}'::jsonb::text),now()+interval '1 day');
 
   IF NOT public.staynas_attach_quote_attribution(v_quote_a,'93000000-0000-4000-8000-000000000001',v_attribution_a)
      OR NOT public.staynas_attach_quote_attribution(v_quote_b,'93000000-0000-4000-8000-000000000001',v_attribution_b) THEN

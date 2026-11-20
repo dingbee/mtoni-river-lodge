@@ -67,7 +67,7 @@ function Alerts() {
             {(data ?? []).length === 0 && (
               <p className="text-sm text-muted-foreground">No alerts. Run a scan to detect issues.</p>
             )}
-            {(data ?? []).map((a) => (
+            {(data ?? []).map((a: any) => (
               <div key={a.id} className="flex items-start justify-between gap-4 rounded border border-border p-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">

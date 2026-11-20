@@ -85,8 +85,8 @@ function RatePlans() {
     if (!currency && data?.property?.currency) setCurrency(String(data.property.currency).toUpperCase());
   }, [data?.property?.currency, currency]);
 
-  const reset=()=>{setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(null);setCode("");setName("");setDescription("");setCategory("standard_flexible");setBasis("per_room");setMealPlan("room_only");setRefundable(true);setCurrency(String(data?.property?.currency??"USD").toUpperCase());setFrom("");setTo("");setParent("");setRatePlanDataText("{}");setInheritancePreview(null);};
-  const startEdit=(p:Plan)=>{setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(p);setCode(p.code);setName(p.name);setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setCurrency(p.currency);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));setInheritancePreview(null);};
+  const reset=()=>{setDailyDate("");setDailyRoomType("");setDailyRate("");setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(null);setCode("");setName("");setDescription("");setCategory("standard_flexible");setBasis("per_room");setMealPlan("room_only");setRefundable(true);setCurrency(String(data?.property?.currency??"USD").toUpperCase());setFrom("");setTo("");setParent("");setRatePlanDataText("{}");setInheritancePreview(null);};
+  const startEdit=(p:Plan)=>{setDailyDate("");setDailyRoomType("");setDailyRate("");setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(p);setCode(p.code);setName(p.name);setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setCurrency(p.currency);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));setInheritancePreview(null);};
   const save=useMutation({
     mutationFn:()=>saveFn({data:{...(editing?{id:editing.id}:{}),code,name,description:description||null,category,pricing_basis:basis as "per_room"|"per_person"|"occupancy_based",meal_plan:mealPlan as "room_only"|"bed_breakfast"|"half_board"|"full_board"|"all_inclusive"|"custom",currency,refundable,effective_from:from||null,effective_to:to||null,parent_rate_plan_id:parent||null,active:editing?.active??true,cancellation_policy:editing?.cancellation_policy??{},booking_conditions:editing?.booking_conditions??{},rate_plan_data:JSON.parse(ratePlanDataText||"{}")}}),
     onSuccess:()=>{toast.success("Rate plan saved");reset();qc.invalidateQueries({queryKey:["staynas.rate-plans"]});},
@@ -112,7 +112,7 @@ function RatePlans() {
   };
   const inheritanceMutation=useMutation({mutationFn:(id:string)=>resolveInheritanceFn({data:{id}}),onSuccess:(value)=>setInheritancePreview(value && typeof value === "object" ? value as Record<string,unknown> : {result:value}),onError:(e:unknown)=>toast.error((e as Error).message)});
   const roomTypeMutation=useMutation({mutationFn:(v:{rate_plan_id:string;room_type_id:string;active:boolean})=>setRoomTypeFn({data:v}),onSuccess:()=>{qc.invalidateQueries({queryKey:["staynas.rate-plan-room-types"]});toast.success("Room-type assignment updated");},onError:(e:unknown)=>toast.error((e as Error).message)});
-  const duplicate=(p:Plan)=>{setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(null);setCode(p.code+"-COPY");setName(p.name+" copy");setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setCurrency(p.currency);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));window.scrollTo({top:0,behavior:"smooth"});};
+  const duplicate=(p:Plan)=>{setDailyDate("");setDailyRoomType("");setDailyRate("");setSelectedDailyRateKeys([]);setDetailsPlan(null);setEditing(null);setCode(p.code+"-COPY");setName(p.name+" copy");setDescription(p.description??"");setCategory(p.category);setBasis(p.pricing_basis);setMealPlan(p.meal_plan);setRefundable(p.refundable);setCurrency(p.currency);setFrom(p.effective_from??"");setTo(p.effective_to??"");setParent(p.parent_rate_plan_id??"");setRatePlanDataText(JSON.stringify(p.rate_plan_data??{},null,2));window.scrollTo({top:0,behavior:"smooth"});};
   const readSeasonalRates=():Record<string,Record<string,unknown>>=>{
     try {
       const parsed=JSON.parse(ratePlanDataText||"{}") as {seasonal_rates?:Record<string,Record<string,unknown>>};
@@ -124,6 +124,21 @@ function RatePlans() {
       a.rate_plan_id===editing.id&&a.room_type_id===rt.id&&a.active,
     ),
   );
+  const assignedRoomTypeKey=assignedPlanRoomTypes.map((rt:{id:string})=>rt.id).sort().join("|");
+  useEffect(() => {
+    if (!editing || !assignedRoomTypeKey) {
+      if (dailyDate || dailyRoomType || dailyRate) {
+        setDailyDate("");
+        setDailyRoomType("");
+        setDailyRate("");
+      }
+      return;
+    }
+    if (dailyRoomType && !assignedPlanRoomTypes.some((rt:{id:string})=>rt.id===dailyRoomType)) {
+      setDailyRoomType("");
+      setDailyRate("");
+    }
+  }, [editing?.id, assignedRoomTypeKey, dailyDate, dailyRoomType, dailyRate]);
   const readBaseRates=():Record<string,{nightly_rate:number;currency:string}>=>{
     try {
       const parsed=JSON.parse(ratePlanDataText||"{}") as {base_rates?:Record<string,{nightly_rate?:number;currency?:string}|null>};
@@ -332,7 +347,7 @@ function RatePlans() {
   const restrictionEntries=Object.entries(readRestrictions());
   return <div className="w-full min-w-0 max-w-full space-y-6 overflow-x-clip">
     <div className="flex justify-end"><Link to="/admin/finance/pricing-adjustments" className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted">Taxes, fees & promotions →</Link></div>
-    <PageHeader title="Rate Plans" description="Manage property-scoped commercial accommodation products. Property operating currency and guest transaction currency are configured separately." />
+    <PageHeader title="Rate Plans" description="Manage property-scoped accommodation products. Rate-plan and guest booking currency must match the property operating currency." />
     {data?.property&&<div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><span className="font-medium text-foreground">{data.property.name}</span><Badge variant="outline">{String(data.property.currency).toUpperCase()}</Badge><span>{data.property.timezone}</span></div>}
     <SectionCard className="min-w-0" title={editing?"Edit rate plan":"Create rate plan"} description="A rate plan defines the commercial terms applied to one or more room types. Room assignments are managed separately.">
       <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -341,7 +356,7 @@ function RatePlans() {
         <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={category} onChange={e=>setCategory(e.target.value)}>{CATEGORIES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select>
         <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={basis} onChange={e=>setBasis(e.target.value)}><option value="per_room">Per room</option><option value="per_person">Per person</option><option value="occupancy_based">Occupancy-based</option></select>
         <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={mealPlan} onChange={e=>setMealPlan(e.target.value)}><option value="room_only">Room only</option><option value="bed_breakfast">Bed & Breakfast</option><option value="half_board">Half Board</option><option value="full_board">Full Board</option><option value="all_inclusive">All inclusive</option><option value="custom">Custom</option></select>
-        <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Guest transaction currency</span><Input value={currency} maxLength={3} onChange={e=>setCurrency(e.target.value.toUpperCase())} placeholder="USD" aria-label="Guest transaction currency"/><span className="block text-[11px]">Property operating currency: {String(data?.property?.currency??"—").toUpperCase()}</span></label>
+        <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Guest booking currency</span><Input value={currency} maxLength={3} onChange={e=>setCurrency(e.target.value.toUpperCase())} placeholder="TZS" aria-label="Guest booking currency"/><span className="block text-[11px]">Must match property operating currency: {String(data?.property?.currency??"—").toUpperCase()}. Existing published plans must be suspended before their currency can be corrected.</span></label>
         <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={parent} onChange={e=>setParent(e.target.value)}><option value="">No parent — standalone</option>{(data?.plans??[]).filter((p:Plan)=>p.id!==editing?.id).map((p:Plan)=><option key={p.id} value={p.id}>{p.name} ({p.code})</option>)}</select>
         <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Effective from</span><Input type="date" value={from} onChange={e=>setFrom(e.target.value)} aria-label="Effective from"/></label>
         <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Effective to</span><Input type="date" value={to} onChange={e=>setTo(e.target.value)} aria-label="Effective to"/></label>
@@ -391,13 +406,20 @@ function RatePlans() {
       <div className="mt-5 min-w-0 rounded-lg border border-border p-3 sm:p-4 space-y-3">
         <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4"/><h3 className="text-sm font-semibold">Daily rate calendar</h3></div>
         <p className="text-xs text-muted-foreground">Set an exact-date nightly override for an individual room type. Dates use the property-local calendar. Active daily overrides take precedence over seasonal and base rates for that night. Clearing a child entry reveals the inherited parent rate again.</p>
+        {!editing ? (
+          <p className="text-sm text-muted-foreground">Save a rate plan first, assign its room types in the plan list, then edit that plan to add daily overrides.</p>
+        ) : !roomTypeData?.roomTypes?.length ? (
+          <p className="text-sm text-destructive">No room types are available in this property's rate-plan catalogue. Daily rates cannot be created until the room catalogue is correctly configured.</p>
+        ) : !assignedPlanRoomTypes.length ? (
+          <p className="text-sm text-muted-foreground">This plan has no active room-type assignments. Assign at least one room type in the plan list before adding a daily override.</p>
+        ) : null}
         <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Rate date</span><Input type="date" aria-label="Daily rate date" value={dailyDate} onChange={e=>setDailyDate(e.target.value)}/></label>
-          <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={dailyRoomType} onChange={e=>setDailyRoomType(e.target.value)}><option value="">Choose room type</option>{assignedPlanRoomTypes.map((rt:{id:string;name:string})=><option key={rt.id} value={rt.id}>{rt.name}</option>)}</select>
-          <Input type="number" min="0.01" step="0.01" placeholder="Nightly rate" value={dailyRate} onChange={e=>setDailyRate(e.target.value)}/>
-          <div className="flex items-center gap-2 text-sm"><input type="checkbox" checked={dailyActive} onChange={e=>setDailyActive(e.target.checked)}/>Active override <Badge variant="outline">{String(data?.property?.currency??"").toUpperCase()}</Badge></div>
+          <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Rate date</span><Input disabled={!editing||!assignedPlanRoomTypes.length} type="date" aria-label="Daily rate date" value={dailyDate} onChange={e=>setDailyDate(e.target.value)}/></label>
+          <select disabled={!editing||!assignedPlanRoomTypes.length} className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50" value={dailyRoomType} onChange={e=>setDailyRoomType(e.target.value)}><option value="">Choose room type</option>{assignedPlanRoomTypes.map((rt:{id:string;name:string})=><option key={rt.id} value={rt.id}>{rt.name}</option>)}</select>
+          <Input disabled={!editing||!assignedPlanRoomTypes.length} type="number" min="0.01" step="0.01" placeholder="Nightly rate" value={dailyRate} onChange={e=>setDailyRate(e.target.value)}/>
+          <div className="flex items-center gap-2 text-sm"><input disabled={!editing||!assignedPlanRoomTypes.length} type="checkbox" checked={dailyActive} onChange={e=>setDailyActive(e.target.checked)}/>Active override <Badge variant="outline">{String(data?.property?.currency??"").toUpperCase()}</Badge></div>
         </div>
-        <Button type="button" variant="outline" disabled={!editing||!assignedPlanRoomTypes.length} onClick={addDailyRate}><Plus className="mr-2 h-4 w-4"/>Add daily override</Button>
+        <Button type="button" variant="outline" disabled={!editing||!assignedPlanRoomTypes.length||!dailyDate||!dailyRoomType||!dailyRate} onClick={addDailyRate}><Plus className="mr-2 h-4 w-4"/>Add daily override</Button>
         {dailyRateEntries.length>0&&<>
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
             <label className="flex items-center gap-2"><input type="checkbox" checked={selectedDailyRateKeys.length===dailyRateEntries.length&&dailyRateEntries.length>0} onChange={e=>setSelectedDailyRateKeys(e.target.checked?dailyRateEntries.map(entry=>entry.date+"::"+entry.roomTypeId):[])}/>Select all existing overrides</label>

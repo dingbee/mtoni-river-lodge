@@ -26,8 +26,8 @@ EXECUTE FUNCTION public.audit_staynas_property_currency_change();
 CREATE OR REPLACE FUNCTION public.staynas_update_property_currency(_currency text)
 RETURNS TABLE(property_id uuid, currency text, updated_at timestamptz)
 LANGUAGE plpgsql
-SECURITY INVOKER
-SET search_path = public
+SECURITY DEFINER
+SET search_path = public, pg_temp
 AS $function$
 DECLARE
   v_uid uuid := auth.uid();

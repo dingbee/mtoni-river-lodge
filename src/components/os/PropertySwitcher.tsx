@@ -11,19 +11,21 @@ import { Button } from "@/components/ui/button";
 import { usePropertyContext } from "@/modules/property/PropertyContext";
 
 export function PropertySwitcher() {
-  const { organisation, properties, property, setProperty } = usePropertyContext();
+  const { organisation, properties, property, status, setProperty } = usePropertyContext();
+  const propertyLabel = property.id ? property.name : status === "loading" ? "Loading property…" : properties.length ? "Select property" : "No property available";
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
+          disabled={!properties.length}
           variant="ghost"
           className="h-9 max-w-[260px] justify-start gap-2 px-2.5 text-left"
-          aria-label={`Current property: ${property.name}`}
+          aria-label={`Current property: ${propertyLabel}`}
         >
           <Building2 className="h-4 w-4 shrink-0 text-[color:var(--os-green)]" aria-hidden />
           <span className="min-w-0 flex-1 truncate">
-            <span className="block truncate text-xs font-medium">{property.name}</span>
+            <span className="block truncate text-xs font-medium">{propertyLabel}</span>
             <span className="block truncate text-[0.58rem] uppercase tracking-[0.16em] text-muted-foreground">
               {organisation.name}
             </span>

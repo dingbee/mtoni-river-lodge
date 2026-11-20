@@ -103,10 +103,12 @@ export const getGuestExperiences = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const { data: bookings } = await sb
       .from("bookings")
-      .select("id, reference, check_in, check_out")
-      .eq("guest_id", data.id);
+      .select("id, reference, check_in, check_out, currency")
+      .eq("guest_id", data.id).eq("property_id", propertyId);
     const ids = (bookings ?? []).map((b: any) => b.id);
     if (ids.length === 0) return [];
     const { data: rows, error } = await sb
@@ -115,13 +117,14 @@ export const getGuestExperiences = createServerFn({ method: "POST" })
       .in("booking_id", ids)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    const bMap = new Map((bookings ?? []).map((b: any) => [b.id, b]));
+    const bMap = new Map<string, any>((bookings ?? []).map((b: any) => [b.id, b] as [string, any]));
     return (rows ?? []).map((r: any) => ({
       id: r.id,
       name: r.extra?.name ?? "Experience",
       slug: r.extra?.slug,
       quantity: r.quantity,
       line_total: Number(r.line_total ?? 0),
+      currency: bMap.get(r.booking_id)?.currency ?? null,
       booking: bMap.get(r.booking_id) ?? null,
       created_at: r.created_at,
     }));
@@ -136,10 +139,12 @@ export const getGuestPayments = createServerFn({ method: "POST" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const { data: bookings } = await sb
       .from("bookings")
       .select("id, reference, total, deposit_amount, paid_amount, balance_amount, currency, payment_status, invoice_number")
-      .eq("guest_id", data.id);
+      .eq("guest_id", data.id).eq("property_id", propertyId);
     const ids = (bookings ?? []).map((b: any) => b.id);
     const { data: events } = ids.length
       ? await sb
@@ -177,6 +182,8 @@ export const getDashboardIntelligence = createServerFn({ method: "GET" })
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.guests");
     await assertStaff(context.supabase, context.userId);
     const sb: any = context.supabase;
+    const { data: propertyId, error: propertyError } = await sb.rpc("staynas_active_property_id", { _uid: context.userId });
+    if (propertyError || !propertyId) throw new Error(propertyError?.message ?? "No active property selected");
     const today = new Date();
     const in7 = new Date(today);
     in7.setDate(in7.getDate() + 7);
@@ -193,6 +200,7 @@ export const getDashboardIntelligence = createServerFn({ method: "GET" })
       sb
         .from("bookings")
         .select("id, reference, guest_name, guest_id, check_in, guest:guests(status, full_name)")
+        .eq("property_id", propertyId)
         .eq("check_in", iso(today))
         .neq("status", "cancelled"),
       sb.from("guests").select("id, full_name, birthday").not("birthday", "is", null).eq("is_deleted", false),
@@ -200,7 +208,7 @@ export const getDashboardIntelligence = createServerFn({ method: "GET" })
       sb.from("guest_country_stats").select("*").order("guest_count", { ascending: false }).limit(10),
       sb
         .from("guest_directory")
-        .select("id, full_name, country, total_stays, lifetime_spend, status")
+        .select("id, full_name, country, total_stays, lifetime_spend, lifetime_spend_currency, lifetime_spend_by_currency, status")
         .order("lifetime_spend", { ascending: false, nullsFirst: false })
         .limit(20),
       sb
@@ -233,7 +241,12 @@ export const getDashboardIntelligence = createServerFn({ method: "GET" })
       birthdays: (birthdays ?? []).filter((g: any) => inNextWeek(g.birthday)),
       anniversaries: (anniversaries ?? []).filter((g: any) => inNextWeek(g.anniversary)),
       topCountries: countries ?? [],
-      topLifetime: (topLifetime ?? []).map((r: any) => ({ ...r, lifetime_spend: Number(r.lifetime_spend ?? 0) })),
+      topLifetime: (topLifetime ?? []).map((r: any) => ({
+        ...r,
+        lifetime_spend: r.lifetime_spend == null ? null : Number(r.lifetime_spend),
+        lifetime_spend_currency: r.lifetime_spend_currency ?? null,
+        lifetime_spend_by_currency: r.lifetime_spend_by_currency ?? {},
+      })),
       acquisitionTrend,
     };
   });
@@ -258,7 +271,9 @@ export const generateGuestSummary = createServerFn({ method: "POST" })
       parts.push(
         `${metrics.stays} stay${metrics.stays > 1 ? "s" : ""}, averaging ${metrics.avg_nights ?? 0} night${
           Number(metrics.avg_nights) === 1 ? "" : "s"
-        } and $${Number(metrics.avg_spend ?? 0).toLocaleString()} per booking.`,
+        } and ${metrics.avg_spend == null
+          ? Object.keys(metrics.avg_spend_by_currency ?? {}).length > 1 ? "multiple currencies" : "currency unavailable"
+          : metrics.avg_spend_currency ? `${metrics.avg_spend_currency} ${Number(metrics.avg_spend).toLocaleString()}` : "currency unavailable"} per booking.`,
       );
     } else {
       parts.push("No completed stays yet.");
