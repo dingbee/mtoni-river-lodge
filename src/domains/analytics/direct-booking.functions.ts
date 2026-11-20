@@ -90,6 +90,6 @@ export const getDirectBookingAnalytics = createServerFn({ method: "POST" })
     return {
       property: { id: property.id, name: property.name, currency: property.currency, timezone: property.timezone },
       period: { from, to, range: data.range },
-      report: report as Record<string, unknown>,
+      report,
     };
   });
