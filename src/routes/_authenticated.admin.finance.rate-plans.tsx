@@ -391,13 +391,20 @@ function RatePlans() {
       <div className="mt-5 min-w-0 rounded-lg border border-border p-3 sm:p-4 space-y-3">
         <div className="flex items-center gap-2"><CalendarDays className="h-4 w-4"/><h3 className="text-sm font-semibold">Daily rate calendar</h3></div>
         <p className="text-xs text-muted-foreground">Set an exact-date nightly override for an individual room type. Dates use the property-local calendar. Active daily overrides take precedence over seasonal and base rates for that night. Clearing a child entry reveals the inherited parent rate again.</p>
+        {!editing ? (
+          <p className="text-sm text-muted-foreground">Save a rate plan first, assign its room types in the plan list, then edit that plan to add daily overrides.</p>
+        ) : !roomTypeData?.roomTypes?.length ? (
+          <p className="text-sm text-destructive">No room types are available in this property's rate-plan catalogue. Daily rates cannot be created until the room catalogue is correctly configured.</p>
+        ) : !assignedPlanRoomTypes.length ? (
+          <p className="text-sm text-muted-foreground">This plan has no active room-type assignments. Assign at least one room type in the plan list before adding a daily override.</p>
+        ) : null}
         <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Rate date</span><Input type="date" aria-label="Daily rate date" value={dailyDate} onChange={e=>setDailyDate(e.target.value)}/></label>
-          <select className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm" value={dailyRoomType} onChange={e=>setDailyRoomType(e.target.value)}><option value="">Choose room type</option>{assignedPlanRoomTypes.map((rt:{id:string;name:string})=><option key={rt.id} value={rt.id}>{rt.name}</option>)}</select>
-          <Input type="number" min="0.01" step="0.01" placeholder="Nightly rate" value={dailyRate} onChange={e=>setDailyRate(e.target.value)}/>
-          <div className="flex items-center gap-2 text-sm"><input type="checkbox" checked={dailyActive} onChange={e=>setDailyActive(e.target.checked)}/>Active override <Badge variant="outline">{String(data?.property?.currency??"").toUpperCase()}</Badge></div>
+          <label className="block w-full min-w-0 space-y-1 text-xs text-muted-foreground"><span>Rate date</span><Input disabled={!editing||!assignedPlanRoomTypes.length} type="date" aria-label="Daily rate date" value={dailyDate} onChange={e=>setDailyDate(e.target.value)}/></label>
+          <select disabled={!editing||!assignedPlanRoomTypes.length} className="w-full min-w-0 max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50" value={dailyRoomType} onChange={e=>setDailyRoomType(e.target.value)}><option value="">Choose room type</option>{assignedPlanRoomTypes.map((rt:{id:string;name:string})=><option key={rt.id} value={rt.id}>{rt.name}</option>)}</select>
+          <Input disabled={!editing||!assignedPlanRoomTypes.length} type="number" min="0.01" step="0.01" placeholder="Nightly rate" value={dailyRate} onChange={e=>setDailyRate(e.target.value)}/>
+          <div className="flex items-center gap-2 text-sm"><input disabled={!editing||!assignedPlanRoomTypes.length} type="checkbox" checked={dailyActive} onChange={e=>setDailyActive(e.target.checked)}/>Active override <Badge variant="outline">{String(data?.property?.currency??"").toUpperCase()}</Badge></div>
         </div>
-        <Button type="button" variant="outline" disabled={!editing||!assignedPlanRoomTypes.length} onClick={addDailyRate}><Plus className="mr-2 h-4 w-4"/>Add daily override</Button>
+        <Button type="button" variant="outline" disabled={!editing||!assignedPlanRoomTypes.length||!dailyDate||!dailyRoomType||!dailyRate} onClick={addDailyRate}><Plus className="mr-2 h-4 w-4"/>Add daily override</Button>
         {dailyRateEntries.length>0&&<>
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
             <label className="flex items-center gap-2"><input type="checkbox" checked={selectedDailyRateKeys.length===dailyRateEntries.length&&dailyRateEntries.length>0} onChange={e=>setSelectedDailyRateKeys(e.target.checked?dailyRateEntries.map(entry=>entry.date+"::"+entry.roomTypeId):[])}/>Select all existing overrides</label>
