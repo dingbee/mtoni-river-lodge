@@ -2,9 +2,20 @@
 
 Date: 2026-11-20 · Branch: `claude/staynas-currency-integrity-xr3zft`
 
+## Production application (2026-11-20)
+
+The migration was applied to production project `hpsryyywolitgeaacpoy` through the Supabase Management API.
+
+- **Pre-check:** all 6 replaced functions matched the repository versions exactly (no drift). Live state: Nolmark CDMA was already **TZS**. Two USD test plans (`SPE07-BROWSER-A/B-20261105`) were still published and could not be suspended (defect D2). The deluxe room's availability row was labelled **USD** next to a **TZS 235,000** quote (defect D4), so a booking would have been saved as USD 235,000 (defect D5).
+- **Applied** in one transaction. All 7 function fingerprints, the legacy-grant revocation and the split guards were verified. Bookings, payment events, rate plans and the property row are byte-for-byte unchanged (checksums taken before and after). The migration is recorded in `supabase_migrations.schema_migrations` as `20261120120000`.
+- **After:** standard room TZS 125,000 and deluxe room TZS 235,000, both labelled TZS. Plan discovery lists only TZS plans. The family suite has no published plan (configuration, not a defect).
+- **Findings report:** 2 blocking items (the published USD test plans; now never sold) and 3 warnings (a USD draft test plan, plus legacy USD room prices of 165 and 0). There are no mislabelled bookings or payments.
+- **Rollback copy:** `docs/sql/currency-integrity-manual-apply/production-rollback-20261120.sql`.
+- **Not yet done:** deploying the application build; a live guest booking test.
+
 ## Verdict
 
-**Not yet CLOSED.** All identified P0/P1 defects are fixed in code and in one new migration, and the
+**Database fixed in production; application deploy outstanding.** Before the production step: all identified P0/P1 defects are fixed in code and in one new migration, and the
 fixes are verified locally end to end: the migration ran against a full replay of all 292 repository
 migrations on PostgreSQL 16, with pgTAP, vitest, `tsc` and a production build. **Production is not
 certified.** The migration has not been applied to the production Supabase project, the app is not
