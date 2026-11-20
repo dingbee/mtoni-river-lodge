@@ -898,17 +898,17 @@ export const scanFinancialAlerts = createServerFn({ method: "POST" })
     }
 
     // Dedupe against existing open alerts by (alert_type, booking_id)
-    const { data: existing } = await (context.supabase as any)
+    const { data: existing } = await context.supabase
       .from("financial_alerts")
       .select("alert_type, booking_id")
       .eq("property_id", propertyId)
       .eq("status", "open");
-    const seen = new Set((existing ?? []).map((r) => `${r.alert_type}:${r.booking_id ?? ""}`));
+    const seen = new Set((existing ?? []).map((r: { alert_type: string; booking_id: string | null }) => `${r.alert_type}:${r.booking_id ?? ""}`));
     const fresh = inserts.filter(
       (i) => !seen.has(`${i.alert_type}:${(i.booking_id as string) ?? ""}`),
     );
     if (fresh.length > 0) {
-      await (context.supabase as any).from("financial_alerts").insert(fresh);
+      await context.supabase.from("financial_alerts").insert(fresh);
     }
     return { created: fresh.length, scanned: inserts.length };
   });
