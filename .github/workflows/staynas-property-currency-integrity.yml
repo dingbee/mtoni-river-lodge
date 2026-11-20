@@ -15,6 +15,7 @@ on:
       - "src/lib/payments.functions.ts"
       - "src/lib/guest-intelligence.functions.ts"
       - "src/lib/operations.functions.ts"
+      - "src/lib/platform-room-configuration.server.ts"
       - "supabase/migrations/20261119*_staynas_*currency*.sql"
       - "supabase/tests/staynas_property_currency_integrity.test.sql"
       - "supabase/tests/spe04_published_pricing_resolver.test.sql"
@@ -56,6 +57,7 @@ jobs:
           src/modules/property/PropertyContext.tsx
           src/modules/property/property.functions.ts
           src/routes/_authenticated.admin.settings.index.tsx
+          src/lib/platform-room-configuration.server.ts
           --rule 'prettier/prettier: off'
 
   database:
