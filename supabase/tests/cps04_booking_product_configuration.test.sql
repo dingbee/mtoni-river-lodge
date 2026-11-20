@@ -323,7 +323,7 @@ SELECT set_config('request.jwt.claim.sub', '30000000-0000-4000-8000-000000000002
 SELECT set_config('request.jwt.claim.role', 'authenticated', true);
 UPDATE public.staynas_rate_plans SET publication_status = 'suspended'
 WHERE id = '60000000-0000-4000-8000-000000000002';
-UPDATE public.rooms SET currency = 'TZS' WHERE id = '40000000-0000-4000-8000-000000000002';
+SELECT * FROM public.staynas_update_property_currency('TZS');
 SELECT is((
   SELECT q->>'error_code' = 'CURRENCY_MISMATCH'
   FROM (SELECT public.resolve_staynas_published_room_pricing(
