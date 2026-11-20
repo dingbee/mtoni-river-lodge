@@ -1,3 +1,4 @@
+import { isIsoCurrencyCode, toMinorUnits } from "@/lib/money";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { resolvePublicBookingContext } from "@/lib/public-booking-context.server";
@@ -48,6 +49,12 @@ export const initiatePayment = createServerFn({ method: "POST" })
 
     const deposit = Number(booking.deposit_amount);
     if (!deposit || deposit <= 0) throw new Error("Invalid deposit amount");
+    // The gateway is charged in the reservation's own currency; there is no fallback.
+    if (!isIsoCurrencyCode(booking.currency)) {
+      throw new Error(`Reservation ${booking.reference} has no valid ISO currency; payment cannot be initiated.`);
+    }
+    // Pesapal amounts are major units; reject precision the currency does not have.
+    toMinorUnits(deposit, booking.currency);
 
     const merchantRef = `${booking.reference}-D${Date.now().toString(36).slice(-4).toUpperCase()}`;
     const callbackUrl = `${baseUrl}/booking/return?ref=${encodeURIComponent(booking.reference)}`;
@@ -58,7 +65,7 @@ export const initiatePayment = createServerFn({ method: "POST" })
     const order = await submitPesapalOrder({
       merchantReference: merchantRef,
       amount: deposit,
-      currency: booking.currency || "USD",
+      currency: booking.currency,
       description: `Mtoni River Lodge deposit – ${booking.reference}`,
       callbackUrl,
       notificationId,

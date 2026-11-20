@@ -1,3 +1,4 @@
+import { formatMoney } from "@/lib/money";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -193,12 +194,7 @@ export function NewReservationDialog({
   const guestValid = guestName.trim().length >= 2 && emailValid;
   const stayValid = checkOut > checkIn && adults >= 1;
 
-  const money = (n: number, c: string) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: c,
-      maximumFractionDigits: 0,
-    }).format(n);
+  const money = (n: number, c: string) => formatMoney(n, c);
 
   return (
     <Dialog open={open} onOpenChange={close}>

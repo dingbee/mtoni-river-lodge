@@ -188,8 +188,11 @@ export const checkAvailability = createServerFn({ method: "POST" })
       if (!allowedPlanIds?.size || (data.ratePlanId && !allowedPlanIds.has(data.ratePlanId))) {
         return null;
       }
-      if (String(r.currency ?? "").toUpperCase() !== channel.currency) {
-        throw new Error("Room currency does not match the published direct-booking channel");
+      // The priced quote's currency labels the priced amount. The legacy rooms.currency
+      // is configuration history and must not decide (or block) what is sold.
+      const pricedCurrency = String(r.pricing_quote?.currency ?? r.currency ?? "").toUpperCase();
+      if (r.pricing_quote?.ok !== false && pricedCurrency !== channel.currency) {
+        throw new Error(`Pricing rejected [CURRENCY_MISMATCH]: ${r.name} is priced in ${pricedCurrency || "no currency"} but the direct-booking channel sells in ${channel.currency}`);
       }
       let ratePlanOptions: PublicRatePlanOption[] = [];
       if (r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" || r.pricing_quote?.pricing_evidence?.rate_plan_id) {
@@ -208,6 +211,7 @@ export const checkAvailability = createServerFn({ method: "POST" })
       }
       return {
       ...r,
+      currency: channel.currency,
       selected_rate_plan_id: campaignContext?.ratePlanId ?? r.pricing_quote?.pricing_evidence?.rate_plan_id ?? null,
       rate_plan_options: ratePlanOptions,
       nightly_total: r.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" ? null : Number(r.nightly_total),

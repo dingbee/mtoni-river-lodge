@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- existing server RPC surfaces use runtime contracts not yet represented in generated database types */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { isIsoCurrencyCode } from "@/lib/money";
+import { mapPublicAvailability, toPublicCatalogRoom } from "@/lib/public-availability";
 
 // Public booking resolves every published property by its public slug.
 // Tenant/property isolation is enforced by resolving one property first and
@@ -15,7 +17,7 @@ async function resolvePublicProperty(propertySlug: string) {
 
   if (error) throw new Error("Unable to load this property.");
   if (!data || data.status !== "active") throw new Error("This property is not available for online reservations.");
-  if (!data.currency || !/^[A-Z]{3}$/.test(data.currency)) {
+  if (!isIsoCurrencyCode(data.currency)) {
     throw new Error("A valid property currency must be configured before online reservations can be enabled.");
   }
 
@@ -82,11 +84,7 @@ export const getPublicDemoProperty = createServerFn({ method: "GET" })
         galleryImageUrls: Array.isArray(branding.gallery_image_urls) ? branding.gallery_image_urls : [],
         showStayNasAttribution: branding.show_staynas_attribution ?? true,
       },
-      rooms: (rooms ?? []).map((room: any) => ({
-        ...room,
-        base_price: Number(room.base_price),
-        extra_guest_fee: Number(room.extra_guest_fee ?? 0),
-      })),
+      rooms: (rooms ?? []).map((room: any) => toPublicCatalogRoom(room, property)),
       demo: false,
       paymentEnabled: false,
     };
@@ -124,38 +122,7 @@ export const searchPublicDemoAvailability = createServerFn({ method: "POST" })
     }));
     const planOptionsByRoom = new Map(ratePlanChoices.map((item: any) => [item.room_id, item.plans]));
 
-    // A published plan is not required to cover every room type. A room with
-    // NO_ELIGIBLE_RATE_PLAN is simply not sellable for this stay under the
-    // currently published SPE-03 configuration; it must not poison the
-    // availability response for other room types that do have eligible plans.
-    // All other resolver failures remain fail-closed and visible.
-    const pricingFailure = (rows ?? []).find((room: any) =>
-      room.pricing_quote?.ok === false
-      && !["RATE_PLAN_REQUIRED", "NO_ELIGIBLE_RATE_PLAN"].includes(room.pricing_quote?.error_code)
-    );
-    if (pricingFailure) {
-      throw new Error(`Pricing rejected [${pricingFailure.pricing_quote.error_code ?? "INVALID_RATE_CONFIGURATION"}]: ${pricingFailure.pricing_quote.message ?? "Pricing configuration is invalid"}`);
-    }
-
-    return (rows ?? [])
-      .filter((room: any) => {
-        const errorCode = room.pricing_quote?.error_code;
-        if (errorCode === "NO_ELIGIBLE_RATE_PLAN") return false;
-        if (errorCode === "RATE_PLAN_REQUIRED") {
-          return (planOptionsByRoom.get(room.room_id) ?? []).length > 0;
-        }
-        return true;
-      })
-      .map((room: any) => ({
-        rate_plan_options: planOptionsByRoom.get(room.room_id) ?? [],
-        ...room,
-        base_price: Number(room.base_price),
-        nightly_total: room.pricing_quote?.error_code === "RATE_PLAN_REQUIRED" ? null : Number(room.pricing_quote?.total ?? room.nightly_total),
-        pricing_quote: room.pricing_quote,
-        fits_guests: Boolean(room.fits_occupancy),
-      }))
-      .filter((room: any) => room.is_available && room.fits_guests)
-      .sort((a: any, b: any) => (a.nightly_total ?? Number.POSITIVE_INFINITY) - (b.nightly_total ?? Number.POSITIVE_INFINITY));
+    return mapPublicAvailability(rows ?? [], planOptionsByRoom, property);
   });
 
 const publicQuoteSchema = z.object({
@@ -189,6 +156,9 @@ export const getPublicDemoQuote = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     if (!quote?.quote_id) throw new Error(`Pricing quote rejected [${quote?.error_code ?? "QUOTE_FAILED"}]: ${quote?.message ?? "The final price could not be calculated"}`);
+    if (String(quote.currency ?? "").toUpperCase() !== property.currency) {
+      throw new Error(`Pricing quote rejected [CURRENCY_MISMATCH]: quote is in ${quote.currency ?? "no currency"} but ${property.name} sells in ${property.currency}`);
+    }
     return quote;
   });
 
@@ -239,6 +209,10 @@ export const createPublicDemoBooking = createServerFn({ method: "POST" })
       throw new Error(`Reservation rejected [${result.error_code ?? "RESERVATION_REJECTED"}]: ${result.message ?? "The reservation could not be created"}`);
     }
     if (!result?.booking_id) throw new Error("The reservation could not be created.");
+    if (String(result.currency ?? "").toUpperCase() !== property.currency) {
+      // The database rejects this before commit; this guards the response contract.
+      throw new Error(`Reservation ${result.reference} was recorded in ${result.currency} instead of ${property.currency}; contact the property before paying.`);
+    }
 
     return {
       bookingId: result.booking_id,

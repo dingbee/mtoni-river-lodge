@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   listStayNasProperties,
   setStayNasActiveProperty,
@@ -61,6 +62,7 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
   const listFn = useServerFn(listStayNasProperties);
   const setActiveFn = useServerFn(setStayNasActiveProperty);
   const updateCurrencyFn = useServerFn(updateStayNasPropertyCurrency);
+  const queryClient = useQueryClient();
   const [properties, setProperties] = useState<StayNasProperty[]>([FALLBACK_PROPERTY]);
   const [activePropertyId, setActivePropertyId] = useState(FALLBACK_PROPERTY.id);
   const [organisation, setOrganisation] = useState<StayNasOrganisation>({
@@ -85,9 +87,12 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
           }
         })();
 
+        // Server functions resolve data from the server-side active property, so the
+        // UI must label (name, currency) that same property; the stored preference is
+        // only a fallback when the server has no active selection.
         const preferred = mapped.find((p) => p.id === stored);
         const serverActive = mapped.find((p) => rows.find((r) => r.id === p.id)?.is_active);
-        const active = preferred ?? serverActive ?? mapped[0];
+        const active = serverActive ?? preferred ?? mapped[0];
 
         setProperties(mapped);
         setActivePropertyId(active.id);
@@ -111,6 +116,9 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
     try {
       await setActiveFn({ data: { propertyId } });
       setActivePropertyId(propertyId);
+      // Every cached query was resolved for the previous property; drop it so no
+      // rate, reservation or currency from another property is shown.
+      await queryClient.invalidateQueries();
       try {
         localStorage.setItem(STORAGE_KEY, propertyId);
       } catch {
@@ -119,7 +127,7 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Do not switch the UI if the server rejects property access.
     }
-  }, [properties, setActiveFn]);
+  }, [properties, setActiveFn, queryClient]);
 
   const updateCurrency = useCallback(async (currency: string) => {
     const result = await updateCurrencyFn({ data: { currency } });
@@ -132,7 +140,9 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
         item.id === result.propertyId ? { ...item, currency: result.currency } : item,
       ),
     }));
-  }, [updateCurrencyFn]);
+    // Rates, quotes and finance views depend on the property currency.
+    await queryClient.invalidateQueries();
+  }, [updateCurrencyFn, queryClient]);
 
   const property = useMemo(
     () => properties.find((p) => p.id === activePropertyId) ?? properties[0],

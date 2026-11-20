@@ -44,9 +44,11 @@ const roomSchema = z.object({
   capacityChildren: z.number().int().min(0).max(20),
   maxOccupancy: z.number().int().min(1).max(30),
   totalUnits: z.number().int().min(1).max(10000).default(1),
-  basePrice: z.number().min(0).max(1000000000).default(0),
-  includedGuests: z.number().int().min(1).max(30).default(2),
-  extraGuestFee: z.number().min(0).max(1000000000).default(0),
+  // Optional: the Room Catalogue edits descriptive inventory only. When omitted the
+  // stored indicative rate is preserved (never reset to 0). rooms.base_price is numeric(10,2).
+  basePrice: z.number().min(0).max(99999999.99).multipleOf(0.01).optional(),
+  includedGuests: z.number().int().min(1).max(30).optional(),
+  extraGuestFee: z.number().min(0).max(99999999.99).multipleOf(0.01).optional(),
   sortOrder: z.number().int().min(0).max(9999).default(0),
   status: z.enum(["active", "archived"]).default("active"),
 });
@@ -139,7 +141,7 @@ export const savePlatformRoomType = createServerFn({ method: "POST" })
 
     const { data: existing, error: existingError } = data.id
       ? await sb.from("rooms")
-          .select("currency,configuration_source")
+          .select("currency,configuration_source,base_price,extra_guest_fee,included_guests")
           .eq("id", data.id)
           .eq("property_id", propertyId)
           .single()
@@ -152,8 +154,22 @@ export const savePlatformRoomType = createServerFn({ method: "POST" })
       .eq("id", propertyId)
       .single();
     if (propertyError) throw new Error(propertyError.message);
-    const currency = existing?.currency ?? property.currency;
-    if (!currency) throw new Error("Configure the property currency before creating room types");
+    const propertyCurrency = String(property.currency ?? "").toUpperCase();
+    if (!/^[A-Z]{3}$/.test(propertyCurrency)) throw new Error("Configure the property currency before creating room types");
+    // Monetary fields are stored with the currency they were entered in:
+    //  - a price entered now is in the property currency;
+    //  - an untouched stored price keeps its recorded currency (never relabelled);
+    //  - a new room is in the property currency.
+    const priceEntered = data.basePrice !== undefined || data.extraGuestFee !== undefined;
+    const storedCurrency = existing?.currency ? String(existing.currency).toUpperCase() : null;
+    if (priceEntered && storedCurrency && storedCurrency !== propertyCurrency
+        && (data.basePrice === undefined || data.extraGuestFee === undefined)) {
+      throw new Error(`This room's rates are recorded in ${storedCurrency}. Re-enter both the base rate and extra-guest fee in ${propertyCurrency}.`);
+    }
+    const currency = priceEntered || !storedCurrency ? propertyCurrency : storedCurrency;
+    const basePrice = data.basePrice ?? (existing ? Number(existing.base_price ?? 0) : 0);
+    const extraGuestFee = data.extraGuestFee ?? (existing ? Number(existing.extra_guest_fee ?? 0) : 0);
+    const includedGuests = data.includedGuests ?? (existing ? Number(existing.included_guests ?? 2) : Math.min(2, data.maxOccupancy));
 
     const { data: roomId, error } = await sb.rpc("save_platform_room_type_configuration", {
       _property_id: propertyId,
@@ -171,10 +187,10 @@ export const savePlatformRoomType = createServerFn({ method: "POST" })
       _capacity_children: data.capacityChildren,
       _max_occupancy: data.maxOccupancy,
       _total_units: data.totalUnits,
-      _base_price: data.basePrice,
+      _base_price: basePrice,
       _currency: currency,
-      _included_guests: data.includedGuests,
-      _extra_guest_fee: data.extraGuestFee,
+      _included_guests: includedGuests,
+      _extra_guest_fee: extraGuestFee,
       _status: data.status === "archived" ? "inactive" : "active",
       _sort_order: data.sortOrder,
       _hero_line: data.heroLine,

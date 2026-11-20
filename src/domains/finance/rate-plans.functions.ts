@@ -7,6 +7,7 @@ import { seasonalRatesSchema, mergeSeasonalRateRecords, validateSeasonalRateCurr
 import { dailyRatesSchema, mergeDailyRateRecords, validateDailyRateCurrency, validateDailyRateRoomTypes } from "@/domains/finance/daily-rate-calendar";
 import { restrictionRulesSchema, mergeRestrictionRecords, validateRestrictionRoomTypes, type RestrictionRule } from "@/domains/finance/rate-plan-restrictions";
 import { assertRatePlanRoomTypeAssignments } from "@/domains/finance/rate-plan-publication";
+import { isIsoCurrencyCode } from "@/lib/money";
 
 async function getActivePropertyId(supabase: SupabaseClient, userId: string): Promise<string> {
   const { data, error } = await supabase.rpc("staynas_active_property_id", { _uid: userId });
@@ -71,23 +72,27 @@ export const saveStayNasRatePlan = createServerFn({ method: "POST" })
     const { data: property, error: propertyError } = await sb.from("staynas_properties")
       .select("currency").eq("id",propertyId).single();
     if (propertyError || !property?.currency) throw new Error("Property operating currency must be configured before managing rate plans.");
-    let ratePlanCurrency = String(data.currency ?? property.currency).toUpperCase();
+    // The property currency is authoritative for every sellable rate. The database
+    // guards and the quote service reject any other plan currency, so no override is offered.
+    const ratePlanCurrency = String(property.currency).toUpperCase();
+    if (!isIsoCurrencyCode(ratePlanCurrency)) throw new Error("Property currency must be a valid ISO 4217 code before managing rate plans.");
+    if (data.currency && data.currency !== ratePlanCurrency) {
+      throw new Error(`Rate plans are priced in the property currency ${ratePlanCurrency}; ${data.currency} is not accepted.`);
+    }
     if (data.id) {
       const { data: existing, error: existingError } = await sb.from("staynas_rate_plans")
         .select("publication_status,currency").eq("id",data.id).eq("property_id",propertyId).maybeSingle();
       if (existingError || !existing) throw new Error("Rate plan is not part of the active property.");
-      if (!data.currency) ratePlanCurrency = String(existing.currency ?? property.currency).toUpperCase();
       if (existing.publication_status === "archived") throw new Error("Archived rate plans are read-only. Duplicate the plan to create a new version.");
       if (existing.publication_status === "published") throw new Error("Suspend the rate plan before editing its commercial terms.");
     }
-    if (!/^[A-Z]{3}$/.test(ratePlanCurrency)) throw new Error("Rate-plan transaction currency must be a valid ISO 4217 code.");
     const baseRates = data.rate_plan_data.base_rates;
     if (baseRates && typeof baseRates === "object" && !Array.isArray(baseRates)) {
       for (const [roomTypeId, rawRate] of Object.entries(baseRates as Record<string, unknown>)) {
         if (!rawRate || typeof rawRate !== "object" || Array.isArray(rawRate)) continue;
         const rateCurrency = (rawRate as Record<string, unknown>).currency;
-        if (rateCurrency && String(rateCurrency).toUpperCase() !== ratePlanCurrency) {
-          throw new Error(`Base rate for room type ${roomTypeId} must use rate-plan currency ${ratePlanCurrency}.`);
+        if (String(rateCurrency ?? "").toUpperCase() !== ratePlanCurrency) {
+          throw new Error(`Base rate for room type ${roomTypeId} is recorded in ${rateCurrency ?? "no currency"}; re-enter it in ${ratePlanCurrency}. Amounts are never converted automatically.`);
         }
       }
     }

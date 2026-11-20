@@ -1,3 +1,4 @@
+import { resolveActivePropertyCurrency } from "@/lib/property-currency.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
@@ -38,6 +39,8 @@ export const getExecutiveOverview = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await requireStayNasModuleAccess(context.supabase, context.userId, "ai.executive");
     const s = context.supabase;
+    // Money KPIs: active property, its own currency only.
+    const scope = await resolveActivePropertyCurrency(s, context.userId);
     const [
       { data: rooms },
       { data: arrivalsToday },
@@ -63,9 +66,9 @@ export const getExecutiveOverview = createServerFn({ method: "GET" })
       s.from("bookings").select("id, guest_name, guest_type, check_in").eq("check_in", today()).in("status", ["confirmed","checked_in"]),
       s.from("bookings").select("id, guest_name, check_out").eq("check_out", today()).in("status", ["confirmed","checked_in","completed"]),
       s.from("bookings").select("id, nights").lte("check_in", today()).gt("check_out", today()).in("status", ["confirmed","checked_in"]),
-      s.from("bookings").select("total, nights, currency").gte("check_in", firstOfMonth()).in("status", ["confirmed","checked_in","completed"]),
-      s.from("bookings").select("total, nights").gte("check_in", today()).lte("check_in", daysFromNow(30)).in("status", ["confirmed","pending","checked_in"]),
-      s.from("bookings").select("balance_due, currency").gt("balance_due", 0).in("status", ["confirmed","checked_in","completed"]),
+      s.from("bookings").select("total, nights, currency").eq("property_id", scope.propertyId).eq("currency", scope.currency).gte("check_in", firstOfMonth()).in("status", ["confirmed","checked_in","completed"]),
+      s.from("bookings").select("total, nights").eq("property_id", scope.propertyId).eq("currency", scope.currency).gte("check_in", today()).lte("check_in", daysFromNow(30)).in("status", ["confirmed","pending","checked_in"]),
+      s.from("bookings").select("balance_due, currency").eq("property_id", scope.propertyId).eq("currency", scope.currency).gt("balance_due", 0).in("status", ["confirmed","checked_in","completed"]),
       s.from("ops_tasks").select("id, priority").is("completed_at", null),
       s.from("ops_alerts").select("id, severity").is("resolved_at", null),
       s.from("room_states").select("state"),
@@ -87,7 +90,7 @@ export const getExecutiveOverview = createServerFn({ method: "GET" })
     const mtdRevenue = (mtd ?? []).reduce((s: any, b: any) => s + Number(b.total ?? 0), 0);
     const mtdNights = (mtd ?? []).reduce((s: any, b: any) => s + Number(b.nights ?? 0), 0);
     const revenueToday = 0; // deterministic proxy — real revenue lives in finance module
-    const currency = (mtd?.[0] as any)?.currency ?? "USD";
+    const currency = scope.currency;
     const forwardRevenue = (forward30 ?? []).reduce((s: any, b: any) => s + Number(b.total ?? 0), 0);
     const forwardNights = (forward30 ?? []).reduce((s: any, b: any) => s + Number(b.nights ?? 0), 0);
     const expectedOccupancy30 = totalUnits > 0 ? forwardNights / (totalUnits * 30) : 0;

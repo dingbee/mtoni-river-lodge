@@ -1,3 +1,4 @@
+import { formatMoney } from "@/lib/money";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
@@ -911,7 +912,7 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
   onBack: () => void; onSelect: (r: AvailabilityRoom, ratePlanId?: string) => void;
 }) {
   const [selectedPlans, setSelectedPlans] = useState<Record<string, string>>({});
-  const fmt = (n: number, c: string) => new Intl.NumberFormat("en-US", { style: "currency", currency: c, maximumFractionDigits: 0 }).format(n);
+  const fmt = (n: number, c: string) => formatMoney(n, c);
   const totalOccupants = adults + childrenBelow6 + children7Plus;
   const paidOccupants = adults + children7Plus;
   return (
@@ -990,7 +991,7 @@ function GuestStep(props: {
   submitting: boolean;
   onBack: () => void; onSubmit: () => void;
 }) {
-  const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: props.room.currency, maximumFractionDigits: 0 }).format(n);
+  const fmt = (n: number) => formatMoney(n, props.room.currency);
   const toggleExtra = (slug: string) => {
     const existing = props.selectedExtras.find((s) => s.slug === slug);
     const extra = props.extras.find((e) => e.slug === slug);
@@ -1173,7 +1174,7 @@ function ConfirmationStep({ confirmation, room, checkIn, checkOut, nights, guest
   checkIn: string; checkOut: string; nights: number;
   guestName: string; guestEmail: string;
 }) {
-  const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: confirmation.currency, maximumFractionDigits: 0 }).format(n);
+  const fmt = (n: number) => formatMoney(n, confirmation.currency);
   return (
     <div className="rounded-2xl border border-charcoal/10 bg-ivory p-8 text-center shadow-[0_24px_60px_-30px_rgba(30,45,30,0.35)] sm:p-12">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#0F3D3A]/10">

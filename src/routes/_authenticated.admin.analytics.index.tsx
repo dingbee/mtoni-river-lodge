@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/os/PageHeader";
 import { StatCard } from "@/components/os/StatCard";
 import { LoadingState } from "@/components/os/LoadingState";
 import { getAnalyticsHub } from "@/domains/analytics/analytics.functions";
+import { formatMoney } from "@/lib/money";
 
 export const Route = createFileRoute("/_authenticated/admin/analytics/")({
   head: () => ({ meta: [{ title: "Analytics Hub — Mtoni OS" }] }),
@@ -23,9 +24,9 @@ function Hub() {
       <PageHeader title="Analytics & Intelligence Hub" description="Unified health & performance across the lodge, website, and AI." />
       <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
         <StatCard label="Occupancy (30d)" value={pctFmt(t.occupancy)} />
-        <StatCard label="ADR" value={`$${Math.round(t.adr).toLocaleString()}`} />
-        <StatCard label="RevPAR" value={`$${Math.round(t.revpar).toLocaleString()}`} />
-        <StatCard label="Revenue (30d)" value={`$${Math.round(t.revenue).toLocaleString()}`} />
+        <StatCard label="ADR" value={formatMoney(t.adr, t.currency)} />
+        <StatCard label="RevPAR" value={formatMoney(t.revpar, t.currency)} />
+        <StatCard label="Revenue (30d)" value={formatMoney(t.revenue, t.currency)} />
         <StatCard label="Bookings (30d)" value={t.bookings30d} />
         <StatCard label="Cancellation rate" value={pctFmt(t.cancelRate)} />
         <StatCard label="Guest rating" value={t.avgRating ? t.avgRating.toFixed(2) : "—"} />

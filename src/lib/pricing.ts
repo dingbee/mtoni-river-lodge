@@ -1,7 +1,9 @@
+import { formatMoney } from "@/lib/money";
+
 // Currency formatting only. All accommodation amounts are supplied by the
 // database-authoritative StayNas pricing and quote services.
 export function formatCurrency(amount: number, currency: string) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
+  return formatMoney(amount, currency);
 }
 
 // Compatibility guards for retired client-side pricing callers.
