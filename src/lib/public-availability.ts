@@ -67,3 +67,19 @@ export function mapPublicAvailability(
     .filter((room) => room.is_available && room.fits_guests)
     .sort((a, b) => (a.nightly_total ?? Number.POSITIVE_INFINITY) - (b.nightly_total ?? Number.POSITIVE_INFINITY));
 }
+
+/**
+ * Per-night price for the guest's searched dates, taken from the priced quote's
+ * nightly breakdown (exact amounts, no division or rounding). Returns the rate when
+ * every night costs the same, otherwise the lowest night as a "from" price.
+ */
+export function searchedNightlyRate(room: any): { amount: number; currency: string; uniform: boolean } | null {
+  const quote = room?.pricing_quote;
+  if (!quote || quote.ok === false || !room.currency) return null;
+  const rates = (Array.isArray(quote.nightly) ? quote.nightly : [])
+    .map((night: any) => Number(night?.nightly_rate))
+    .filter((rate: number) => Number.isFinite(rate) && rate > 0);
+  if (!rates.length) return null;
+  const lowest = Math.min(...rates);
+  return { amount: lowest, currency: room.currency, uniform: rates.every((rate: number) => rate === lowest) };
+}
