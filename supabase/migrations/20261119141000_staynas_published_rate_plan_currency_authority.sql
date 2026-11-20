@@ -132,41 +132,50 @@ BEGIN
     END IF;
     RETURN jsonb_build_object(
       'ok',true,'mode','legacy','rate_plan_id',NULL,'publication_id',NULL,
-      'pricing',public.calculate_staynas_room_pricing(
+      'pricing',public.calculate_staynas_room_pricing_legacy(
         _property_id,_room_id,_check_in,_check_out,_adults,
         COALESCE(_children_below_6,0),COALESCE(_children_7_plus,0)
       )
     );
   END IF;
 
-  SELECT p.id,p.code,p.name,p.currency,p.pricing_basis,p.version,p.property_id
+  -- Resolve the same latest eligible publication candidate counted above.
+  -- Do not select a plan independently and then attach a different snapshot.
+  SELECT p.id,p.code,p.name,p.currency,p.pricing_basis,p.version,p.property_id,
+         pub.id AS publication_id
     INTO v_plan
   FROM public.staynas_rate_plans p
   JOIN public.staynas_rate_plan_room_types a
     ON a.property_id=p.property_id AND a.rate_plan_id=p.id AND a.active=true
-  WHERE p.id=COALESCE(_rate_plan_id,(
-    SELECT p2.id FROM public.staynas_rate_plans p2
-    JOIN public.staynas_rate_plan_room_types a2
-      ON a2.property_id=p2.property_id AND a2.rate_plan_id=p2.id AND a2.active=true
-    JOIN public.staynas_rate_plan_publications x
-      ON x.property_id=p2.property_id AND x.rate_plan_id=p2.id
-    WHERE p2.property_id=_property_id AND p2.publication_status='published' AND p2.active=true
-      AND a2.room_type_id=v_room.catalogue_type_id
-      AND (p2.effective_from IS NULL OR p2.effective_from<=_check_in)
-      AND (p2.effective_to IS NULL OR p2.effective_to>=_check_out-1)
-      AND (x.effective_from IS NULL OR x.effective_from<=_check_in)
-      AND (x.effective_to IS NULL OR x.effective_to>=_check_out-1)
-    ORDER BY p2.id LIMIT 1
-  )) AND p.property_id=_property_id AND a.room_type_id=v_room.catalogue_type_id
+  JOIN public.staynas_rate_plan_publications pub
+    ON pub.property_id=p.property_id AND pub.rate_plan_id=p.id
+  WHERE p.property_id=_property_id
+    AND p.publication_status='published' AND p.active=true
+    AND a.room_type_id=v_room.catalogue_type_id
+    AND (p.effective_from IS NULL OR p.effective_from<=_check_in)
+    AND (p.effective_to IS NULL OR p.effective_to>=_check_out-1)
+    AND (pub.effective_from IS NULL OR pub.effective_from<=_check_in)
+    AND (pub.effective_to IS NULL OR pub.effective_to>=_check_out-1)
+    AND (_rate_plan_id IS NULL OR p.id=_rate_plan_id)
+    AND pub.publication_number=(
+      SELECT max(pub2.publication_number)
+      FROM public.staynas_rate_plan_publications pub2
+      WHERE pub2.property_id=pub.property_id
+        AND pub2.rate_plan_id=pub.rate_plan_id
+    )
   LIMIT 1;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('ok',false,'error_code','RATE_SOURCE_MISSING',
+      'message','Eligible rate plan and latest publication could not be resolved consistently');
+  END IF;
 
   SELECT pub.* INTO v_publication
   FROM public.staynas_rate_plan_publications pub
-  WHERE pub.property_id=_property_id AND pub.rate_plan_id=v_plan.id
-  ORDER BY pub.publication_number DESC LIMIT 1;
+  WHERE pub.id=v_plan.publication_id;
   IF NOT FOUND OR v_publication.snapshot_hash IS NULL THEN
     RETURN jsonb_build_object('ok',false,'error_code','RATE_SOURCE_MISSING',
-      'message','Eligible plan has no immutable publication snapshot');
+      'message','Eligible rate plan and latest publication could not be resolved consistently');
   END IF;
   IF upper(v_plan.currency)<>v_property_currency
      OR upper(v_publication.currency)<>v_property_currency THEN
