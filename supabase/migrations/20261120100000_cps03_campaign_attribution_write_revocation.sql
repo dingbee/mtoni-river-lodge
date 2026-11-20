@@ -4,7 +4,7 @@ BEGIN;
 
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
 ON TABLE public.campaign_attribution
-FROM anon, authenticated;
+FROM PUBLIC, anon, authenticated;
 
 GRANT SELECT ON TABLE public.campaign_attribution TO authenticated;
 
