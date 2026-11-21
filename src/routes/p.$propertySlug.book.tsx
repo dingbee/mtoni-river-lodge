@@ -32,6 +32,8 @@ import { getBookingQuote, type BookingPricingQuote } from "@/lib/booking.functio
 import { DatePickerField } from "@/components/os/DatePickerField";
 import { validateBookingSearch } from "@/lib/booking-search";
 import { getPublicBookingProperty, recordPublicDirectBookingAnalyticsEvent } from "@/domains/booking-campaigns/public-campaign.functions";
+import { deriveDirectTheme, legacyPaletteOverrides } from "@/lib/direct-booking-theme";
+import { DirectGalleryStrip, DirectHighlights, DirectOfferBanner, DirectValueWords } from "@/components/direct-booking/DirectSections";
 
 export const Route = createFileRoute("/p/$propertySlug/book")({
   loader: ({ params }) => getPublicBookingProperty({ data: { propertySlug: params.propertySlug } }),
@@ -560,9 +562,15 @@ function BookPage() {
   const extrasTotal = Number(effectiveQuote?.extras_total ?? 0);
   const grandTotal = Number(effectiveQuote?.total ?? (roomTotal + extrasTotal));
 
+  const directTheme = deriveDirectTheme({
+    primaryColor: branding.primary_color, secondaryColor: branding.secondary_color,
+    backgroundColor: branding.background_color, textColor: branding.text_color,
+  });
+  const themeStyle = { ...directTheme, ...legacyPaletteOverrides(directTheme) } as React.CSSProperties;
+
   return (
-    <div className="min-h-screen bg-ivory text-charcoal">
-      <header className="border-b border-charcoal/10 bg-white">
+    <div style={themeStyle} className="direct-booking min-h-screen bg-ivory text-charcoal">
+      <header className="border-b border-charcoal/10 bg-[var(--direct-surface)]">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
           <div className="flex items-center gap-3">
             {branding.logo_url ? <img src={branding.logo_url} alt={property.name} className="h-9 max-w-40 object-contain" /> : <span className="text-sm font-semibold">{property.name}</span>}
@@ -576,14 +584,19 @@ function BookPage() {
           <div className="mx-auto grid min-w-0 max-w-7xl gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] lg:gap-10 lg:items-end">
             <div>
               <BreadcrumbsBar />
-              <p className="mt-8 text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-charcoal/55">{property.name} · Direct reservations</p>
+              <p className="mt-8 text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-charcoal/55">{property.name} · Direct reservations</p>
               <h1 className="mt-4 max-w-full break-words font-display text-[clamp(2.25rem,7.5vw,3.75rem)] leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">Reserve Your Stay at {property.name}</h1>
               <p className="mt-4 max-w-xl text-base leading-7 text-charcoal/65 sm:mt-5 sm:text-lg">Select your dates and guests to check real-time availability and published rates.</p>
+              <DirectValueWords words={branding.valueWords} className="mt-5 text-[var(--direct-accent-text)]" />
               <Stepper step={step} />
             </div>
             <SelectedRoomCard room={selectedRoom ?? results.find((r) => r.slug === incomingRoom) ?? null} inventory={roomInventory} />
           </div>
         </section>
+        {step === "search" && <>
+          <DirectGalleryStrip images={branding.gallery_image_urls} propertyName={property.name} className="px-4 sm:px-8 lg:px-10" />
+          <DirectHighlights highlights={branding.highlights} className="mx-auto mt-6 max-w-7xl px-4 sm:px-8 lg:px-10" />
+        </>}
         <section className="mx-auto w-full min-w-0 max-w-7xl px-4 py-7 sm:px-8 sm:py-10 lg:px-10 lg:py-14">
           <div className="grid min-w-0 gap-7 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10 lg:items-start">
             <div>
@@ -703,8 +716,11 @@ function BookPage() {
               submitting={submit.isPending}
               onBack={() => goToStep("select", "user_back_from_guest")}
               onSubmit={() => submit.mutate()}
+              propertyName={property.name}
             />
           )}
+
+          {step === "search" && <DirectOfferBanner offer={branding.offer} className="mt-10" />}
 
           {step === "guest" && !selectedRoom && (
             <div className="rounded-2xl border border-charcoal/10 bg-ivory p-8 text-center">
@@ -726,15 +742,16 @@ function BookPage() {
               room={selectedRoom}
               checkIn={checkIn} checkOut={checkOut} nights={nights}
               guestName={guest.name} guestEmail={guest.email}
+              propertyName={property.name}
             />
           )}
 
           <div className="mt-12 border-t border-charcoal/10 pt-8 text-center">
-            <p className="text-xs uppercase tracking-[0.28em] text-charcoal/45">StayNas Hospitality Operating System</p>
+            <p className="text-xs uppercase tracking-[0.28em] text-charcoal/60">StayNas Hospitality Operating System</p>
             <p className="mt-3 text-sm text-charcoal/55">
               Need assistance? Open <span className="font-medium text-charcoal">StayNas AI Concierge</span> for intelligent guest support.
             </p>
-            <p className="mt-5 text-[0.7rem] text-charcoal/45">
+            <p className="mt-5 text-[0.7rem] text-charcoal/60">
               By booking you agree to our{" "}
               <Link to="/terms" className="underline underline-offset-4 hover:text-charcoal">Terms &amp; Conditions</Link>.
             </p>
@@ -742,7 +759,7 @@ function BookPage() {
             </div>
             <aside className="hidden lg:block">
               <div className="sticky top-28 rounded-[24px] border border-charcoal/10 bg-bone p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-burgundy">A smoother journey</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--direct-accent-text)]">A smoother journey</p>
                 <h2 className="mt-3 font-display text-3xl leading-tight">Plan with confidence.</h2>
                 <div className="mt-6 space-y-5 text-sm text-charcoal/70">
                   <p><strong className="block text-charcoal">Flexible cancellation</strong>Plans change. Cancellation rules are shown before confirmation.</p>
@@ -762,7 +779,7 @@ function BookPage() {
 function SelectedRoomCard({ room, inventory }: { room: AvailabilityRoom | null; inventory: { available_units: number; total_units: number } | null }) {
   if (!room) return (
     <div className="min-w-0 rounded-2xl border border-charcoal/10 bg-bone p-5 shadow-sm sm:p-6">
-      <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-burgundy">Selected room</p>
+      <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-[var(--direct-accent-text)]">Selected room</p>
       <p className="mt-3 break-words font-display text-xl font-medium leading-snug sm:text-2xl">Choose a room to continue</p>
       <p className="mt-2 break-words text-sm leading-6 text-charcoal/60">Room details will appear here once availability is checked.</p>
     </div>
@@ -770,11 +787,11 @@ function SelectedRoomCard({ room, inventory }: { room: AvailabilityRoom | null; 
   const availability = inventory ? inventory.available_units + " of " + inventory.total_units + " available" : room.min_available > 0 ? room.min_available + " available for these dates" : "Live availability after dates are checked";
   return (
     <div className="rounded-[24px] border border-charcoal/10 bg-bone p-7 shadow-deep">
-      <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-burgundy">Selected room</p>
+      <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-[var(--direct-accent-text)]">Selected room</p>
       <h2 className="mt-3 break-words font-display text-xl font-medium leading-snug sm:text-2xl">{room.name}</h2>
       <p className="mt-3 text-sm text-charcoal/65">Sleeps up to {room.max_occupancy} · {room.selected_rate_plan ? `${room.selected_rate_plan.currency} ${(Number(room.selected_rate_plan.total) / Math.max(1, room.selected_rate_plan.nightly_breakdown?.length ?? 1)).toLocaleString()} / night` : room.pricing_quote?.ok ? `${room.currency} ${Number(room.pricing_quote.nightly?.[0]?.nightly_rate ?? 0).toLocaleString()} / night` : "Price confirmed from the selected published rate plan"}</p>
       <div className="mt-5 border-t border-charcoal/10 pt-5">
-        <div className="flex items-end justify-between gap-3"><p className="font-display text-xl">{availability}</p>{inventory && <span className="text-[0.65rem] font-medium uppercase tracking-[0.16em] text-forest">Live</span>}</div>
+        <div className="flex items-end justify-between gap-3"><p className="font-display text-xl">{availability}</p>{inventory && <span className="text-[0.7rem] font-medium uppercase tracking-[0.16em] text-forest">Live</span>}</div>
         {inventory && inventory.total_units > 0 && <div className="mt-3 h-2 overflow-hidden rounded-full bg-charcoal/10"><div className="h-full rounded-full bg-forest transition-all duration-500" style={{ width: Math.max(0, Math.min(100, (inventory.available_units / inventory.total_units) * 100)) + "%" }} /></div>}
       </div>
     </div>
@@ -793,10 +810,10 @@ function Stepper({ step }: { step: Step }) {
     <div className="mt-7 grid w-full max-w-xl grid-cols-4 gap-2 sm:mt-8 sm:gap-3">
       {steps.map((s, i) => (
         <div key={s.k} className="flex min-w-0 flex-col items-center gap-2 text-center">
-          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${i <= idx ? "bg-charcoal text-ivory" : "bg-charcoal/10 text-charcoal/50"}`}>
+          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${i <= idx ? "bg-charcoal text-ivory" : "bg-charcoal/10 text-charcoal/60"}`}>
             {i < idx ? <Check className="h-3.5 w-3.5" /> : i + 1}
           </div>
-          <span className={`max-w-full break-words text-[0.62rem] font-medium uppercase leading-tight tracking-[0.12em] sm:text-xs sm:tracking-[0.14em] ${i <= idx ? "text-charcoal" : "text-charcoal/50"}`}>{s.label === "Confirmation" ? "Confirm" : s.label}</span>
+          <span className={`max-w-full break-words text-[0.7rem] font-medium uppercase leading-tight tracking-[0.12em] sm:text-xs sm:tracking-[0.14em] ${i <= idx ? "text-charcoal" : "text-charcoal/60"}`}>{s.label === "Confirmation" ? "Confirm" : s.label}</span>
           
         </div>
       ))}
@@ -804,7 +821,7 @@ function Stepper({ step }: { step: Step }) {
   );
 }
 
-const field = "w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm text-charcoal placeholder:text-charcoal/40 outline-none focus:border-charcoal focus:ring-2 focus:ring-charcoal/15";
+const field = "w-full rounded-lg border border-charcoal/15 bg-ivory px-4 py-3 text-sm text-charcoal placeholder:text-charcoal/60 outline-none focus:border-charcoal focus:ring-2 focus:ring-charcoal/15";
 const labelCls = "text-xs font-medium uppercase tracking-[0.14em] text-charcoal/75";
 
 function SearchStep(props: {
@@ -869,7 +886,7 @@ function SearchStep(props: {
               <option key={n} value={n}>{n}</option>
             ))}
           </select>
-          <p className="mt-1 text-[0.6rem] uppercase tracking-[0.18em] text-charcoal/50">Stay free</p>
+          <p className="mt-1 text-[0.6rem] uppercase tracking-[0.18em] text-charcoal/60">Stay free</p>
         </div>
         <div>
           <label className={labelCls}>Children (7 & up)</label>
@@ -882,21 +899,21 @@ function SearchStep(props: {
               <option key={n} value={n}>{n}</option>
             ))}
           </select>
-          <p className="mt-1 text-[0.6rem] uppercase tracking-[0.18em] text-charcoal/50">Count as occupants</p>
+          <p className="mt-1 text-[0.6rem] uppercase tracking-[0.18em] text-charcoal/60">Count as occupants</p>
         </div>
       </div>
       <div className="flex items-center justify-between rounded-lg border border-dashed border-charcoal/20 bg-bone/30 px-4 py-3">
-        <span className="text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/60">Total occupants</span>
+        <span className="text-[0.7rem] uppercase tracking-[0.22em] text-charcoal/60">Total occupants</span>
         <span className="font-display text-lg">{totalOccupants}</span>
       </div>
       <div className="flex items-center justify-between rounded-lg border border-dashed border-charcoal/20 bg-bone/30 px-4 py-3">
-        <span className="text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/60">Length of stay</span>
+        <span className="text-[0.7rem] uppercase tracking-[0.22em] text-charcoal/60">Length of stay</span>
         <span className="font-display text-lg">{props.nights > 0 ? `${props.nights} Night${props.nights === 1 ? "" : "s"}` : "—"}</span>
       </div>
       <button
         onClick={props.onSearch} disabled={props.loading}
-        className="group mt-2 inline-flex w-full items-center justify-center gap-3 rounded-full px-7 py-4 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-ivory shadow-[0_18px_40px_-18px_rgba(52,103,57,0.7)] transition-all hover:brightness-110 disabled:opacity-60"
-        style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
+        className="group mt-2 inline-flex w-full items-center justify-center gap-3 rounded-full px-7 py-4 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-[var(--direct-on-primary)] shadow-[0_18px_40px_-18px_var(--direct-shadow)] transition-all hover:brightness-110 disabled:opacity-60"
+        style={{ background: "var(--direct-primary)" }}
       >
         {props.loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
         {props.loading ? "Checking availability…" : "Check Availability"}
@@ -936,7 +953,7 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
               {!fits && <p className="mt-1 text-xs text-red-600">Does not fit {totalOccupants} occupant{totalOccupants === 1 ? "" : "s"}</p>}
             </div>
             <div className="text-right">
-              <p className="text-[0.65rem] uppercase tracking-[0.22em] text-charcoal/60">{nights} night{nights === 1 ? "" : "s"} · accommodation subtotal</p>
+              <p className="text-[0.7rem] uppercase tracking-[0.22em] text-charcoal/60">{nights} night{nights === 1 ? "" : "s"} · accommodation subtotal</p>
               {requiresPlanChoice && options.length === 0 ? (
                 <p className="font-display text-base text-red-700">Rate plans unavailable — please try again</p>
               ) : requiresPlanChoice && options.length > 1 && !selectedPlan ? (
@@ -946,14 +963,14 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
               )}
               {options.length > 1 && (
                 <div className="mt-3 text-left">
-                  <label className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-charcoal/60">Choose rate plan</label>
+                  <label className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-charcoal/60">Choose rate plan</label>
                   <select value={selectedPlanId} onChange={(e) => setSelectedPlans((current) => ({ ...current, [r.room_id]: e.target.value }))} className="mt-2 w-full rounded-lg border border-charcoal/20 bg-ivory px-3 py-2 text-sm">
                     <option value="">Select a rate plan</option>
                     {options.map((plan) => <option key={plan.rate_plan_id} value={plan.rate_plan_id}>{plan.name} — {fmt(Number(plan.total), plan.currency)}</option>)}
                   </select>
                   {selectedPlan?.description && <p className="mt-2 text-xs text-charcoal/60">{selectedPlan.description}</p>}
                   {selectedPlan && <p className="mt-1 text-xs text-charcoal/55">{selectedPlan.meal_plan ?? "No meal plan"} · {selectedPlan.refundable ? "Refundable" : "Non-refundable"}</p>}
-                  {selectedPlan && <p className="mt-1 text-[0.65rem] text-charcoal/50">Taxes and selected extras are calculated in the next step.</p>}
+                  {selectedPlan && <p className="mt-1 text-[0.7rem] text-charcoal/60">Taxes and selected extras are calculated in the next step.</p>}
                 </div>
               )}
               {options.length === 1 && selectedPlan && (
@@ -962,8 +979,8 @@ function SelectStep({ results, adults, childrenBelow6, children7Plus, nights, on
               <p className="text-xs text-charcoal/55">{requiresPlanChoice && !selectedPlan ? "Select a rate plan to see nightly pricing" : `${fmt(nightlyRate, selectedPlan?.currency ?? r.currency)} average / night`} · {paidOccupants} paid · {totalOccupants} total</p>
               <button
                 onClick={() => onSelect(r, selectedPlanId || undefined)} disabled={disabled || (requiresPlanChoice && options.length === 0) || (options.length > 1 && !selectedPlanId)}
-                className="mt-3 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
-                style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
+                className="mt-3 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-[var(--direct-on-primary)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+                style={{ background: "var(--direct-primary)" }}
               >
                 {!r.is_available ? "Unavailable" : options.length > 1 && !selectedPlanId ? "Choose a rate plan" : "Select"} →
               </button>
@@ -990,6 +1007,7 @@ function GuestStep(props: {
   setGuest: (g: { name: string; email: string; phone: string; country: string; requests: string; purpose: string }) => void;
   submitting: boolean;
   onBack: () => void; onSubmit: () => void;
+  propertyName: string;
 }) {
   const fmt = (n: number) => formatMoney(n, props.room.currency);
   const toggleExtra = (slug: string) => {
@@ -1027,7 +1045,7 @@ function GuestStep(props: {
         </div>
         <span className="whitespace-nowrap text-right text-sm">
           {fmt(e.price)}
-          <span className="block text-[0.65rem] uppercase tracking-[0.16em] text-charcoal/55">{unitLabel(e.unit)}</span>
+          <span className="block text-[0.7rem] uppercase tracking-[0.16em] text-charcoal/55">{unitLabel(e.unit)}</span>
         </span>
       </label>
     );
@@ -1042,13 +1060,13 @@ function GuestStep(props: {
           <p className="mt-1 text-xs text-charcoal/60">Optional services to elevate your stay. Select as many as you like.</p>
           {transfers.length > 0 && (
             <div className="mt-6">
-              <p className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">Transfers</p>
+              <p className="text-[0.7rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">Transfers</p>
               <div className="mt-3 space-y-3">{transfers.map(renderExtra)}</div>
             </div>
           )}
           {experiences.length > 0 && (
             <div className="mt-6">
-              <p className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">Experiences</p>
+              <p className="text-[0.7rem] font-medium uppercase tracking-[0.22em] text-charcoal/70">Experiences</p>
               <div className="mt-3 space-y-3">{experiences.map(renderExtra)}</div>
             </div>
           )}
@@ -1096,7 +1114,7 @@ function GuestStep(props: {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="mt-1 text-[0.6rem] uppercase tracking-[0.18em] text-charcoal/50">Helps us tailor your arrival (early breakfast, transfers, etc.)</p>
+              <p className="mt-1 text-[0.6rem] uppercase tracking-[0.18em] text-charcoal/60">Helps us tailor your arrival (early breakfast, transfers, etc.)</p>
             </div>
             <div className="sm:col-span-2"><label className={labelCls}>Special requests</label><textarea rows={3} className={`mt-2 ${field} resize-none`} value={props.guest.requests} onChange={(e) => props.setGuest({ ...props.guest, requests: e.target.value })} /></div>
           </div>
@@ -1118,7 +1136,7 @@ function GuestStep(props: {
             <>
               {props.breakdown.nightly.map((night) => (
                 <div key={night.date} className="flex items-center justify-between gap-3 text-charcoal/70">
-                  <span><span className="block">{night.date}</span><span className="mt-0.5 block text-[10px] capitalize text-charcoal/45">{(night.applied_rule_type ?? night.source ?? "published rate").replaceAll("_", " ")}{night.pricing_basis ? ` · ${night.pricing_basis.replaceAll("_", " ")}` : ""}</span></span>
+                  <span><span className="block">{night.date}</span><span className="mt-0.5 block text-[11px] capitalize text-charcoal/60">{(night.applied_rule_type ?? night.source ?? "published rate").replaceAll("_", " ")}{night.pricing_basis ? ` · ${night.pricing_basis.replaceAll("_", " ")}` : ""}</span></span>
                   <span className="shrink-0">{fmt(night.nightly_rate)}</span>
                 </div>
               ))}
@@ -1152,33 +1170,34 @@ function GuestStep(props: {
           )}
           <div className="flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(props.grandTotal)}</span></div>
           <div className="flex justify-between text-charcoal/70"><span>Payment status</span><span>Not configured</span></div>
-          <p className="text-xs leading-5 text-charcoal/60">No payment will be collected during this booking flow. Your reservation will remain pending and Mtoni will contact you about payment arrangements.</p>
+          <p className="text-xs leading-5 text-charcoal/60">No payment will be collected during this booking flow. Your reservation will remain pending and {props.propertyName} will contact you about payment arrangements.</p>
         </div>
         <button
           onClick={props.onSubmit} disabled={props.submitting || props.pricingLoading || !props.breakdown}
-          className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-ivory transition-all hover:brightness-110 disabled:opacity-60"
-          style={{ background: "linear-gradient(135deg, #0F3D3A 0%, #0F3D3A 100%)" }}
+          className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-[var(--direct-on-primary)] transition-all hover:brightness-110 disabled:opacity-60"
+          style={{ background: "var(--direct-primary)" }}
         >
           {props.submitting && <Loader2 className="h-4 w-4 animate-spin" />}
           {props.submitting ? "Submitting reservation…" : props.pricingLoading ? "Updating quote…" : "Submit Reservation Request"}
         </button>
-        <p className="text-[0.65rem] leading-5 text-charcoal/55">Payment is not configured for this UAT connection. No payment will be taken or marked as paid.</p>
+        <p className="text-[0.7rem] leading-5 text-charcoal/55">Payment is not configured for this UAT connection. No payment will be taken or marked as paid.</p>
       </aside>
     </div>
   );
 }
 
-function ConfirmationStep({ confirmation, room, checkIn, checkOut, nights, guestName, guestEmail }: {
+function ConfirmationStep({ confirmation, room, checkIn, checkOut, nights, guestName, guestEmail, propertyName }: {
   confirmation: { reference: string; total: number; currency: string; paymentStatus: "unpaid"; paymentState: "not_configured" };
   room: AvailabilityRoom;
   checkIn: string; checkOut: string; nights: number;
   guestName: string; guestEmail: string;
+  propertyName: string;
 }) {
   const fmt = (n: number) => formatMoney(n, confirmation.currency);
   return (
-    <div className="rounded-2xl border border-charcoal/10 bg-ivory p-8 text-center shadow-[0_24px_60px_-30px_rgba(30,45,30,0.35)] sm:p-12">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#0F3D3A]/10">
-        <Check className="h-7 w-7" style={{ color: "#0F3D3A" }} />
+    <div className="rounded-2xl border border-charcoal/10 bg-ivory p-8 text-center shadow-[0_24px_60px_-30px_var(--direct-shadow)] sm:p-12">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--direct-primary-soft)]">
+        <Check className="h-7 w-7 text-[var(--direct-on-primary-soft)]" />
       </div>
       <h2 className="mt-5 font-display text-3xl">Booking received</h2>
       <p className="mt-2 text-sm text-charcoal/70">Thank you, {guestName}. Your reservation request has been recorded for {guestEmail}.</p>
@@ -1191,7 +1210,7 @@ function ConfirmationStep({ confirmation, room, checkIn, checkOut, nights, guest
         <div className="mt-3 flex justify-between border-t border-charcoal/10 pt-3 font-display text-lg"><span>Total</span><span>{fmt(confirmation.total)}</span></div>
         <div className="mt-2 flex justify-between text-charcoal/70"><span>Payment status</span><span>{confirmation.paymentStatus === "unpaid" && confirmation.paymentState === "not_configured" ? "Unpaid · Not configured" : "Pending"}</span></div>
       </div>
-      <p className="mt-6 text-xs leading-5 text-charcoal/55">Reservation status: <span className="font-medium text-charcoal">Pending</span>. Payment is not configured and no payment has been collected. Mtoni’s reservations team will contact you to arrange the next step.</p>
+      <p className="mt-6 text-xs leading-5 text-charcoal/55">Reservation status: <span className="font-medium text-charcoal">Pending</span>. Payment is not configured and no payment has been collected. The {propertyName} reservations team will contact you to arrange the next step.</p>
     </div>
   );
 }
