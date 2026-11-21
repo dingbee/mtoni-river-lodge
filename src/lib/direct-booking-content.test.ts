@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasTemplateColumns, offerSchema, parseTemplateContent, publicGalleryUrls, visibleOffer } from "./direct-booking-content";
+import { directHeroPhotos, hasTemplateColumns, offerSchema, parseTemplateContent, publicGalleryUrls, visibleOffer } from "./direct-booking-content";
 
 describe("parseTemplateContent", () => {
   it("returns empty content when the branding row is missing or predates the template columns", () => {
@@ -48,5 +48,27 @@ describe("publicGalleryUrls", () => {
   it("keeps https image URLs only", () => {
     expect(publicGalleryUrls(["https://a.example/1.jpg", "http://a.example/2.jpg", 3, "data:image/png;base64,xx"])).toEqual(["https://a.example/1.jpg"]);
     expect(publicGalleryUrls(null)).toEqual([]);
+  });
+});
+
+describe("directHeroPhotos", () => {
+  const rooms = [
+    { name: "Standard", image_url: "https://a.example/s.jpg" },
+    { name: "Deluxe", image_url: null, gallery_urls: ["https://a.example/d.jpg"] },
+    { name: "No photo", image_url: null },
+    { name: "Suite", image_url: "https://a.example/su.jpg" },
+  ];
+  it("prefers the property gallery, uncaptioned", () => {
+    expect(directHeroPhotos(["https://g.example/1.jpg"], rooms)).toEqual([{ url: "https://g.example/1.jpg" }]);
+  });
+  it("falls back to room photographs captioned with the room name, up to three", () => {
+    expect(directHeroPhotos([], rooms)).toEqual([
+      { url: "https://a.example/s.jpg", caption: "Standard" },
+      { url: "https://a.example/d.jpg", caption: "Deluxe" },
+      { url: "https://a.example/su.jpg", caption: "Suite" },
+    ]);
+  });
+  it("returns nothing when there are no photographs", () => {
+    expect(directHeroPhotos([], [{ name: "x" }])).toEqual([]);
   });
 });

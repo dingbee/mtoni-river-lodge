@@ -89,3 +89,18 @@ export function publicGalleryUrls(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((url): url is string => typeof url === "string" && httpsUrl.safeParse(url).success).slice(0, 12);
 }
+
+export type DirectPhoto = { url: string; caption?: string };
+
+/**
+ * Photographs for the cards that overlap the bottom of the hero: the property's
+ * gallery first, otherwise its room photographs captioned with the room name,
+ * so a property with room photos already gets this section.
+ */
+export function directHeroPhotos(galleryUrls: string[], rooms: Array<{ name?: string | null; image_url?: string | null; gallery_urls?: string[] | null }>): DirectPhoto[] {
+  if (galleryUrls.length > 0) return galleryUrls.slice(0, 3).map((url) => ({ url }));
+  return rooms.flatMap((room) => {
+    const url = room.image_url || room.gallery_urls?.[0];
+    return url ? [{ url, caption: room.name ?? undefined }] : [];
+  }).slice(0, 3);
+}
