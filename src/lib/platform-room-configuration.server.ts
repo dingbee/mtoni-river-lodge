@@ -222,14 +222,13 @@ export const savePlatformRoomGallery = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireRoomAdmin(context.supabase, context.userId);
     const propertyId = await activePropertyId(context.supabase, context.userId);
-    const { data: updated, error } = await (context.supabase as unknown as SupabaseClient)
-      .from("rooms")
-      .update({ image_url: data.imageUrl || null, gallery_urls: data.galleryUrls })
-      .eq("id", data.roomId)
-      .eq("property_id", propertyId)
-      .select("id")
-      .maybeSingle();
+    const { data: updatedId, error } = await context.supabase.rpc("save_platform_room_gallery", {
+      _property_id: propertyId,
+      _room_id: data.roomId,
+      _image_url: data.imageUrl || null,
+      _gallery_urls: data.galleryUrls,
+    });
     if (error) throw new Error(error.message);
-    if (!updated) throw new Error("Room type not found in the active property.");
+    if (!updatedId) throw new Error("Room type not found in the active property.");
     return { success: true };
   });
