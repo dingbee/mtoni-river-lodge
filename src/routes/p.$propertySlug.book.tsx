@@ -5,7 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2, Check } from "lucide-react";
-import { SiteFooterMinimal } from "@/components/site/SiteFooterMinimal";
+
 import { BreadcrumbsBar } from "@/components/site/Breadcrumbs";
 import {
   Select,
@@ -34,6 +34,7 @@ import { validateBookingSearch } from "@/lib/booking-search";
 import { getPublicBookingProperty, recordPublicDirectBookingAnalyticsEvent } from "@/domains/booking-campaigns/public-campaign.functions";
 import { deriveDirectTheme, legacyPaletteOverrides } from "@/lib/direct-booking-theme";
 import { DirectGalleryStrip, DirectHighlights, DirectOfferBanner, DirectValueWords } from "@/components/direct-booking/DirectSections";
+import { DirectFooter } from "@/components/direct-booking/DirectTemplate";
 
 export const Route = createFileRoute("/p/$propertySlug/book")({
   loader: ({ params }) => getPublicBookingProperty({ data: { propertySlug: params.propertySlug } }),
@@ -771,7 +772,7 @@ function BookPage() {
           </div>
         </section>
       </main>
-      <SiteFooterMinimal />
+      <DirectFooter brand={<span className="font-display text-lg font-medium text-[var(--direct-text)]">{property.name}</span>} propertyName={property.name} contact={branding.template.contact} social={branding.socialLinks} attribution={true} />
     </div>
   );
 }
