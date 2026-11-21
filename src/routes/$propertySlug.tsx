@@ -211,7 +211,7 @@ function PublicPropertyBookingPage() {
   }, [getQuote, propertySlug, selectedRoom?.slug, resolvedRatePlanId, checkIn, checkOut, guests, validGuestEmail, nights]);
 
   const runAvailability = () => {
-    if (nights > 0) availabilityMutation.mutate();
+    if (nights > 0) availabilityMutation.mutate({});
   };
 
   if (!propertyData) {
