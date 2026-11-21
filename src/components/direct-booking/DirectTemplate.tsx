@@ -209,14 +209,18 @@ export function DirectPhotoCarousel({ photos, propertyName, title, intro, rating
 }
 
 /** Swipeable room photographs: the main image followed by the room gallery. */
-export function DirectRoomGallery({ images, alt }: { images: string[]; alt: string }) {
+export function DirectRoomGallery({ images, alt, onOpen }: { images: string[]; alt: string; onOpen?: (index: number) => void }) {
   const { track, edges, scroll } = useCarousel();
   const [index, setIndex] = useState(0);
   if (images.length === 0) return <div className="flex h-full w-full items-center justify-center bg-[var(--direct-surface-sunken)] text-xs text-[var(--direct-muted)]">Room image not provided</div>;
-  if (images.length === 1) return <img src={images[0]} alt={alt} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]" />;
+  // Tapping a photo opens the room's photos full screen at that photo.
+  const photo = (url: string, i: number, className: string) => onOpen
+    ? <button key={url + i} type="button" onClick={() => onOpen(i)} aria-label={`Open ${alt} photos`} className={`block h-full w-full shrink-0 cursor-zoom-in ${className}`}><img src={url} alt={images.length > 1 ? `${alt} — photograph ${i + 1} of ${images.length}` : alt} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]" /></button>
+    : <img key={url + i} src={url} alt={images.length > 1 ? `${alt} — photograph ${i + 1} of ${images.length}` : alt} loading="lazy" className={`h-full w-full shrink-0 object-cover ${className}`} />;
+  if (images.length === 1) return photo(images[0], 0, "");
   return <div className="relative h-full w-full">
     <div ref={track} onScroll={(event) => { const el = event.currentTarget; setIndex(Math.round(el.scrollLeft / Math.max(1, el.clientWidth))); }} className="flex h-full w-full snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {images.map((url, i) => <img key={url + i} src={url} alt={`${alt} — photograph ${i + 1} of ${images.length}`} loading="lazy" className="h-full w-full shrink-0 snap-start object-cover" />)}
+      {images.map((url, i) => photo(url, i, "snap-start"))}
     </div>
     <div className="absolute inset-x-0 bottom-3 flex justify-center gap-1.5" aria-hidden="true">
       {images.map((url, i) => <span key={url + i} className={`h-1.5 rounded-full bg-white transition-all ${i === index ? "w-4" : "w-1.5 opacity-60"}`} />)}
