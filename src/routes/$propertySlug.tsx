@@ -15,7 +15,7 @@ import { plausibleGuestEmail, quoteRatePlanId, searchedNightlyRate } from "@/lib
 import { deriveDirectTheme } from "@/lib/direct-booking-theme";
 import { reconcileQuote } from "@/lib/booking-economics";
 import { PriceSummary } from "@/components/direct-booking/PriceSummary";
-import { RoomDetailsDialog } from "@/components/direct-booking/RoomDetailsDialog";
+import { PhotoLightbox } from "@/components/direct-booking/PhotoLightbox";
 import { PropertyGallery } from "@/components/direct-booking/PropertyGallery";
 import { DirectHighlights, DirectOfferBanner, DirectValueWords } from "@/components/direct-booking/DirectSections";
 import { DirectFooter, DirectHeader, DirectHeadline, DirectPhotoCarousel, DirectRoomGallery, DirectVideoButton } from "@/components/direct-booking/DirectTemplate";
@@ -115,7 +115,7 @@ function PublicPropertyBookingPage() {
   const [bookingQuote, setBookingQuote] = useState<PublicBookingQuote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState("");
-  const [openRoomSlug, setOpenRoomSlug] = useState<string | null>(null);
+  const [openPhotos, setOpenPhotos] = useState<{ slug: string; index: number } | null>(null);
 
   const nights = useMemo(() => {
     if (!checkIn || !checkOut) return 0;
@@ -359,32 +359,16 @@ function PublicPropertyBookingPage() {
               window.setTimeout(() => document.getElementById("guest-details")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
             };
             const images = roomImages(room);
-            const dialog = openRoomSlug === room.slug ? <RoomDetailsDialog
-              key={`dialog-${room.id}`}
-              open
-              onOpenChange={(value) => { if (!value) setOpenRoomSlug(null); }}
-              themeStyle={brandStyle}
-              room={{
-                name: room.name, category: room.category?.name, shortDescription: room.short_description, description: room.description, details: room.details,
-                maxOccupancy: room.max_occupancy, capacityAdults: room.capacity_adults, capacityChildren: room.capacity_children,
-                bedLabel: room.bed_label, bathroomLabel: room.bathroom_label, sizeLabel: room.size_label, viewLabel: room.view_label,
-                amenities: Array.isArray(room.amenities) ? room.amenities.filter(Boolean) : [], images,
-              }}
-              price={<><p className="text-xl font-semibold text-[var(--direct-text)]">{priceMain}</p><p className="text-[11px] text-[var(--direct-muted)]">{priceNote}</p>{live && (selectedPlanForRoom || !needsPlanChoice) && <p className="mt-2 text-xs text-[var(--direct-text-subtle)]">{money(selectedPlanForRoom?.total ?? live.nightly_total, selectedPlanForRoom?.currency ?? live.currency)} for {nights} {nights === 1 ? "night" : "nights"} · {guests} {guests === 1 ? "guest" : "guests"}</p>}{notReturned && <p className="mt-2 text-xs text-[var(--direct-muted)]">Not available for {guests} {guests === 1 ? "guest" : "guests"} on these dates. Try other dates or fewer guests.</p>}</>}
-              action={live
-                ? { label: planOptions.length > 1 && !selectedRatePlans[room.slug] ? "Choose a rate plan on the room card" : "Choose this room", disabled: chooseDisabled, onClick: () => { setOpenRoomSlug(null); chooseRoom(); } }
-                : { label: "Check availability", onClick: () => { setOpenRoomSlug(null); window.setTimeout(() => document.getElementById("availability")?.scrollIntoView({ behavior: "smooth", block: "center" }), 80); } }}
-            /> : null;
             return <article key={room.id} className={`group overflow-hidden rounded-[1.4rem] border bg-[var(--direct-surface)] transition duration-200 ${isSelected ? "border-[var(--direct-border-strong)] ring-2 ring-[var(--direct-primary-soft)]" : "border-[var(--direct-border)] hover:-translate-y-0.5 hover:shadow-[0_14px_35px_var(--direct-shadow)]"}`}>
               <div className="relative aspect-[16/10] overflow-hidden bg-[var(--direct-surface-sunken)]">
-                <DirectRoomGallery images={images} alt={`${room.name} at ${property.name}`} />
-                <button type="button" onClick={() => setOpenRoomSlug(room.slug)} className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1.5 text-[11px] font-semibold text-white backdrop-blur transition hover:bg-black/70"><Images className="h-3.5 w-3.5" aria-hidden="true" />View room{images.length > 1 ? ` · ${images.length} photos` : ""}</button>
+                <DirectRoomGallery images={images} alt={`${room.name} at ${property.name}`} onOpen={(index) => setOpenPhotos({ slug: room.slug, index })} />
+                {images.length > 0 && <button type="button" onClick={() => setOpenPhotos({ slug: room.slug, index: 0 })} className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1.5 text-[11px] font-semibold text-white backdrop-blur transition hover:bg-black/70"><Images className="h-3.5 w-3.5" aria-hidden="true" />{images.length === 1 ? "View photo" : `${images.length} photos`}</button>}
                 <span className="absolute left-3 top-3 rounded-full border border-white/40 bg-[var(--direct-surface)]/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--direct-text)] backdrop-blur-sm">{room.category?.name || property.name}</span>
                 {isSelected && <span className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--direct-primary)] text-[var(--direct-on-primary)]"><Check className="h-4 w-4"/></span>}
               </div>
               <div className="p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0"><h3 className="direct-display text-[1.35rem] font-semibold leading-tight text-[var(--direct-text)]"><button type="button" onClick={() => setOpenRoomSlug(room.slug)} className="text-left underline-offset-4 hover:underline">{room.name}</button></h3><p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--direct-muted)]">{room.short_description || room.hero_line || room.description?.[0] || "A comfortable space for your stay."}</p></div>
+                  <div className="min-w-0"><h3 className="direct-display text-[1.35rem] font-semibold leading-tight text-[var(--direct-text)]">{room.name}</h3><p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--direct-muted)]">{room.short_description || room.hero_line || room.description?.[0] || "A comfortable space for your stay."}</p></div>
                   <div className="shrink-0 text-right"><p className="text-[17px] font-semibold tracking-tight text-[var(--direct-text)]">{priceMain}</p><p className="text-[11px] text-[var(--direct-muted)]">{priceNote}</p></div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-x-3 gap-y-2 border-t border-[var(--direct-border)] pt-3 text-[11px] text-[var(--direct-muted)]">
@@ -402,7 +386,7 @@ function PublicPropertyBookingPage() {
                   <button type="button" disabled={chooseDisabled} onClick={chooseRoom} className={`mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${isSelected ? "bg-[var(--direct-primary-soft)] text-[var(--direct-on-primary-soft)]" : "bg-[var(--direct-primary)] text-[var(--direct-on-primary)] hover:opacity-90"}`}>{isSelected ? "Room selected" : "Choose this room"}<ArrowRight className="h-3.5 w-3.5"/></button>
                 </div> : notReturned ? <div className="mt-4 border-t border-[var(--direct-border)] pt-3"><p className="text-xs text-[var(--direct-muted)]">Not available for these dates</p></div> : <p className="mt-4 border-t border-[var(--direct-border)] pt-3 text-[11px] text-[var(--direct-muted)]">Search dates to check availability</p>}
               </div>
-            {dialog}</article>;
+            </article>;
           })}
         </div>
 
@@ -430,7 +414,12 @@ function PublicPropertyBookingPage() {
           <button type="button" onClick={() => { setConfirmation(null); setSelectedRoom(null); setGuestName(""); setGuestEmail(""); setGuestPhone(""); setCountry(""); setSpecialRequests(""); setAvailableRooms([]); setHasSearched(false); }} className="mt-5 rounded-full border border-[var(--direct-border-strong)] px-5 py-2.5 text-xs font-semibold text-[var(--direct-on-primary-soft)]">Make another reservation</button>
         </section>}
 
-        <PropertyGallery images={branding.galleryImageUrls} propertyName={property.name} themeStyle={brandStyle} className="mt-12 sm:mt-16" />
+        {(() => {
+          const room = openPhotos ? rooms.find((item: any) => item.slug === openPhotos.slug) : null;
+          return room ? <PhotoLightbox images={roomImages(room)} title={room.name} open startIndex={openPhotos?.index ?? 0} onOpenChange={(value) => { if (!value) setOpenPhotos(null); }} /> : null;
+        })()}
+
+        <PropertyGallery images={branding.galleryImageUrls} propertyName={property.name} className="mt-12 sm:mt-16" />
 
         <DirectOfferBanner id="offers" offer={branding.offer} className="mt-10 sm:mt-14" />
       </section>
