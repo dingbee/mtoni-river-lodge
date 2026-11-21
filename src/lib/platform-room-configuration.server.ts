@@ -221,7 +221,8 @@ export const savePlatformRoomGallery = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireRoomAdmin(context.supabase, context.userId);
     const propertyId = await activePropertyId(context.supabase, context.userId);
-    const { data: updatedId, error } = await context.supabase.rpc("save_platform_room_gallery", {
+    const sb: any = context.supabase;
+    const { data: updatedId, error } = await sb.rpc("save_platform_room_gallery", {
       _property_id: propertyId,
       _room_id: data.roomId,
       _image_url: data.imageUrl || null,
