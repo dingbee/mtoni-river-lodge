@@ -131,7 +131,7 @@ export const getPublicBookingCampaign = createServerFn({ method: "GET" })
     const validOffers = offers.flatMap((offer) => {
       const publication = publicationById.get(offer.rate_plan_publication_id);
       const today = campaignLocalDate(property.timezone);
-      const assignedRoomTypeIds = new Set<string>((publication?.room_type_assignments ?? []).map((item) => item.room_type_id));
+      const assignedRoomTypeIds = new Set<string>((publication?.room_type_assignments ?? []).map((item: { room_type_id: string }) => item.room_type_id));
       if (!publication || !latestPublicationIds.has(publication.id)
         || publication.currency !== property.currency || !validPlans.has(publication.rate_plan_id)
         || (publication.effective_from && publication.effective_from > today)
