@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Facebook, Globe, Instagram, Linkedin, Mail, MapPin, Menu, MessageCircle, Phone, Play, Star, X, Youtube, type LucideIcon } from "lucide-react";
-import { activeSocialLinks, type DirectPhoto, type DirectSocialLinks, type DirectTemplateSettings, type SocialNetwork } from "@/lib/direct-booking-content";
+import { activeSocialLinks, telHref, type DirectPhoto, type DirectSocialLinks, type DirectTemplateSettings, type SocialNetwork } from "@/lib/direct-booking-content";
 
 /**
  * Template chrome for the public direct-booking page: navigation with a
@@ -49,7 +49,7 @@ export function DirectHeader({ brand, links, social, contact, bookLabel = "Book 
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
   }, [open]);
-  const hasContact = contact.phone || contact.email || contact.address;
+  const hasContact = Boolean(contact.phone || contact.email || contact.address || social.whatsapp);
   return <header className="relative z-40 border-b border-[var(--direct-border)] bg-[var(--direct-background)]/95 backdrop-blur">
     <div className="mx-auto flex h-[68px] max-w-7xl items-center justify-between gap-4 px-5 sm:px-8">
       {brand}
@@ -71,11 +71,7 @@ export function DirectHeader({ brand, links, social, contact, bookLabel = "Book 
           </ul>
         </nav>
         {(hasContact || activeSocialLinks(social).length > 0) && <div className="space-y-4 text-sm text-[var(--direct-text-subtle)]">
-          {hasContact && <ul className="space-y-2">
-            {contact.phone && <li><a href={`tel:${contact.phone.replace(/\s/g, "")}`} className="inline-flex items-center gap-2 hover:text-[var(--direct-text)]"><Phone className="h-4 w-4" />{contact.phone}</a></li>}
-            {contact.email && <li><a href={`mailto:${contact.email}`} className="inline-flex items-center gap-2 hover:text-[var(--direct-text)]"><Mail className="h-4 w-4" />{contact.email}</a></li>}
-            {contact.address && <li className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0" />{contact.address}</li>}
-          </ul>}
+          {hasContact && <DirectContactList contact={contact} whatsapp={social.whatsapp} />}
           <DirectSocialIcons links={social} />
         </div>}
       </div>
@@ -240,16 +236,27 @@ export function DirectFooter({ brand, propertyName, contact, social, attribution
   social: DirectSocialLinks;
   attribution: boolean;
 }) {
-  const hasContact = contact.phone || contact.email || contact.address;
+  const hasContact = Boolean(contact.phone || contact.email || contact.address || social.whatsapp);
   return <footer id="contact" className="scroll-mt-24 border-t border-[var(--direct-border)] bg-[var(--direct-surface-sunken)] px-5 py-10 sm:px-8">
     <div className="mx-auto grid max-w-7xl gap-6 text-sm text-[var(--direct-text-subtle)] md:grid-cols-3 md:items-start">
       <div>{brand}{attribution && <p className="mt-3 text-[11px] text-[var(--direct-muted)]">Property-owned reservations · Powered by StayNas</p>}</div>
-      {hasContact ? <ul className="space-y-2">
-        {contact.phone && <li><a href={`tel:${contact.phone.replace(/\s/g, "")}`} className="inline-flex items-center gap-2 hover:text-[var(--direct-text)]"><Phone className="h-4 w-4" />{contact.phone}</a></li>}
-        {contact.email && <li><a href={`mailto:${contact.email}`} className="inline-flex items-center gap-2 hover:text-[var(--direct-text)]"><Mail className="h-4 w-4" />{contact.email}</a></li>}
-        {contact.address && <li className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0" />{contact.address}</li>}
-      </ul> : <p className="text-[var(--direct-muted)]">Reservations are confirmed directly by {propertyName}.</p>}
+      {hasContact ? <DirectContactList contact={contact} whatsapp={social.whatsapp} /> : <p className="text-[var(--direct-muted)]">Reservations are confirmed directly by {propertyName}.</p>}
       <DirectSocialIcons links={social} className="md:justify-end" />
     </div>
   </footer>;
+}
+
+/**
+ * Property contact details: phone opens the dialer, WhatsApp opens a chat,
+ * email opens the mail app. Only provided details are listed.
+ */
+export function DirectContactList({ contact, whatsapp }: { contact: DirectTemplateSettings["contact"]; whatsapp?: string }) {
+  const phoneHref = contact.phone ? telHref(contact.phone) : "";
+  const linkClass = "inline-flex items-center gap-2 hover:text-[var(--direct-text)]";
+  return <ul className="space-y-2">
+    {contact.phone && phoneHref && <li><a href={phoneHref} className={linkClass}><Phone className="h-4 w-4" aria-hidden="true" /><span><span className="sr-only">Call </span>{contact.phone}</span></a></li>}
+    {whatsapp && <li><a href={whatsapp} target="_blank" rel="noopener noreferrer" className={linkClass}><MessageCircle className="h-4 w-4" aria-hidden="true" />Chat on WhatsApp</a></li>}
+    {contact.email && <li><a href={`mailto:${contact.email}`} className={linkClass}><Mail className="h-4 w-4" aria-hidden="true" /><span><span className="sr-only">Email </span>{contact.email}</span></a></li>}
+    {contact.address && <li className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />{contact.address}</li>}
+  </ul>;
 }

@@ -3,11 +3,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowRight, CheckCircle2, ShieldCheck } from "lucide-react";
 import { getPublicBookingCampaign, recordPublicBookingCampaignEvent } from "@/domains/booking-campaigns/public-campaign.functions";
+import type { BookingSearch } from "@/lib/booking-search";
 
 export const Route = createFileRoute("/p/$propertySlug/campaign/$campaignSlug")({
   loader: ({ params }) => getPublicBookingCampaign({ data: params }),
   head: ({ loaderData }) => {
-    const content = loaderData?.content as any;
+    const content = loaderData?.content as CampaignSeoContent | undefined;
     const title = String(content?.seo?.title || loaderData?.campaign.name || "Campaign — StayNas");
     const description = String(content?.seo?.description || content?.description || "Explore this direct booking offer.");
     const socialTitle = String(content?.social?.title || title);
@@ -26,6 +27,12 @@ export const Route = createFileRoute("/p/$propertySlug/campaign/$campaignSlug")(
 });
 
 type CampaignPageData = Awaited<ReturnType<typeof getPublicBookingCampaign>>;
+/** SEO and social fields read from a campaign's stored content JSON. */
+type CampaignSeoContent = {
+  description?: string;
+  seo?: { title?: string; description?: string; imageUrl?: string };
+  social?: { title?: string; description?: string; imageUrl?: string };
+};
 type CampaignOffer = CampaignPageData["offers"][number];
 
 function PublicCampaignPage() {
@@ -108,7 +115,7 @@ function PublicCampaignPage() {
           utmContent: tracking.utmContent,
           utmTerm: tracking.utmTerm,
           referrer: tracking.referrer,
-        } as any,
+        } as BookingSearch,
       });
     } catch (error) {
       setTrackingError(error instanceof Error ? error.message : "Unable to continue to booking.");

@@ -1,7 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
+
+/**
+ * staynas_get_booking_analytics returns loosely structured JSON that the
+ * analytics page reads field by field; it is not in the generated types.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped RPC JSON payload, see above
+type BookingAnalyticsReport = Record<string, any>;
 
 const rangeSchema = z.discriminatedUnion("range", [
   z.object({ range: z.enum(["today", "yesterday", "7d", "30d", "90d"]) }),
@@ -81,7 +89,7 @@ export const getDirectBookingAnalytics = createServerFn({ method: "POST" })
 
     const startAt = localMidnightUtc(from, property.timezone);
     const endAt = localMidnightUtc(addDays(to, 1), property.timezone);
-    const { data: report, error: reportError } = await (context.supabase as any).rpc(
+    const { data: report, error: reportError } = await (context.supabase as unknown as SupabaseClient).rpc(
       "staynas_get_booking_analytics",
       { _property_id: propertyId, _from: startAt, _to: endAt },
     );
@@ -90,6 +98,6 @@ export const getDirectBookingAnalytics = createServerFn({ method: "POST" })
     return {
       property: { id: property.id, name: property.name, currency: property.currency, timezone: property.timezone },
       period: { from, to, range: data.range },
-      report: report as Record<string, any>,
+      report: report as BookingAnalyticsReport,
     };
   });

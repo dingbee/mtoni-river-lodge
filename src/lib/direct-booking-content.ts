@@ -53,9 +53,56 @@ export type DirectHighlight = z.infer<typeof highlightSchema>;
 export const SOCIAL_NETWORKS = ["instagram", "facebook", "youtube", "tiktok", "pinterest", "x", "linkedin", "tripadvisor", "whatsapp"] as const;
 export type SocialNetwork = (typeof SOCIAL_NETWORKS)[number];
 export type DirectSocialLinks = Partial<Record<SocialNetwork, string>>;
-export const socialLinksSchema = z.object(
-  Object.fromEntries(SOCIAL_NETWORKS.map((network) => [network, httpsUrl.or(z.literal("")).optional()])) as Record<SocialNetwork, z.ZodOptional<z.ZodUnion<[typeof httpsUrl, z.ZodLiteral<"">]>>>,
-);
+/** Hosts each network's links must point to, so an icon never opens the wrong site. */
+const SOCIAL_HOSTS: Record<SocialNetwork, RegExp> = {
+  instagram: /(^|\.)instagram\.com$/,
+  facebook: /(^|\.)(facebook\.com|fb\.com|fb\.me)$/,
+  youtube: /(^|\.)(youtube\.com|youtu\.be)$/,
+  tiktok: /(^|\.)tiktok\.com$/,
+  pinterest: /(^|\.)(pinterest\.[a-z.]+|pin\.it)$/,
+  x: /(^|\.)(x\.com|twitter\.com)$/,
+  linkedin: /(^|\.)linkedin\.com$/,
+  tripadvisor: /(^|\.)tripadvisor\.[a-z.]+$/,
+  whatsapp: /(^|\.)(wa\.me|whatsapp\.com)$/,
+};
+
+/**
+ * Normalises what a property types into a social field: a WhatsApp phone number
+ * becomes a wa.me link, and a bare domain gains https://. Returns "" for empty.
+ */
+export function normalizeSocialLink(network: SocialNetwork, value: string | null | undefined): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  if (network === "whatsapp" && /^\+?[\d\s().-]{7,}$/.test(raw)) return `https://wa.me/${raw.replace(/\D/g, "")}`;
+  if (/^[a-z0-9.-]+\.[a-z]{2,}(\/|$)/i.test(raw)) return `https://${raw}`;
+  return raw;
+}
+
+/** Why a social link is rejected, or null when it is a valid https link for that network. */
+export function socialLinkProblem(network: SocialNetwork, value: string): string | null {
+  if (!value) return null;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return "Enter a full web address.";
+  }
+  if (url.protocol !== "https:") return "Use an https:// address.";
+  if (!SOCIAL_HOSTS[network].test(url.hostname.toLowerCase())) return `This is not a ${network === "x" ? "X (Twitter)" : network} address.`;
+  return null;
+}
+
+export const socialLinksSchema = z.record(z.string(), z.string()).transform((input, ctx) => {
+  const out: DirectSocialLinks = {};
+  for (const network of SOCIAL_NETWORKS) {
+    const url = normalizeSocialLink(network, input[network]);
+    if (!url) continue;
+    const problem = socialLinkProblem(network, url);
+    if (problem) ctx.addIssue({ code: z.ZodIssueCode.custom, path: [network], message: `${network}: ${problem}` });
+    else out[network] = url;
+  }
+  return out;
+});
 
 const optionalText = (max: number) => z.string().trim().max(max).default("");
 const optionalHttps = httpsUrl.or(z.literal("")).default("");
@@ -120,14 +167,22 @@ export function activeSocialLinks(links: DirectSocialLinks): Array<[SocialNetwor
   return SOCIAL_NETWORKS.flatMap((network) => (links[network] ? [[network, links[network] as string] as [SocialNetwork, string]] : []));
 }
 
+/** Valid links only: empty, malformed, insecure or wrong-network values are dropped. */
 export function parseSocialLinks(value: unknown): DirectSocialLinks {
   if (!value || typeof value !== "object") return {};
   const out: DirectSocialLinks = {};
   for (const network of SOCIAL_NETWORKS) {
-    const url = (value as Record<string, unknown>)[network];
-    if (typeof url === "string" && httpsUrl.safeParse(url).success) out[network] = url.trim();
+    const raw = (value as Record<string, unknown>)[network];
+    const url = typeof raw === "string" ? normalizeSocialLink(network, raw) : "";
+    if (url && !socialLinkProblem(network, url)) out[network] = url;
   }
   return out;
+}
+
+/** tel: target with only the characters dialers accept. */
+export function telHref(phone: string): string {
+  const cleaned = phone.trim().replace(/[^\d+]/g, "");
+  return cleaned ? `tel:${cleaned.startsWith("+") ? "+" + cleaned.slice(1).replace(/\+/g, "") : cleaned.replace(/\+/g, "")}` : "";
 }
 export type DirectOffer = z.infer<typeof offerSchema>;
 export type DirectTemplateContent = {

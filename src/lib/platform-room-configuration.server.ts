@@ -214,6 +214,7 @@ export const savePlatformRoomType = createServerFn({ method: "POST" })
 export const savePlatformRoomGallery = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({
+    propertyId: z.string().uuid().optional(),
     roomId: z.string().uuid(),
     imageUrl: z.string().trim().url().max(1000).refine((url) => url.startsWith("https://"), "Use an https:// image address.").or(z.literal("")),
     galleryUrls: z.array(z.string().trim().url().max(1000).refine((url) => url.startsWith("https://"), "Use https:// image addresses.")).max(20),
@@ -221,6 +222,11 @@ export const savePlatformRoomGallery = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireRoomAdmin(context.supabase, context.userId);
     const propertyId = await activePropertyId(context.supabase, context.userId);
+    // The admin screen names the property it is editing; refuse to write to a
+    // different active property (e.g. after a property switch in another tab).
+    if (data.propertyId && data.propertyId !== propertyId) {
+      throw new Error("The active property changed. Reload Property Branding before editing room galleries.");
+    }
     const sb: any = context.supabase;
     const { data: updatedId, error } = await sb.rpc("save_platform_room_gallery", {
       _property_id: propertyId,

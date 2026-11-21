@@ -1,7 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { resolvePublicDirectBookingChannel } from "@/lib/public-booking-channel.server";
 import { parseSocialLinks, parseTemplateContent, publicGalleryUrls } from "@/lib/direct-booking-content";
+
+/** Campaign tables are not in the generated types; rows are read as untyped JSON. */
+type UntypedSupabase = SupabaseClient;
 
 const campaignSlug = z.string().trim().min(2).max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 const campaignIdSchema = z.string().uuid();
@@ -28,7 +32,7 @@ export const getPublicBookingProperty = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
-    const sb = supabaseAdmin as any;
+    const sb = supabaseAdmin as unknown as UntypedSupabase;
     const [{ data: property, error: propertyError }, { data: branding, error: brandingError }] = await Promise.all([
       sb.from("staynas_properties").select("id,slug,name,currency,timezone,status")
         .eq("id", channel.propertyId).eq("slug", data.propertySlug).maybeSingle(),
@@ -58,6 +62,7 @@ export const getPublicBookingProperty = createServerFn({ method: "GET" })
         description: row.description ?? null,
         hero_image_url: row.hero_image_url ?? null,
         gallery_image_urls: publicGalleryUrls(row.gallery_image_urls),
+        show_staynas_attribution: row.show_staynas_attribution ?? true,
         ...parseTemplateContent(row),
         socialLinks: parseSocialLinks(row.social_links),
       },
@@ -71,7 +76,7 @@ export const getPublicBookingCampaign = createServerFn({ method: "GET" })
   }).parse(input))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const sb = supabaseAdmin as any;
+    const sb = supabaseAdmin as unknown as UntypedSupabase;
     const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
     const { data: property, error: propertyError } = await sb.from("staynas_properties")
       .select("id,slug,name,currency,timezone,status").eq("id", channel.propertyId).eq("slug", data.propertySlug).maybeSingle();
@@ -96,21 +101,21 @@ export const getPublicBookingCampaign = createServerFn({ method: "GET" })
     if (contentError || selectionError || offersError || brandingError || !contentRows?.length || !selections?.length || !offers?.length) {
       throw new Error("Campaign content, selected rooms or offer configuration is incomplete.");
     }
-    const roomIds = selections.map((item: any) => item.room_id);
-    const publicationIds = offers.map((item: any) => item.rate_plan_publication_id).filter(Boolean);
+    const roomIds = selections.map((item) => item.room_id);
+    const publicationIds = offers.map((item) => item.rate_plan_publication_id).filter(Boolean);
     const [{ data: rooms, error: roomsError }, { data: publications, error: publicationsError }] = await Promise.all([
       sb.from("rooms").select("id,slug,name,short_description,bed_label,bathroom_label,amenities,max_occupancy,status,catalogue_type_id").eq("property_id", property.id).eq("status", "active").in("id", roomIds),
       sb.from("staynas_rate_plan_publications").select("id,rate_plan_id,publication_number,rate_plan_version,code,name,currency,effective_from,effective_to,snapshot_hash,room_type_assignments").eq("property_id", property.id).in("id", publicationIds),
     ]);
     if (roomsError || publicationsError) throw new Error("Campaign booking resources could not be verified.");
-    const activeRoomIds = new Set((rooms ?? []).map((room: any) => room.id));
+    const activeRoomIds = new Set((rooms ?? []).map((room) => room.id));
     if (roomIds.some((id: string) => !activeRoomIds.has(id))) throw new Error("A campaign room is no longer available.");
-    const publicationById = new Map((publications ?? []).map((item: any) => [item.id, item]));
-    const planIds = Array.from(new Set((publications ?? []).map((item: any) => item.rate_plan_id)));
+    const publicationById = new Map((publications ?? []).map((item) => [item.id, item]));
+    const planIds = Array.from(new Set((publications ?? []).map((item) => item.rate_plan_id)));
     const { data: plans, error: plansError } = await sb.from("staynas_rate_plans")
       .select("id,active,publication_status,currency").eq("property_id", property.id).in("id", planIds);
     if (plansError) throw new Error("Campaign rate-plan status could not be verified.");
-    const validPlans = new Set((plans ?? []).filter((plan: any) => plan.active && plan.publication_status === "published" && plan.currency === property.currency).map((plan: any) => plan.id));
+    const validPlans = new Set((plans ?? []).filter((plan) => plan.active && plan.publication_status === "published" && plan.currency === property.currency).map((plan) => plan.id));
     const { data: latestPublications, error: latestError } = await sb.from("staynas_rate_plan_publications")
       .select("id,rate_plan_id,publication_number").eq("property_id", property.id).in("rate_plan_id", planIds)
       .order("publication_number", { ascending: false });
@@ -123,15 +128,15 @@ export const getPublicBookingCampaign = createServerFn({ method: "GET" })
         latestPublicationIds.add(latest.id);
       }
     }
-    const validOffers = offers.flatMap((offer: any) => {
-      const publication: any = publicationById.get(offer.rate_plan_publication_id);
+    const validOffers = offers.flatMap((offer) => {
+      const publication = publicationById.get(offer.rate_plan_publication_id);
       const today = campaignLocalDate(property.timezone);
-      const assignedRoomTypeIds = new Set<string>((publication?.room_type_assignments ?? []).map((item: any) => item.room_type_id));
+      const assignedRoomTypeIds = new Set<string>((publication?.room_type_assignments ?? []).map((item: { room_type_id: string }) => item.room_type_id));
       if (!publication || !latestPublicationIds.has(publication.id)
         || publication.currency !== property.currency || !validPlans.has(publication.rate_plan_id)
         || (publication.effective_from && publication.effective_from > today)
         || (publication.effective_to && publication.effective_to < today)
-        || (rooms ?? []).some((room: any) => !assignedRoomTypeIds.has(room.catalogue_type_id))) return [];
+        || (rooms ?? []).some((room) => !assignedRoomTypeIds.has(room.catalogue_type_id))) return [];
       return [{
         ...offer, ratePlanId: publication.rate_plan_id, publicationId: publication.id,
         publicationNumber: publication.publication_number, ratePlanVersion: publication.rate_plan_version,
@@ -179,7 +184,7 @@ export const recordPublicBookingCampaignEvent = createServerFn({ method: "POST" 
   }).parse(input))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const sb = supabaseAdmin as any;
+    const sb = supabaseAdmin as unknown as UntypedSupabase;
     const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
     const { data: property, error: propertyError } = await sb.from("staynas_properties")
       .select("id,status").eq("id", channel.propertyId).eq("slug", data.propertySlug).maybeSingle();
@@ -276,7 +281,7 @@ export const recordPublicDirectBookingAnalyticsEvent = createServerFn({ method: 
   }).parse(input))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const sb = supabaseAdmin as any;
+    const sb = supabaseAdmin as unknown as UntypedSupabase;
     const channel = await resolvePublicDirectBookingChannel(supabaseAdmin);
     const { data: property, error: propertyError } = await sb.from("staynas_properties")
       .select("id,organisation_id,status").eq("id", channel.propertyId).eq("slug", data.propertySlug).maybeSingle();

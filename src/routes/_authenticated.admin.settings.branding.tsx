@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Eye, ImagePlus, Plus, Save, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/os/PageHeader";
 import { SectionCard } from "@/components/os/SectionCard";
@@ -19,7 +19,7 @@ import { getPlatformRoomConfiguration, savePlatformRoomGallery } from "@/lib/pla
 import { AssetField, AssetUpload } from "@/components/direct-booking/BrandAssetUpload";
 import { deriveDirectTheme } from "@/lib/direct-booking-theme";
 import {
-  EMPTY_TEMPLATE_SETTINGS, HIGHLIGHT_ICONS, SOCIAL_NETWORKS,
+  EMPTY_TEMPLATE_SETTINGS, HIGHLIGHT_ICONS, SOCIAL_NETWORKS, normalizeSocialLink, socialLinkProblem,
   type DirectHighlight, type DirectOffer, type DirectTemplateSettings, type HighlightIcon, type SocialNetwork,
 } from "@/lib/direct-booking-content";
 
@@ -34,7 +34,7 @@ const ICON_LABELS: Record<HighlightIcon, string> = {
 };
 const SOCIAL_LABELS: Record<SocialNetwork, string> = {
   instagram: "Instagram", facebook: "Facebook", youtube: "YouTube", tiktok: "TikTok", pinterest: "Pinterest",
-  x: "X (Twitter)", linkedin: "LinkedIn", tripadvisor: "Tripadvisor", whatsapp: "WhatsApp (https://wa.me/…)",
+  x: "X (Twitter)", linkedin: "LinkedIn", tripadvisor: "Tripadvisor", whatsapp: "WhatsApp number or link",
 };
 const EMPTY_OFFER: DirectOffer = { enabled: false, eyebrow: "", title: "", body: "", ctaLabel: "", ctaUrl: "", imageUrl: "" };
 
@@ -226,9 +226,13 @@ function PropertyBrandingPage() {
 
           <Section value="social" title="Social media links" summary={`${Object.values(form.socialLinks).filter(Boolean).length} linked`}>
             <div className="grid gap-3 sm:grid-cols-2">
-              {SOCIAL_NETWORKS.map((network) => <Field key={network} label={SOCIAL_LABELS[network]}>
-                <Input value={form.socialLinks[network] ?? ""} maxLength={2048} placeholder="https://…" onChange={(e) => update("socialLinks", { ...form.socialLinks, [network]: e.target.value })} />
-              </Field>)}
+              {SOCIAL_NETWORKS.map((network) => {
+                const problem = socialLinkProblem(network, normalizeSocialLink(network, form.socialLinks[network]));
+                return <Field key={network} label={SOCIAL_LABELS[network]}>
+                  <Input value={form.socialLinks[network] ?? ""} maxLength={2048} aria-invalid={!!problem} placeholder={network === "whatsapp" ? "+255 7… or https://wa.me/…" : "https://…"} onChange={(e) => update("socialLinks", { ...form.socialLinks, [network]: e.target.value })} />
+                  {problem && <p className="text-xs text-destructive">{problem}</p>}
+                </Field>;
+              })}
             </div>
           </Section>
 
@@ -303,40 +307,84 @@ function OfferFields({ offer, propertyId, onChange }: { offer: DirectOffer; prop
 }
 
 type RoomRow = { id: string; name: string; image_url: string | null; gallery_urls: string[] | null };
+type RoomPhotos = { cover: string; gallery: string[] };
 
-/** Cover photo and gallery per room type, saved straight to the room record. */
+/**
+ * Cover photo and gallery per room type, saved straight to the room record through
+ * the scoped save_platform_room_gallery RPC. Every change is computed from the
+ * latest local state and saves are sent one at a time per room, so rapid or
+ * multiple uploads never overwrite each other.
+ */
 function RoomGalleries({ propertyId }: { propertyId: string }) {
   const getRooms = useServerFn(getPlatformRoomConfiguration);
   const saveGallery = useServerFn(savePlatformRoomGallery);
   const qc = useQueryClient();
-  const rooms = useQuery({ queryKey: ["room-galleries", propertyId], queryFn: () => getRooms(), retry: false });
-  const save = useAdminMutation({
-    mutationFn: (input: { roomId: string; imageUrl: string; galleryUrls: string[] }) => saveGallery({ data: input }),
-    successMessage: "Room gallery saved",
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["room-galleries", propertyId] }),
-  });
-  if (rooms.isLoading) return <p className="text-sm text-muted-foreground">Loading room types…</p>;
-  if (rooms.isError) return <p className="text-sm text-muted-foreground">Room galleries need the Room Configuration permission. {(rooms.error as Error).message}</p>;
+  const queryKey = ["room-galleries", propertyId];
+  const rooms = useQuery({ queryKey, queryFn: () => getRooms(), retry: false });
   const list = ((rooms.data as { roomTypes?: RoomRow[] } | undefined)?.roomTypes ?? []) as RoomRow[];
+  const [photos, setPhotos] = useState<Record<string, RoomPhotos>>({});
+  const latest = useRef<Record<string, RoomPhotos>>({});
+  const queues = useRef<Record<string, Promise<void>>>({});
+  const [saving, setSaving] = useState<Record<string, number>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    // Adopt server state only for rooms with no save in flight.
+    const next: Record<string, RoomPhotos> = { ...latest.current };
+    for (const room of list) {
+      if (!saving[room.id]) next[room.id] = { cover: room.image_url ?? "", gallery: room.gallery_urls ?? [] };
+    }
+    latest.current = next;
+    setPhotos(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rooms.data]);
+
+  const change = (roomId: string, update: (current: RoomPhotos) => RoomPhotos) => {
+    const current = latest.current[roomId] ?? { cover: "", gallery: [] };
+    const next = update(current);
+    latest.current = { ...latest.current, [roomId]: next };
+    setPhotos(latest.current);
+    setErrors((e) => ({ ...e, [roomId]: "" }));
+    setSaving((s) => ({ ...s, [roomId]: (s[roomId] ?? 0) + 1 }));
+    queues.current[roomId] = (queues.current[roomId] ?? Promise.resolve()).then(async () => {
+      try {
+        await saveGallery({ data: { propertyId, roomId, imageUrl: next.cover, galleryUrls: next.gallery } });
+      } catch (error) {
+        setErrors((e) => ({ ...e, [roomId]: error instanceof Error ? error.message : "The gallery could not be saved." }));
+        await qc.invalidateQueries({ queryKey });
+      } finally {
+        setSaving((s) => ({ ...s, [roomId]: Math.max(0, (s[roomId] ?? 1) - 1) }));
+      }
+    });
+    void queues.current[roomId].then(() => qc.invalidateQueries({ queryKey }));
+  };
+
+  if (rooms.isLoading) return <p className="text-sm text-muted-foreground">Loading room types…</p>;
+  if (rooms.isError) return <p role="alert" className="text-sm text-destructive">Room types could not be loaded: {(rooms.error as Error).message}</p>;
   if (list.length === 0) return <p className="text-sm text-muted-foreground">No room types configured yet.</p>;
   return <div className="space-y-4">
     {list.map((room) => {
-      const gallery = room.gallery_urls ?? [];
-      const cover = room.image_url ?? "";
-      const commit = (imageUrl: string, galleryUrls: string[]) => save.mutate({ roomId: room.id, imageUrl, galleryUrls });
+      const { cover, gallery } = photos[room.id] ?? { cover: room.image_url ?? "", gallery: room.gallery_urls ?? [] };
       return <div key={room.id} className="rounded-lg border p-3">
-        <p className="text-sm font-semibold">{room.name}</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold">{room.name}</p>
+          <span className="text-[11px] text-muted-foreground">{saving[room.id] ? "Saving…" : `${gallery.length}/20 photos`}</span>
+        </div>
         <div className="mt-2 flex flex-wrap items-end gap-2">
           <div className="relative">
             {cover ? <img src={cover} alt={`${room.name} cover`} className="h-20 w-28 rounded-md border object-cover ring-2 ring-primary/40" /> : <div className="flex h-20 w-28 items-center justify-center rounded-md border text-[11px] text-muted-foreground">No cover</div>}
             <span className="absolute left-1 top-1 rounded bg-background/90 px-1 text-[10px]">Cover</span>
           </div>
           {gallery.map((url, index) => <div key={url + index} className="relative">
-            <button type="button" title="Use as cover" onClick={() => commit(url, gallery)} className="block"><img src={url} alt={`${room.name} ${index + 1}`} className="h-20 w-28 rounded-md border object-cover" /></button>
-            <RemoveDot onClick={() => commit(cover, gallery.filter((_, i) => i !== index))} />
+            <button type="button" title="Use as cover" aria-label={`Use photo ${index + 1} as the cover`} onClick={() => change(room.id, (c) => ({ ...c, cover: url }))} className="block"><img src={url} alt={`${room.name} ${index + 1}`} className={`h-20 w-28 rounded-md border object-cover ${url === cover ? "ring-2 ring-primary" : ""}`} /></button>
+            <RemoveDot onClick={() => change(room.id, (c) => {
+              const remaining = c.gallery.filter((_, i) => i !== index);
+              return { gallery: remaining, cover: c.cover === url ? (remaining[0] ?? "") : c.cover };
+            })} />
           </div>)}
-          {gallery.length < 20 && <div className="w-40"><AssetUpload propertyId={propertyId} assetKey={`room-${room.id}`} label="Add photo" onUploaded={(url) => commit(cover || url, [...gallery, url].slice(0, 20))} /></div>}
+          {gallery.length < 20 && <div className="w-44"><AssetUpload multiple propertyId={propertyId} assetKey={`room-${room.id}`} label="Add photos" onUploaded={(url) => change(room.id, (c) => c.gallery.length >= 20 ? c : { cover: c.cover || url, gallery: [...c.gallery, url] })} /></div>}
         </div>
+        {errors[room.id] && <p role="alert" className="mt-2 text-xs text-destructive">{errors[room.id]}</p>}
         <p className="mt-2 text-[11px] text-muted-foreground">Tap a photo to make it the cover. Changes save immediately.</p>
       </div>;
     })}

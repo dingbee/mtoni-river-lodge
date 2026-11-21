@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- existing public room catalog payload is dynamically shaped */
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -16,6 +16,8 @@ import {
 import { formatMoney } from "@/lib/money";
 import { plausibleGuestEmail, quoteRatePlanId, searchedNightlyRate } from "@/lib/public-availability";
 import { deriveDirectTheme } from "@/lib/direct-booking-theme";
+import { reconcileQuote } from "@/lib/booking-economics";
+import { PriceSummary } from "@/components/direct-booking/PriceSummary";
 import { DirectHighlights, DirectOfferBanner, DirectValueWords } from "@/components/direct-booking/DirectSections";
 import { DirectFooter, DirectHeader, DirectHeadline, DirectPhotoCarousel, DirectRoomGallery, DirectVideoButton } from "@/components/direct-booking/DirectTemplate";
 import { directHeroPhotos } from "@/lib/direct-booking-content";
@@ -121,20 +123,31 @@ function PublicPropertyBookingPage() {
   }, [checkIn, checkOut]);
 
   const availabilityMutation = useMutation({
-    mutationFn: () => searchAvailability({ data: { propertySlug, checkIn, checkOut, guests } }),
-    onSuccess: (rooms) => {
+    mutationFn: (_options?: { auto?: boolean }) => searchAvailability({ data: { propertySlug, checkIn, checkOut, guests } }),
+    onSuccess: (rooms, options) => {
       setAvailableRooms(rooms as AvailableRoom[]);
       setHasSearched(true);
-      requestAnimationFrame(() => document.getElementById("room-results")?.scrollIntoView({ behavior: "smooth", block: "start" }));
       setSelectedRoom(null);
       setSelectedRatePlanId("");
       setSelectedRatePlans({});
       setBookingQuote(null);
       setQuoteError("");
       setConfirmation(null);
-      window.setTimeout(() => document.getElementById("room-results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+      if (!options?.auto) window.setTimeout(() => document.getElementById("room-results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
     },
   });
+
+  // Price the default stay as soon as the page loads, so every room card shows the
+  // rate the booking will actually charge. The stored base price is only a
+  // fallback when no search has completed, and is labelled as indicative.
+  const autoSearched = useRef(false);
+  const catalogueSize = propertyData?.rooms?.length ?? 0;
+  const { mutate: searchRooms } = availabilityMutation;
+  useEffect(() => {
+    if (autoSearched.current || catalogueSize === 0 || nights < 1) return;
+    autoSearched.current = true;
+    searchRooms({ auto: true });
+  }, [catalogueSize, nights, searchRooms]);
 
   const bookingMutation = useMutation({
     mutationFn: () => {
@@ -142,6 +155,7 @@ function PublicPropertyBookingPage() {
       if (!bookingQuote?.quote_id) throw new Error("Enter a valid guest email and wait for the final quote before booking.");
       // A reservation is only requested for a price the guest has actually been shown.
       if (money(bookingQuote.total, bookingQuote.currency) === "—") throw new Error("The final price could not be displayed. Refresh the page before requesting this reservation.");
+      if (priceMismatch) throw new Error("The price changed after your search. Search again to see current rates.");
       if (bookingQuote.quote_expires_at && Date.parse(bookingQuote.quote_expires_at) <= Date.now()) throw new Error("The quote expired. Refresh the price before submitting.");
       return createBooking({
         data: {
@@ -197,7 +211,7 @@ function PublicPropertyBookingPage() {
   }, [getQuote, propertySlug, selectedRoom?.slug, resolvedRatePlanId, checkIn, checkOut, guests, validGuestEmail, nights]);
 
   const runAvailability = () => {
-    if (nights > 0) availabilityMutation.mutate();
+    if (nights > 0) availabilityMutation.mutate({});
   };
 
   if (!propertyData) {
@@ -232,6 +246,11 @@ function PublicPropertyBookingPage() {
   </a>;
   const selectedPlan = selectedRoom?.rate_plan_options?.find((plan) => plan.rate_plan_id === selectedRatePlanId) ?? (selectedRoom?.rate_plan_options?.length === 1 ? selectedRoom.rate_plan_options[0] : undefined);
   const selectedTotal = selectedRoom ? Number(selectedPlan?.total ?? selectedRoom.nightly_total) : 0;
+  // What the guest saw in search: the selected plan, or the room's single priced quote.
+  const summaryPlan = selectedRoom ? (selectedPlan ?? (selectedTotal > 0 && nights > 0 ? { total: selectedTotal, average_nightly_rate: selectedTotal / nights, currency: selectedRoom.currency } : undefined)) : undefined;
+  // The reservation is created from the server quote; refuse to submit if it no
+  // longer matches the accommodation amount the guest was shown.
+  const priceMismatch = !!bookingQuote && !!summaryPlan && !reconcileQuote(summaryPlan, bookingQuote).matches;
 
   return (
     <main style={brandStyle} className="direct-booking min-h-screen bg-[var(--direct-background)] pb-28 text-[var(--direct-text)] selection:bg-[var(--direct-primary-soft)]">
@@ -338,7 +357,7 @@ function PublicPropertyBookingPage() {
               <div className="p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0"><h3 className="direct-display text-[1.35rem] font-semibold leading-tight text-[var(--direct-text)]">{room.name}</h3><p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--direct-muted)]">{room.short_description || room.hero_line || room.description?.[0] || "A comfortable space for your stay."}</p></div>
-                  <div className="shrink-0 text-right"><p className="text-[17px] font-semibold tracking-tight text-[var(--direct-text)]">{hasSearched && live && needsPlanChoice && !selectedPlanForRoom ? "Choose a plan" : hasSearched && live && selectedPlanForRoom ? money(Number(selectedPlanForRoom.total), selectedPlanForRoom.currency) : hasSearched && livePerNight ? `${livePerNight.uniform ? "" : "from "}${money(livePerNight.amount, livePerNight.currency)}` : room.base_price !== null && room.base_price !== undefined && Number(room.base_price) > 0 ? money(room.base_price, currency) : "Select dates"}</p><p className="text-[11px] text-[var(--direct-muted)]">{hasSearched && live && selectedPlanForRoom ? "accommodation subtotal" : hasSearched && live && needsPlanChoice ? "to view pricing" : hasSearched && livePerNight ? "per night · your dates" : room.base_price !== null && room.base_price !== undefined && Number(room.base_price) > 0 ? "per night · indicative" : "to see live rates"}</p></div>
+                  <div className="shrink-0 text-right"><p className="text-[17px] font-semibold tracking-tight text-[var(--direct-text)]">{hasSearched && live && needsPlanChoice && !selectedPlanForRoom ? "Choose a plan" : hasSearched && live && selectedPlanForRoom ? money(Number(selectedPlanForRoom.average_nightly_rate), selectedPlanForRoom.currency) : hasSearched && livePerNight ? `${livePerNight.uniform ? "" : "from "}${money(livePerNight.amount, livePerNight.currency)}` : notReturned ? "Unavailable" : room.base_price !== null && room.base_price !== undefined && Number(room.base_price) > 0 ? money(room.base_price, currency) : "Select dates"}</p><p className="text-[11px] text-[var(--direct-muted)]">{hasSearched && live && selectedPlanForRoom ? (planRatesVary(selectedPlanForRoom) ? "average per night" : "per night") : hasSearched && live && needsPlanChoice ? "to view pricing" : hasSearched && livePerNight ? "per night · your dates" : notReturned ? "for these dates" : room.base_price !== null && room.base_price !== undefined && Number(room.base_price) > 0 ? "indicative · confirm with dates" : "to see live rates"}</p></div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-x-3 gap-y-2 border-t border-[var(--direct-border)] pt-3 text-[11px] text-[var(--direct-muted)]">
                   <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5"/>{room.max_occupancy} guests max</span>
@@ -349,7 +368,7 @@ function PublicPropertyBookingPage() {
                   {room.amenities.filter(Boolean).length > 4 && <li className="px-1 py-1 text-[11px] text-[var(--direct-muted)]">+{room.amenities.filter(Boolean).length - 4} more</li>}
                 </ul>}
                 {live ? <div className="mt-4 border-t border-[var(--direct-border)] pt-3">
-                  <div className="flex items-center justify-between gap-2"><span className="text-[11px] font-medium text-[var(--direct-on-primary-soft)]">{live.min_available} available</span><span className="text-xs font-semibold text-[var(--direct-text)]">{needsPlanChoice && planOptions.length === 0 ? "Rates unavailable" : needsPlanChoice && planOptions.length > 1 && !selectedPlanForRoom ? "Choose a rate plan" : money(selectedPlanForRoom?.total ?? live.nightly_total, selectedPlanForRoom?.currency ?? live.currency)} <span className="font-normal text-[var(--direct-muted)]">accommodation subtotal</span></span></div>
+                  <div className="flex items-center justify-between gap-2"><span className="text-[11px] font-medium text-[var(--direct-on-primary-soft)]">{live.min_available} available</span><span className="text-xs font-semibold text-[var(--direct-text)]">{needsPlanChoice && planOptions.length === 0 ? "Rates unavailable" : needsPlanChoice && planOptions.length > 1 && !selectedPlanForRoom ? "Choose a rate plan" : money(selectedPlanForRoom?.total ?? live.nightly_total, selectedPlanForRoom?.currency ?? live.currency)} <span className="font-normal text-[var(--direct-muted)]">for {nights} {nights === 1 ? "night" : "nights"} · {guests} {guests === 1 ? "guest" : "guests"}</span></span></div>
                   {planOptions.length > 1 && <div className="mt-3"><label className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--direct-muted)]">Choose a rate plan</label><select value={selectedRatePlans[room.slug] ?? ""} onChange={(event) => { const nextPlanId = event.target.value; setSelectedRatePlans((current) => ({ ...current, [room.slug]: nextPlanId })); if (isSelected) setSelectedRatePlanId(nextPlanId); }} className="mt-1.5 h-10 w-full rounded-lg border border-[var(--direct-border)] bg-[var(--direct-surface-muted)] px-3 text-xs text-[var(--direct-text)]"><option value="">Select a rate plan</option>{planOptions.map((plan) => <option key={plan.rate_plan_id} value={plan.rate_plan_id}>{plan.name} — {money(Number(plan.total), plan.currency)}</option>)}</select>{selectedPlanForRoom && <p className="mt-1.5 text-[11px] text-[var(--direct-muted)]">{selectedPlanForRoom.description || selectedPlanForRoom.meal_plan || "Published rate plan"} · {selectedPlanForRoom.refundable ? "Refundable" : "Non-refundable"}</p>}</div>}
                   {planOptions.length === 1 && selectedPlanForRoom && <p className="mt-2 text-[11px] text-[var(--direct-muted)]">{selectedPlanForRoom.name} · {selectedPlanForRoom.meal_plan || "No meal plan"} · {selectedPlanForRoom.refundable ? "Refundable" : "Non-refundable"}</p>}
                   <button type="button" disabled={needsPlanChoice && planOptions.length === 0 || planOptions.length > 1 && !selectedRatePlans[room.slug]} onClick={() => { setSelectedRoom(live); setSelectedRatePlanId(selectedRatePlans[room.slug] ?? ""); setConfirmation(null); window.setTimeout(() => document.getElementById("guest-details")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80); }} className={`mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${isSelected ? "bg-[var(--direct-primary-soft)] text-[var(--direct-on-primary-soft)]" : "bg-[var(--direct-primary)] text-[var(--direct-on-primary)] hover:opacity-90"}`}>{isSelected ? "Room selected" : "Choose this room"}<ArrowRight className="h-3.5 w-3.5"/></button>
@@ -364,19 +383,7 @@ function PublicPropertyBookingPage() {
         {selectedRoom && !confirmation && <form id="guest-details" onSubmit={(event) => { event.preventDefault(); bookingMutation.mutate(); }} className="mt-7 scroll-mt-5 rounded-[1.5rem] border border-[var(--direct-border)] bg-[var(--direct-surface)] p-5 shadow-[0_12px_35px_var(--direct-shadow-soft)] sm:p-7">
           <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--direct-muted)]">Your reservation</p><h2 className="direct-display mt-1 text-[1.9rem] font-medium leading-tight text-[var(--direct-text)]">A few details before we confirm</h2></div><span className="rounded-full bg-[var(--direct-primary-soft)] px-3 py-1.5 text-[11px] font-semibold text-[var(--direct-on-primary-soft)]">Room selected</span></div>
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[var(--direct-surface-muted)] p-4"><div><p className="text-sm font-semibold text-[var(--direct-text)]">{selectedRoom.name}</p>{selectedPlan && <p className="mt-1 text-[11px] text-[var(--direct-text-subtle)]">{selectedPlan.name} · {selectedPlan.meal_plan || "No meal plan"} · {selectedPlan.refundable ? "Refundable" : "Non-refundable"}</p>}<p className="mt-1 text-[11px] text-[var(--direct-muted)]">{prettyDate(checkIn)} — {prettyDate(checkOut)} · {guests} guests</p></div><div className="text-right"><p className="text-lg font-semibold text-[var(--direct-text)]">{money(selectedTotal, selectedPlan?.currency ?? selectedRoom.currency)}</p><p className="text-[11px] text-[var(--direct-muted)]">accommodation subtotal · before taxes</p></div></div>{selectedPlan?.nightly_breakdown?.length ? <div className="mt-3 rounded-xl border border-[var(--direct-border)] bg-[var(--direct-surface)] p-4"><div className="flex items-center justify-between gap-2"><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--direct-muted)]">Nightly price breakdown</p><span className="text-[11px] text-[var(--direct-muted)]">{selectedPlan.nightly_breakdown.length} nights</span></div><div className="mt-2 divide-y divide-[var(--direct-border)]">{selectedPlan.nightly_breakdown.map((night) => <div key={night.date} className="flex items-center justify-between gap-3 py-2 text-xs"><div><p className="font-medium text-[var(--direct-text)]">{prettyDate(night.date)}</p><p className="mt-0.5 text-[11px] text-[var(--direct-muted)]">{night.source_label} · {night.pricing_basis.replaceAll("_", " ")}</p></div><span className="font-semibold tabular-nums text-[var(--direct-text)]">{money(Number(night.nightly_rate), night.currency)}</span></div>)}</div><div className="mt-2 flex items-center justify-between border-t border-[var(--direct-border)] pt-3 text-xs"><span className="font-semibold text-[var(--direct-text-subtle)]">Accommodation subtotal</span><span className="font-semibold tabular-nums text-[var(--direct-text)]">{money(selectedTotal, selectedPlan.currency)}</span></div></div> : null}
-          <div className="mt-4 rounded-xl border border-[var(--direct-border)] bg-[var(--direct-surface)] p-4">
-            <div className="flex items-center justify-between text-xs"><span className="text-[var(--direct-muted)]">Final price calculation</span><span className="text-[11px] text-[var(--direct-muted)]">{quoteLoading ? "Calculating…" : bookingQuote?.quote_expires_at ? `Valid until ${new Date(bookingQuote.quote_expires_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Awaiting guest email"}</span></div>
-            {bookingQuote ? <div className="mt-3 space-y-2 text-xs">
-              <div className="flex justify-between gap-3"><span>Accommodation</span><span>{money(Number(bookingQuote.accommodation_subtotal ?? 0), bookingQuote.currency ?? selectedRoom.currency)}</span></div>
-              <div className="flex justify-between gap-3"><span>Extras</span><span>{money(Number(bookingQuote.extras_total ?? 0), bookingQuote.currency ?? selectedRoom.currency)}</span></div>
-              <div className="flex justify-between gap-3"><span>Fees</span><span>{money(Number(bookingQuote.fee_total ?? 0), bookingQuote.currency ?? selectedRoom.currency)}</span></div>
-              <div className="flex justify-between gap-3"><span>Discounts</span><span>−{money(Number(bookingQuote.discount_total ?? 0), bookingQuote.currency ?? selectedRoom.currency)}</span></div>
-              <div className="flex justify-between gap-3"><span>Included taxes</span><span>{money(Number(bookingQuote.taxes ?? 0), bookingQuote.currency ?? selectedRoom.currency)}</span></div>
-              <div className="flex justify-between gap-3"><span>Additional taxes</span><span>{money(Number(bookingQuote.tax_addition ?? 0), bookingQuote.currency ?? selectedRoom.currency)}</span></div>
-              <div className="flex justify-between gap-3 border-t border-[var(--direct-border)] pt-3 text-sm font-semibold text-[var(--direct-text)]"><span>Total</span><span>{money(Number(bookingQuote.total ?? 0), bookingQuote.currency ?? selectedRoom.currency)}</span></div>
-            </div> : <p className="mt-2 text-[11px] text-[var(--direct-muted)]">{quoteLoading ? "Resolving published rates, fees, promotions and taxes…" : "Enter a valid email address to resolve the final guest quote."}</p>}
-            {quoteError && <p role="alert" className="mt-2 text-[11px] text-red-700">{quoteError}</p>}
-          </div>
+          <PriceSummary plan={summaryPlan} roomName={selectedRoom.name} maxOccupancy={selectedRoom.max_occupancy} nights={nights} guests={guests} quote={bookingQuote} quoteLoading={quoteLoading} quoteError={quoteError} currency={currency} />
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <label className="grid gap-1.5 text-[11px] font-semibold text-[var(--direct-text-subtle)]">Full name<input required minLength={2} maxLength={100} value={guestName} onChange={(event) => setGuestName(event.target.value)} className="h-11 rounded-xl border border-[var(--direct-border)] bg-[var(--direct-surface-muted)] px-3 text-sm font-normal text-[var(--direct-text)] outline-none focus:border-[var(--direct-border-strong)]" placeholder="Your full name"/></label>
             <label className="grid gap-1.5 text-[11px] font-semibold text-[var(--direct-text-subtle)]">Email address<input required type="email" value={guestEmail} onChange={(event) => setGuestEmail(event.target.value)} className="h-11 rounded-xl border border-[var(--direct-border)] bg-[var(--direct-surface-muted)] px-3 text-sm font-normal text-[var(--direct-text)] outline-none focus:border-[var(--direct-border-strong)]" placeholder="you@example.com"/></label>
@@ -385,7 +392,7 @@ function PublicPropertyBookingPage() {
             <label className="grid gap-1.5 text-[11px] font-semibold text-[var(--direct-text-subtle)] sm:col-span-2">Special requests <span className="font-normal text-[var(--direct-muted)]">Optional</span><textarea value={specialRequests} onChange={(event) => setSpecialRequests(event.target.value)} className="min-h-20 rounded-xl border border-[var(--direct-border)] bg-[var(--direct-surface-muted)] p-3 text-sm font-normal text-[var(--direct-text)] outline-none focus:border-[var(--direct-border-strong)]" maxLength={1000} placeholder="Let the property know if you have any requests…"/></label>
           </div>
           {bookingMutation.isError && <p role="alert" className="mt-4 text-xs text-red-700">{(bookingMutation.error as Error).message}</p>}
-          <button type="submit" disabled={bookingMutation.isPending || quoteLoading || !bookingQuote?.quote_id || money(bookingQuote.total, bookingQuote.currency) === "—"} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--direct-primary)] px-5 text-xs font-semibold text-[var(--direct-on-primary)] transition hover:bg-[var(--direct-primary-hover)] disabled:opacity-50">{bookingMutation.isPending ? "Submitting reservation…" : "Request this reservation"}<ArrowRight className="h-4 w-4"/></button>
+          <button type="submit" disabled={bookingMutation.isPending || quoteLoading || !bookingQuote?.quote_id || money(bookingQuote.total, bookingQuote.currency) === "—" || priceMismatch} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--direct-primary)] px-5 text-xs font-semibold text-[var(--direct-on-primary)] transition hover:bg-[var(--direct-primary-hover)] disabled:opacity-50">{bookingMutation.isPending ? "Submitting reservation…" : "Request this reservation"}<ArrowRight className="h-4 w-4"/></button>
           <p className="mt-3 text-center text-[11px] text-[var(--direct-muted)]">Your reservation request will be sent to the property for confirmation.</p>
         </form>}
 
@@ -413,4 +420,10 @@ function PublicPropertyBookingPage() {
 /** Main room photograph followed by its gallery, without duplicates. */
 function roomImages(room: { image_url?: string | null; gallery_urls?: string[] | null }): string[] {
   return [...new Set([room.image_url, ...(room.gallery_urls ?? [])].filter((url): url is string => typeof url === "string" && url.length > 0))].slice(0, 12);
+}
+
+/** True when a plan's nightly rates differ across the stay (weekend rates, seasons). */
+function planRatesVary(plan: { nightly_breakdown?: Array<{ nightly_rate: number }> }): boolean {
+  const rates = (plan.nightly_breakdown ?? []).map((night) => Number(night.nightly_rate)).filter((rate) => Number.isFinite(rate));
+  return rates.length > 1 && rates.some((rate) => rate !== rates[0]);
 }
