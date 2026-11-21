@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { directHeroPhotos, hasTemplateColumns, offerSchema, parseTemplateContent, publicGalleryUrls, visibleOffer } from "./direct-booking-content";
+import { activeSocialLinks, directHeroPhotos, EMPTY_TEMPLATE_SETTINGS, hasTemplateColumns, offerSchema, parseSocialLinks, parseTemplateSettings, parseTemplateContent, publicGalleryUrls, visibleOffer } from "./direct-booking-content";
 
 describe("parseTemplateContent", () => {
   it("returns empty content when the branding row is missing or predates the template columns", () => {
-    expect(parseTemplateContent(null)).toEqual({ valueWords: [], highlights: [], offer: null });
-    expect(parseTemplateContent({ tagline: "x" })).toEqual({ valueWords: [], highlights: [], offer: null });
+    const empty = { valueWords: [], highlights: [], offer: null, template: EMPTY_TEMPLATE_SETTINGS, socialLinks: {} };
+    expect(parseTemplateContent(null)).toEqual(empty);
+    expect(parseTemplateContent({ tagline: "x" })).toEqual(empty);
     expect(hasTemplateColumns({ tagline: "x" })).toBe(false);
-    expect(hasTemplateColumns({ value_words: [], highlights: [], offer: null })).toBe(true);
+    expect(hasTemplateColumns({ value_words: [], highlights: [], offer: null })).toBe(false);
+    expect(hasTemplateColumns({ value_words: [], highlights: [], offer: null, template: {} })).toBe(true);
   });
 
   it("keeps valid entries and drops malformed ones individually", () => {
@@ -22,8 +24,8 @@ describe("parseTemplateContent", () => {
     });
     expect(content.valueWords).toEqual(["Tranquil", "Authentic", "Restorative"]);
     expect(content.highlights).toEqual([
-      { title: "Farm-to-table dining", description: "Local ingredients.", icon: "dining" },
-      { title: "River walks", description: "", icon: "stay" },
+      { title: "Farm-to-table dining", description: "Local ingredients.", icon: "dining", linkUrl: "" },
+      { title: "River walks", description: "", icon: "stay", linkUrl: "" },
     ]);
     expect(content.offer).toBeNull();
   });
@@ -32,6 +34,8 @@ describe("parseTemplateContent", () => {
     const base = { enabled: true, title: "Offer" };
     expect(offerSchema.safeParse({ ...base, ctaUrl: "/p/demo/book" }).success).toBe(true);
     expect(offerSchema.safeParse({ ...base, ctaUrl: "https://example.com/offer" }).success).toBe(true);
+    expect(offerSchema.safeParse({ ...base, ctaUrl: "#rooms" }).success).toBe(true);
+    expect(offerSchema.safeParse({ ...base, ctaUrl: "#" }).success).toBe(false);
     expect(offerSchema.safeParse({ ...base, ctaUrl: "//evil.example" }).success).toBe(false);
     expect(offerSchema.safeParse({ ...base, ctaUrl: "http://example.com" }).success).toBe(false);
     expect(offerSchema.safeParse({ ...base, imageUrl: "http://example.com/a.jpg" }).success).toBe(false);
@@ -61,7 +65,7 @@ describe("directHeroPhotos", () => {
   it("prefers the property gallery, uncaptioned", () => {
     expect(directHeroPhotos(["https://g.example/1.jpg"], rooms)).toEqual([{ url: "https://g.example/1.jpg" }]);
   });
-  it("falls back to room photographs captioned with the room name, up to three", () => {
+  it("falls back to room photographs captioned with the room name", () => {
     expect(directHeroPhotos([], rooms)).toEqual([
       { url: "https://a.example/s.jpg", caption: "Standard" },
       { url: "https://a.example/d.jpg", caption: "Deluxe" },
@@ -70,5 +74,39 @@ describe("directHeroPhotos", () => {
   });
   it("returns nothing when there are no photographs", () => {
     expect(directHeroPhotos([], [{ name: "x" }])).toEqual([]);
+  });
+});
+
+describe("template settings", () => {
+  it("defaults every field to empty so nothing is shown that the property did not enter", () => {
+    expect(parseTemplateSettings(null)).toEqual(EMPTY_TEMPLATE_SETTINGS);
+    expect(EMPTY_TEMPLATE_SETTINGS.hero.headline).toBe("");
+    expect(EMPTY_TEMPLATE_SETTINGS.rating.value).toBeNull();
+    expect(EMPTY_TEMPLATE_SETTINGS.photoCards).toEqual([]);
+  });
+
+  it("keeps valid sections when another section is invalid", () => {
+    const parsed = parseTemplateSettings({
+      hero: { headline: "Nature.\nComfort.\nYou.", videoUrl: "http://insecure.example/video.mp4" },
+      rating: { value: 4.9, label: "Loved by guests" },
+      photoCards: [{ imageUrl: "https://a.example/1.jpg", caption: "Sanctuaries" }, { imageUrl: "not a url" }],
+      contact: { email: "reservations@example.com" },
+    });
+    expect(parsed.hero).toEqual(EMPTY_TEMPLATE_SETTINGS.hero);
+    expect(parsed.rating.value).toBe(4.9);
+    expect(parsed.photoCards).toEqual([{ imageUrl: "https://a.example/1.jpg", caption: "Sanctuaries" }]);
+    expect(parsed.contact.email).toBe("reservations@example.com");
+  });
+
+  it("rejects ratings outside 0–5", () => {
+    expect(parseTemplateSettings({ rating: { value: 7 } }).rating.value).toBeNull();
+  });
+});
+
+describe("social links", () => {
+  it("keeps https links for known networks only, in display order", () => {
+    const links = parseSocialLinks({ facebook: "https://facebook.com/x", instagram: "https://instagram.com/x", myspace: "https://myspace.com/x", youtube: "http://youtube.com/x" });
+    expect(links).toEqual({ facebook: "https://facebook.com/x", instagram: "https://instagram.com/x" });
+    expect(activeSocialLinks(links).map(([network]) => network)).toEqual(["instagram", "facebook"]);
   });
 });

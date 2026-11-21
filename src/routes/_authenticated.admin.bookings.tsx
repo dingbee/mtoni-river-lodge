@@ -445,25 +445,18 @@ function AdminBookings() {
                   <span className="text-right font-display text-base">
                     {fmt(Number(detail.data.booking.total), detail.data.booking.currency)}
                   </span>
-                  <span className="text-muted-foreground">Deposit (50%)</span>
+                  <span className="text-muted-foreground">Deposit required</span>
                   <span className="text-right">
-                    {fmt(
-                      Number(
-                        detail.data.booking.deposit_amount ??
-                          Number(detail.data.booking.total) * 0.5,
-                      ),
-                      detail.data.booking.currency,
-                    )}
+                    {/* The stored deposit is the contract; no percentage is assumed. */}
+                    {detail.data.booking.deposit_amount === null || detail.data.booking.deposit_amount === undefined
+                      ? "Not recorded"
+                      : fmt(Number(detail.data.booking.deposit_amount), detail.data.booking.currency)}
                   </span>
                   <span className="text-muted-foreground">Balance (at check-in)</span>
                   <span className="text-right">
-                    {fmt(
-                      Number(
-                        detail.data.booking.balance_amount ??
-                          Number(detail.data.booking.total) * 0.5,
-                      ),
-                      detail.data.booking.currency,
-                    )}
+                    {detail.data.booking.balance_amount === null || detail.data.booking.balance_amount === undefined
+                      ? "Not recorded"
+                      : fmt(Number(detail.data.booking.balance_amount), detail.data.booking.currency)}
                   </span>
                 </div>
 

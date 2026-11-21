@@ -1173,7 +1173,7 @@ function GuestStep(props: {
           <p className="text-xs leading-5 text-charcoal/60">No payment will be collected during this booking flow. Your reservation will remain pending and {props.propertyName} will contact you about payment arrangements.</p>
         </div>
         <button
-          onClick={props.onSubmit} disabled={props.submitting || props.pricingLoading || !props.breakdown}
+          onClick={props.onSubmit} disabled={props.submitting || props.pricingLoading || !props.breakdown || fmt(props.grandTotal) === "—"}
           className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.24em] text-[var(--direct-on-primary)] transition-all hover:brightness-110 disabled:opacity-60"
           style={{ background: "var(--direct-primary)" }}
         >

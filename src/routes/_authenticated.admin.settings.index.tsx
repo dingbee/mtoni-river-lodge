@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { getBrandContext } from "@/domains/content/brand/brand.functions";
 import { getFounderAdminStatus } from "@/domains/_platform/founder-admin.functions";
 import { usePropertyContext } from "@/modules/property/PropertyContext";
+import { ISO_4217_CURRENCY_CODES } from "@/lib/money";
 
 export const Route = createFileRoute("/_authenticated/admin/settings/")({
   head: () => ({
@@ -40,24 +41,26 @@ type LinkTile = {
   status?: string;
 };
 
+/**
+ * Currency options come from the ISO 4217 list in money.ts, not from
+ * Intl.supportedValuesOf: Chrome on Android omits many currencies (e.g. TZS).
+ */
 function getSupportedCurrencyOptions(): Array<[string, string]> {
-  const intl = Intl as typeof Intl & {
-    supportedValuesOf?: (key: "currency") => string[];
-  };
-  const codes = intl.supportedValuesOf?.("currency") ?? [];
-  const names = new Intl.DisplayNames(["en"], { type: "currency" });
-  return codes
-    .filter((code) => /^[A-Z]{3}$/.test(code))
-    .sort((a, b) => a.localeCompare(b))
-    .map((code) => {
-      let name = code;
-      try {
-        name = names.of(code) ?? code;
-      } catch {
-        // Keep the ISO code visible when the runtime has no localized display name.
-      }
-      return [code, name];
-    });
+  let names: Intl.DisplayNames | null = null;
+  try {
+    names = new Intl.DisplayNames(["en"], { type: "currency" });
+  } catch {
+    names = null;
+  }
+  return ISO_4217_CURRENCY_CODES.map((code) => {
+    let name = code;
+    try {
+      name = names?.of(code) ?? code;
+    } catch {
+      // Keep the ISO code visible when the runtime has no localized display name.
+    }
+    return [code, name];
+  });
 }
 
 function SettingsHub() {

@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
-  hasTemplateColumns, highlightsSchema, offerSchema, parseTemplateContent, valueWordsSchema,
+  hasTemplateColumns, highlightsSchema, offerSchema, parseTemplateContent, socialLinksSchema, templateSettingsSchema, valueWordsSchema,
 } from "@/lib/direct-booking-content";
 
 const brandingSchema = z.object({
@@ -23,6 +23,8 @@ const brandingSchema = z.object({
   valueWords: valueWordsSchema,
   highlights: highlightsSchema,
   offer: offerSchema.nullable(),
+  template: templateSettingsSchema,
+  socialLinks: socialLinksSchema,
 });
 
 export type PropertyBranding = z.infer<typeof brandingSchema>;
@@ -37,7 +39,7 @@ export type PropertyBrandingWithStatus = PropertyBranding & {
  * unavailable instead of failing the whole branding screen.
  */
 async function templateColumnsExist(supabase: Pick<SupabaseClient, "from">): Promise<boolean> {
-  const { error } = await supabase.from("staynas_property_branding").select("value_words,highlights,offer").limit(0);
+  const { error } = await supabase.from("staynas_property_branding").select("value_words,highlights,offer,template").limit(0);
   return !error;
 }
 
@@ -77,7 +79,8 @@ export const savePropertyBranding = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => brandingSchema.parse(d))
   .handler(async ({ data, context }) => {
     const templateFieldsAvailable = await templateColumnsExist(context.supabase);
-    const hasTemplateContent = data.valueWords.length > 0 || data.highlights.length > 0 || data.offer !== null;
+    const hasTemplateContent = data.valueWords.length > 0 || data.highlights.length > 0 || data.offer !== null
+      || JSON.stringify(data.template) !== JSON.stringify(templateSettingsSchema.parse({}));
     if (!templateFieldsAvailable && hasTemplateContent) {
       throw new Error("Booking page template content cannot be saved until the pending database update is applied. Other branding fields were not saved.");
     }
@@ -97,10 +100,13 @@ export const savePropertyBranding = createServerFn({ method: "POST" })
         hero_image_url: data.heroImageUrl || null,
         gallery_image_urls: data.galleryImageUrls,
         show_staynas_attribution: data.showStayNasAttribution,
+        // social_links already exists, so it saves with or without the review migration.
+        social_links: Object.fromEntries(Object.entries(data.socialLinks).filter(([, url]) => url)),
         ...(templateFieldsAvailable ? {
           value_words: data.valueWords,
           highlights: data.highlights,
           offer: data.offer,
+          template: data.template,
         } : {}),
         updated_by: context.userId,
         updated_at: new Date().toISOString(),

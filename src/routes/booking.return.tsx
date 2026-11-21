@@ -158,7 +158,7 @@ function BookingReturn() {
 
             <div className="mt-6 grid grid-cols-2 gap-2 rounded-lg bg-bone/40 p-4 text-sm">
               <span className="text-charcoal/60">Reference</span><span className="text-right font-mono">{status.reference}</span>
-              <span className="text-charcoal/60">Deposit (50%)</span><span className="text-right">{fmt(status.deposit, status.currency)}</span>
+              <span className="text-charcoal/60">Deposit</span><span className="text-right">{fmt(status.deposit, status.currency)}</span>
               <span className="text-charcoal/60">Balance at check-in</span><span className="text-right">{fmt(status.balance, status.currency)}</span>
               <span className="font-display">Total</span><span className="text-right font-display">{fmt(status.total, status.currency)}</span>
               {status.paymentMethod && (<><span className="text-charcoal/60">Method</span><span className="text-right">{status.paymentMethod}</span></>)}

@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireStayNasModuleAccess } from "@/lib/staynas-authorization.server";
@@ -204,4 +205,31 @@ export const savePlatformRoomType = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     return { id: roomId };
+  });
+
+/**
+ * Replaces one room type's photo gallery. Used by Property Branding so room
+ * galleries can be managed alongside the booking page; scoped to the active
+ * property and the same "rooms.configure" permission as Room Configuration.
+ */
+export const savePlatformRoomGallery = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({
+    roomId: z.string().uuid(),
+    imageUrl: z.string().trim().url().max(1000).refine((url) => url.startsWith("https://"), "Use an https:// image address.").or(z.literal("")),
+    galleryUrls: z.array(z.string().trim().url().max(1000).refine((url) => url.startsWith("https://"), "Use https:// image addresses.")).max(20),
+  }).parse(input))
+  .handler(async ({ data, context }) => {
+    await requireRoomAdmin(context.supabase, context.userId);
+    const propertyId = await activePropertyId(context.supabase, context.userId);
+    const { data: updated, error } = await (context.supabase as unknown as SupabaseClient)
+      .from("rooms")
+      .update({ image_url: data.imageUrl || null, gallery_urls: data.galleryUrls })
+      .eq("id", data.roomId)
+      .eq("property_id", propertyId)
+      .select("id")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!updated) throw new Error("Room type not found in the active property.");
+    return { success: true };
   });
