@@ -16,7 +16,8 @@ import {
 import { formatMoney } from "@/lib/money";
 import { plausibleGuestEmail, quoteRatePlanId, searchedNightlyRate } from "@/lib/public-availability";
 import { deriveDirectTheme } from "@/lib/direct-booking-theme";
-import { DirectGalleryStrip, DirectHighlights, DirectOfferBanner, DirectValueWords } from "@/components/direct-booking/DirectSections";
+import { DirectHighlights, DirectOfferBanner, DirectPhotoCards, DirectValueWords } from "@/components/direct-booking/DirectSections";
+import { directHeroPhotos } from "@/lib/direct-booking-content";
 
 export const Route = createFileRoute("/$propertySlug")({
   loader: async ({ params }) => {
@@ -203,6 +204,7 @@ function PublicPropertyBookingPage() {
   const currency = property.currency;
   // All page colours derive from the property's four branding colours.
   const brandStyle = deriveDirectTheme(branding) as React.CSSProperties;
+  const heroPhotos = directHeroPhotos(branding.galleryImageUrls, rooms);
   const selectedPlan = selectedRoom?.rate_plan_options?.find((plan) => plan.rate_plan_id === selectedRatePlanId) ?? (selectedRoom?.rate_plan_options?.length === 1 ? selectedRoom.rate_plan_options[0] : undefined);
   const selectedTotal = selectedRoom ? Number(selectedPlan?.total ?? selectedRoom.nightly_total) : 0;
 
@@ -219,17 +221,17 @@ function PublicPropertyBookingPage() {
       </header>
 
       <section className="mx-auto max-w-7xl px-4 pt-4 sm:px-8 sm:pt-7">
-        <div className="relative isolate flex min-h-[340px] items-end overflow-hidden rounded-[1.65rem] bg-[var(--direct-overlay)] sm:min-h-[460px] sm:rounded-[2rem] lg:min-h-[520px]">
+        <div className="relative isolate flex min-h-[420px] items-end overflow-hidden rounded-[1.65rem] bg-[var(--direct-overlay)] sm:min-h-[540px] sm:rounded-[2rem] lg:min-h-[600px]">
           {branding.heroImageUrl
             ? <img src={branding.heroImageUrl} alt={`${property.name}`} className="absolute inset-0 -z-20 h-full w-full object-cover" />
             : <div aria-hidden="true" className="absolute inset-0 -z-20 bg-[radial-gradient(120%_90%_at_85%_10%,var(--direct-primary)_0%,var(--direct-overlay)_70%)]" />}
           <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[var(--direct-overlay)]/85 via-[var(--direct-overlay)]/45 to-[var(--direct-overlay)]/5"/>
           <div className="absolute inset-x-0 bottom-0 -z-10 h-1/2 bg-gradient-to-t from-[var(--direct-overlay)]/60 to-transparent"/>
-          <div className="w-full px-6 pb-12 pt-20 text-white sm:px-10 sm:pb-16 lg:flex lg:items-end lg:justify-between lg:gap-10">
+          <div className={`w-full px-6 pt-20 text-white sm:px-10 lg:flex lg:items-end lg:justify-between lg:gap-10 ${heroPhotos.length ? "pb-24 sm:pb-36" : "pb-12 sm:pb-16"}`}>
             <div className="max-w-2xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--direct-accent-on-dark)] sm:text-xs">{branding.tagline || "A more personal way to stay"}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/80 sm:text-xs">{branding.tagline || "A more personal way to stay"}</p>
               <h1 className="direct-display mt-3 max-w-xl text-[2.9rem] font-medium leading-[0.98] sm:text-7xl">{property.name}</h1>
-              <p className="mt-4 max-w-md text-sm leading-6 text-white/85 sm:text-base">{branding.description || "Find your dates. Choose your room. Book directly."}</p>
+              <p className="mt-4 max-w-md text-sm leading-6 text-white/85 sm:text-base">Find your dates. Choose your room. Book directly.</p>
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <a href="#room-results" className="inline-flex h-11 items-center gap-2 rounded-full bg-[var(--direct-primary)] px-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--direct-on-primary)] ring-1 ring-white/20 transition hover:bg-[var(--direct-primary-hover)]">View rooms<ArrowRight className="h-3.5 w-3.5"/></a>
                 <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/15 px-3 py-1.5 text-[11px] font-medium tracking-wide text-white/90 backdrop-blur-sm"><Globe2 className="h-3.5 w-3.5"/>DIRECT RESERVATIONS{branding.showStayNasAttribution ? " · POWERED BY STAYNAS" : ""}</span>
@@ -238,13 +240,23 @@ function PublicPropertyBookingPage() {
             <DirectValueWords words={branding.valueWords} className="mt-7 text-white/90 lg:mt-0 lg:pb-2" />
           </div>
         </div>
+        <DirectPhotoCards photos={heroPhotos} propertyName={property.name} intro={branding.description} />
+      </section>
 
-        <section id="availability" className="relative z-10 mx-auto -mt-5 max-w-5xl rounded-[1.4rem] border border-[var(--direct-border)] bg-[var(--direct-surface)] p-4 shadow-[0_18px_55px_var(--direct-shadow)] sm:-mt-8 sm:rounded-[1.7rem] sm:p-6">
-          <div className="mb-4 flex items-center justify-between px-1">
-            <div><p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--direct-muted)]">Plan your stay</p><h2 className="direct-display mt-1 text-2xl font-medium text-[var(--direct-text)] sm:text-[1.7rem]">When would you like to arrive?</h2></div>
-            <span className="hidden items-center gap-1.5 text-[11px] text-[var(--direct-muted)] sm:flex"><CalendarDays className="h-4 w-4"/> Flexible dates</span>
+      <section aria-label="Plan your stay" className="mx-auto max-w-7xl px-4 pt-10 sm:px-8 sm:pt-16">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.9fr)] lg:items-center lg:gap-10">
+          <div className="px-1">
+            <h2 className="direct-display text-[2.4rem] font-medium leading-[1.02] text-[var(--direct-text)] sm:text-5xl">Discover<br />your stay</h2>
+            <p className="mt-4 max-w-sm text-sm leading-6 text-[var(--direct-muted)]">Choose your dates and guests, compare rooms and live rates, and send your reservation directly to {property.name}.</p>
+            <a href="#room-results" className="mt-6 hidden h-11 items-center gap-2 rounded-full border border-[var(--direct-border-strong)] px-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--direct-text)] transition hover:bg-[var(--direct-surface)] lg:inline-flex">View rooms<ArrowRight className="h-3.5 w-3.5"/></a>
           </div>
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-[1fr_1fr_.8fr_auto] sm:items-end sm:gap-3">
+          <div className="relative lg:flex lg:items-center">
+        <section id="availability" className="relative z-10 rounded-[1.4rem] border border-[var(--direct-border)] bg-[var(--direct-surface)] p-4 shadow-[0_18px_55px_var(--direct-shadow)] sm:rounded-[1.7rem] sm:p-5 lg:w-[330px] lg:shrink-0">
+          <div className="mb-4 flex items-start justify-between gap-3 px-1">
+            <div><p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--direct-muted)]">Plan your stay</p><h2 className="direct-display mt-1 text-2xl font-medium leading-tight text-[var(--direct-text)] sm:text-[1.7rem]">When would you like to arrive?</h2></div>
+            {heroPhotos[0] && <img src={branding.heroImageUrl || heroPhotos[0].url} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" />}
+          </div>
+          <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-1">
             <label className="relative block min-w-0 rounded-xl border border-[var(--direct-border)] bg-[var(--direct-surface-muted)] px-3 py-2.5 transition focus-within:border-[var(--direct-border-strong)] focus-within:bg-[var(--direct-surface)]">
               <span className="block text-[11px] font-semibold uppercase tracking-[0.17em] text-[var(--direct-muted)]">Check-in</span>
               <span aria-hidden="true" className="mt-1 flex items-center justify-between gap-2 text-[13px] font-semibold text-[var(--direct-text)]">
@@ -259,24 +271,28 @@ function PublicPropertyBookingPage() {
               </span>
               <input aria-label="Check-out date" type="date" min={checkIn || isoDate(new Date())} value={checkOut} onChange={(event) => { setCheckOut(event.target.value); setHasSearched(false); }} className="absolute inset-0 h-full w-full cursor-pointer opacity-0"/>
             </label>
-            <div className="col-span-2 flex items-center justify-between rounded-xl border border-[var(--direct-border)] bg-[var(--direct-surface-muted)] px-3 py-2.5 sm:col-span-1">
+            <div className="col-span-2 flex items-center justify-between rounded-xl border border-[var(--direct-border)] bg-[var(--direct-surface-muted)] px-3 py-2.5 lg:col-span-1">
               <div><span className="block text-[11px] font-semibold uppercase tracking-[0.17em] text-[var(--direct-muted)]">Guests</span><span className="mt-1 block text-[13px] font-semibold text-[var(--direct-text)]">{guests} {guests === 1 ? "guest" : "guests"}</span></div>
               <div className="flex items-center gap-2">
                 <button type="button" aria-label="Remove guest" disabled={guests <= 1} onClick={() => { setGuests((value) => Math.max(1, value - 1)); setHasSearched(false); setSelectedRoom(null); setSelectedRatePlanId(""); }} className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--direct-border)] text-[var(--direct-text-subtle)] disabled:opacity-30"><Minus className="h-3.5 w-3.5"/></button>
                 <button type="button" aria-label="Add guest" disabled={guests >= 8} onClick={() => { setGuests((value) => Math.min(8, value + 1)); setHasSearched(false); setSelectedRoom(null); setSelectedRatePlanId(""); }} className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--direct-border)] text-[var(--direct-text-subtle)] disabled:opacity-30"><Plus className="h-3.5 w-3.5"/></button>
               </div>
             </div>
-            <button type="button" disabled={nights < 1 || availabilityMutation.isPending} onClick={runAvailability} className="col-span-2 flex h-[48px] items-center justify-center gap-2 rounded-xl bg-[var(--direct-primary)] px-5 text-[13px] font-semibold text-[var(--direct-on-primary)] shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-1">
+            <button type="button" disabled={nights < 1 || availabilityMutation.isPending} onClick={runAvailability} className="col-span-2 flex h-[48px] items-center justify-center gap-2 rounded-xl bg-[var(--direct-primary)] px-5 text-[13px] font-semibold text-[var(--direct-on-primary)] shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 lg:col-span-1">
               {availabilityMutation.isPending ? "Checking…" : "Find a room"}<ArrowRight className="h-4 w-4"/>
             </button>
           </div>
           <div className="mt-3 flex items-center justify-between border-t border-[var(--direct-border)] px-1 pt-3 text-[11px] text-[var(--direct-muted)]"><span>{prettyDate(checkIn)} — {prettyDate(checkOut)}</span><span className="font-semibold text-[var(--direct-text)]">{nights} {nights === 1 ? "night" : "nights"}</span></div>
           {availabilityMutation.isError && <p role="alert" className="mt-3 text-xs text-red-700">{(availabilityMutation.error as Error).message}</p>}
         </section>
+            {(branding.heroImageUrl || heroPhotos[0]) && <div className="hidden lg:-ml-16 lg:block lg:min-w-0 lg:flex-1">
+              <img src={heroPhotos[1]?.url ?? heroPhotos[0]?.url ?? branding.heroImageUrl} alt="" loading="lazy" className="aspect-[16/10] w-full rounded-[1.6rem] object-cover" />
+            </div>}
+          </div>
+        </div>
       </section>
 
-      <DirectGalleryStrip images={branding.galleryImageUrls} propertyName={property.name} />
-      <DirectHighlights highlights={branding.highlights} className="mx-auto mt-6 max-w-7xl px-4 sm:mt-8 sm:px-8" />
+      <DirectHighlights highlights={branding.highlights} className="mx-auto mt-8 max-w-7xl px-4 sm:mt-12 sm:px-8" />
 
       <section className="mx-auto max-w-7xl px-4 pb-10 pt-10 sm:px-8 sm:pb-16 sm:pt-14">
         <div id="room-results" className="mb-5 flex scroll-mt-5 items-end justify-between gap-3">

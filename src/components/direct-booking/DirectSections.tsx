@@ -1,5 +1,5 @@
 import { ArrowRight, BedDouble, Car, Flower2, Mountain, Users, UtensilsCrossed, Waves, Wifi, type LucideIcon } from "lucide-react";
-import { visibleOffer, type DirectHighlight, type DirectOffer, type HighlightIcon } from "@/lib/direct-booking-content";
+import { visibleOffer, type DirectHighlight, type DirectOffer, type DirectPhoto, type HighlightIcon } from "@/lib/direct-booking-content";
 
 /**
  * Optional sections of the guest booking template. Every component renders
@@ -90,4 +90,28 @@ export function DirectOfferBanner({ offer, className = "" }: { offer: DirectOffe
       </div>
     </div>
   </section>;
+}
+
+/**
+ * Three numbered photo cards overlapping the hero, with the property intro
+ * beside them (the template's "experience" panel). Renders nothing without photos.
+ */
+export function DirectPhotoCards({ photos, propertyName, intro }: { photos: DirectPhoto[]; propertyName: string; intro?: string }) {
+  if (photos.length === 0) return null;
+  return <div className={`relative z-10 -mt-16 grid gap-4 px-3 sm:-mt-24 sm:px-6 lg:items-end lg:gap-8 ${intro ? "lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]" : ""}`}>
+    <div className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-1 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0">
+      {photos.map((photo, index) => <figure key={photo.url + index} className="relative aspect-[5/4] w-[72%] shrink-0 snap-start overflow-hidden rounded-[1.25rem] border-[3px] border-[var(--direct-surface)] bg-[var(--direct-surface-sunken)] shadow-[0_18px_40px_var(--direct-shadow)] sm:w-auto">
+        <img src={photo.url} alt={photo.caption ? `${photo.caption} at ${propertyName}` : `${propertyName} — photograph ${index + 1}`} loading="lazy" className="h-full w-full object-cover" />
+        <span aria-hidden="true" className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/65 to-transparent" />
+        <figcaption className="absolute inset-x-4 bottom-3 flex items-end justify-between gap-3 text-white">
+          <span className="direct-display max-w-[75%] text-lg leading-tight">{photo.caption ?? ""}</span>
+          <span className="text-sm font-medium tabular-nums">{String(index + 1).padStart(2, "0")}</span>
+        </figcaption>
+      </figure>)}
+    </div>
+    {intro && <div className="px-1 pb-1 lg:px-0">
+      <p className="text-sm font-semibold text-[var(--direct-text)]">The {propertyName} experience</p>
+      <p className="mt-2 text-sm leading-6 text-[var(--direct-muted)]">{intro}</p>
+    </div>}
+  </div>;
 }
