@@ -1,6 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  hasTemplateColumns, highlightsSchema, offerSchema, parseTemplateContent, valueWordsSchema,
+} from "@/lib/direct-booking-content";
 
 const brandingSchema = z.object({
   propertyId: z.string().uuid(),
@@ -16,9 +20,26 @@ const brandingSchema = z.object({
   heroImageUrl: z.string().url().max(2048).or(z.literal("")),
   galleryImageUrls: z.array(z.string().url().max(2048)).max(12),
   showStayNasAttribution: z.boolean(),
+  valueWords: valueWordsSchema,
+  highlights: highlightsSchema,
+  offer: offerSchema.nullable(),
 });
 
 export type PropertyBranding = z.infer<typeof brandingSchema>;
+export type PropertyBrandingWithStatus = PropertyBranding & {
+  /** False until the direct-booking template review migration has been applied. */
+  templateFieldsAvailable: boolean;
+};
+
+/**
+ * Template content columns are added by a review migration. Until it is
+ * applied, branding still loads and saves; template content is reported as
+ * unavailable instead of failing the whole branding screen.
+ */
+async function templateColumnsExist(supabase: Pick<SupabaseClient, "from">): Promise<boolean> {
+  const { error } = await supabase.from("staynas_property_branding").select("value_words,highlights,offer").limit(0);
+  return !error;
+}
 
 const DEFAULTS = {
   logo_url: null, logo_dark_url: null, favicon_url: null,
@@ -36,6 +57,7 @@ export const getPropertyBranding = createServerFn({ method: "GET" })
       .from("staynas_property_branding").select("*").eq("property_id", data.propertyId).maybeSingle();
     if (error) throw new Error(error.message);
     const b = row ?? DEFAULTS;
+    const templateFieldsAvailable = row ? hasTemplateColumns(row) : await templateColumnsExist(context.supabase);
     return {
       propertyId: data.propertyId,
       logoUrl: b.logo_url ?? "", logoDarkUrl: b.logo_dark_url ?? "",
@@ -45,13 +67,20 @@ export const getPropertyBranding = createServerFn({ method: "GET" })
       description: b.description ?? "", heroImageUrl: b.hero_image_url ?? "",
       galleryImageUrls: Array.isArray(b.gallery_image_urls) ? b.gallery_image_urls : [],
       showStayNasAttribution: b.show_staynas_attribution ?? true,
-    } satisfies PropertyBranding;
+      ...parseTemplateContent(row),
+      templateFieldsAvailable,
+    } satisfies PropertyBrandingWithStatus;
   });
 
 export const savePropertyBranding = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => brandingSchema.parse(d))
   .handler(async ({ data, context }) => {
+    const templateFieldsAvailable = await templateColumnsExist(context.supabase);
+    const hasTemplateContent = data.valueWords.length > 0 || data.highlights.length > 0 || data.offer !== null;
+    if (!templateFieldsAvailable && hasTemplateContent) {
+      throw new Error("Booking page template content cannot be saved until the pending database update is applied. Other branding fields were not saved.");
+    }
     const { error } = await (context.supabase as any)
       .from("staynas_property_branding")
       .upsert({
@@ -68,6 +97,11 @@ export const savePropertyBranding = createServerFn({ method: "POST" })
         hero_image_url: data.heroImageUrl || null,
         gallery_image_urls: data.galleryImageUrls,
         show_staynas_attribution: data.showStayNasAttribution,
+        ...(templateFieldsAvailable ? {
+          value_words: data.valueWords,
+          highlights: data.highlights,
+          offer: data.offer,
+        } : {}),
         updated_by: context.userId,
         updated_at: new Date().toISOString(),
       }, { onConflict: "property_id" });

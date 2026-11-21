@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { resolvePublicDirectBookingChannel } from "@/lib/public-booking-channel.server";
+import { parseTemplateContent, publicGalleryUrls } from "@/lib/direct-booking-content";
 
 const campaignSlug = z.string().trim().min(2).max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 const campaignIdSchema = z.string().uuid();
@@ -31,19 +32,33 @@ export const getPublicBookingProperty = createServerFn({ method: "GET" })
     const [{ data: property, error: propertyError }, { data: branding, error: brandingError }] = await Promise.all([
       sb.from("staynas_properties").select("id,slug,name,currency,timezone,status")
         .eq("id", channel.propertyId).eq("slug", data.propertySlug).maybeSingle(),
-      sb.from("staynas_property_branding").select("logo_url,primary_color,secondary_color,background_color,text_color,tagline,description,hero_image_url")
+      // "*" keeps the page working before the template-content review migration is
+      // applied; only the explicitly mapped fields below are returned to guests.
+      sb.from("staynas_property_branding").select("*")
         .eq("property_id", channel.propertyId).maybeSingle(),
     ]);
     if (propertyError || !property || property.status !== "active" || brandingError
       || !/^[A-Z]{3}$/.test(String(property.currency ?? "")) || !property.timezone) {
       throw new Error("Booking property does not match the verified domain or has incomplete configuration.");
     }
+    const row = branding ?? {
+      logo_url: null, primary_color: "#1f2937", secondary_color: "#64748b",
+      background_color: "#ffffff", text_color: "#111827", tagline: null,
+      description: null, hero_image_url: null,
+    };
     return {
       property,
-      branding: branding ?? {
-        logo_url: null, primary_color: "#1f2937", secondary_color: "#64748b",
-        background_color: "#ffffff", text_color: "#111827", tagline: null,
-        description: null, hero_image_url: null,
+      branding: {
+        logo_url: row.logo_url ?? null,
+        primary_color: row.primary_color,
+        secondary_color: row.secondary_color,
+        background_color: row.background_color,
+        text_color: row.text_color,
+        tagline: row.tagline ?? null,
+        description: row.description ?? null,
+        hero_image_url: row.hero_image_url ?? null,
+        gallery_image_urls: publicGalleryUrls(row.gallery_image_urls),
+        ...parseTemplateContent(row),
       },
     };
   });

@@ -2009,3 +2009,15 @@ html[data-os-theme] :is(
 }
 @media (min-width:768px) and (max-width:1023px) { .mtoni-os main#admin-main { padding-inline:18px; } .mtoni-os .staynas-staff-table { overflow-x:auto; } }
 @media (prefers-reduced-motion:reduce) { .mtoni-os *,.mtoni-os *::before,.mtoni-os *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; scroll-behavior:auto !important; } }
+
+/* Direct booking template (public guest booking pages).
+   Unlayered so it applies over utilities inside .direct-booking only.
+   Cormorant Garamond is already loaded in __root.tsx. */
+.direct-booking {
+  --direct-font-display: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+}
+.direct-booking .direct-display,
+.direct-booking .font-display {
+  font-family: var(--direct-font-display);
+  letter-spacing: -0.01em;
+}

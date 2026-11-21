@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { isIsoCurrencyCode } from "@/lib/money";
 import { mapPublicAvailability, toPublicCatalogRoom } from "@/lib/public-availability";
+import { parseTemplateContent, publicGalleryUrls } from "@/lib/direct-booking-content";
 
 // Public booking resolves every published property by its public slug.
 // Tenant/property isolation is enforced by resolving one property first and
@@ -40,7 +41,9 @@ export const getPublicDemoProperty = createServerFn({ method: "GET" })
 
     const { data: brandingRow, error: brandingError } = await (supabaseAdmin as any)
       .from("staynas_property_branding")
-      .select("logo_url, logo_dark_url, favicon_url, primary_color, secondary_color, background_color, text_color, tagline, description, hero_image_url, gallery_image_urls, show_staynas_attribution")
+      // "*" keeps the page working before the template-content review migration is
+      // applied; only the explicitly mapped fields below are returned to guests.
+      .select("*")
       .eq("property_id", property.id)
       .maybeSingle();
     if (brandingError) {
@@ -81,8 +84,9 @@ export const getPublicDemoProperty = createServerFn({ method: "GET" })
         tagline: branding.tagline ?? "",
         description: branding.description ?? "",
         heroImageUrl: branding.hero_image_url ?? "",
-        galleryImageUrls: Array.isArray(branding.gallery_image_urls) ? branding.gallery_image_urls : [],
+        galleryImageUrls: publicGalleryUrls(branding.gallery_image_urls),
         showStayNasAttribution: branding.show_staynas_attribution ?? true,
+        ...parseTemplateContent(branding),
       },
       rooms: (rooms ?? []).map((room: any) => toPublicCatalogRoom(room, property)),
       demo: false,

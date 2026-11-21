@@ -14,6 +14,8 @@ import { Switch } from "@/components/ui/switch";
 import { useAdminMutation } from "@/hooks/use-admin-mutation";
 import { usePropertyContext } from "@/modules/property/PropertyContext";
 import { getPropertyBranding, savePropertyBranding, type PropertyBranding } from "@/modules/property/property-branding.functions";
+import { TemplateContentFields } from "@/components/direct-booking/TemplateContentFields";
+import { deriveDirectTheme } from "@/lib/direct-booking-theme";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/admin/settings/branding")({
@@ -27,6 +29,14 @@ const defaults = (propertyId: string): PropertyBranding => ({
   backgroundColor: "#f5f4ef", textColor: "#202820",
   tagline: "", description: "", heroImageUrl: "",
   galleryImageUrls: [], showStayNasAttribution: true,
+  valueWords: [], highlights: [], offer: null,
+});
+
+/** Drops untouched slots so only content the property entered is validated and saved. */
+const toSavePayload = (form: PropertyBranding): PropertyBranding => ({
+  ...form,
+  valueWords: form.valueWords.map((word) => word.trim()).filter(Boolean),
+  highlights: form.highlights.filter((item) => item.title.trim() || item.description.trim()),
 });
 
 function PropertyBrandingPage() {
@@ -51,6 +61,8 @@ function PropertyBrandingPage() {
     setForm((current) => ({ ...current, [key]: value }));
   const addGallery = (url: string) => update("galleryImageUrls", [...form.galleryImageUrls, url].slice(0, 12));
 
+  const previewTheme = deriveDirectTheme(form);
+
   if (query.isLoading) return <LoadingState />;
 
   return <div className="space-y-6">
@@ -67,7 +79,7 @@ function PropertyBrandingPage() {
           <div className="mt-4"><Field label="Property description"><Textarea rows={3} value={form.description} onChange={e => update("description", e.target.value)} maxLength={1000} placeholder="A short introduction shown to guests…" /></Field></div>
         </SectionCard>
 
-        <SectionCard title="Brand colours" description="Set the core colour tokens used by the guest-facing booking experience.">
+        <SectionCard title="Brand colours" description="These four colours theme the whole guest booking page. Surfaces, borders and muted text are derived from them, and text is adjusted automatically where needed to stay readable.">
           <div className="grid gap-4 sm:grid-cols-2">
             <ColorField label="Primary" value={form.primaryColor} onChange={v => update("primaryColor", v)} />
             <ColorField label="Secondary" value={form.secondaryColor} onChange={v => update("secondaryColor", v)} />
@@ -94,13 +106,21 @@ function PropertyBrandingPage() {
           </div>
         </SectionCard>
 
+        <SectionCard title="Booking page template" description="Optional sections for the guest booking page. Each one is hidden until it is filled in.">
+          <TemplateContentFields
+            available={query.data?.templateFieldsAvailable ?? false}
+            valueWords={form.valueWords} highlights={form.highlights} offer={form.offer}
+            onValueWords={v => update("valueWords", v)} onHighlights={v => update("highlights", v)} onOffer={v => update("offer", v)}
+          />
+        </SectionCard>
+
         <SectionCard title="Booking page options">
           <div className="flex items-center justify-between gap-4">
             <div><p className="text-sm font-medium">Show StayNas attribution</p><p className="text-xs text-muted-foreground">Display “Powered by StayNas” on the public booking page.</p></div>
             <Switch checked={form.showStayNasAttribution} onCheckedChange={v => update("showStayNasAttribution", v)} />
           </div>
         </SectionCard>
-        <div className="flex justify-end"><Button onClick={() => save.mutate(form)} disabled={save.isPending}><Save className="mr-2 h-4 w-4"/>{save.isPending ? "Saving…" : "Save branding"}</Button></div>
+        <div className="flex justify-end"><Button onClick={() => save.mutate(toSavePayload(form))} disabled={save.isPending}><Save className="mr-2 h-4 w-4"/>{save.isPending ? "Saving…" : "Save branding"}</Button></div>
       </div>
 
       <div className="space-y-4 xl:sticky xl:top-5 xl:self-start">
@@ -116,7 +136,7 @@ function PropertyBrandingPage() {
               <h3 className="mt-2 text-xl font-semibold">{property.name}</h3>
               {form.tagline && <p className="mt-1 text-sm">{form.tagline}</p>}
               {form.description && <p className="mt-2 text-xs leading-5 opacity-75">{form.description}</p>}
-              <div className="mt-4 rounded-lg px-4 py-3 text-center text-xs font-semibold text-white" style={{ backgroundColor: form.primaryColor }}>Find your stay</div>
+              <div className="mt-4 rounded-lg px-4 py-3 text-center text-xs font-semibold" style={{ backgroundColor: form.primaryColor, color: previewTheme["--direct-on-primary"] }}>Find your stay</div>
             </div>
             {form.showStayNasAttribution && <p className="px-4 pb-3 text-center text-[10px] opacity-60">Powered by StayNas</p>}
           </div>
