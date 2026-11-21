@@ -180,16 +180,13 @@ export function DirectPhotoCarousel({ photos, propertyName, title, intro, rating
   if (photos.length === 0) return null;
   const hasRating = rating.value !== null || !!rating.label;
   const hasPanel = !!intro || hasRating;
-  return <div id="gallery" className={`relative z-10 -mt-16 grid scroll-mt-24 gap-4 px-3 sm:-mt-24 sm:px-6 lg:items-start lg:gap-8 ${hasPanel ? "lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]" : ""}`}>
+  return <div className={`relative z-10 -mt-16 grid scroll-mt-24 gap-4 px-3 sm:-mt-24 sm:px-6 lg:items-start lg:gap-8 ${hasPanel ? "lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]" : ""}`}>
     <div className="min-w-0">
       <div ref={track} className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-1 [scrollbar-width:none] sm:mx-0 sm:gap-4 sm:px-0 [&::-webkit-scrollbar]:hidden">
         {photos.map((photo, index) => <figure key={photo.url + index} className="relative aspect-[5/4] w-[72%] shrink-0 snap-start overflow-hidden rounded-[1.25rem] border-[3px] border-[var(--direct-surface)] bg-[var(--direct-surface-sunken)] shadow-[0_18px_40px_var(--direct-shadow)] sm:w-[calc((100%-2rem)/3)]">
           <img src={photo.url} alt={photo.caption ? `${photo.caption} at ${propertyName}` : `${propertyName} — photograph ${index + 1}`} loading="lazy" className="h-full w-full object-cover" />
           <span aria-hidden="true" className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/65 to-transparent" />
-          <figcaption className="absolute inset-x-4 bottom-3 flex items-end justify-between gap-3 text-white">
-            <span className="direct-display max-w-[75%] text-lg leading-tight">{photo.caption ?? ""}</span>
-            <span className="text-sm font-medium tabular-nums">{String(index + 1).padStart(2, "0")}</span>
-          </figcaption>
+          {photo.caption && <figcaption className="direct-display absolute inset-x-4 bottom-3 text-lg leading-tight text-white">{photo.caption}</figcaption>}
         </figure>)}
       </div>
     </div>
