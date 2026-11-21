@@ -640,7 +640,10 @@ async function requireReservationProperty(
     .select("property_id")
     .eq("id", bookingId)
     .maybeSingle();
-  if (error || !booking?.property_id) throw new Error("Booking not found.");
+  // Report a lookup failure separately from a missing reservation so the panel
+  // shows the real cause instead of an unconditional "Booking not found.".
+  if (error) throw new Error(`Reservation lookup failed: ${error.message}`);
+  if (!booking?.property_id) throw new Error("Booking not found.");
   return String(booking.property_id);
 }
 

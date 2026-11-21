@@ -1,5 +1,5 @@
-import { ArrowRight, BedDouble, Car, Flower2, Mountain, Users, UtensilsCrossed, Waves, Wifi, type LucideIcon } from "lucide-react";
-import { visibleOffer, type DirectHighlight, type DirectOffer, type DirectPhoto, type HighlightIcon } from "@/lib/direct-booking-content";
+import { ArrowRight, BedDouble, ChevronRight, Car, Flower2, Mountain, Users, UtensilsCrossed, Waves, Wifi, type LucideIcon } from "lucide-react";
+import { visibleOffer, type DirectHighlight, type DirectOffer, type HighlightIcon } from "@/lib/direct-booking-content";
 
 /**
  * Optional sections of the guest booking template. Every component renders
@@ -48,19 +48,20 @@ export function DirectGalleryStrip({ images, propertyName, className = "px-4 sm:
 }
 
 /** Up to four highlight cards (dining, wellness, activities…). */
-export function DirectHighlights({ highlights, className = "" }: { highlights: DirectHighlight[]; className?: string }) {
+export function DirectHighlights({ highlights, className = "", id }: { highlights: DirectHighlight[]; className?: string; id?: string }) {
   if (highlights.length === 0) return null;
   const columns = highlights.length >= 4 ? "lg:grid-cols-4" : highlights.length === 3 ? "lg:grid-cols-3" : "";
-  return <section aria-label="Highlights" className={className}>
+  return <section id={id} aria-label="Highlights" className={`scroll-mt-24 ${className}`}>
     <div className={`grid gap-3 sm:grid-cols-2 ${columns}`}>
       {highlights.map((item, index) => {
         const Icon = ICONS[item.icon] ?? BedDouble;
-        return <div key={item.title + index} className="flex gap-3 rounded-[1.1rem] border border-[var(--direct-border)] bg-[var(--direct-surface)] p-4">
+        return <div key={item.title + index} className="relative flex gap-3 rounded-[1.1rem] border border-[var(--direct-border)] bg-[var(--direct-surface)] p-4 pr-11">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--direct-primary-soft)] text-[var(--direct-on-primary-soft)]"><Icon className="h-4 w-4" aria-hidden="true" /></span>
           <div className="min-w-0">
             <h3 className="text-sm font-semibold text-[var(--direct-text)]">{item.title}</h3>
             {item.description && <p className="mt-1 text-xs leading-5 text-[var(--direct-muted)]">{item.description}</p>}
           </div>
+          {item.linkUrl && <a href={item.linkUrl} {...(isExternal(item.linkUrl) ? { target: "_blank", rel: "noopener noreferrer" } : {})} aria-label={`More about ${item.title}`} className="absolute bottom-3 right-3 flex h-7 w-7 items-center justify-center rounded-full border border-[var(--direct-border)] text-[var(--direct-text-subtle)] transition hover:border-[var(--direct-border-strong)]"><ChevronRight className="h-3.5 w-3.5" aria-hidden="true" /></a>}
         </div>;
       })}
     </div>
@@ -72,11 +73,15 @@ function isExternal(url: string) {
 }
 
 /** Full-width offer banner in the property's primary colour. */
-export function DirectOfferBanner({ offer, className = "" }: { offer: DirectOffer | null; className?: string }) {
+export function DirectOfferBanner({ offer, className = "", id }: { offer: DirectOffer | null; className?: string; id?: string }) {
   const shown = visibleOffer(offer);
   if (!shown) return null;
-  return <section aria-label={shown.eyebrow || "Offer"} className={`overflow-hidden rounded-[1.5rem] bg-[var(--direct-primary)] text-[var(--direct-on-primary)] ${className}`}>
-    <div className={`grid items-center gap-5 p-4 sm:p-6 ${shown.imageUrl ? "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]" : ""}`}>
+  return <section id={id} aria-label={shown.eyebrow || "Offer"} className={`relative scroll-mt-24 overflow-hidden rounded-[1.5rem] bg-[var(--direct-primary)] text-[var(--direct-on-primary)] ${className}`}>
+    <svg aria-hidden="true" viewBox="0 0 120 200" className="pointer-events-none absolute -right-2 bottom-0 h-[85%] opacity-[0.14]" fill="none" stroke="currentColor" strokeWidth="1.4">
+      <path d="M60 198C60 140 58 90 62 8" />
+      {[30, 55, 80, 105, 130, 155].map((y, i) => <g key={y}><path d={`M61 ${y + 12}C${42 - i} ${y + 4} ${30 - i} ${y - 10} ${26 - i} ${y - 26}C${44 - i} ${y - 22} ${56} ${y - 8} 61 ${y + 12}Z`} /><path d={`M61 ${y + 24}C${80 + i} ${y + 16} ${92 + i} ${y + 2} ${96 + i} ${y - 14}C${78 + i} ${y - 10} ${66} ${y + 4} 61 ${y + 24}Z`} /></g>)}
+    </svg>
+    <div className={`relative grid items-center gap-5 p-4 sm:p-6 ${shown.imageUrl ? "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]" : ""}`}>
       {shown.imageUrl && <img src={shown.imageUrl} alt="" loading="lazy" className="aspect-[16/9] w-full rounded-[1.1rem] object-cover md:aspect-[4/3]" />}
       <div className="px-2 py-2 sm:px-4">
         {shown.eyebrow && <p className="text-[11px] font-semibold uppercase tracking-[0.22em] opacity-80">{shown.eyebrow}</p>}
@@ -90,28 +95,4 @@ export function DirectOfferBanner({ offer, className = "" }: { offer: DirectOffe
       </div>
     </div>
   </section>;
-}
-
-/**
- * Three numbered photo cards overlapping the hero, with the property intro
- * beside them (the template's "experience" panel). Renders nothing without photos.
- */
-export function DirectPhotoCards({ photos, propertyName, intro }: { photos: DirectPhoto[]; propertyName: string; intro?: string }) {
-  if (photos.length === 0) return null;
-  return <div className={`relative z-10 -mt-16 grid gap-4 px-3 sm:-mt-24 sm:px-6 lg:items-end lg:gap-8 ${intro ? "lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]" : ""}`}>
-    <div className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-1 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0">
-      {photos.map((photo, index) => <figure key={photo.url + index} className="relative aspect-[5/4] w-[72%] shrink-0 snap-start overflow-hidden rounded-[1.25rem] border-[3px] border-[var(--direct-surface)] bg-[var(--direct-surface-sunken)] shadow-[0_18px_40px_var(--direct-shadow)] sm:w-auto">
-        <img src={photo.url} alt={photo.caption ? `${photo.caption} at ${propertyName}` : `${propertyName} — photograph ${index + 1}`} loading="lazy" className="h-full w-full object-cover" />
-        <span aria-hidden="true" className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/65 to-transparent" />
-        <figcaption className="absolute inset-x-4 bottom-3 flex items-end justify-between gap-3 text-white">
-          <span className="direct-display max-w-[75%] text-lg leading-tight">{photo.caption ?? ""}</span>
-          <span className="text-sm font-medium tabular-nums">{String(index + 1).padStart(2, "0")}</span>
-        </figcaption>
-      </figure>)}
-    </div>
-    {intro && <div className="px-1 pb-1 lg:px-0">
-      <p className="text-sm font-semibold text-[var(--direct-text)]">The {propertyName} experience</p>
-      <p className="mt-2 text-sm leading-6 text-[var(--direct-muted)]">{intro}</p>
-    </div>}
-  </div>;
 }

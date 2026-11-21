@@ -99,3 +99,35 @@ describe("presentation", () => {
     expect(formatMoney(null, "TZS")).toBe("—");
   });
 });
+
+describe("device-independent currency validation", () => {
+  // Chrome on Android ships a trimmed ICU data set whose
+  // Intl.supportedValuesOf("currency") can omit TZS. Guests and admins on such
+  // devices saw "—" instead of TZS prices while USD formatted normally.
+  it("formats TZS when the runtime's Intl currency list omits it", () => {
+    const intl = Intl as unknown as { supportedValuesOf?: (key: string) => string[] };
+    const original = intl.supportedValuesOf;
+    intl.supportedValuesOf = () => ["EUR", "GBP", "USD"];
+    try {
+      expect(isIsoCurrencyCode("TZS")).toBe(true);
+      expect(plain(formatMoney(125000, "TZS"))).toBe("TZS 125,000");
+      expect(plain(formatMoney("1880000.00", "TZS"))).toBe("TZS 1,880,000");
+      expect(currencyMinorUnits("TZS")).toBe(2);
+      expect(currencyMinorUnits("UGX")).toBe(0);
+    } finally {
+      intl.supportedValuesOf = original;
+    }
+  });
+
+  it("formats when the runtime has no Intl.supportedValuesOf at all", () => {
+    const intl = Intl as unknown as { supportedValuesOf?: (key: string) => string[] };
+    const original = intl.supportedValuesOf;
+    intl.supportedValuesOf = undefined;
+    try {
+      expect(plain(formatMoney(240, "USD"))).toBe("USD 240");
+      expect(formatMoney(240, "ZZZ")).toBe("—");
+    } finally {
+      intl.supportedValuesOf = original;
+    }
+  });
+});

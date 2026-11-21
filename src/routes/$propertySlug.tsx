@@ -16,7 +16,8 @@ import {
 import { formatMoney } from "@/lib/money";
 import { plausibleGuestEmail, quoteRatePlanId, searchedNightlyRate } from "@/lib/public-availability";
 import { deriveDirectTheme } from "@/lib/direct-booking-theme";
-import { DirectHighlights, DirectOfferBanner, DirectPhotoCards, DirectValueWords } from "@/components/direct-booking/DirectSections";
+import { DirectHighlights, DirectOfferBanner, DirectValueWords } from "@/components/direct-booking/DirectSections";
+import { DirectFooter, DirectHeader, DirectHeadline, DirectPhotoCarousel, DirectRoomGallery, DirectVideoButton } from "@/components/direct-booking/DirectTemplate";
 import { directHeroPhotos } from "@/lib/direct-booking-content";
 
 export const Route = createFileRoute("/$propertySlug")({
@@ -124,6 +125,7 @@ function PublicPropertyBookingPage() {
     onSuccess: (rooms) => {
       setAvailableRooms(rooms as AvailableRoom[]);
       setHasSearched(true);
+      requestAnimationFrame(() => document.getElementById("room-results")?.scrollIntoView({ behavior: "smooth", block: "start" }));
       setSelectedRoom(null);
       setSelectedRatePlanId("");
       setSelectedRatePlans({});
@@ -138,6 +140,8 @@ function PublicPropertyBookingPage() {
     mutationFn: () => {
       if (!selectedRoom) throw new Error("Select a room to continue.");
       if (!bookingQuote?.quote_id) throw new Error("Enter a valid guest email and wait for the final quote before booking.");
+      // A reservation is only requested for a price the guest has actually been shown.
+      if (money(bookingQuote.total, bookingQuote.currency) === "—") throw new Error("The final price could not be displayed. Refresh the page before requesting this reservation.");
       if (bookingQuote.quote_expires_at && Date.parse(bookingQuote.quote_expires_at) <= Date.now()) throw new Error("The quote expired. Refresh the price before submitting.");
       return createBooking({
         data: {
@@ -204,57 +208,71 @@ function PublicPropertyBookingPage() {
   const currency = property.currency;
   // All page colours derive from the property's four branding colours.
   const brandStyle = deriveDirectTheme(branding) as React.CSSProperties;
-  const heroPhotos = directHeroPhotos(branding.galleryImageUrls, rooms);
+  const t = branding.template;
+  // Photo cards: the property's chosen cards, otherwise its gallery, otherwise room photographs.
+  const photos = t.photoCards.length
+    ? t.photoCards.map((card) => ({ url: card.imageUrl, caption: card.caption || undefined }))
+    : directHeroPhotos(branding.galleryImageUrls, rooms);
+  const discoverImage = t.discover.imageUrl || photos[1]?.url || photos[0]?.url || branding.heroImageUrl;
+  const offerShown = !!branding.offer?.enabled && !!branding.offer?.title;
+  // Menu links only point at sections this property actually shows.
+  const navLinks = [
+    { label: "About", href: "#about" },
+    { label: "Stay", href: "#rooms" },
+    ...(branding.highlights.length ? [{ label: "Experiences", href: "#experiences" }] : []),
+    ...(photos.length ? [{ label: "Gallery", href: "#gallery" }] : []),
+    ...(offerShown ? [{ label: "Offers", href: "#offers" }] : []),
+    { label: "Contact", href: "#contact" },
+  ];
+  const brandMark = <a href="#" className="flex min-w-0 items-center gap-2.5" aria-label={`${property.name} — top of page`}>
+    {branding.logoUrl
+      ? <img src={branding.logoUrl} alt="" className="h-9 max-w-32 object-contain" />
+      : <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--direct-primary)] text-sm font-semibold text-[var(--direct-on-primary)]">{property.name.slice(0, 1)}</span>}
+    <span className="direct-display truncate text-xl font-medium text-[var(--direct-text)]">{property.name}</span>
+  </a>;
   const selectedPlan = selectedRoom?.rate_plan_options?.find((plan) => plan.rate_plan_id === selectedRatePlanId) ?? (selectedRoom?.rate_plan_options?.length === 1 ? selectedRoom.rate_plan_options[0] : undefined);
   const selectedTotal = selectedRoom ? Number(selectedPlan?.total ?? selectedRoom.nightly_total) : 0;
 
   return (
     <main style={brandStyle} className="direct-booking min-h-screen bg-[var(--direct-background)] pb-28 text-[var(--direct-text)] selection:bg-[var(--direct-primary-soft)]">
-      <header className="relative z-10 border-b border-[var(--direct-border)] bg-[var(--direct-background)]/95">
-        <div className="mx-auto flex h-[68px] max-w-7xl items-center justify-between px-5 sm:px-8">
-          <a href="/" className="flex items-center gap-2.5" aria-label="StayNas home">
-            {branding.logoUrl ? <img src={branding.logoUrl} alt={property.name} className="h-9 max-w-32 object-contain" /> : <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--direct-primary)] text-sm font-semibold tracking-tight text-[var(--direct-on-primary)]">S</span>}
-            <span className="text-[17px] font-semibold tracking-[-0.04em] text-[var(--direct-on-primary-soft)]">{branding.logoUrl ? property.name : <>staynas<span className="ml-1.5 text-[11px] font-medium uppercase tracking-[0.2em] text-[var(--direct-muted)]">direct</span></>}</span>
-          </a>
-          <div className="flex items-center gap-4"><span className="hidden items-center gap-2 text-[11px] font-medium tracking-wide text-[var(--direct-text-subtle)] md:flex"><ShieldCheck className="h-4 w-4"/>BOOK DIRECT · BOOK SECURE</span><a href="#availability" className="inline-flex h-10 items-center rounded-full bg-[var(--direct-primary)] px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--direct-on-primary)] transition hover:bg-[var(--direct-primary-hover)] sm:px-5">Book your stay</a></div>
-        </div>
-      </header>
+      <DirectHeader brand={brandMark} links={navLinks} social={branding.socialLinks} contact={t.contact} bookLabel={t.bookLabel || "Book your stay"} />
 
-      <section className="mx-auto max-w-7xl px-4 pt-4 sm:px-8 sm:pt-7">
-        <div className="relative isolate flex min-h-[420px] items-end overflow-hidden rounded-[1.65rem] bg-[var(--direct-overlay)] sm:min-h-[540px] sm:rounded-[2rem] lg:min-h-[600px]">
+      <section className="mx-auto max-w-7xl px-4 pt-4 sm:px-8 sm:pt-6">
+        <div className="relative isolate flex min-h-[460px] items-end overflow-hidden rounded-[1.65rem] bg-[var(--direct-overlay)] sm:min-h-[560px] sm:rounded-[2rem] lg:min-h-[620px]">
           {branding.heroImageUrl
             ? <img src={branding.heroImageUrl} alt={`${property.name}`} className="absolute inset-0 -z-20 h-full w-full object-cover" />
             : <div aria-hidden="true" className="absolute inset-0 -z-20 bg-[radial-gradient(120%_90%_at_85%_10%,var(--direct-primary)_0%,var(--direct-overlay)_70%)]" />}
-          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[var(--direct-overlay)]/85 via-[var(--direct-overlay)]/45 to-[var(--direct-overlay)]/5"/>
+          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[var(--direct-overlay)]/80 via-[var(--direct-overlay)]/35 to-transparent"/>
           <div className="absolute inset-x-0 bottom-0 -z-10 h-1/2 bg-gradient-to-t from-[var(--direct-overlay)]/60 to-transparent"/>
-          <div className={`w-full px-6 pt-20 text-white sm:px-10 lg:flex lg:items-end lg:justify-between lg:gap-10 ${heroPhotos.length ? "pb-24 sm:pb-36" : "pb-12 sm:pb-16"}`}>
+          {t.hero.videoUrl && <div className="absolute right-6 top-6 sm:right-12 sm:top-auto sm:bottom-[42%]"><DirectVideoButton url={t.hero.videoUrl} label={t.hero.videoLabel} /></div>}
+          <div className={`w-full px-6 pt-24 text-white sm:px-12 lg:flex lg:items-end lg:justify-between lg:gap-10 ${photos.length ? "pb-28 sm:pb-40" : "pb-12 sm:pb-16"}`}>
             <div className="max-w-2xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/80 sm:text-xs">{branding.tagline || "A more personal way to stay"}</p>
-              <h1 className="direct-display mt-3 max-w-xl text-[2.9rem] font-medium leading-[0.98] sm:text-7xl">{property.name}</h1>
-              <p className="mt-4 max-w-md text-sm leading-6 text-white/85 sm:text-base">Find your dates. Choose your room. Book directly.</p>
-              <div className="mt-6 flex flex-wrap items-center gap-3">
-                <a href="#room-results" className="inline-flex h-11 items-center gap-2 rounded-full bg-[var(--direct-primary)] px-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--direct-on-primary)] ring-1 ring-white/20 transition hover:bg-[var(--direct-primary-hover)]">View rooms<ArrowRight className="h-3.5 w-3.5"/></a>
-                <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/15 px-3 py-1.5 text-[11px] font-medium tracking-wide text-white/90 backdrop-blur-sm"><Globe2 className="h-3.5 w-3.5"/>DIRECT RESERVATIONS{branding.showStayNasAttribution ? " · POWERED BY STAYNAS" : ""}</span>
+              {branding.tagline && <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/80 sm:text-xs">{branding.tagline}</p>}
+              <DirectHeadline headline={t.hero.headline} fallback={property.name} />
+              <p className="mt-5 max-w-sm text-sm leading-6 text-white/85 sm:text-base">{t.hero.subline || "Find your dates. Choose your room. Book directly."}</p>
+              <div className="mt-7 flex flex-wrap items-center gap-3">
+                <a href="#rooms" className="inline-flex h-11 items-center gap-3 rounded-full bg-[var(--direct-primary)] px-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--direct-on-primary)] ring-1 ring-white/15 transition hover:bg-[var(--direct-primary-hover)]">{t.hero.ctaLabel || "Explore stay"}<ArrowRight className="h-3.5 w-3.5"/></a>
+                {branding.showStayNasAttribution && <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/15 px-3 py-1.5 text-[11px] font-medium tracking-wide text-white/85 backdrop-blur-sm"><Globe2 className="h-3.5 w-3.5"/>Direct reservations · Powered by StayNas</span>}
               </div>
             </div>
-            <DirectValueWords words={branding.valueWords} className="mt-7 text-white/90 lg:mt-0 lg:pb-2" />
+            <DirectValueWords words={branding.valueWords} className="mt-8 text-white/90 lg:mt-0 lg:pb-1" />
           </div>
         </div>
-        <DirectPhotoCards photos={heroPhotos} propertyName={property.name} intro={branding.description} />
+        <DirectPhotoCarousel photos={photos} propertyName={property.name} title={t.experience.title} intro={t.experience.body || branding.description} rating={t.rating} />
       </section>
 
-      <section aria-label="Plan your stay" className="mx-auto max-w-7xl px-4 pt-10 sm:px-8 sm:pt-16">
+      <section id="about" aria-label="About" className="mx-auto max-w-7xl scroll-mt-24 px-4 pt-12 sm:px-8 sm:pt-20">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.9fr)] lg:items-center lg:gap-10">
           <div className="px-1">
-            <h2 className="direct-display text-[2.4rem] font-medium leading-[1.02] text-[var(--direct-text)] sm:text-5xl">Discover<br />your stay</h2>
-            <p className="mt-4 max-w-sm text-sm leading-6 text-[var(--direct-muted)]">Choose your dates and guests, compare rooms and live rates, and send your reservation directly to {property.name}.</p>
-            <a href="#room-results" className="mt-6 hidden h-11 items-center gap-2 rounded-full border border-[var(--direct-border-strong)] px-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--direct-text)] transition hover:bg-[var(--direct-surface)] lg:inline-flex">View rooms<ArrowRight className="h-3.5 w-3.5"/></a>
+            <h2 className="direct-display whitespace-pre-line text-[2.4rem] font-medium leading-[1.02] text-[var(--direct-text)] sm:text-5xl">{t.discover.heading || "Discover\nyour stay"}</h2>
+            <p className="mt-4 max-w-sm text-sm leading-6 text-[var(--direct-muted)]">{t.discover.body || `Choose your dates and guests, compare rooms and live rates, and send your reservation directly to ${property.name}.`}</p>
+            <a href={t.discover.buttonUrl || "#rooms"} {...(/^https:/.test(t.discover.buttonUrl) ? { target: "_blank", rel: "noopener noreferrer" } : {})} className="mt-6 inline-flex h-11 items-center gap-2 rounded-full border border-[var(--direct-border-strong)] px-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--direct-text)] transition hover:bg-[var(--direct-surface)]">{t.discover.buttonLabel || "View rooms"}<ArrowRight className="h-3.5 w-3.5"/></a>
           </div>
           <div className="relative lg:flex lg:items-center">
         <section id="availability" className="relative z-10 rounded-[1.4rem] border border-[var(--direct-border)] bg-[var(--direct-surface)] p-4 shadow-[0_18px_55px_var(--direct-shadow)] sm:rounded-[1.7rem] sm:p-5 lg:w-[330px] lg:shrink-0">
-          <div className="mb-4 flex items-start justify-between gap-3 px-1">
-            <div><p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--direct-muted)]">Plan your stay</p><h2 className="direct-display mt-1 text-2xl font-medium leading-tight text-[var(--direct-text)] sm:text-[1.7rem]">When would you like to arrive?</h2></div>
-            {heroPhotos[0] && <img src={branding.heroImageUrl || heroPhotos[0].url} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" />}
+          <div className="mb-4 flex items-center justify-between gap-3 px-1">
+            <h2 className="direct-display text-[1.75rem] font-medium leading-[1.05] text-[var(--direct-text)]">{t.bookingCard.title || "Plan your escape"}</h2>
+            {(branding.heroImageUrl || photos[0]) && <img src={branding.heroImageUrl || photos[0].url} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" />}
           </div>
           <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-1">
             <label className="relative block min-w-0 rounded-xl border border-[var(--direct-border)] bg-[var(--direct-surface-muted)] px-3 py-2.5 transition focus-within:border-[var(--direct-border-strong)] focus-within:bg-[var(--direct-surface)]">
@@ -279,22 +297,22 @@ function PublicPropertyBookingPage() {
               </div>
             </div>
             <button type="button" disabled={nights < 1 || availabilityMutation.isPending} onClick={runAvailability} className="col-span-2 flex h-[48px] items-center justify-center gap-2 rounded-xl bg-[var(--direct-primary)] px-5 text-[13px] font-semibold text-[var(--direct-on-primary)] shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 lg:col-span-1">
-              {availabilityMutation.isPending ? "Checking…" : "Find a room"}<ArrowRight className="h-4 w-4"/>
+              {availabilityMutation.isPending ? "Checking…" : t.bookingCard.buttonLabel || "Check availability"}<ArrowRight className="h-4 w-4"/>
             </button>
           </div>
           <div className="mt-3 flex items-center justify-between border-t border-[var(--direct-border)] px-1 pt-3 text-[11px] text-[var(--direct-muted)]"><span>{prettyDate(checkIn)} — {prettyDate(checkOut)}</span><span className="font-semibold text-[var(--direct-text)]">{nights} {nights === 1 ? "night" : "nights"}</span></div>
           {availabilityMutation.isError && <p role="alert" className="mt-3 text-xs text-red-700">{(availabilityMutation.error as Error).message}</p>}
         </section>
-            {(branding.heroImageUrl || heroPhotos[0]) && <div className="hidden lg:-ml-16 lg:block lg:min-w-0 lg:flex-1">
-              <img src={heroPhotos[1]?.url ?? heroPhotos[0]?.url ?? branding.heroImageUrl} alt="" loading="lazy" className="aspect-[16/10] w-full rounded-[1.6rem] object-cover" />
+            {discoverImage && <div className="hidden lg:-ml-16 lg:block lg:min-w-0 lg:flex-1">
+              <img src={discoverImage} alt="" loading="lazy" className="aspect-[16/10] w-full rounded-[1.6rem] object-cover" />
             </div>}
           </div>
         </div>
       </section>
 
-      <DirectHighlights highlights={branding.highlights} className="mx-auto mt-8 max-w-7xl px-4 sm:mt-12 sm:px-8" />
+      <DirectHighlights id="experiences" highlights={branding.highlights} className="mx-auto mt-8 max-w-7xl px-4 sm:mt-12 sm:px-8" />
 
-      <section className="mx-auto max-w-7xl px-4 pb-10 pt-10 sm:px-8 sm:pb-16 sm:pt-14">
+      <section id="rooms" className="mx-auto max-w-7xl scroll-mt-20 px-4 pb-10 pt-10 sm:px-8 sm:pb-16 sm:pt-14">
         <div id="room-results" className="mb-5 flex scroll-mt-5 items-end justify-between gap-3">
           <div><p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--direct-muted)]">The accommodation</p><h2 className="direct-display mt-1.5 text-[2.1rem] font-medium leading-none text-[var(--direct-text)] sm:text-[2.6rem]">Find your room</h2><p className="mt-1 text-xs text-[var(--direct-muted)] sm:text-sm">{hasSearched ? `Options for ${nights} nights · ${guests} guests` : "Thoughtful spaces for a comfortable stay"}</p></div>
           <span className="pb-1 text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--direct-muted)]">{rooms.length} room types</span>
@@ -313,7 +331,7 @@ function PublicPropertyBookingPage() {
             const notReturned = hasSearched && !live;
             return <article key={room.id} className={`group overflow-hidden rounded-[1.4rem] border bg-[var(--direct-surface)] transition duration-200 ${isSelected ? "border-[var(--direct-border-strong)] ring-2 ring-[var(--direct-primary-soft)]" : "border-[var(--direct-border)] hover:-translate-y-0.5 hover:shadow-[0_14px_35px_var(--direct-shadow)]"}`}>
               <div className="relative aspect-[16/10] overflow-hidden bg-[var(--direct-surface-sunken)]">
-                {(room.image_url || room.gallery_urls?.[0]) ? <img src={room.image_url || room.gallery_urls?.[0]} alt={`${room.name} at ${property.name}`} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]"/> : <div className="flex h-full w-full items-center justify-center bg-[var(--direct-surface-sunken)] text-xs text-[var(--direct-muted)]">Room image not provided</div>}
+                <DirectRoomGallery images={roomImages(room)} alt={`${room.name} at ${property.name}`} />
                 <span className="absolute left-3 top-3 rounded-full border border-white/40 bg-[var(--direct-surface)]/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--direct-text)] backdrop-blur-sm">{room.category?.name || property.name}</span>
                 {isSelected && <span className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--direct-primary)] text-[var(--direct-on-primary)]"><Check className="h-4 w-4"/></span>}
               </div>
@@ -367,7 +385,7 @@ function PublicPropertyBookingPage() {
             <label className="grid gap-1.5 text-[11px] font-semibold text-[var(--direct-text-subtle)] sm:col-span-2">Special requests <span className="font-normal text-[var(--direct-muted)]">Optional</span><textarea value={specialRequests} onChange={(event) => setSpecialRequests(event.target.value)} className="min-h-20 rounded-xl border border-[var(--direct-border)] bg-[var(--direct-surface-muted)] p-3 text-sm font-normal text-[var(--direct-text)] outline-none focus:border-[var(--direct-border-strong)]" maxLength={1000} placeholder="Let the property know if you have any requests…"/></label>
           </div>
           {bookingMutation.isError && <p role="alert" className="mt-4 text-xs text-red-700">{(bookingMutation.error as Error).message}</p>}
-          <button type="submit" disabled={bookingMutation.isPending || quoteLoading || !bookingQuote?.quote_id} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--direct-primary)] px-5 text-xs font-semibold text-[var(--direct-on-primary)] transition hover:bg-[var(--direct-primary-hover)] disabled:opacity-50">{bookingMutation.isPending ? "Submitting reservation…" : "Request this reservation"}<ArrowRight className="h-4 w-4"/></button>
+          <button type="submit" disabled={bookingMutation.isPending || quoteLoading || !bookingQuote?.quote_id || money(bookingQuote.total, bookingQuote.currency) === "—"} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--direct-primary)] px-5 text-xs font-semibold text-[var(--direct-on-primary)] transition hover:bg-[var(--direct-primary-hover)] disabled:opacity-50">{bookingMutation.isPending ? "Submitting reservation…" : "Request this reservation"}<ArrowRight className="h-4 w-4"/></button>
           <p className="mt-3 text-center text-[11px] text-[var(--direct-muted)]">Your reservation request will be sent to the property for confirmation.</p>
         </form>}
 
@@ -377,10 +395,10 @@ function PublicPropertyBookingPage() {
           <button type="button" onClick={() => { setConfirmation(null); setSelectedRoom(null); setGuestName(""); setGuestEmail(""); setGuestPhone(""); setCountry(""); setSpecialRequests(""); setAvailableRooms([]); setHasSearched(false); }} className="mt-5 rounded-full border border-[var(--direct-border-strong)] px-5 py-2.5 text-xs font-semibold text-[var(--direct-on-primary-soft)]">Make another reservation</button>
         </section>}
 
-        <DirectOfferBanner offer={branding.offer} className="mt-10 sm:mt-14" />
+        <DirectOfferBanner id="offers" offer={branding.offer} className="mt-10 sm:mt-14" />
       </section>
 
-      <footer className="border-t border-[var(--direct-border)] bg-[var(--direct-surface-sunken)] px-5 py-7 text-center">{branding.logoUrl ? <img src={branding.logoUrl} alt={property.name} className="mx-auto h-8 max-w-32 object-contain"/> : <p className="text-sm font-semibold tracking-tight text-[var(--direct-text)]">{property.name}</p>}{branding.showStayNasAttribution && <p className="mt-2 text-[11px] text-[var(--direct-muted)]">Property-owned reservations · Powered by StayNas</p>}</footer>
+      <DirectFooter brand={brandMark} propertyName={property.name} contact={t.contact} social={branding.socialLinks} attribution={branding.showStayNasAttribution} />
 
       {!confirmation && <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--direct-border)] bg-[var(--direct-background)]/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-lg sm:hidden">
         <div className="mx-auto flex max-w-lg items-center gap-3">
@@ -390,4 +408,9 @@ function PublicPropertyBookingPage() {
       </div>}
     </main>
   );
+}
+
+/** Main room photograph followed by its gallery, without duplicates. */
+function roomImages(room: { image_url?: string | null; gallery_urls?: string[] | null }): string[] {
+  return [...new Set([room.image_url, ...(room.gallery_urls ?? [])].filter((url): url is string => typeof url === "string" && url.length > 0))].slice(0, 12);
 }
