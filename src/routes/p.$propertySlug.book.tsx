@@ -772,7 +772,7 @@ function BookPage() {
           </div>
         </section>
       </main>
-      <DirectFooter brand={<span className="font-display text-lg font-medium text-[var(--direct-text)]">{property.name}</span>} propertyName={property.name} contact={branding.template.contact} social={branding.socialLinks} attribution={true} />
+      <DirectFooter brand={<span className="font-display text-lg font-medium text-[var(--direct-text)]">{property.name}</span>} propertyName={property.name} contact={branding.template.contact} social={branding.socialLinks} attribution={branding.show_staynas_attribution} />
     </div>
   );
 }

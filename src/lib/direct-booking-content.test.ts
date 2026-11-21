@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeSocialLinks, directHeroPhotos, EMPTY_TEMPLATE_SETTINGS, hasTemplateColumns, offerSchema, parseSocialLinks, parseTemplateSettings, parseTemplateContent, publicGalleryUrls, visibleOffer } from "./direct-booking-content";
+import { activeSocialLinks, directHeroPhotos, EMPTY_TEMPLATE_SETTINGS, hasTemplateColumns, normalizeSocialLink, offerSchema, parseSocialLinks, parseTemplateSettings, socialLinkProblem, socialLinksSchema, telHref, parseTemplateContent, publicGalleryUrls, visibleOffer } from "./direct-booking-content";
 
 describe("parseTemplateContent", () => {
   it("returns empty content when the branding row is missing or predates the template columns", () => {
@@ -108,5 +108,38 @@ describe("social links", () => {
     const links = parseSocialLinks({ facebook: "https://facebook.com/x", instagram: "https://instagram.com/x", myspace: "https://myspace.com/x", youtube: "http://youtube.com/x" });
     expect(links).toEqual({ facebook: "https://facebook.com/x", instagram: "https://instagram.com/x" });
     expect(activeSocialLinks(links).map(([network]) => network)).toEqual(["instagram", "facebook"]);
+  });
+});
+
+describe("social link normalisation and contact links", () => {
+  it("turns a WhatsApp number into a wa.me link and adds https to bare domains", () => {
+    expect(normalizeSocialLink("whatsapp", "+255 712 345 678")).toBe("https://wa.me/255712345678");
+    expect(normalizeSocialLink("instagram", "instagram.com/nolmark")).toBe("https://instagram.com/nolmark");
+    expect(normalizeSocialLink("facebook", "  ")).toBe("");
+  });
+
+  it("rejects links that point at the wrong network or are insecure", () => {
+    expect(socialLinkProblem("instagram", "https://facebook.com/x")).toMatch(/not a instagram/);
+    expect(socialLinkProblem("youtube", "http://youtube.com/x")).toMatch(/https/);
+    expect(socialLinkProblem("x", "https://twitter.com/x")).toBeNull();
+    expect(socialLinkProblem("whatsapp", "https://wa.me/255712345678")).toBeNull();
+    expect(socialLinkProblem("tripadvisor", "https://www.tripadvisor.co.uk/Hotel_Review-x")).toBeNull();
+  });
+
+  it("drops invalid stored links when rendering", () => {
+    expect(parseSocialLinks({ instagram: "https://evil.example/x", whatsapp: "+255 712 345 678", facebook: "" })).toEqual({ whatsapp: "https://wa.me/255712345678" });
+  });
+
+  it("validates admin input and reports the network at fault", () => {
+    expect(socialLinksSchema.safeParse({ instagram: "instagram.com/a", tiktok: "" }).data).toEqual({ instagram: "https://instagram.com/a" });
+    const bad = socialLinksSchema.safeParse({ linkedin: "https://example.com" });
+    expect(bad.success).toBe(false);
+    expect(bad.error?.issues[0].message).toMatch(/^linkedin:/);
+  });
+
+  it("builds dialer-safe phone links", () => {
+    expect(telHref("+255 (712) 345-678")).toBe("tel:+255712345678");
+    expect(telHref("0712 345 678")).toBe("tel:0712345678");
+    expect(telHref("call us")).toBe("");
   });
 });

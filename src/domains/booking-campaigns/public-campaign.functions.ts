@@ -58,6 +58,7 @@ export const getPublicBookingProperty = createServerFn({ method: "GET" })
         description: row.description ?? null,
         hero_image_url: row.hero_image_url ?? null,
         gallery_image_urls: publicGalleryUrls(row.gallery_image_urls),
+        show_staynas_attribution: row.show_staynas_attribution ?? true,
         ...parseTemplateContent(row),
         socialLinks: parseSocialLinks(row.social_links),
       },
