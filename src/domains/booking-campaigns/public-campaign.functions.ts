@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { resolvePublicDirectBookingChannel } from "@/lib/public-booking-channel.server";
-import { parseTemplateContent, publicGalleryUrls } from "@/lib/direct-booking-content";
+import { parseSocialLinks, parseTemplateContent, publicGalleryUrls } from "@/lib/direct-booking-content";
 
 const campaignSlug = z.string().trim().min(2).max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 const campaignIdSchema = z.string().uuid();
@@ -59,6 +59,7 @@ export const getPublicBookingProperty = createServerFn({ method: "GET" })
         hero_image_url: row.hero_image_url ?? null,
         gallery_image_urls: publicGalleryUrls(row.gallery_image_urls),
         ...parseTemplateContent(row),
+        socialLinks: parseSocialLinks(row.social_links),
       },
     };
   });
